@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "crFixtureDoc": "cr-doc",
+  "materials": {
+    "crFixtureSection": "cr-section",
+    "entries": [
+      {
+        "id": "m1",
+        "videoId": "hash-love",
+        "createdAtMs": 1700000000000,
+        "durationMs": 12345,
+        "sourceStartMs": 6789,
+        "fileName": "rec_1.mp4",
+        "sizeBytes": 42,
+        "crFixtureElement": "cr-element"
+      }
+    ]
+  }
+}

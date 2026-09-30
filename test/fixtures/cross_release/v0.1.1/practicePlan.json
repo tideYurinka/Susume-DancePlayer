@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "crFixtureDoc": "cr-doc",
+  "entries": [
+    {
+      "videoId": "hash-love",
+      "socialLibrary": false,
+      "crFixtureElement": "cr-element",
+      "ddl": {
+        "date": "2026-10-01",
+        "occasion": "演出",
+        "remark": "带扇子",
+        "leadDays": 3,
+        "crFixtureNested": "cr-nested",
+        "checklist": [
+          {
+            "text": "带水",
+            "checked": true,
+            "crFixtureItem": "cr-item"
+          }
+        ],
+        "settlement": {
+          "outcome": "onTime",
+          "judgedOn": "2026-10-02"
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "e1",
+      "type": "socialDanceEvent",
+      "date": "2026-11-08",
+      "startTime": "19:30",
+      "location": "滨江区",
+      "remark": "带音箱",
+      "danceIds": [
+        "hash-love"
+      ],
+      "checklist": [
+        {
+          "text": "充电宝",
+          "checked": true
+        }
+      ]
+    }
+  ]
+}

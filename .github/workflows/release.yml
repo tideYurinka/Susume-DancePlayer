@@ -1,0 +1,259 @@
+# 发布流水线（release-and-update 票 03 建、票 04 加守卫与手动内测包）。
+#
+# 触发：
+#   - 推 `v*` tag：先在构建**之前**过三道守卫（tag 与 pubspec 版本一致、
+#     构建号不与远端冲突、不降级），再构建 arm64 release 包、用正式 keystore
+#     签名、经 S3 兼容接口上传到 R2，并挂一份同源镜像到 GitHub Release
+#     （包与版本清单两个资产，更新说明取同一条 tag 注解）。
+#     镜像只是多一个下载面：App 更新检查读的仍是 R2 上的固定清单，
+#     GitHub Release 不参与更新判定。
+#   - workflow_dispatch：不推 tag 也能出一份内测包，作为构建产物归档；它不
+#     过 R2 上传，不碰固定地址的版本清单。
+#
+# 发布门：整个 job 绑在 `release` environment 上。环境配了必需审批人，所以
+# 无论 tag 推送还是手动触发，job 都要等人批过才碰得到 keystore 与 R2 凭据；
+# 环境的审批记录同时是「谁批的这次发布」的审计来源。
+#
+# 产物形状（spec「对象布局与缓存」）：
+#   releases/<版本名>/susume-<版本名>-arm64.apk  永久保留，immutable 长缓存
+#   latest.json                                  固定地址，no-store
+# 两者由同一次构建的同一份真实产物写出，App 更新检查与下载页读的是同一份清单。
+#
+# 凭据与桶名只来自仓库 secret 与 variable，工作流里没有任何明文凭据。
+# 失败时步骤名以阶段开头，收尾的「失败阶段结论」再把守卫 / 签名（keystore、
+# 凭据）/ 构建 / 上传里失败的那一段挑出来，不用翻整段日志。
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: 构建 arm64 release 包
+    runs-on: ubuntu-latest
+    environment: release
+    # write 只为创建 GitHub Release 镜像；读源码与 R2 上传都不依赖它。
+    permissions:
+      contents: write
+    env:
+      R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      GITHUB_REF_NAME: ${{ github.ref_name }}
+      PUBLIC_ORIGIN: https://dl.yurinka.top
+      REMOTE_MANIFEST: /tmp/remote-latest.json
+      APK: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+      MANIFEST: latest.json
+
+    steps:
+      - name: 取源码（含 tag 注解）
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # 守卫：远端已发布的构建号从公开域名下的固定清单读。只有明确 404 才算
+      # 首次发布；403/5xx 等其他 HTTP 状态与网络失败都不放过（否则守卫会被
+      # 静默绕过）。
+      - name: 守卫：取远端已发布的版本清单
+        id: guard-remote
+        if: github.event_name == 'push'
+        run: |
+          set -uo pipefail
+          status=$(curl -sS -o "${REMOTE_MANIFEST}" -w '%{http_code}' \
+            "${PUBLIC_ORIGIN}/latest.json") || {
+            echo "取远端版本清单失败：网络或传输错误" >&2
+            exit 1
+          }
+          case "${status}" in
+            200) echo "远端已有版本清单" ;;
+            404)
+              : > "${REMOTE_MANIFEST}"
+              echo "远端还没有版本清单，按首次发布处理"
+              ;;
+            *)
+              echo "取远端版本清单返回 HTTP ${status}，不按首次发布处理" >&2
+              exit 1
+              ;;
+          esac
+
+      # 守卫在装工具链与构建**之前**跑完：tag 写错了不该先花几分钟装
+      # Flutter/JDK/NDK。失败信息以守卫名开头；这里一并跑两条文档守卫
+      # （覆盖检查、地板棘轮）。
+      - name: 守卫：tag 与版本一致、构建号不冲突不降级
+        id: guard
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          python3 tool/release_guard.py \
+            --tag "${GITHUB_REF_NAME}" \
+            --remote-manifest "${REMOTE_MANIFEST}"
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # runner 上不一定有可用的 sdkmanager（版本与 PATH 随镜像变），先按官方
+      # 方式装好命令行工具，再显式装两个版本。
+      - name: 安装 Android 命令行工具
+        uses: android-actions/setup-android@v4
+
+      # 节拍识别的 DSP/AAudio 原生库必须真的被编出来并进包，所以 NDK 与
+      # CMake 都按 Flutter 工具链要求的版本显式装（本机原生构建用的是系统
+      # cmake，runner 上不能指望版本正好对上）。
+      - name: 安装构建所需的 NDK 与 CMake
+        run: |
+          set -euo pipefail
+          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
+
+      - name: 签名：还原正式签名 keystore
+        id: keystore
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_B64}" ]; then
+            echo "缺少 ANDROID_KEYSTORE_BASE64：正式发布必须用正式 keystore 签名" >&2
+            exit 1
+          fi
+          # 还原 keystore（JKS 二进制不进仓库，只在 runner 的工作目录里存在）
+          printf '%s' "${ANDROID_KEYSTORE_B64}" \
+            | base64 --decode > android/susume-release.jks
+          # android/key.properties 的 storeFile 按 android/ 解析（见
+          # android/app/build.gradle.kts 的 rootProject.file）。
+          {
+            echo "storeFile=susume-release.jks"
+            echo "keyAlias=${ANDROID_KEY_ALIAS}"
+            echo "storePassword=${ANDROID_KEYSTORE_PASSWORD}"
+            echo "keyPassword=${ANDROID_KEYSTORE_PASSWORD}"
+          } > android/key.properties
+
+      # `--split-per-abi` + 单一 target-platform 只产出 arm64-v8a 那一份；
+      # `-P force-version-code-ignoring-abi=true` 消掉 split 给 versionCode 加的
+      # ABI 偏移，让版本号真源只有 pubspec.yaml 的 `n`（spec「构建与签名」）。
+      - name: 构建：arm64 release 包
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build apk --release --target-platform android-arm64 --split-per-abi \
+            -P force-version-code-ignoring-abi=true
+          test -f "${APK}" || {
+            echo "没有产出预期的 arm64 包：${APK}" >&2
+            exit 1
+          }
+          # 包必须是 arm64-only，且原生库（节拍 DSP、AAudio 渲染）真的在里面。
+          unzip -l "${APK}" | grep -q 'lib/arm64-v8a/libbeat_native.so' || {
+            echo "包内没有 arm64 节拍原生库：原生构建没有进包" >&2
+            exit 1
+          }
+          if unzip -l "${APK}" | grep -q 'lib/armeabi'; then
+            echo "包里混进了非 arm64 的原生库" >&2
+            exit 1
+          fi
+          # 产物的 versionCode 必须就是 pubspec.yaml 的 `n`：将来谁改了
+          # split / ABI 设置，这条契约不能悄悄坏掉。
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          AAPT2=$(ls "${SDK_ROOT}"/build-tools/*/aapt2 | tail -1)
+          "${AAPT2}" dump badging "${APK}" > /tmp/badging.txt
+          BUILT_CODE=$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          PUBSPEC_CODE=$(sed -n 's/^version: *[0-9.]*+\([0-9]*\).*/\1/p' pubspec.yaml | head -1)
+          echo "产物 versionCode=${BUILT_CODE}，pubspec 构建号=${PUBSPEC_CODE}"
+          test "${BUILT_CODE}" = "${PUBSPEC_CODE}" || {
+            echo "产物 versionCode 与 pubspec.yaml 的构建号不一致" >&2
+            exit 1
+          }
+
+      - name: 上传：生成版本清单
+        id: manifest
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          python3 tool/release_manifest.py \
+            --size "$(stat -c%s "${APK}")" \
+            --tag "${GITHUB_REF_NAME}" \
+            --out "${MANIFEST}"
+
+      - name: 上传：发布到 R2
+        id: upload
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          VERSION_NAME=$(python3 -c "import json;print(json.load(open('${MANIFEST}'))['version_name'])")
+          R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          # 版本化路径：永久保留，长缓存不可变。
+          aws s3 cp "${APK}" \
+            "s3://${R2_BUCKET}/releases/${VERSION_NAME}/susume-${VERSION_NAME}-arm64.apk" \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --content-type application/vnd.android.package-archive \
+            --cache-control "public, max-age=31536000, immutable"
+          # 固定地址的清单：no-store，每次读到的都是当前版本。
+          aws s3 cp "${MANIFEST}" \
+            "s3://${R2_BUCKET}/latest.json" \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --content-type application/json \
+            --cache-control "no-store"
+
+      # 同源镜像：包与版本清单都取自这次构建的同一份产物，更新说明取同一条
+      # tag 注解，因此 GitHub Release、R2 与 App 三处读到的口径完全一致。
+      # 已存在同名 Release 时这一步失败——发布产物不许被静默覆盖（与守卫
+      # 拦「构建号重复」同一条纪律）。
+      - name: 上传：挂 GitHub Release 镜像
+        id: gh-release
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          VERSION_NAME=$(python3 -c "import json;print(json.load(open('${MANIFEST}'))['version_name'])")
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > /tmp/release-notes.md
+          test -s /tmp/release-notes.md || {
+            echo "tag ${GITHUB_REF_NAME} 没有注解说明，不创建没有说明的 Release" >&2
+            exit 1
+          }
+          gh release create "${GITHUB_REF_NAME}" \
+            "${APK}#susume-${VERSION_NAME}-arm64.apk" \
+            "${MANIFEST}#latest.json" \
+            --title "Susume ${VERSION_NAME}" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
+
+      # 手动触发只归档一份内测包：不上传 R2，也不动固定地址的清单。
+      - name: 手动：归档内测包
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: susume-arm64-beta-${{ github.run_number }}
+          path: ${{ env.APK }}
+          if-no-files-found: error
+
+      - name: 失败阶段结论
+        if: failure()
+        run: |
+          stage="构建"
+          if [ "${{ steps['guard-remote'].outcome }}" = "failure" ] ||
+             [ "${{ steps.guard.outcome }}" = "failure" ]; then
+            stage="守卫"
+          fi
+          if [ "${{ steps.keystore.outcome }}" = "failure" ]; then
+            stage="签名（keystore / 凭据）"
+          fi
+          if [ "${{ steps.manifest.outcome }}" = "failure" ] ||
+             [ "${{ steps.upload.outcome }}" = "failure" ] ||
+             [ "${{ steps['gh-release'].outcome }}" = "failure" ]; then
+            stage="上传"
+          fi
+          echo "发布失败：失败阶段 = ${stage}"
+          echo "::error::发布在「${stage}」阶段失败"

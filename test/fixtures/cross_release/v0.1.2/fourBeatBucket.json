@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "crFixtureDoc": "cr-doc",
+  "signature": {
+    "dancer": "如",
+    "song": "My Love",
+    "remark": "9人版",
+    "crFixtureSection": "cr-section"
+  },
+  "ledger": {
+    "days": {
+      "2026-09-05": {
+        "3": {
+          "wallSeconds": 12.5,
+          "sweeps": 2
+        },
+        "crFixtureElement": "cr-element"
+      }
+    },
+    "crFixtureNested": "cr-nested"
+  }
+}

@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 分析 + 测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取源码
+        uses: actions/checkout@v7
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 取依赖
+        run: flutter pub get
+
+      - name: 静态分析
+        run: flutter analyze
+
+      - name: 测试
+        run: flutter test

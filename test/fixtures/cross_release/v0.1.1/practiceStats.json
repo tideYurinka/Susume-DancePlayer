@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "crFixtureDoc": "cr-doc",
+  "sessions": [
+    {
+      "start": "2026-09-05T20:12:03.000",
+      "videoId": "hash-love",
+      "song": "My Love",
+      "dancer": "如",
+      "remark": "9人版",
+      "wallSeconds": 372.4,
+      "crFixtureElement": "cr-element"
+    }
+  ]
+}

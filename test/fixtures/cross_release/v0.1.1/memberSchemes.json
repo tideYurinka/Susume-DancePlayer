@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "crFixtureDoc": "cr-doc",
+  "schemes": {
+    "crFixtureSection": "cr-section",
+    "entries": [
+      {
+        "schemeId": "s1",
+        "memberName": "小如",
+        "schemeName": "My Love 真值",
+        "mastery": {
+          "0": 2,
+          "1": 4
+        },
+        "importedAtMs": 1700000000000,
+        "markers": {
+          "version": 7,
+          "meta": {
+            "signature": {
+              "dancer": "如",
+              "song": "My Love",
+              "remark": "9人版"
+            }
+          }
+        },
+        "crFixtureElement": "cr-element"
+      }
+    ]
+  }
+}

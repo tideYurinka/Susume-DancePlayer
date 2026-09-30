@@ -1,0 +1,51 @@
+{
+  "model": "madmom_downbeat (RNNDownBeatProcessor 2016 blstm ensemble, ONNX port)",
+  "files": {
+    "full": "madmom_downbeat_full.onnx",
+    "subset_4x": "madmom_downbeat_blstm4.onnx"
+  },
+  "ensemble": {
+    "full": "mean of all 8 madmom blstm models (downbeats_blstm_1..8); this is exactly the model set madmom's DOWNBEATS_BLSTM / RNNDownBeatProcessor uses",
+    "subset_4x": "mean of the first 4 blstm models (downbeats_blstm_1..4); smaller/faster approximation"
+  },
+  "input": {
+    "name": "pcm",
+    "dtype": "float32",
+    "shape": "[T] (1-D, arbitrary length, dynamic)",
+    "sample_rate_hz": 44100,
+    "channels": 1,
+    "value_range": "[-1.0, 1.0]  (i.e. int16_samples / 32768; madmom's internal convention)",
+    "resampling": "NOT included in the graph - caller must resample to 44100 Hz mono first"
+  },
+  "output": {
+    "name": "activations_out",
+    "dtype": "float32",
+    "shape": "[n_frames, 2]",
+    "columns": ["beat_prob", "downbeat_prob"],
+    "fps": 100,
+    "n_frames": "floor(T / 441) + ... exactly ceil(T/441) = madmom end='normal' framing; first frame centered at sample 0"
+  },
+  "graph": {
+    "opset": 17,
+    "preprocessing_embedded": [
+      "zero-pad + dynamic framing via Gather (hop=441, hanning window, frame sizes 1024/2048/4096, centered origin like madmom offline mode)",
+      "STFT via opset-17 DFT op (onesided, Nyquist bin dropped like madmom)",
+      "magnitude = sqrt(re^2+im^2)",
+      "madmom LogarithmicFilterbank (bands/octave 3/6/12, fmin=30, fmax=17000, norm_filters=True, unique filters) baked as constants",
+      "log10(1 + x)",
+      "positive temporal diff (lag 1/1/2 frames per resolution, first lag frames zeroed)",
+      "hstack [log, diff] per resolution, hstack all -> 314-dim features"
+    ],
+    "rnn": "8x bidirectional LSTM (hidden 25, peepholes P) as native ONNX LSTM nodes + softmax(3) heads, non-beat column dropped, mean over models"
+  },
+  "validation": {
+    "reference": "madmom 0.17.dev0 RNNDownBeatProcessor on the same 44100 Hz int16 WAV files",
+    "threshold": "max_abs_err < 1e-2 and corr > 0.99",
+    "results": "see validation_results.json",
+    "full_model_summary": {
+      "smoke_click_44k.wav": {"max_abs_err": 5.96e-06, "corr_beat": 1.0, "corr_downbeat": 0.99999988, "dbn_identical": true},
+      "test_music_44k.wav": {"max_abs_err": 1.88e-06, "corr_beat": 0.99999988, "corr_downbeat": 1.0, "dbn_identical": true}
+    }
+  },
+  "runtime_hint": "onnxruntime CPU: ~0.55 s for 30 s audio (~55x realtime) on desktop; LSTM peepholes require a runtime with full ONNX LSTM support (onnxruntime >= 1.14 for the DFT op)"
+}

@@ -1,0 +1,10 @@
+{
+  "markers": { "floor": 7, "version": 9 },
+  "local": { "floor": 3, "version": 4 },
+  "videoIndex": { "floor": 2, "version": 2 },
+  "practiceStats": { "floor": 2, "version": 2 },
+  "practicePlan": { "floor": 1, "version": 1 },
+  "fourBeatBucket": { "floor": 1, "version": 1 },
+  "memberSchemes": { "floor": 1, "version": 2 },
+  "materialManifest": { "floor": 2, "version": 3 }
+}

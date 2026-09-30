@@ -1,0 +1,91 @@
+{
+  "version": 8,
+  "crFixtureDoc": "cr-doc",
+  "meta": {
+    "mirrored": true,
+    "localMirrorEnabled": false,
+    "signature": {
+      "dancer": "如",
+      "song": "My Love",
+      "remark": "9人版"
+    },
+    "coverPositionMs": 4200,
+    "crFixtureSection": "cr-section"
+  },
+  "beat": {
+    "model": "madmom_downbeat_rnn_full.onnx",
+    "fps": 100,
+    "generatedAt": "2026-09-05T10:00:00.000Z",
+    "beats": [
+      {
+        "t": 0.44,
+        "down": false
+      },
+      {
+        "t": 0.94,
+        "down": true
+      }
+    ]
+  },
+  "corrections": {
+    "shift": 0.25,
+    "anchors": [
+      4,
+      12
+    ]
+  },
+  "annotations": {
+    "range": {
+      "startMs": 0,
+      "endMs": 258182
+    },
+    "segmentLines": [
+      {
+        "timeMs": 4200,
+        "flag": true,
+        "crFixtureElement": "cr-element"
+      },
+      {
+        "timeMs": 38000,
+        "flag": false
+      }
+    ],
+    "halfBeatLines": [
+      {
+        "timeMs": 3700
+      }
+    ],
+    "emphasizedSegments": [
+      1
+    ],
+    "localMirrorFragments": [
+      {
+        "startMs": 1000,
+        "endMs": 2000
+      }
+    ]
+  },
+  "notes": {
+    "notes": [
+      {
+        "startMs": 8000,
+        "endMs": 16000,
+        "text": "@果 注意手位",
+        "locked": true,
+        "geometry": {
+          "centerX": 0.5,
+          "centerY": 0.4,
+          "scale": 1.25
+        }
+      }
+    ]
+  },
+  "roster": {
+    "dancers": [
+      {
+        "name": "果",
+        "color": 4294901760
+      }
+    ]
+  }
+}

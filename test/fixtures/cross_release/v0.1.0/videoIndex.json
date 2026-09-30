@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "crFixtureDoc": "cr-doc",
+  "entries": [
+    {
+      "videoId": "hash-love",
+      "displayName": "My Love 练习室",
+      "filePath": "/data/user/0/app/files/videos/love.mp4",
+      "sizeBytes": 734003200,
+      "fastKey": "734003200:love.mp4",
+      "mirrored": true,
+      "mirrorAsked": true,
+      "localMirrorEnabled": false,
+      "lastOpenedAt": "2026-09-05T20:12:03.000",
+      "signatureCache": {
+        "dancer": "如",
+        "song": "My Love",
+        "remark": "9人版"
+      },
+      "lastPositionMs": 42000,
+      "crFixtureElement": "cr-element"
+    }
+  ]
+}

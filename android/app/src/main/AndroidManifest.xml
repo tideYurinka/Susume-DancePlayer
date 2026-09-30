@@ -1,0 +1,114 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- 版本清单与更新包：读自有域名的版本
+         清单、下载更新包；普通权限，无运行时弹窗。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 请求安装应用内下载的更新包：本权限本身
+         不授权安装；API 26+ 仍需用户在「安装未知应用」里按应用放行，正是
+         提示条「需要允许安装未知应用」那一步。 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- 相机采集：对比练习前置摄像头；
+         运行时权限走系统流程，不引额外权限框架。 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 原生震动：热力图滑动选择模式进入反馈；普通权限，
+         无运行时弹窗。 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 系统推送：本地通知投递；API 33+ 运行时申请 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 帮助正文的图片保存：Android 10
+         及以下写系统相册由 gal 走 MediaStore 需要本权限；Android 11+ 起相册
+         写入不再需要它，故以 maxSdkVersion 29 收口。camera_android_camerax
+         也声明了本权限但收到 28，两处 maxSdkVersion 不同会让清单合并失败，
+         故以 tools:replace 取本处的 29。 -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
+    <application
+        android:label="Susume"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- 入站分享：两条独立
+                 filter——content + pathPattern 对保留文件名的发送方有效
+                 （pathPattern 要求 scheme 与 host 同时声明，缺一则整组路径
+                 属性失效）；显式 MIME 应对隐藏扩展名的发送方。两条不合并
+                 （MIME 判据为空的 intent 匹配不上声明了 MIME 的 filter），
+                 不声明裸 */*。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <!-- pathPattern 的 `.*` 不跨「.」：路径里每多一个点就要多
+                     一层 `.*\.`，故枚举 0–2 个中间点的变体（QQ/微信的
+                     content 路径实测落在其中）。 -->
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:pathPattern=".*\.susume"/>
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:pathPattern=".*\..*\.susume"/>
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:pathPattern=".*\..*\..*\.susume"/>
+            </intent-filter>
+            <!-- 文档中的 `.*\\.susume` 是转义记法，实际声明
+                 即 `.*\.susume`（`\.` = 字面点）；真机验收以此条 filter 为准。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+        </activity>
+        <!-- 出站分享 FileProvider：路径覆盖应用私有
+             目录（res/xml/file_paths.xml），以 content URI + 读权限递出
+             susume 包原文件，零复制。 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>

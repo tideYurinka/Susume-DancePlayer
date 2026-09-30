@@ -1,0 +1,103 @@
+import 'package:dance_learning_app/persistence/song_signature.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('sanitizeSignature（净化边界）', () {
+    test('无净化需求时三字段原样保留', () {
+      const raw = SongSignature(dancer: '如', song: 'My Love', remark: '9人版');
+      expect(sanitizeSignature(raw, fallbackSong: 'x.mp4'), raw);
+    });
+
+    test('去首尾空白', () {
+      const raw = SongSignature(
+        dancer: ' 如 ',
+        song: ' My Love ',
+        remark: ' 9人版 ',
+      );
+      expect(
+        sanitizeSignature(raw, fallbackSong: 'x.mp4'),
+        const SongSignature(dancer: '如', song: 'My Love', remark: '9人版'),
+      );
+    });
+
+    test('剥离控制字符与换行（C0 与 DEL）', () {
+      const raw = SongSignature(
+        dancer: '如\x00',
+        song: 'My\nLove\x1b',
+        remark: '\x7f9人版\r\n',
+      );
+      expect(
+        sanitizeSignature(raw, fallbackSong: 'x.mp4'),
+        const SongSignature(dancer: '如', song: 'MyLove', remark: '9人版'),
+      );
+    });
+
+    test('歌曲名净化后为空回退净化后的文件名', () {
+      const raw = SongSignature(dancer: '如', song: '   ', remark: '9人版');
+      expect(
+        sanitizeSignature(raw, fallbackSong: ' 123.mp4 '),
+        const SongSignature(dancer: '如', song: '123.mp4', remark: '9人版'),
+      );
+    });
+
+    test('歌曲名全为控制字符同样回退文件名', () {
+      const raw = SongSignature(song: '\n\t');
+      expect(sanitizeSignature(raw, fallbackSong: 'a.mp4').song, 'a.mp4');
+    });
+
+    test('回退文件名也为空时歌曲名为空串（显示层再回退）', () {
+      const raw = SongSignature(song: ' ');
+      expect(sanitizeSignature(raw, fallbackSong: '').song, '');
+    });
+  });
+
+  group('signatureDisplayText（显示串渲染）', () {
+    test('未署名回退文件名', () {
+      expect(signatureDisplayText(null, 'dance.mp4'), 'dance.mp4');
+    });
+
+    test('歌曲名为空视为未署名，回退文件名', () {
+      expect(
+        signatureDisplayText(const SongSignature(dancer: '如'), 'dance.mp4'),
+        'dance.mp4',
+      );
+    });
+
+    test('完整三段：「版本舞者」歌曲名 - 版本注记', () {
+      expect(
+        signatureDisplayText(
+          const SongSignature(dancer: '如', song: 'My Love', remark: '9人版'),
+          'dance.mp4',
+        ),
+        '「如」My Love - 9人版',
+      );
+    });
+
+    test('空舞者省略「」段', () {
+      expect(
+        signatureDisplayText(
+          const SongSignature(song: 'My Love', remark: '9人版'),
+          'dance.mp4',
+        ),
+        'My Love - 9人版',
+      );
+    });
+
+    test('空注记省略「 - 注记」段', () {
+      expect(
+        signatureDisplayText(
+          const SongSignature(dancer: '如', song: 'My Love'),
+          'dance.mp4',
+        ),
+        '「如」My Love',
+      );
+    });
+
+    test('只有歌曲名', () {
+      expect(
+        signatureDisplayText(const SongSignature(song: 'My Love'), 'dance.mp4'),
+        'My Love',
+      );
+    });
+  });
+}

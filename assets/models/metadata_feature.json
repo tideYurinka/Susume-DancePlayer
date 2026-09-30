@@ -1,0 +1,54 @@
+{
+  "model": "madmom_downbeat RNN ensemble only (front-end removed from ONNX graph)",
+  "why": "The full-pipeline ONNX (madmom_downbeat_full.onnx) embeds the STFT/framing front-end as opset-17 DFT + dynamic Gather nodes. onnxruntime-android 1.23.0 on a Huawei DNP-AN00 (API 36) SIGSEGVs inside OrtSession.run on that front-end (works on desktop). So the front-end is moved out of the graph into device code (lib/preprocess.dart / gen_features.py); the ONNX graph now contains only the RNN + activation head, which is stable on-device.",
+  "files": {
+    "full": "madmom_downbeat_rnn_full.onnx",
+    "subset_4x": "madmom_downbeat_rnn_blstm4.onnx"
+  },
+  "ensemble": {
+    "full": "mean of all 8 madmom blstm models (downbeats_blstm_1..8) - exactly madmom DOWNBEATS_BLSTM",
+    "subset_4x": "mean of the first 4 blstm models (downbeats_blstm_1..4)"
+  },
+  "input": {
+    "name": "features",
+    "dtype": "float32",
+    "shape": "[n_frames, 314]  (2-D; n_frames dynamic)",
+    "in_graph_reshape": "[n_frames, 1, 314] (ONNX LSTM [seq, batch, input]) - done inside the graph",
+    "feature_dim": 314,
+    "per_frame_layout": "concat over frame sizes [1024, 2048, 4096], in that fixed order, each as [log10-filterbank(1+x) columns then positive-diff columns] => per size [n_bands log | n_bands diff]",
+    "log_dim_per_size": {"1024": 21, "2048": 45, "4096": 91},
+    "diff_lag_frames": {"1024": 1, "2048": 1, "4096": 2},
+    "n_bands_total": 157,
+    "note": "2 * 157 = 314 columns. Exact row order = the concatenation the full ONNX graph produced internally, so feeding these features reproduces the same RNN output."
+  },
+  "feature_generation": {
+    "pcm_source": "44100 Hz mono float32 in [-1, 1] (madmom int16/32768 convention). Front-end is NOT in the graph - device must compute features from PCM.",
+    "python_reference": "gen_features.py (conda env beat-proto-c) -> my_preproc in preproc_ref.py, aligned to madmom RNNDownBeatProcessor front-end to ~1e-7.",
+    "dart": "lib/preprocess.dart, validated against gen_features.py by tool/preprocess_check.dart (target max feature err < 1e-3; log-domain differences acceptable if RNN activations track madmom).",
+    "stft": "radix-2 FFT per frame. Hanning windows, frame sizes 1024/2048/4096, hop 441 (100 fps), zero-padded centered framing origin=0 (frame t = samples [t*441 - size/2 ... +size/2)), boundary zero-fill. Use f32 log-domain tolerance ~1e-5/1e-3."
+  },
+  "timing": {
+    "hop": 441,
+    "fps": 100,
+    "n_frames_for_T_samples": "floor((T-1)/441)+1  == ceil(T/441)"
+  },
+  "output": {
+    "name": "activations_out",
+    "dtype": "float32",
+    "shape": "[n_frames, 2]",
+    "columns": ["beat_prob", "downbeat_prob"],
+    "fps": 100
+  },
+  "graph": {
+    "opset": 17,
+    "content": "8x (3-layer bidirectional LSTM H=25 with peephole P as native ONNX LSTM + FF 50->3 + Softmax + drop non-beat column), then ReduceMean -> [n,2]. Identical nodes/weights to the RNN part of madmom_downbeat_full.onnx."
+  },
+  "validation": {
+    "method": "features from gen_features.py -> pure RNN onnx; compare to madmom RNNDownBeatProcessor full chain and to madmom_downbeat_full.onnx fed raw PCM",
+    "threshold": "max_abs_err < 1e-3 per frame",
+    "results": {
+      "smoke_click_44k.wav": {"rnn_vs_full_model_max": 6.1e-07, "rnn_vs_madmom_max": 5.9e-06, "pass": true},
+      "test_music_44k.wav": {"rnn_vs_full_model_max": 4.2e-07, "rnn_vs_madmom_max": 2.2e-06, "pass": true}
+    }
+  }
+}

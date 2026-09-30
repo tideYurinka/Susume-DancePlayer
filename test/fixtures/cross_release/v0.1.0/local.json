@@ -1,0 +1,61 @@
+{
+  "version": 3,
+  "crFixtureDoc": "cr-doc",
+  "session": {
+    "mastery": {
+      "0": "learning",
+      "1": "mastered"
+    },
+    "activatedSegments": [
+      0,
+      1
+    ],
+    "activePracticeClipId": "clip-1",
+    "crFixtureSection": "cr-section"
+  },
+  "prefs": {
+    "previewSnapEnabled": false,
+    "layoutLocked": true,
+    "overlay": {
+      "dx": 12.5,
+      "dy": -4.5,
+      "landscapeDx": 30.25,
+      "landscapeDy": -8.0,
+      "crFixtureNested": "cr-nested"
+    },
+    "beatPrompt": {
+      "animation": true,
+      "animationStyle": "pendulum",
+      "sound": false,
+      "halfBeat": true
+    },
+    "speedRate": 1.25,
+    "practiceMirror": true,
+    "framingSource": {
+      "scale": 1.5,
+      "offsetX": 0.1,
+      "offsetY": -0.2
+    },
+    "framingPractice": {
+      "scale": 2.0,
+      "offsetX": 0.0,
+      "offsetY": 0.3
+    },
+    "practiceClips": [
+      {
+        "id": "clip-1",
+        "materialId": "m1",
+        "materialSourceStartMs": 500,
+        "inMs": 500,
+        "outMs": 5500,
+        "materialDurationMs": 6000
+      }
+    ],
+    "autoDelete": {
+      "enabled": true,
+      "strategy": "days",
+      "keepCount": 30,
+      "keepDays": 90
+    }
+  }
+}

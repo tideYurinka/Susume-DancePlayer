@@ -1,0 +1,20 @@
+# --- 本机专用：存在但不入库 ---
+/.agents/skills/
+/.scratch/
+/.wt/
+/.vscode/
+/devtools_options.yaml
+/tool/site_stats.py
+
+# --- 构建产物 ---
+# Dart/Flutter
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+app.*.symbols
+app.*.map.json
+**/doc/api/
+**/ios/Flutter/.last_build_id
+# Android 侧 Gradle 报告与中间产物（key.properties / keystore 见 android/.gitignore）
+/android/build/

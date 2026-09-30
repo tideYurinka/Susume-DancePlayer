@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 出站分享 FileProvider 的路径声明：
+     覆盖应用私有目录整体（susume_share/ 包目录在 files/ 下、源视频副本
+     在文档目录 app_flutter/ 下——后者不在任何标准根内，只能用 root-path），
+     递出的是原文件（content URI + 逐 URI 读授权，零复制；provider 非
+     exported，外部无法自行构造 URI）。 -->
+<paths>
+    <files-path name="files" path="." />
+    <root-path name="root" path="." />
+</paths>

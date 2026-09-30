@@ -1,0 +1,149 @@
+units:
+  first_run:
+    title: 首次启动
+    description: 欢迎、下载视频图文与帮助中心位置
+  player_drill:
+    title: 播放手势
+    description: 做一遍播放器核心手势(调进度等)
+  editor_intro:
+    title: 轨道编辑
+    description: 放大轨道、点一段循环练这一段，调整分段线
+  practice_range:
+    title: 首尾线
+    description: 这两条线内部是练习范围
+  badge_segment:
+    title: 分段
+    description: 分段线的添加、选中与删除
+  badge_auto_segment:
+    title: 自动分段
+    description: 自动设置首尾和分段线
+  badge_beat_prompt:
+    title: 节拍提示
+    description: 数拍动画、声音与节拍矫正
+  badge_speed:
+    title: 倍速
+    description: 循环练习时逐遍加速
+  badge_av_sync:
+    title: 音画同步
+    description: 声音延迟调节
+  badge_roster:
+    title: 名册
+    description: 添加舞者的名字和颜色，之后可快捷输入、在视频画面中用对应颜色标出
+  badge_local_mirror:
+    title: 局部镜像
+    description: 用于练习背身片段
+  badge_segment_flag:
+    title: 标记分段线
+    description: 给标记线做个记号，支持三指快速跳转
+  badge_three_finger_jump:
+    title: 三指跳转
+    description: 三指左右滑，跳到做了标记的分段线
+  badge_half_beat:
+    title: 半拍标记
+    description: 可以在半拍标记处播放半拍声
+
+steps:
+  first_run_welcome:
+    title: 欢迎使用 Susume
+    message: |-
+      这是一个免费练舞播放器
+      目前处于内测状态，可能有一些问题
+      QQ群1102058156
+      更多功能正在开发中
+    actions:
+      skip: 跳过教程
+      tour: 开始新手教程
+  first_run_download:
+    title: 下载视频
+    message: ''
+    actions:
+      later: 等会儿再下载
+      saved: 已经存好了
+  first_run_import:
+    title: 导入视频
+    message: 视频存好了，就从这儿导进来
+  first_run_help_download:
+    title: 帮助
+    message: 要下载视频时，从这儿找教程
+  first_run_help:
+    title: 帮助
+    message: 教程收起来了；以后想看就点这里
+  editor_intro_zoom:
+    title: 缩放和移动轨道
+    message: 两指张开把这一段放大，也可以两指左右移动
+  editor_intro_segment:
+    title: 点一段循环练
+    message: |-
+      点这一段就循环练这一段
+      想连着练好几段：长按住一段再左右拖，就能圈起连着的几段
+  editor_intro_line_handle:
+    title: 拖分段线
+    message: 线上的小把手可以拖着挪
+  practice_range_head:
+    title: 首尾线
+    message: 这两条线圈出练习范围：圈外的部分不参与分段和循环
+  badge_segment_select:
+    title: 选中分段线
+    message: 这是刚落的分段线；点这根小把手选中它
+  badge_segment_delete:
+    title: 删除分段线
+    message: 选中之后，点这里的「删除」就删掉
+  badge_auto_segment_step:
+    title: 自动分段
+    message: 一键按八拍切段：首尾自动设好，分段线按选择的八拍数自动切
+  badge_beat_prompt_animation:
+    title: 节拍提示
+    message: 在这里选择数拍动画样式
+  badge_beat_prompt_sound:
+    title: 节拍提示
+    message: 在这里选择节拍音源、是否播放半拍声、设置节拍音量
+  badge_beat_prompt_correct:
+    title: 节拍提示
+    message: 如果节拍不准就根据症状使用这一栏的工具矫正
+  badge_speed_step:
+    title: 倍速
+    message: 这里设置倍速步进：播放速度逐渐加快
+  badge_av_sync_delay:
+    title: 音画同步
+    message: 用 ＋ － 微调延迟，把画面对上声音
+  badge_roster_hint:
+    title: 名册
+    message: 添加舞者的名字和颜色，之后可快捷输入、用颜色标出名字
+  badge_local_mirror_step:
+    title: 局部镜像
+    message: 这块覆盖到的画面会叠加一次左右翻转
+  badge_local_mirror_switch:
+    title: 局部镜像
+    message: 刚落这块时镜像已经开了；练熟之后关掉它，再把转身加进来
+  badge_segment_flag_step:
+    title: 标记分段线
+    message: 标记是给这一段做个记号，回头一眼找到这一处
+  badge_three_finger_flag_step:
+    title: 标记分段线
+    message: 标记是给这一段做个记号，回头一眼找到这一处
+  badge_three_finger_jump_step:
+    title: 三指跳转
+    message: 三指左右滑，跳到做了标记的分段线
+  badge_half_beat_step:
+    title: 半拍标记
+    message: 它落在最近的半拍格点上，可以拖着挪；用于播放半拍声
+  drill_single_finger:
+    message: 单指左右滑慢慢调进度；拖进左上角，松手就退回原处
+  drill_two_finger:
+    message: 双指左右滑，调整进度更灵敏
+  drill_taps:
+    message: 把这几个动作各做一次
+    sub_checks:
+      drill_double_tap: 双击暂停/播放
+      drill_two_finger_double_tap: 双指双击延迟播放
+      drill_long_press: 长按临时 2 倍速
+
+ui:
+  next: 下一步
+  skip: 跳过
+  guide_units_title: 新手引导
+  reset_all: 重置所有教程
+  reset_dialog_title: 重置所有教程？
+  reset_dialog_body: 这些引导会在下次走到触发点时再演一次。导入的舞、标注与设置都不受影响。
+  reset_dialog_cancel: 取消
+  reset_dialog_confirm: 重置

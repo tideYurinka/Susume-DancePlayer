@@ -1,0 +1,26 @@
+Susume — 舞蹈跟练 App
+Copyright (C) 2026 tideYurinka
+
+本仓库以 GNU General Public License v3.0 发布，全文见 LICENSE。
+
+## 名称与标识
+
+GPL-3.0 授权只覆盖代码。`Susume` 名称、应用图标、logo 与官方视觉识别不在该授权范围内，著作权与商标权均予保留，使用条件见 TRADEMARK.md。
+
+## 第三方内容
+
+### madmom 预训练节拍模型
+
+`assets/models/madmom_downbeat_rnn_full.onnx`、`assets/models/filterbanks_f32.bin`
+及 `assets/models/metadata*.json` 描述的内容，是 CPJKU/madmom 的预训练模型
+（RNNDownBeatProcessor，DOWNBEATS_BLSTM 八模型集成）与滤波器组常量转换成
+ONNX 后的形态，属于 madmom 的 model and data files。
+
+madmom 的模型与数据文件以 Creative Commons Attribution-NonCommercial-ShareAlike
+4.0 International（CC BY-NC-SA 4.0）发布，**不适用本仓库的 GPL-3.0**：
+
+- 上游：https://github.com/CPJKU/madmom
+- 许可：https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+因此这些文件只可用于非商业用途；再分发或修改后的版本须保留署名并以相同许可
+发布。如需在商业产品中使用，请联系 madmom 的维护者。
