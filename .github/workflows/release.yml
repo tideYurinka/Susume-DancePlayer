@@ -215,6 +215,8 @@ jobs:
       - name: 上传：挂 GitHub Release 镜像
         id: gh-release
         if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           VERSION_NAME=$(python3 -c "import json;print(json.load(open('${MANIFEST}'))['version_name'])")
