@@ -79,8 +79,13 @@ SongSignature sanitizeSignature(
 /// 非法字符（`a.b.mp4 → a.b`、`dance → dance`、`.mp4 → .mp4`、
 /// `.hidden.mp4 → .hidden`、`DANCE.MP4 → DANCE`、`dance. → dance.`）。
 ///
-/// **本仓唯一一处去扩展名**：凡是把文件名当名字用的读面都过它；把文件名当
-/// **文件**用的地方（快速键、私有副本取唯一名）保持原始文件名。
+/// **本仓唯一一处「把文件名当名字用」的去扩展名点**：名字的世界的读面都过它
+/// （见 [danceDisplayTitle]）。文件的世界另有自己的截法、不吃这条规则——快速键
+/// 与私有副本取唯一名照吃原始文件名；两处**文件的名字**自带一套截法并有意
+/// 留在原处：`lib/help/platform_help_actions.dart` 交给相册 API 的 `name` 入参
+/// （相册按字节探测格式自己补扩展名）、`lib/persistence/document_quarantine.dart`
+/// 的旁路留档文件名（改这条规则会改动盘上文件名）。第四处去扩展名一冒出来即
+/// 触发 `test/architecture/naming_fallback_test.dart` 的护栏。
 String songFallbackName(String fileName) {
   final dot = fileName.lastIndexOf('.');
   if (dot <= 0 || dot == fileName.length - 1) return fileName;
@@ -89,10 +94,23 @@ String songFallbackName(String fileName) {
 
 /// 署名显示串（渲染层拼接）：`「版本舞者」歌曲名 -
 /// 版本注记`；空版本舞者/空注记省略对应部分；[signature] 为 null 或
-/// 歌曲名为空（未署名）时回退 [fallback]（文件名）。
+/// 歌曲名为空（未署名）时回退 [fallback]——回退串由调用方给，本函数不认它是
+/// 什么：把文件名当**名字**用的读面给 [danceDisplayTitle] 取好的「文件名回落
+/// 名」（不是原始文件名）。
 String signatureDisplayText(SongSignature? signature, String fallback) {
   if (signature == null || signature.song.isEmpty) return fallback;
   final dancer = signature.dancer.isEmpty ? '' : '「${signature.dancer}」';
   final remark = signature.remark.isEmpty ? '' : ' - ${signature.remark}';
   return '$dancer${signature.song}$remark';
 }
+
+/// 舞的显示标题：署名显示串 [signatureDisplayText] 优先，未署名（[signature]
+/// 为 null 或歌曲名为空）回落[文件名回落名][songFallbackName]（去扩展名的
+/// [fileName]）——**这一组合只有本处一份实现**，舞库卡片与舞页标题、组员方案
+/// 导入的舞标题、系统通知的名字表同调它（票 #12 的「与舞库卡片同源」，由
+/// `test/architecture/naming_fallback_test.dart` 钉住）。分享包名（`susumePackageFileName`，
+/// `lib/package/susume_package.dart`）另走一步——名字后面还要接 `.susume`、再去非法
+/// 字符——但回落同样只经 [songFallbackName]；别的回退串（如统计页的视频标识）各走
+/// 各的 [signatureDisplayText]，不混进这里。
+String danceDisplayTitle(SongSignature? signature, String fileName) =>
+    signatureDisplayText(signature, songFallbackName(fileName));

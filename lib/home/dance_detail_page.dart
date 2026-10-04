@@ -149,11 +149,11 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
   /// 未署名舞的初值与该框的回退文本都取「文件名回落名」（去扩展名的显示
   /// 名）——与播放页顶栏、命名框、统计记账同一读面。
   Future<void> _rename(DanceSnapshot dance) async {
-    final fallbackName = songFallbackName(dance.entry.displayName);
+    final fallback = songFallbackName(dance.entry.displayName);
     final initial = resolveSongNamingInitial(
       scene: SongNamingScene.rename,
       current: dance.signature,
-      fallbackFileName: fallbackName,
+      fallbackName: fallback,
     );
     final result = await showDialog<SongNamingResult>(
       context: context,
@@ -162,7 +162,7 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
         initialSong: initial.song,
         initialDancer: initial.dancer,
         initialRemark: initial.remark,
-        fallbackText: fallbackName,
+        fallbackText: fallback,
       ),
     );
     if (!mounted || result == null || !result.confirmed) return;

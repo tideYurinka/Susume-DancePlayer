@@ -219,12 +219,11 @@ class SchemeImporter {
     );
   }
 
-  /// 舞标题：署名缓存优先、「文件名回落名」（去扩展名）兜底——与舞库卡片
-  /// 同源（同取 [songFallbackName]，规则不在本层另写一份）。
-  String _danceTitle(VideoIndexEntry entry) => signatureDisplayText(
-    entry.signatureCache,
-    songFallbackName(entry.displayName),
-  );
+  /// 舞标题：与舞库卡片同源的读面口径 [danceDisplayTitle]（署名缓存优先、
+  /// 未署名回退「文件名回落名」即去扩展名）；组合规则只住纯件，本层不另写，
+  /// 本方法只把索引条目的两个字段喂进去。
+  String _danceTitle(VideoIndexEntry entry) =>
+      danceDisplayTitle(entry.signatureCache, entry.displayName);
 
   /// 完整导入：解析包 → 视频判据 → 按 [intent] 落成归属 → 返回结果。
   /// [package] 传入时不再重复解析（页面流程已读过一次）。

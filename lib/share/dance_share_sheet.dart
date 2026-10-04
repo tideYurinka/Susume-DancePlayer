@@ -123,7 +123,8 @@ class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
     List<SusumeMediaEntry> media,
   ) async => SusumeManifest(
     videoId: widget.dance.videoId,
-    // 未署名（无歌名）时回落显示名——清单 schemeName 必填非空。
+    // 未署名（无歌名）时回落舞的显示标题——它经「文件名回落名」去扩展名
+    // （`danceDisplayTitle`，与舞库卡片同一处口径）；清单 schemeName 必填非空。
     schemeName: widget.dance.signature?.song.isNotEmpty == true
         ? widget.dance.signature!.song
         : widget.dance.title,

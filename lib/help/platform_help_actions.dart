@@ -62,6 +62,13 @@ class PlatformHelpImageSaver implements HelpImageSaver {
 
 /// 资产文件名去掉扩展名：gal 的 `name` 入参不接受扩展名，它按字节探测格式
 /// 自己补。
+///
+/// 这处截法属**文件名的世界**（`name` 是相册里那个文件的名字，不是拿给用户
+/// 看的名字），规则与「文件名回落名」纯件（`persistence/song_signature.dart`
+/// 的 `songFallbackName`）是两条、有意各留一份：两者只在点在末尾这类资产名
+/// 里不出现的输入上分岔（`dance.` → 这里 `dance`、那里 `dance.`），且为一次
+/// 字符串截断不值得新开 `lib/help → lib/persistence` 这条跨上下文依赖。
+/// `test/architecture/naming_fallback_test.dart` 把本处登记为文件世界的豁免。
 String _withoutExtension(String name) {
   final dot = name.lastIndexOf('.');
   return dot <= 0 ? name : name.substring(0, dot);

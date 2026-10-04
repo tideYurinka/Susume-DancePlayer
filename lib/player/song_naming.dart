@@ -35,8 +35,8 @@ class SongNamingDialog extends StatefulWidget {
   /// 歌曲名初值（导入命名 = 空；改名 = 现歌名）。
   final String initialSong;
 
-  /// 预览回退文本（文件名回落名）：歌曲名为空时预览与保存后的实际落盘值
-  /// （回退文件名回落名）保持一致。
+  /// 预览回退文本：「文件名回落名」（已去扩展名）：歌曲名为空时预览与保存后
+  /// 的实际落盘值（同一回落名）保持一致。
   final String fallbackText;
 
   /// 版本舞者初值（改名带出现值）。
@@ -124,7 +124,7 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
   );
 
   /// 「保存」可用性 = 歌曲名 trim 非空；净化层
-  /// 的「歌曲名空 → 回退文件名」仍是防御契约，UI 门不替代它。
+  /// 的「歌曲名空 → 回退文件名回落名」仍是防御契约，UI 门不替代它。
   bool get _canSave => _song.text.trim().isNotEmpty;
 
   void _pop(bool confirmed) =>

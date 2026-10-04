@@ -9,7 +9,7 @@ import '../stats/song_signature.dart';
 typedef SongNamingPresenter = Future<SongNamingResult?> Function({
   required SongNamingScene scene,
   required SongNamingInitial initial,
-  required String fallbackFileName,
+  required String fallbackName,
   required bool barrierDismissible,
 });
 
@@ -31,25 +31,25 @@ typedef SongNamingPresenter = Future<SongNamingResult?> Function({
 ///   跳过按文件名署名（之后不再弹——署名已落盘）。
 /// - [rename]：顶栏改名编排。弹 rename 场景命名框（带出现值、可点框外
 ///   收起），保存提交、取消不改名。
-/// - [titleText]：顶栏署名显示串（未署名回退文件名）。
+/// - [titleText]：顶栏署名显示串（未署名回退「文件名回落名」）。
 class SongNamingSession {
   SongNamingSession({
     required this._signatureController,
-    required this._fallbackFileName,
+    required this._fallbackName,
     required this._presentNaming,
   });
 
   final SongSignatureController _signatureController;
 
-  /// 未署名时的回退文件名回落名（与顶栏回退一致；由调用侧的读面经
+  /// 未署名时的回退名：「文件名回落名」（与顶栏回退一致；由调用侧的读面经
   /// `songFallbackName` 取好——域不自行去扩展名）。
-  final String Function() _fallbackFileName;
+  final String Function() _fallbackName;
 
   final SongNamingPresenter _presentNaming;
 
-  /// 顶栏标题显示串：署名为空部分省略，未署名回退文件名。
+  /// 顶栏标题显示串：署名为空部分省略，未署名回退「文件名回落名」。
   String get titleText =>
-      signatureDisplayText(_signatureController.signature, _fallbackFileName());
+      signatureDisplayText(_signatureController.signature, _fallbackName());
 
   /// 首次导入编排（[isNewImport] = 本次打开是否来自首次导入）：解析后已署名
   /// 或非新导入时不弹；否则弹命名框并在关闭后按结论提交。调用点在镜像 resolve
@@ -68,16 +68,16 @@ class SongNamingSession {
   /// 收起、退路钮 = 按文件名回落名署名（之后不再弹）；改名可点框外收起、
   /// 退路钮（取消）/点框外 = 不改名。场景显式交给宿主，宿主不反推。
   Future<void> _presentAndCommit(SongNamingScene scene) async {
-    final fallback = _fallbackFileName();
+    final fallback = _fallbackName();
     final isImport = scene == SongNamingScene.import;
     final result = await _presentNaming(
       scene: scene,
       initial: resolveSongNamingInitial(
         scene: scene,
         current: _signatureController.signature,
-        fallbackFileName: fallback,
+        fallbackName: fallback,
       ),
-      fallbackFileName: fallback,
+      fallbackName: fallback,
       barrierDismissible: !isImport,
     );
     if (result == null) return;

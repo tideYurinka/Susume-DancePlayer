@@ -4,8 +4,7 @@ import '../annotation/learning_segment_attributes.dart';
 import '../core/device_clock.dart';
 import '../import/import_providers.dart' show videoIndexStoreProvider;
 import '../persistence/practice_plan_providers.dart';
-import '../persistence/song_signature.dart'
-    show signatureDisplayText, songFallbackName;
+import '../persistence/song_signature.dart' show danceDisplayTitle;
 import 'system_push.dart';
 import 'system_push_local.dart';
 
@@ -52,10 +51,10 @@ final planPushFullyMasteredIdsProvider =
 /// 全集对上次同步做差分，目标清除 / 改期 / 删除与开关翻转后的取消与重排
 /// 都经这一处。同步失败静默承接，不阻塞计划写入。
 ///
-/// 显示名表在同步接线处一次读出：只读视频索引一份，用与卡片标题同一处
-/// 渲染口径 `signatureDisplayText` 取署名缓存（未署名回退「文件名回落名」，
-/// 即经 `songFallbackName` 去扩展名的文件名）——名字来源即索引署名缓存，
-/// 故不逐支读 markers 真值、更不读整份舞库读面快照。
+/// 显示名表在同步接线处一次读出：只读视频索引一份，用与卡片标题同一处的读面
+/// 口径 `danceDisplayTitle`（署名缓存优先，未署名回退「文件名回落名」即去扩展
+/// 名的文件名；组合规则只住纯件）——名字来源即索引署名缓存，故不逐支读
+/// markers 真值、更不读整份舞库读面快照。
 final Provider<Future<void> Function()> planPushSyncProvider =
     Provider<Future<void> Function()>((ref) {
       return () async {
@@ -71,9 +70,9 @@ final Provider<Future<void> Function()> planPushSyncProvider =
             )(),
             displayNames: {
               for (final entry in index.entries)
-                entry.videoId: signatureDisplayText(
+                entry.videoId: danceDisplayTitle(
                   entry.signatureCache,
-                  songFallbackName(entry.displayName),
+                  entry.displayName,
                 ),
             },
             now: ref.read(deviceClockProvider)(),

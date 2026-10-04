@@ -871,7 +871,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // （单向：统计域 → 署名域，命名域不经宿主回调绕行跨域写-through）。
     _naming = SongNamingSession(
       signatureController: _signature,
-      fallbackFileName: () => _fallbackSongName,
+      fallbackName: () => _fallbackSongName,
       presentNaming: _presentNaming,
     );
 
@@ -1231,13 +1231,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   /// 命名对话框呈现（「域出编排与提交、页面出对话框」接线）：
-  /// 命名会话域交来场景、初值、回退文本与是否可点框外收起，本页负责按构建
-  /// 上下文弹出 [SongNamingDialog]（场景原样透传，不反推）并交回用户结论；
-  /// 页面已卸载时交回 null（不提交）。
+  /// 命名会话域交来场景、初值、回退名（「文件名回落名」）与是否可点框外收起，
+  /// 本页负责按构建上下文弹出 [SongNamingDialog]（场景原样透传，不反推）并交回
+  /// 用户结论；页面已卸载时交回 null（不提交）。
   Future<SongNamingResult?> _presentNaming({
     required SongNamingScene scene,
     required SongNamingInitial initial,
-    required String fallbackFileName,
+    required String fallbackName,
     required bool barrierDismissible,
   }) async {
     if (!mounted) return null;
@@ -1249,7 +1249,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         initialSong: initial.song,
         initialDancer: initial.dancer,
         initialRemark: initial.remark,
-        fallbackText: fallbackFileName,
+        fallbackText: fallbackName,
       ),
     );
     if (!mounted) return null;

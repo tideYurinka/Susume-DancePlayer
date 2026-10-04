@@ -50,7 +50,7 @@ void main() {
     session = SongNamingSession(
       signatureController: signature,
       // 读面交来的已是「文件名回落名」（去扩展名）：域不自行去扩展名。
-      fallbackFileName: () => 'dance',
+      fallbackName: () => 'dance',
       presentNaming: presenter.call,
     );
   }
@@ -84,7 +84,7 @@ void main() {
       expect(call.initial.song, isEmpty);
       expect(call.initial.dancer, isEmpty);
       expect(call.initial.remark, isEmpty);
-      expect(call.fallbackFileName, 'dance');
+      expect(call.fallbackName, 'dance');
       expect(call.barrierDismissible, isFalse);
     });
 
@@ -218,7 +218,7 @@ class _RecordingPresenter {
     ({
       SongNamingScene scene,
       SongNamingInitial initial,
-      String fallbackFileName,
+      String fallbackName,
       bool barrierDismissible,
     })
   >
@@ -229,13 +229,13 @@ class _RecordingPresenter {
   Future<SongNamingResult?> call({
     required SongNamingScene scene,
     required SongNamingInitial initial,
-    required String fallbackFileName,
+    required String fallbackName,
     required bool barrierDismissible,
   }) async {
     calls.add((
       scene: scene,
       initial: initial,
-      fallbackFileName: fallbackFileName,
+      fallbackName: fallbackName,
       barrierDismissible: barrierDismissible,
     ));
     return result;

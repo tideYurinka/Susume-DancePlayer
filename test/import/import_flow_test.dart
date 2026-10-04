@@ -383,9 +383,9 @@ void main() {
         () {
           if (!signatureMarkersFile.existsSync()) return false;
           try {
-            final doc =
-                jsonDecode(signatureMarkersFile.readAsStringSync())
-                    as Map<String, dynamic>;
+            final doc = jsonDecode(
+              signatureMarkersFile.readAsStringSync(),
+            ) as Map<String, dynamic>;
             final meta = doc['meta'] as Map<String, dynamic>?;
             final signature = meta?['signature'] as Map<String, dynamic>?;
             return signature?['song'] == expectedSong;

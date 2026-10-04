@@ -85,12 +85,14 @@ void expectNoBuildContextOrHub(String path) {
 
 /// 源码去掉注释行后的正文（`//` 起首的行不计）：结构断言只落代码，不被
 /// 库头/行内注释里的词条满足（同 [expectNoDialogOrContextReads] 的口径）。
-String codeOf(String path) =>
-    File(path)
-        .readAsStringSync()
-        .split('\n')
-        .where((line) => !line.trimLeft().startsWith('//'))
-        .join('\n');
+String codeOf(String path) => codeLinesOf(File(path).readAsStringSync());
+
+/// 源码去掉注释行后的正文（[codeOf] 的实现；扫源码但手上只有字符串时直调
+/// 本函数，注释剥离口径与 [codeOf] 同一份）。
+String codeLinesOf(String source) => source
+    .split('\n')
+    .where((line) => !line.trimLeft().startsWith('//'))
+    .join('\n');
 
 /// 断言层域 widget 源码不弹对话框、不读构建上下文（`BuildContext` 只作
 /// build 形参）：widget 自带子树，但编排面不经对话框与上下文读取。
