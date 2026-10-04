@@ -179,8 +179,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     // 首次导入的新视频：进播放器前弹歌曲命名框；
     // 既有条目/遗留旧视频不弹。
     await _openPlayer(video.uri, askNaming: video.isNewImport);
-    // 索引条目由后台哈希落盘（导入不等它，含哈希不一致的重导）：
-    // 回到首页时可能还没写，落盘前不出现、落盘后自然出现。
+    // 导入返回时条目已落盘（见 VideoImporter）；这里仍按副本路径确认一次，
+    // 条目在则重算读面让新卡出现。
     if (mounted) await _waitForImportedIndexEntry(video.uri);
   }
 

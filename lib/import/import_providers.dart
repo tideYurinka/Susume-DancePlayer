@@ -33,13 +33,14 @@ final videoIndexStoreProvider = Provider<VideoIndexStorage>((ref) {
   return VideoIndexStore(ref.watch(importIndexFileProvider));
 });
 
-/// 内容哈希计算：生产为后台 isolate 的 xxHash64；测试注入
-/// 固定值/门控桩（`test/helpers/gated_hasher.dart` 先例）。
+/// 内容哈希计算：生产为在后台 isolate 里算的 xxHash64（导入同步等结果，
+/// 不占 UI isolate）；测试注入固定值/门控桩（`test/helpers/gated_hasher.dart`
+/// 先例）。
 final contentHasherProvider = Provider<ContentHasher>(
   (ref) => const XxHash64ContentHasher(),
 );
 
-/// 导入管道（选择 → 复制 → 清缓存 → 后台哈希 + 视频索引）。
+/// 导入管道（选择 → 复制 → 摘要 → 视频索引落条目 → 清缓存）。
 final videoImporterProvider = Provider<VideoImporter>((ref) {
   return VideoImporter(
     ref.watch(videoPickerProvider),

@@ -50,13 +50,14 @@ class ImportedDance {
   final String videoId;
 }
 
-/// 导入管道：选择 → 复制到应用私有目录 → 清理选择器缓存；
-/// 后台计算 xxHash64 视频标识并读写视频索引（index.json）。
+/// 导入管道：选择 → 复制到应用私有目录 → 同步算 xxHash64 视频标识
+/// （复制后的副本读一遍）→ 写视频索引（index.json）→ 清理选择器缓存。
 ///
 /// 打开视频（[open]）时先用「大小 + 文件名」快速键先行匹配索引：
 /// 命中立即播放既有私有副本（不等待哈希），后台校验哈希一致则刷新
 /// 最近打开时间，不一致（同名同大小不同内容）按新视频导入、旧条目
-/// 保留；未命中走首次导入路径（复制后立即返回，哈希后台计算）。
+/// 保留；未命中走首次导入路径——复制后同步算副本摘要并落条目，
+/// 因此返回时条目已在清单里，随后任何一次打开都不再等后台哈希落盘。
 class VideoImporter {
   VideoImporter(
     this._picker,
@@ -89,8 +90,10 @@ class VideoImporter {
 
   /// 打开已选中的视频（快速键先行匹配）。
   ///
-  /// 返回后即可进入播放：首次导入复制完成即返回（哈希后台计算），
-  /// 快速键命中直接返回既有私有副本（哈希校验后台进行）。
+  /// 首次导入：复制 → **同步**算一遍副本摘要 → 落条目，返回时索引里
+  /// 已有该条目（打开不再等后台哈希落盘；摘要仍在后台 isolate 计算，
+  /// 只是这里等它算完）。快速键命中直接返回既有私有副本，
+  /// 内容校验仍在后台对账。
   Future<ImportedVideo> open(PickedVideo picked) async {
     final source = _sourceFileOf(picked);
     final sizeBytes = picked.sizeBytes ?? await source.length();
@@ -109,18 +112,24 @@ class VideoImporter {
       );
     }
 
-    // 首次导入：复制到私有目录并清理选择器缓存 → 立即返回，
-    // 后台计算 xxHash64 并写入索引（不阻塞进入播放）。
-    final imported = await copyToPrivateDir(picked);
-    unawaited(_hashAndIndex(imported));
-    return imported.copyWith(isNewImport: true);
+    // 首次导入：复制到私有目录 → 同步算副本摘要 → 写条目再返回，
+    // 返回即索引已落盘（不再有后台收尾那一段看不见的尾巴）。
+    final dance = await _copyHashAndIndex(picked);
+    return dance.video.copyWith(isNewImport: true);
   }
 
-  /// 建舞分支：从分享包建一支新舞——既有管道的
-  /// 复制进私有目录、算内容哈希、建索引三步全真，只是哈希同步等待：
-  /// 导入编排要拿内容哈希挂组员方案，不能等后台收尾。返回导入副本与
-  /// 内容哈希（新舞的身份）。
-  Future<ImportedDance> importDanceFile(PickedVideo picked) async {
+  /// 建舞分支：从分享包建一支新舞——与首次导入同一条
+  /// 「复制进私有目录 → 算副本摘要 → 落条目」路径，返回导入副本与
+  /// 内容哈希（新舞的身份）；导入编排要拿内容哈希挂组员方案，
+  /// 因此摘要是同步等的。
+  Future<ImportedDance> importDanceFile(PickedVideo picked) =>
+      _copyHashAndIndex(picked);
+
+  /// 首次导入与建舞分支共用的落盘路径：复制 → 同步算副本摘要 → 落条目。
+  ///
+  /// 摘要读的是复制后的副本（源文件在清缓存后可能已不在）；
+  /// 任一步失败都向上抛，由调用方处置——不做静默兜底。
+  Future<ImportedDance> _copyHashAndIndex(PickedVideo picked) async {
     final imported = await copyToPrivateDir(picked);
     final videoId = await hasher.hashFile(File(imported.uri.toFilePath()));
     await indexStore.update(
@@ -145,19 +154,6 @@ class VideoImporter {
       uri: target.uri,
       sizeBytes: await target.length(),
     );
-  }
-
-  /// 首次导入的后台收尾：哈希私有副本并写入索引（新增/合并条目）。
-  Future<void> _hashAndIndex(ImportedVideo imported) async {
-    try {
-      final videoId = await hasher.hashFile(File(imported.uri.toFilePath()));
-      await indexStore.update(
-        (index) => index.upsert(_entryFor(imported, videoId)),
-      );
-    } on Object catch (error) {
-      // 后台收尾失败不影响已开始的播放；索引保持原状，下次打开重算。
-      debugPrint('视频索引后台写入失败：$error');
-    }
   }
 
   /// 快速键命中后的后台校验与索引对账：

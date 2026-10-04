@@ -194,7 +194,7 @@ final danceLibraryWritesProvider = Provider.autoDispose<DanceLibraryWrites>((
   );
 });
 
-/// 写后失效（页面层入口）：页面自己读到落盘变化（导入的后台索引写、练完
+/// 写后失效（页面层入口）：页面自己读到落盘变化（导入的索引落条目、练完
 /// 一段）后重算时经此入口——与 [invalidateDanceLibrary] 同一口径：读面与
 /// 分布读面仍然一起作废。Riverpod 没有公共的 Ref/WidgetRef 共同超类型，
 /// 故这一处列两遍读面（相邻同源，新增读面两处一起加）。
