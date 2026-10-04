@@ -9,7 +9,7 @@
 - [节拍](./lib/beat/CONTEXT.md)：节拍的识别、人工修正、呈现与发声——节拍网格与八拍点、节拍矫正、数拍与节拍声、音画同步。分析管线在 `lib/beat`，网格值与人工修正在 `lib/beat_track_state` 与 `lib/core` 的节拍纯件，呈现、发声与面板在 `lib/player`。
 - [对比与录制](./lib/camera_capture/CONTEXT.md)：对比练习与录制回看这一条链——对比态与它专属的工具、录制准备与起录点，以及练习素材与练习片段。采集在 `lib/camera_capture`，对比态、录制与取景件在 `lib/player`，素材与片段纯域在 `lib/annotation`。
 - [文档与持久化](./lib/persistence/CONTEXT.md)：两份文档（公开标记文件与本地文档）的形状与版本纪律——字段归属、版本谱系与迁移、读结局与留档；存储侧的域逻辑（练习记账判定、计划存储、练舞统计与四拍桶分片）也住本层。`lib/persistence`，落盘与编解码件 `lib/core/atomic_json_file.dart`、`lib/core/private_json.dart`、`lib/core/document_codec.dart`、`lib/core/document_version_policy.dart`。
-- [舞库](./lib/dance/CONTEXT.md)：一支舞作为练习对象的身份与读面——舞库的合并读、封面、舞级掌握状态，以及视频标识。`lib/dance`，页面在 `lib/home`，导入与索引在 `lib/import`。
+- [舞库](./lib/dance/CONTEXT.md)：一支舞作为练习对象的身份与读面——舞库的合并读、封面、舞级掌握状态，以及视频标识与视频副本的存在状态。`lib/dance`，页面在 `lib/home`，导入与索引在 `lib/import`。
 - [统计与计划](./lib/stats/CONTEXT.md)：练舞的记账与汇总，以及练到什么时候的日程——练习时长与四拍桶、连续天数、熟练度档位、目标与复习提醒。汇总与图表在 `lib/stats`，日历与提醒在 `lib/plan`，存储与练习记账判定在 `lib/persistence`。
 - [分享与备份](./lib/package/CONTEXT.md)：标注方案与整机数据怎样离开这台设备、又怎样回来——susume 包、分享、备份、组员方案与问题日志包。`lib/package`、`lib/share`、`lib/share_channel`，问题日志包在 `lib/feedback`。
 - [帮助与更新](./lib/help/CONTEXT.md)：给用户看的字与拿到新版的路径——新手引导、帮助中心与手册、关于页与贡献者名单，以及更新源与下载页。`lib/help`、`lib/about`、`lib/update`。
