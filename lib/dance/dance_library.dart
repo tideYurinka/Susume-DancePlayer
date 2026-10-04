@@ -321,8 +321,10 @@ class DanceSnapshot {
   /// 视频标识（内容哈希）。
   String get videoId => entry.videoId;
 
-  /// 卡片标题：署名显示串，未署名回退文件名。
-  String get title => signatureDisplayText(signature, entry.displayName);
+  /// 卡片标题：署名显示串，未署名回退「文件名回落名」（去扩展名的文件名，
+  /// 见 [songFallbackName]）。卡片标题与舞页标题同读这一处。
+  String get title =>
+      signatureDisplayText(signature, songFallbackName(entry.displayName));
 
   @override
   bool operator ==(Object other) =>

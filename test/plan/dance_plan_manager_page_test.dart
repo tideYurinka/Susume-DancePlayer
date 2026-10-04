@@ -153,7 +153,8 @@ void main() {
     );
 
     expect(find.byKey(const Key('plan_manage_row_v1')), findsOneWidget);
-    expect(find.text('v1.mp4'), findsOneWidget);
+    // 未署名舞名 = 「文件名回落名」（去扩展名）。
+    expect(find.text('v1'), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const Key('plan_manage_ddl_v1'))).data,
       '2026-10-01 · 演出',

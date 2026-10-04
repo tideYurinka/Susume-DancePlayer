@@ -22,6 +22,7 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 
 import '../core/stored_zip.dart';
+import '../persistence/song_signature.dart' show songFallbackName;
 
 /// 包格式版本。判据 = 严格相等，不符即 [SusumePackageError.versionMismatch]。
 const int kSusumePackageFormatVersion = 1;
@@ -193,18 +194,15 @@ class SusumePackageException implements Exception {
   String toString() => 'SusumePackageException($kind): $message';
 }
 
-/// 包文件名 `<歌名>.susume`；未署名时回落视频文件名（去扩展名）。
-/// 歌名/回落名中的路径分隔与文件系统非法字符替换为 `_`。
+/// 包文件名 `<歌名>.susume`；未署名时回落「文件名回落名」——即
+/// [songFallbackName] 去扩展名的文件名，规则单处出在纯件里，本层不另写
+/// 一份。歌名/回落名中的路径分隔与文件系统非法字符替换为 `_`。
 String susumePackageFileName({
   String? songName,
   required String videoFileName,
 }) {
   final n = (songName?.trim() ?? '');
-  var base = n.isNotEmpty
-      ? n
-      : (videoFileName.contains('.')
-            ? videoFileName.substring(0, videoFileName.lastIndexOf('.'))
-            : videoFileName);
+  var base = n.isNotEmpty ? n : songFallbackName(videoFileName);
   base = base.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_');
   return '$base.susume';
 }

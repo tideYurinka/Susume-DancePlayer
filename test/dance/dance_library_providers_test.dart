@@ -74,7 +74,8 @@ void main() {
     expect(untouched.fullyMastered, isFalse);
     expect(untouched.practiceTotal, Duration.zero);
     expect(untouched.lastPracticedAt, isNull);
-    expect(untouched.title, 'v2.mp4');
+    // 未署名：标题回退「文件名回落名」（去扩展名）。
+    expect(untouched.title, 'v2');
   });
 
   test('封面引用：位置取公开标记文件的 meta 字段，就绪取缓存文件是否存在', () async {

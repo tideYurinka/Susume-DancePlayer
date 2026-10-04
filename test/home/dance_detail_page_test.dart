@@ -120,6 +120,14 @@ void main() {
     expect(_value('dance_detail_mastered', '—'), findsOneWidget);
   });
 
+  testWidgets('未署名舞详情：标题与卡片同读「文件名回落名」（去扩展名）', (tester) async {
+    final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
+    await harness.pump(tester, videoId: 'v1');
+
+    // 卡片标题与舞页标题同读舞库快照的 `title`：两处都是 `v1`，不带 `.mp4`。
+    expect(find.widgetWithText(AppBar, 'v1'), findsOneWidget);
+  });
+
   testWidgets('全段最高档：总览出完全掌握勾', (tester) async {
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1')]),

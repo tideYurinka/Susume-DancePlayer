@@ -75,6 +75,22 @@ void main() {
       );
     });
 
+    test('回落名过「文件名回落名」纯件：只去最后一个点及其之后', () {
+      expect(
+        susumePackageFileName(songName: null, videoFileName: 'a.b.mp4'),
+        'a.b.susume',
+      );
+      // 点在开头（隐藏文件）与点后为空：原样保留，不空名、不截断。
+      expect(
+        susumePackageFileName(songName: null, videoFileName: '.mp4'),
+        '.mp4.susume',
+      );
+      expect(
+        susumePackageFileName(songName: null, videoFileName: 'dance.'),
+        'dance..susume',
+      );
+    });
+
     test('歌名中的路径与非法文件名字符被替换', () {
       expect(
         susumePackageFileName(songName: 'a/b\\c:d', videoFileName: 'v.mp4'),

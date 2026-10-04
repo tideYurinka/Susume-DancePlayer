@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:archive/archive_io.dart';
 import 'package:dance_learning_app/package/susume_package.dart';
 import 'package:dance_learning_app/share/dance_share.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,6 +105,36 @@ void main() {
         videoFileName: 'source_clip.mp4',
       );
       expect(output.path, '${tempDir.path}/out/source_clip.susume');
+    });
+
+    test('包内视频文件名（文件）仍吃原始文件名，不随包名（名字）去扩展名', () async {
+      final video = writeFile('a.b.mp4', List.filled(32, 7));
+      final manifest = SusumeManifest(
+        videoId: 'abc123',
+        // 未署名舞：分享页交来的方案名就是「文件名回落名」（去扩展名）。
+        schemeName: 'a.b',
+        schemeId: 'scheme-1',
+        media: [
+          SusumeMediaEntry(
+            kind: SusumeMediaKind.sourceVideo,
+            fileName: 'a.b.mp4',
+            sizeBytes: 32,
+            file: video,
+          ),
+        ],
+      );
+
+      final output = await assembleDancePackage(
+        outputDir: Directory('${tempDir.path}/out'),
+        manifest: manifest,
+        markers: const {},
+        videoFileName: 'a.b.mp4',
+      );
+
+      expect(output.path, '${tempDir.path}/out/a.b.susume');
+      // 文件：包内媒体条目名原样带扩展名，不受回落规则牵连。
+      final archive = ZipDecoder().decodeBytes(output.readAsBytesSync());
+      expect(archive.files.map((f) => f.name), contains('media/a.b.mp4'));
     });
 
     test('装配失败向上抛：包内容不完整不递出', () async {
