@@ -30,6 +30,7 @@ import '../helpers/in_memory_practice_plan_storage.dart';
 import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
+import '../helpers/test_clock.dart';
 
 VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
   videoId: videoId,
@@ -41,10 +42,8 @@ VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
   lastOpenedAt: DateTime(2026, 9, 1),
 );
 
-DateTime get _today {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-}
+/// 虚拟今天：本文件的日期全部由它派生，不读真实日期。
+DateTime get _today => testToday;
 
 /// 该舞文档：3 条分段线切 4 段、全部同档——档位阈值随档位而定。
 InMemoryVideoDocumentStorage _doc(LearningMastery mastery) =>
@@ -57,9 +56,8 @@ InMemoryVideoDocumentStorage _doc(LearningMastery mastery) =>
             SegmentLine(position: Duration(milliseconds: i * 10000)),
         ],
       ).toJson(),
-      local: LocalDocument(
-        mastery: {for (var i = 0; i < 4; i++) i: mastery},
-      ).toJson(),
+      local: LocalDocument(mastery: {for (var i = 0; i < 4; i++) i: mastery})
+          .toJson(),
     );
 
 Map<String, dynamic> _planJson() => {
@@ -115,6 +113,7 @@ Future<void> _pumpPlan(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...testClockOverrides(),
         practicePlanStorageProvider.overrideWithValue(planStorage),
         practiceStatsStoreProvider.overrideWithValue(
           PracticeStatsStore(statsStorage),
@@ -170,15 +169,15 @@ void main() {
     expect(find.byKey(const Key('plan_agenda_social_ev1')), findsOneWidget);
   });
 
-  testWidgets('行内容：舞名 + 目标类型 + 剩余天数 / 事件名 + 关联舞数', (
-    tester,
-  ) async {
+  testWidgets('行内容：舞名 + 目标类型 + 剩余天数 / 事件名 + 关联舞数', (tester) async {
     await _pumpPlan(tester, planJson: _planJson());
     final dueTile = tester.widget<ListTile>(
       find.byKey(const Key('plan_agenda_due_v1')),
     );
-    expect(dueTile.title is Text && (dueTile.title as Text).data == 'v1.mp4',
-        isTrue);
+    expect(
+      dueTile.title is Text && (dueTile.title as Text).data == 'v1.mp4',
+      isTrue,
+    );
     expect((dueTile.subtitle! as Text).data, contains('约舞'));
     expect((dueTile.subtitle! as Text).data, contains('剩 2 天'));
     final reviewTile = tester.widget<ListTile>(
@@ -192,9 +191,7 @@ void main() {
     expect((socialTile.subtitle! as Text).data, contains('2 支舞'));
   });
 
-  testWidgets('空组不渲染：无事件且最近练过 → 团检 / 随舞组与待复习组不出现', (
-    tester,
-  ) async {
+  testWidgets('空组不渲染：无事件且最近练过 → 团检 / 随舞组与待复习组不出现', (tester) async {
     await _pumpPlan(
       tester,
       planJson: {
@@ -231,9 +228,7 @@ void main() {
 
   testWidgets('点随舞临近行进事件编辑框', (tester) async {
     await _pumpPlan(tester, planJson: _planJson());
-    await tester.ensureVisible(
-      find.byKey(const Key('plan_agenda_social_ev1')),
-    );
+    await tester.ensureVisible(find.byKey(const Key('plan_agenda_social_ev1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('plan_agenda_social_ev1')));
     await tester.pumpAndSettle();

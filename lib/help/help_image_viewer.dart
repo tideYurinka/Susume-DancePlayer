@@ -43,11 +43,8 @@ class HelpImageViewer extends ConsumerWidget {
         helpRootNavigatorState();
     navigator?.push(
       MaterialPageRoute<void>(
-        builder: (_) => HelpImageViewer(
-          assetKey: assetKey,
-          bundle: bundle,
-          alt: alt,
-        ),
+        builder: (_) =>
+            HelpImageViewer(assetKey: assetKey, bundle: bundle, alt: alt),
       ),
     );
   }

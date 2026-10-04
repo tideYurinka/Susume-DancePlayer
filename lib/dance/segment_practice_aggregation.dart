@@ -125,8 +125,8 @@ List<SegmentPractice> aggregateSegmentPractice({
       if (index == null) continue;
       final value = totals[bucket];
       if (value != null) {
-        micros[index] +=
-            (value.wallSeconds * Duration.microsecondsPerSecond).round();
+        micros[index] += (value.wallSeconds * Duration.microsecondsPerSecond)
+            .round();
       }
       final sweeps = value?.sweeps ?? 0;
       counts[index] = seen[index]

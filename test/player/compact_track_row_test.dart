@@ -172,11 +172,7 @@ void main() {
     expect(find.byKey(noteRow), findsOneWidget);
     expect(find.byKey(noteLabel), findsOneWidget);
     // 备注轨（36）+ 学习段（48）+ 节拍（24）+ 手柄带（30）+ 10 × 3。
-    expect(
-      bandHeight(tester),
-      noteOnlyHeight,
-      reason: '备注轨在场、空局部镜像轨不占行',
-    );
+    expect(bandHeight(tester), noteOnlyHeight, reason: '备注轨在场、空局部镜像轨不占行');
 
     expect(editor.submit(const RemoveNote(index: 0)).applied, isTrue);
     await tester.pump();
@@ -202,11 +198,7 @@ void main() {
     expect(find.byKey(mirrorRow), findsOneWidget);
     expect(find.byKey(mirrorLabel), findsOneWidget);
     // 镜像轨（30）+ 学习段（48）+ 节拍（24）+ 手柄带（30）+ 10 × 3。
-    expect(
-      bandHeight(tester),
-      mirrorOnlyHeight,
-      reason: '镜像轨在场、空备注轨不占行',
-    );
+    expect(bandHeight(tester), mirrorOnlyHeight, reason: '镜像轨在场、空备注轨不占行');
 
     // 扳开关不改轨道的有无（只跟着片段数走）。
     container.read(localMirrorEnabledProvider.notifier).replace(false);
@@ -294,38 +286,34 @@ void main() {
   });
 
   for (final landscape in const [false, true]) {
-    testWidgets(
-      '平板视口${landscape ? '横屏' : '竖屏'}（常规档）：空轨仍常驻，整带高与今天逐位相同',
-      (tester) async {
-        useNamedViewport(
-          tester,
-          ViewportTier.tablet,
-          landscape: landscape,
-        );
-        await pumpEditSurface(tester);
+    testWidgets('平板视口${landscape ? '横屏' : '竖屏'}（常规档）：空轨仍常驻，整带高与今天逐位相同', (
+      tester,
+    ) async {
+      useNamedViewport(tester, ViewportTier.tablet, landscape: landscape);
+      await pumpEditSurface(tester);
 
-        expect(find.byKey(noteRow), findsOneWidget);
-        expect(find.byKey(mirrorRow), findsOneWidget);
-        expect(find.byKey(noteLabel), findsOneWidget);
-        expect(find.byKey(mirrorLabel), findsOneWidget);
-        expect(find.byKey(learningRow), findsOneWidget);
-        expect(find.byKey(beatRow), findsOneWidget);
-        expect(find.byKey(handleRow), findsOneWidget);
-        expect(bandHeight(tester), normalHeight);
-        // 常规档整带（208）仍收在视口内，不溢出。
-        expect(tester.takeException(), isNull);
-        final dpr = tester.view.devicePixelRatio;
-        final viewport = Offset.zero &
-            Size(
-              tester.view.physicalSize.width / dpr,
-              tester.view.physicalSize.height / dpr,
-            );
-        final bandRect = tester.getRect(find.byKey(band));
-        expect(bandRect.left, greaterThanOrEqualTo(viewport.left));
-        expect(bandRect.right, lessThanOrEqualTo(viewport.right));
-        expect(bandRect.top, greaterThanOrEqualTo(viewport.top));
-        expect(bandRect.bottom, lessThanOrEqualTo(viewport.bottom));
-      },
-    );
+      expect(find.byKey(noteRow), findsOneWidget);
+      expect(find.byKey(mirrorRow), findsOneWidget);
+      expect(find.byKey(noteLabel), findsOneWidget);
+      expect(find.byKey(mirrorLabel), findsOneWidget);
+      expect(find.byKey(learningRow), findsOneWidget);
+      expect(find.byKey(beatRow), findsOneWidget);
+      expect(find.byKey(handleRow), findsOneWidget);
+      expect(bandHeight(tester), normalHeight);
+      // 常规档整带（208）仍收在视口内，不溢出。
+      expect(tester.takeException(), isNull);
+      final dpr = tester.view.devicePixelRatio;
+      final viewport =
+          Offset.zero &
+          Size(
+            tester.view.physicalSize.width / dpr,
+            tester.view.physicalSize.height / dpr,
+          );
+      final bandRect = tester.getRect(find.byKey(band));
+      expect(bandRect.left, greaterThanOrEqualTo(viewport.left));
+      expect(bandRect.right, lessThanOrEqualTo(viewport.right));
+      expect(bandRect.top, greaterThanOrEqualTo(viewport.top));
+      expect(bandRect.bottom, lessThanOrEqualTo(viewport.bottom));
+    });
   }
 }

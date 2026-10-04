@@ -46,7 +46,12 @@ void main() {
       final doc = MarkersDocument.fromJson({
         'version': 8,
         'annotations': {
-          'halfBeatLines': ['bad', 42, {'timeMs': 1.5}, {'timeMs': 2500}],
+          'halfBeatLines': [
+            'bad',
+            42,
+            {'timeMs': 1.5},
+            {'timeMs': 2500},
+          ],
         },
       });
       expect(doc.halfBeatLines, [
@@ -57,10 +62,7 @@ void main() {
 
   group('AnnotationSectionDiff / 编排器：半拍线随 annotations 段入队', () {
     test('isEmpty 计入半拍线所在段', () {
-      expect(
-        const AnnotationSectionDiff().isEmpty,
-        isTrue,
-      );
+      expect(const AnnotationSectionDiff().isEmpty, isTrue);
       expect(
         const AnnotationSectionDiff(
           annotations: MarkerAnnotationsValue(

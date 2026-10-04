@@ -33,8 +33,7 @@ void main() {
   /// 两个控件是否同排（垂直方向区间重叠）。
   bool sameRow(Rect a, Rect b) => a.top < b.bottom && b.top < a.bottom;
 
-  testWidgets('那一行没有样式入口：色板 / 描边 / 最近全数退场，钮全带文字',
-      (tester) async {
+  testWidgets('那一行没有样式入口：色板 / 描边 / 最近全数退场，钮全带文字', (tester) async {
     seedAndOpenNoteEditor(container);
     await pumpPanel(tester);
 
@@ -48,16 +47,13 @@ void main() {
     expect(find.text('完成'), findsOneWidget);
   });
 
-  testWidgets('名册词条条常驻这一行：键盘关时也同排，点名插入照常',
-      (tester) async {
+  testWidgets('名册词条条常驻这一行：键盘关时也同排，点名插入照常', (tester) async {
     await seedDancer();
     seedAndOpenNoteEditor(container);
     await pumpPanel(tester);
 
     // 词条与「删除」钮在同一行（垂直方向重叠）——不再有第二排。
-    final chipRect = tester.getRect(
-      find.byKey(const Key('roster_chip_小舞')),
-    );
+    final chipRect = tester.getRect(find.byKey(const Key('roster_chip_小舞')));
     final deleteRect = tester.getRect(find.text('删除'));
     expect(sameRow(chipRect, deleteRect), isTrue, reason: '词条条与工具钮同一行');
 
@@ -84,18 +80,18 @@ void main() {
     );
 
     expect(dockedBarRect.height, restBarRect.height, reason: '行高不变');
-    expect(dockedBarRect.bottom, lessThanOrEqualTo(600 - 300),
-        reason: '整条位移到键盘上沿之上');
-    // 停靠态词条条也在这一行。
-    final chipRect = tester.getRect(
-      find.byKey(const Key('roster_chip_小舞')),
+    expect(
+      dockedBarRect.bottom,
+      lessThanOrEqualTo(600 - 300),
+      reason: '整条位移到键盘上沿之上',
     );
+    // 停靠态词条条也在这一行。
+    final chipRect = tester.getRect(find.byKey(const Key('roster_chip_小舞')));
     final doneRect = tester.getRect(find.text('完成'));
     expect(sameRow(chipRect, doneRect), isTrue);
   });
 
-  testWidgets('编辑面打开期间整页点击归编辑面：点条外收起即存、下层收不到',
-      (tester) async {
+  testWidgets('编辑面打开期间整页点击归编辑面：点条外收起即存、下层收不到', (tester) async {
     var probeTapped = 0;
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -134,8 +130,11 @@ void main() {
     await tester.pump();
 
     expect(probeTapped, 0, reason: '下层控制层收不到这次点击');
-    expect(find.byKey(const Key('note_text_editor')), findsNothing,
-        reason: '点条外收起');
+    expect(
+      find.byKey(const Key('note_text_editor')),
+      findsNothing,
+      reason: '点条外收起',
+    );
     expect(
       container.read(noteStickersProvider).single.text,
       '条外收起',
@@ -188,17 +187,13 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('note_editor_done')));
     await tester.pump();
-    expect(
-      container.read(noteStickersProvider).single.text,
-      '转身收手',
-    );
+    expect(container.read(noteStickersProvider).single.text, '转身收手');
     expect(find.byKey(const Key('note_text_editor')), findsNothing);
 
     // 未改动文本再开再完成：不发起命令（撤销栈深度不变）。
     container.read(noteTextEditorTargetProvider.notifier).open(10000);
     await pumpPanel(tester);
-    final stepsBefore =
-        container.read(annotationEditHistoryProvider).length;
+    final stepsBefore = container.read(annotationEditHistoryProvider).length;
     await tester.tap(find.byKey(const Key('note_editor_done')));
     await tester.pump();
     expect(

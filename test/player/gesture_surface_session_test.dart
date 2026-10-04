@@ -196,7 +196,9 @@ void main() {
         final s = rec.blankSession();
         s.scaleStart(_scaleStart(1, Offset.zero));
         s.pointerDown(_down(1, Offset.zero));
-        s.scaleUpdate(_scaleUpdate(1, const Offset(50, 0), const Offset(50, 0)));
+        s.scaleUpdate(
+          _scaleUpdate(1, const Offset(50, 0), const Offset(50, 0)),
+        );
         s.scaleUpdate(_scaleUpdate(1, Offset.zero, const Offset(-50, 0)));
         s.scaleEnd(_scaleEnd());
         s.pointerUp(_up(1));
@@ -447,11 +449,15 @@ void main() {
         );
         s.pointerDown(_down(1, const Offset(100, 100)));
         s.scaleStart(_scaleStart(1, Offset.zero));
-        s.scaleUpdate(_scaleUpdate(1, const Offset(20, 0), const Offset(20, 0)));
+        s.scaleUpdate(
+          _scaleUpdate(1, const Offset(20, 0), const Offset(20, 0)),
+        );
         // 第二指落在带面（模块面为 blank，其指针已转发 blank 侧）→ 混区
         // 激活；混区聚合由 pinch 会话自身判定，模块侧只读 burstEverMixed。
         pinch.trackBandPointerDown(2, const Offset(300, 200));
-        s.scaleUpdate(_scaleUpdate(1, const Offset(30, 0), const Offset(10, 0)));
+        s.scaleUpdate(
+          _scaleUpdate(1, const Offset(30, 0), const Offset(10, 0)),
+        );
         expect(rec.multiFinger, hasLength(1), reason: '被混区抑制即收尾微调');
         expect(rec.scrubFrames, hasLength(1), reason: '抑制帧不转发 scrub');
         expect(s.phase, GestureSurfacePhase.suppressed);
@@ -476,7 +482,9 @@ void main() {
         final s = rec.blankSession();
         s.pointerDown(_down(1, const Offset(100, 100)));
         s.scaleStart(_scaleStart(1, const Offset(100, 100)));
-        s.scaleUpdate(_scaleUpdate(1, const Offset(120, 100), const Offset(20, 0)));
+        s.scaleUpdate(
+          _scaleUpdate(1, const Offset(120, 100), const Offset(20, 0)),
+        );
         s.pointerCancel(_cancel(1));
         expect(rec.multiFinger, hasLength(1), reason: '取消 → scrub 随之中止');
         s.scaleEnd(_scaleEnd());
@@ -496,7 +504,11 @@ void main() {
       s.scaleUpdate(_scaleUpdate(2, const Offset(25, 0), const Offset(5, 0)));
       expect(rec.multiFinger, isEmpty);
       expect(s.phase, GestureSurfacePhase.multiFinger);
-      expect(rec.scrubFrames, hasLength(2), reason: '冻结帧仍转发（宿主按 pointerCount 自冻结）');
+      expect(
+        rec.scrubFrames,
+        hasLength(2),
+        reason: '冻结帧仍转发（宿主按 pointerCount 自冻结）',
+      );
       s.scaleUpdate(_scaleUpdate(1, const Offset(35, 0), const Offset(10, 0)));
       expect(rec.scrubFrames, hasLength(3), reason: '抬回单指恢复 seek');
     });
@@ -508,7 +520,11 @@ void main() {
       s.scaleUpdate(_scaleUpdate(2, const Offset(10, 0), const Offset(10, 0)));
       s.scaleUpdate(_scaleUpdate(1, const Offset(20, 0), const Offset(10, 0)));
       expect(rec.scrubFrames, isEmpty, reason: '抬到剩一指挂起等手势结束');
-      expect(rec.pinchFrames, hasLength(2), reason: 'pinch 帧照常转发，宿主自判 pointerCount');
+      expect(
+        rec.pinchFrames,
+        hasLength(2),
+        reason: 'pinch 帧照常转发，宿主自判 pointerCount',
+      );
     });
 
     test('混区 burst 内不累计、不锁定、不转发（整场归跨面会话）', () {
@@ -530,7 +546,9 @@ void main() {
         s.pointerDown(_down(1, const Offset(100, 10)));
         pinch.blankPointerDown(2, const Offset(300, 200));
         s.scaleStart(_scaleStart(1, Offset.zero));
-        s.scaleUpdate(_scaleUpdate(1, const Offset(50, 0), const Offset(50, 0)));
+        s.scaleUpdate(
+          _scaleUpdate(1, const Offset(50, 0), const Offset(50, 0)),
+        );
         expect(rec.scrubFrames, isEmpty);
         expect(s.phase, GestureSurfacePhase.suppressed);
         s.scaleEnd(_scaleEnd());

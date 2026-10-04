@@ -84,26 +84,36 @@ void main() {
         const Duration(milliseconds: -100),
       );
       // 延迟 0：行为与现状一致（零平移）。
-      expect(
-        avSyncTickTriggerShiftMedia(delayMs: 0, rate: 1.5),
-        Duration.zero,
-      );
+      expect(avSyncTickTriggerShiftMedia(delayMs: 0, rate: 1.5), Duration.zero);
     });
 
     test('媒体层偏移：mpv audio-delay 秒值 = −Δ·rate（负=延迟视频）', () {
-      expect(avSyncAudioDelaySeconds(delayMs: 100, rate: 1.0), closeTo(-0.1, 1e-9));
-      expect(avSyncAudioDelaySeconds(delayMs: 100, rate: 2.0), closeTo(-0.2, 1e-9));
-      expect(avSyncAudioDelaySeconds(delayMs: -30, rate: 2.0), closeTo(0.06, 1e-9));
+      expect(
+        avSyncAudioDelaySeconds(delayMs: 100, rate: 1.0),
+        closeTo(-0.1, 1e-9),
+      );
+      expect(
+        avSyncAudioDelaySeconds(delayMs: 100, rate: 2.0),
+        closeTo(-0.2, 1e-9),
+      );
+      expect(
+        avSyncAudioDelaySeconds(delayMs: -30, rate: 2.0),
+        closeTo(0.06, 1e-9),
+      );
     });
   });
 
   group('设备级 store seam', () {
     test('update 只写本键、保留同文件其它键（不复刻 clear+addAll）', () async {
-      final storage = InMemoryPrivateJsonStorage(initial: {
-        'speedStepPresets': {'presets': [1]},
-        'metronomeSettings': {'soundType': 'ping'},
-        'avSyncDelays': {'其它设备': 60},
-      });
+      final storage = InMemoryPrivateJsonStorage(
+        initial: {
+          'speedStepPresets': {
+            'presets': [1],
+          },
+          'metronomeSettings': {'soundType': 'ping'},
+          'avSyncDelays': {'其它设备': 60},
+        },
+      );
       final store = AvSyncDelaysStore(storage);
 
       await store.update((delays) async {
@@ -114,15 +124,15 @@ void main() {
       final json = storage.snapshot;
       expect(json['avSyncDelays'], {'其它设备': 70, '蓝牙|X': -40});
       // 同文件其它键原样保留。
-      expect(json['speedStepPresets'], {'presets': [1]});
+      expect(json['speedStepPresets'], {
+        'presets': [1],
+      });
       expect(json['metronomeSettings'], {'soundType': 'ping'});
     });
 
     test('load 净化：缺失/损坏兜底空 Map', () async {
       expect(
-        await AvSyncDelaysStore(
-          InMemoryPrivateJsonStorage(),
-        ).load(),
+        await AvSyncDelaysStore(InMemoryPrivateJsonStorage()).load(),
         isEmpty,
       );
       expect(
@@ -140,35 +150,40 @@ void main() {
     late InMemoryPrivateJsonStorage storage;
     late ProviderContainer container;
 
-    AvSyncModel model() =>
-        container.read(avSyncProvider.notifier);
+    AvSyncModel model() => container.read(avSyncProvider.notifier);
 
     setUp(() {
       engine = FakePlaybackEngine();
       deviceController = FakeAudioOutputDeviceController();
       storage = InMemoryPrivateJsonStorage();
-      container = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(storage),
-        avSyncDelaysAutoRestoreProvider.overrideWithValue(true),
-        audioOutputDeviceControllerProvider
-            .overrideWithValue(deviceController),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(storage),
+          avSyncDelaysAutoRestoreProvider.overrideWithValue(true),
+          audioOutputDeviceControllerProvider.overrideWithValue(
+            deviceController,
+          ),
+        ],
+      );
       addTearDown(container.dispose);
     });
 
     test('启动恢复：读当前设备（默认其它设备）的已存值并应用到引擎', () async {
-      await container.read(avSyncDelaysStorageProvider).update(
-        (d) async => d[avSyncUnknownDeviceKey] = 120,
-      );
+      await container
+          .read(avSyncDelaysStorageProvider)
+          .update((d) async => d[avSyncUnknownDeviceKey] = 120);
       // 重新构建容器走恢复路径。
-      final fresh = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(storage),
-        avSyncDelaysAutoRestoreProvider.overrideWithValue(true),
-        audioOutputDeviceControllerProvider
-            .overrideWithValue(deviceController),
-      ]);
+      final fresh = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(storage),
+          avSyncDelaysAutoRestoreProvider.overrideWithValue(true),
+          audioOutputDeviceControllerProvider.overrideWithValue(
+            deviceController,
+          ),
+        ],
+      );
       addTearDown(fresh.dispose);
       await fresh.read(avSyncProvider.notifier).restoreDone;
       expect(fresh.read(avSyncProvider).delayMs, 120);
@@ -188,14 +203,11 @@ void main() {
       expect(saved.containsKey('avSyncDelays'), isFalse);
     });
 
-    test('设备切换 seam：自动换用对应设备已存值并应用到引擎；不改其它设备键',
-        () async {
-      await container.read(avSyncDelaysStorageProvider).update(
-        (d) async {
-          d[avSyncUnknownDeviceKey] = 60;
-          d['蓝牙|X 耳机'] = -40;
-        },
-      );
+    test('设备切换 seam：自动换用对应设备已存值并应用到引擎；不改其它设备键', () async {
+      await container.read(avSyncDelaysStorageProvider).update((d) async {
+        d[avSyncUnknownDeviceKey] = 60;
+        d['蓝牙|X 耳机'] = -40;
+      });
       await model().restoreDone;
       expect(container.read(avSyncProvider).delayMs, 60);
 
@@ -214,11 +226,10 @@ void main() {
       expect(saved['蓝牙|X 耳机'], -40);
     });
 
-    test('设备切到无记录设备：回 0（默认），该设备键随后首次调节时才建项',
-        () async {
-      await container.read(avSyncDelaysStorageProvider).update(
-        (d) async => d[avSyncUnknownDeviceKey] = 60,
-      );
+    test('设备切到无记录设备：回 0（默认），该设备键随后首次调节时才建项', () async {
+      await container
+          .read(avSyncDelaysStorageProvider)
+          .update((d) async => d[avSyncUnknownDeviceKey] = 60);
       await model().restoreDone;
       deviceController.emitDevice(
         const AvSyncDeviceInfo(typeLabel: '有线耳机', product: 'USB-C'),
@@ -228,16 +239,20 @@ void main() {
       expect(container.read(avSyncProvider).deviceLabel, '有线耳机·USB-C');
     });
 
-    test('关闭自动恢复（测试确定性）：保持出厂 0', () async {      await container.read(avSyncDelaysStorageProvider).update(
-        (d) async => d[avSyncUnknownDeviceKey] = 120,
+    test('关闭自动恢复（测试确定性）：保持出厂 0', () async {
+      await container
+          .read(avSyncDelaysStorageProvider)
+          .update((d) async => d[avSyncUnknownDeviceKey] = 120);
+      final fresh = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(storage),
+          avSyncDelaysAutoRestoreProvider.overrideWithValue(false),
+          audioOutputDeviceControllerProvider.overrideWithValue(
+            deviceController,
+          ),
+        ],
       );
-      final fresh = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(storage),
-        avSyncDelaysAutoRestoreProvider.overrideWithValue(false),
-        audioOutputDeviceControllerProvider
-            .overrideWithValue(deviceController),
-      ]);
       addTearDown(fresh.dispose);
       await fresh.read(avSyncProvider.notifier).restoreDone;
       expect(fresh.read(avSyncProvider).delayMs, 0);

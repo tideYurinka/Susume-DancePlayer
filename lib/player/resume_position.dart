@@ -186,5 +186,6 @@ class ResumePromptController extends Notifier<bool> {
   }
 }
 
-final resumePromptProvider =
-    NotifierProvider<ResumePromptController, bool>(ResumePromptController.new);
+final resumePromptProvider = NotifierProvider<ResumePromptController, bool>(
+  ResumePromptController.new,
+);

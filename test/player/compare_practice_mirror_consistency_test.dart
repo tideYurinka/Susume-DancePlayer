@@ -28,7 +28,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationEditorProvider,
         localMirrorFragmentsProvider,
         practiceClipsProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
     show SurfaceFace;
 import 'package:dance_learning_app/player_session/player_session.dart'
@@ -101,7 +102,10 @@ void main() {
   late File materialOutputFile;
 
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
@@ -145,9 +149,7 @@ void main() {
           videoDocumentStorageFactoryProvider.overrideWithValue(
             (videoId) => InMemoryVideoDocumentStorage(),
           ),
-          contentHasherProvider.overrideWithValue(
-            const FixedHasher('vid-a'),
-          ),
+          contentHasherProvider.overrideWithValue(const FixedHasher('vid-a')),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
@@ -193,9 +195,7 @@ void main() {
             (videoId) async => materialOutputFile,
           ),
           systemUiControllerProvider.overrideWithValue(systemUi),
-          contentHasherProvider.overrideWithValue(
-            const FixedHasher('vid-a'),
-          ),
+          contentHasherProvider.overrideWithValue(const FixedHasher('vid-a')),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
@@ -239,7 +239,6 @@ void main() {
     await tester.tap(find.byKey(const Key('control_practice_mirror')));
     await tester.pumpAndSettle();
   }
-
 
   setUp(() {
     engine = FakePlaybackEngine(duration: const Duration(seconds: 60));
@@ -344,9 +343,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('回放态内点镜像槽：当前显示的片段画面即时反相（回放也跟随同一个开关）', (
-      tester,
-    ) async {
+    testWidgets('回放态内点镜像槽：当前显示的片段画面即时反相（回放也跟随同一个开关）', (tester) async {
       setWideView(tester);
       final container = await pumpPlayer(tester);
       await enterCompareEditing(tester);
@@ -459,9 +456,7 @@ void main() {
   });
 
   group('练习侧镜像局部语义不回归（判据③）', () {
-    testWidgets('片段回放件仍替代实时预览：镜像只做显示层翻转，回放件本身仍在练习半区', (
-      tester,
-    ) async {
+    testWidgets('片段回放件仍替代实时预览：镜像只做显示层翻转，回放件本身仍在练习半区', (tester) async {
       setWideView(tester);
       final container = await pumpPlayer(tester);
       await enterCompareEditing(tester);
@@ -565,7 +560,9 @@ void main() {
         tester.element(find.byType(PlayerPage)),
         listen: false,
       );
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -595,12 +592,9 @@ void main() {
 
     /// 练习侧镜像显示层的水平缩放因子（恒在树上）。
     double practiceMirrorScaleX(WidgetTester tester) {
-      final transform =
-          tester
-                  .widget<Transform>(
-                    find.byKey(const Key('practice_mirrored_surface')),
-                  )
-                  .transform;
+      final transform = tester
+          .widget<Transform>(find.byKey(const Key('practice_mirrored_surface')))
+          .transform;
       return transform.entry(0, 0);
     }
 
@@ -704,9 +698,7 @@ void main() {
       expect(practiceMirrorScaleX(tester), offScale);
     });
 
-    testWidgets('录制中拨练习镜像：画面当场翻（练习镜像是活输入，不随录制冻结）', (
-      tester,
-    ) async {
+    testWidgets('录制中拨练习镜像：画面当场翻（练习镜像是活输入，不随录制冻结）', (tester) async {
       setWideView(tester);
       materialOutputFile = File(
         '${Directory.systemTemp.createTempSync('cmp_mirror37c').path}/rec.mp4',
@@ -748,11 +740,7 @@ void main() {
       );
       container.read(practiceMirrorOverrideProvider.notifier).set(false);
       await tester.pump();
-      expect(
-        practiceMirrorScaleX(tester),
-        offScale,
-        reason: '录制中拨开关画面当场翻',
-      );
+      expect(practiceMirrorScaleX(tester), offScale, reason: '录制中拨开关画面当场翻');
 
       // 再拨回来：同样当场翻（不是只生效一次）。
       container.read(practiceMirrorOverrideProvider.notifier).set(true);

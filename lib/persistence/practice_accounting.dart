@@ -187,44 +187,44 @@ const _notCountedByIdentity = PracticeVerdict._(
 
 /// 判定表：语境 → 判定（穷尽 switch 是唯一声明处；加枚举取值即编译报错）。
 PracticeVerdict practiceVerdictOf(PracticeContext context) => switch (context) {
-      // 计：引擎在播的各类语境。
-      PracticeContext.watchPlaying ||
-      PracticeContext.editPlaying ||
-      PracticeContext.eightBeatStandby ||
-      PracticeContext.comparePlayback ||
-      PracticeContext.compareControlLayer ||
-      PracticeContext.framingAdjust ||
-      PracticeContext.threeFingerJump ||
-      PracticeContext.segmentSelectionJump ||
-      PracticeContext.segmentLoopJumpBack ||
-      PracticeContext.trackBandInRangeDrag ||
-      PracticeContext.clipEndpointTrimDrag ||
-      PracticeContext.volumeBrightnessMirrorDirectionLock ||
-      PracticeContext.recordingLiveFollow => _countedIn,
+  // 计：引擎在播的各类语境。
+  PracticeContext.watchPlaying ||
+  PracticeContext.editPlaying ||
+  PracticeContext.eightBeatStandby ||
+  PracticeContext.comparePlayback ||
+  PracticeContext.compareControlLayer ||
+  PracticeContext.framingAdjust ||
+  PracticeContext.threeFingerJump ||
+  PracticeContext.segmentSelectionJump ||
+  PracticeContext.segmentLoopJumpBack ||
+  PracticeContext.trackBandInRangeDrag ||
+  PracticeContext.clipEndpointTrimDrag ||
+  PracticeContext.volumeBrightnessMirrorDirectionLock ||
+  PracticeContext.recordingLiveFollow => _countedIn,
 
-      // 不计：三个专属事实。
-      PracticeContext.clipReviewInFlight => _notCountedByClipReview,
-      PracticeContext.recordingPreparing => _notCountedByPreparing,
-      PracticeContext.delayedPlayPreparing => _notCountedByPreparing,
+  // 不计：三个专属事实。
+  PracticeContext.clipReviewInFlight => _notCountedByClipReview,
+  PracticeContext.recordingPreparing => _notCountedByPreparing,
+  PracticeContext.delayedPlayPreparing => _notCountedByPreparing,
 
-      // 不计：引擎不在播（暂停或未起播）。
-      PracticeContext.avSyncCalibration ||
-      PracticeContext.endLoopPromptCountdown ||
-      PracticeContext.noteEditing ||
-      PracticeContext.frameStepping ||
-      PracticeContext.fullscreenScrub ||
-      PracticeContext.annotationLineDragPreview ||
-      PracticeContext.trackBandDragOutOfRange => _notCountedByNotPlaying,
+  // 不计：引擎不在播（暂停或未起播）。
+  PracticeContext.avSyncCalibration ||
+  PracticeContext.endLoopPromptCountdown ||
+  PracticeContext.noteEditing ||
+  PracticeContext.frameStepping ||
+  PracticeContext.fullscreenScrub ||
+  PracticeContext.annotationLineDragPreview ||
+  PracticeContext.trackBandDragOutOfRange => _notCountedByNotPlaying,
 
-      // 不计：标识未定。
-      PracticeContext.videoParsingWindow => _notCountedByIdentity,
+  // 不计：标识未定。
+  PracticeContext.videoParsingWindow => _notCountedByIdentity,
 
-      // 不计：不在口径内（只订阅源引擎）。
-      PracticeContext.secondEngineSoloPlayback => const PracticeVerdict._(
-          false,
-          PracticeBasis.outOfScope,
-        ),
-    };
+  // 不计：不在口径内（只订阅源引擎）。
+  PracticeContext.secondEngineSoloPlayback => const PracticeVerdict._(
+    false,
+    PracticeBasis.outOfScope,
+  ),
+};
 
 /// 事实面：判定值由既有 owner 交出的四个事实推出。
 class PracticeAccountingFacts {

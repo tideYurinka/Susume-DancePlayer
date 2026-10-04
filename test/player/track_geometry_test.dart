@@ -18,19 +18,18 @@ TrackBandGeometry geo({
   TimelineWindow? window,
   double width = 300,
   double prefixWidth = 0,
-}) =>
-    TrackBandGeometry.eval(
-      total: total,
-      window: window,
-      width: width,
-      prefixWidth: prefixWidth,
-    );
+}) => TrackBandGeometry.eval(
+  total: total,
+  window: window,
+  width: width,
+  prefixWidth: prefixWidth,
+);
 
 TimelineWindow win(int startMs, int endMs) => TimelineWindow(
-      total: threeMin,
-      start: Duration(milliseconds: startMs),
-      end: Duration(milliseconds: endMs),
-    );
+  total: threeMin,
+  start: Duration(milliseconds: startMs),
+  end: Duration(milliseconds: endMs),
+);
 
 /// [TimelineWindow] 未声明结构相等，按字段比较。
 void expectWindow(TimelineWindow actual, TimelineWindow expected) {
@@ -84,12 +83,16 @@ void main() {
       expectWindow(geo().effectiveWindow, TimelineWindow.full(threeMin));
     });
     test('倒序窗口 → 归一为全宽', () {
-      expectWindow(geo(window: win(120_000, 60_000)).effectiveWindow,
-          TimelineWindow.full(threeMin));
+      expectWindow(
+        geo(window: win(120_000, 60_000)).effectiveWindow,
+        TimelineWindow.full(threeMin),
+      );
     });
     test('零长窗口（start == end）→ 归一为全宽', () {
-      expectWindow(geo(window: win(60_000, 60_000)).effectiveWindow,
-          TimelineWindow.full(threeMin));
+      expectWindow(
+        geo(window: win(60_000, 60_000)).effectiveWindow,
+        TimelineWindow.full(threeMin),
+      );
     });
     test('越界窗口（end 超出总时长）→ 归一为全宽', () {
       final w = TimelineWindow(
@@ -97,7 +100,10 @@ void main() {
         start: Duration(minutes: 2),
         end: const Duration(minutes: 4),
       );
-      expectWindow(geo(window: w).effectiveWindow, TimelineWindow.full(threeMin));
+      expectWindow(
+        geo(window: w).effectiveWindow,
+        TimelineWindow.full(threeMin),
+      );
     });
     test('与总时长不匹配（换片后旧窗口）→ 归一为全宽', () {
       final stale = TimelineWindow(
@@ -105,7 +111,10 @@ void main() {
         start: Duration(minutes: 1),
         end: Duration(minutes: 2),
       );
-      expectWindow(geo(window: stale).effectiveWindow, TimelineWindow.full(threeMin));
+      expectWindow(
+        geo(window: stale).effectiveWindow,
+        TimelineWindow.full(threeMin),
+      );
     });
   });
 
@@ -128,13 +137,17 @@ void main() {
       expectWindow(geo().effectiveWindowOrNull!, TimelineWindow.full(threeMin));
     });
     test('不合法窗口 → 归一为全宽（非 null）', () {
-      expectWindow(geo(window: win(120_000, 60_000)).effectiveWindowOrNull!,
-          TimelineWindow.full(threeMin));
+      expectWindow(
+        geo(window: win(120_000, 60_000)).effectiveWindowOrNull!,
+        TimelineWindow.full(threeMin),
+      );
     });
     test('真缺失判据只看总时长，与带宽无关（带宽 0 不吞窗口）', () {
       final w = win(60_000, 120_000);
-      expect(identical(geo(window: w, width: 0).effectiveWindowOrNull, w),
-          isTrue);
+      expect(
+        identical(geo(window: w, width: 0).effectiveWindowOrNull, w),
+        isTrue,
+      );
     });
   });
 
@@ -215,15 +228,14 @@ void main() {
     LearningTrackHitTarget? hitAt(
       double dx, {
       Duration? narrowedLineHalfWidth,
-    }) =>
-        geo(window: win(60_000, 120_000)).learningHitAt(
-          dx: dx,
-          segmentLines: lines,
-          rangeStart: win(60_000, 120_000).start,
-          rangeEnd: win(60_000, 120_000).end,
-          segments: segments,
-          narrowedLineHalfWidth: narrowedLineHalfWidth,
-        );
+    }) => geo(window: win(60_000, 120_000)).learningHitAt(
+      dx: dx,
+      segmentLines: lines,
+      rangeStart: win(60_000, 120_000).start,
+      rangeEnd: win(60_000, 120_000).end,
+      segments: segments,
+      narrowedLineHalfWidth: narrowedLineHalfWidth,
+    );
 
     test('命中分段线（命中宽常量经像素→时长装配）', () {
       // 200_000 µs/px：线命中半宽 20px → 4_000_000µs = 4s；点在 90s 线左侧
@@ -241,12 +253,14 @@ void main() {
         rangeStart: win(60_000, 120_000).start,
         rangeEnd: win(60_000, 120_000).end,
         segments: segments,
-        time: win(60_000, 120_000).start +
+        time:
+            win(60_000, 120_000).start +
             Duration(microseconds: (149 * perPx).round()),
         lineHalfWidth: pxToDuration(kSegmentLineHitWidth / 2),
         edgeHalfWidth: pxToDuration(kVideoRangeHitWidth / 2),
-        minSegmentHitWidth:
-            pxToDuration(kTrackGeometryLearningSegmentMinHitWidth),
+        minSegmentHitWidth: pxToDuration(
+          kTrackGeometryLearningSegmentMinHitWidth,
+        ),
       );
       expect(hitAt(149), expected);
     });
@@ -254,7 +268,8 @@ void main() {
     test('命中段体：点按落在段区间内（段宽 10s 已宽于最小命中宽）', () {
       // 段 75s..85s；x=100 → 60s + 100×0.2s = 80s，落在段内。
       final hit = hitAt(100);
-      expect(hit, const SegmentHitTarget(0));    });
+      expect(hit, const SegmentHitTarget(0));
+    });
 
     test('命中视频尾线（边界命中带）', () {
       // 尾线 = 120s = x 300；距 1px（0.2s ≤ 边缘半宽 20px = 4s）。
@@ -407,12 +422,18 @@ void main() {
       // 全宽（window = null）、合法窗口、不合法窗口（归一全宽）三种入参，
       // 模块给出的每像素微秒恒等于「窗口可视微秒 ÷ 带宽」——不存在第二
       // 种取值口径（死支回退式收口后不再可构造）。
-      expect(geo(window: null).microsecondsPerPixel,
-          threeMin.inMicroseconds / 300);
-      expect(geo(window: win(60_000, 120_000)).microsecondsPerPixel,
-          const Duration(seconds: 60).inMicroseconds / 300);
-      expect(geo(window: win(120_000, 60_000)).microsecondsPerPixel,
-          threeMin.inMicroseconds / 300);
+      expect(
+        geo(window: null).microsecondsPerPixel,
+        threeMin.inMicroseconds / 300,
+      );
+      expect(
+        geo(window: win(60_000, 120_000)).microsecondsPerPixel,
+        const Duration(seconds: 60).inMicroseconds / 300,
+      );
+      expect(
+        geo(window: win(120_000, 60_000)).microsecondsPerPixel,
+        threeMin.inMicroseconds / 300,
+      );
     });
     test('轴与每像素微秒同源：轴两端换算与原语逐位一致', () {
       final w = win(60_000, 120_000);
@@ -556,12 +577,18 @@ void main() {
     }
 
     test('默认全片视图：让位宽 = 片头带宽、内容区左缘 = 零点屏上 x（逐位不变）', () {
-      for (final g in [geo(prefixWidth: prefix), geo(prefixWidth: prefix, window: win(0, 180_000))]) {
+      for (final g in [
+        geo(prefixWidth: prefix),
+        geo(prefixWidth: prefix, window: win(0, 180_000)),
+      ]) {
         expect(g.contentLeft, prefix);
         expect(g.contentWidth, 300 - prefix);
         expect(g.prefixRight, prefix);
         expect(g.timeToPixel(Duration.zero), prefix);
-        expect(g.microsecondsPerPixel, threeMin.inMicroseconds / (300 - prefix));
+        expect(
+          g.microsecondsPerPixel,
+          threeMin.inMicroseconds / (300 - prefix),
+        );
       }
     });
 
@@ -574,7 +601,10 @@ void main() {
       expect(g.contentLeft - g.prefixRight, closeTo(0, 1e-9));
       expect(g.contentWidth, closeTo(300 - 37.111, 0.001));
       // 内容映射起于片头右缘：窗口起点贴着内容区左缘。
-      expect(g.timeToPixel(win(1_000, 91_000).start), closeTo(g.contentLeft, 1e-9));
+      expect(
+        g.timeToPixel(win(1_000, 91_000).start),
+        closeTo(g.contentLeft, 1e-9),
+      );
     });
 
     test('零点完全滑出视线：让位宽 = 0、内容区宽 = 带宽（片段左缘贴带左缘）', () {
@@ -583,7 +613,10 @@ void main() {
       expect(g.contentWidth, 300);
       expect(g.prefixVisible, isFalse);
       expect(g.timeToPixel(win(60_000, 90_000).start), 0);
-      expect(g.microsecondsPerPixel, const Duration(seconds: 30).inMicroseconds / 300);
+      expect(
+        g.microsecondsPerPixel,
+        const Duration(seconds: 30).inMicroseconds / 300,
+      );
     });
 
     test('平移回开头：片头重新完整出现、让位恢复 40（与默认视图逐位一致）', () {
@@ -606,13 +639,29 @@ void main() {
     test('让位变化连续：起点从 0 扫到零点滑出，让位宽单调不增、无跳变', () {
       var previous = prefix;
       for (var startMs = 0; startMs <= 20_000; startMs += 100) {
-        final g = geo(prefixWidth: prefix, window: win(startMs, startMs + 90_000));
+        final g = geo(
+          prefixWidth: prefix,
+          window: win(startMs, startMs + 90_000),
+        );
         final reserve = g.contentLeft;
-        expect(reserve, inInclusiveRange(0, prefix), reason: 'startMs=$startMs');
-        expect(reserve, lessThanOrEqualTo(previous + 1e-9),
-            reason: 'startMs=$startMs 不应回升');
-        expect(reserve, closeTo(refPrefixRight(win(startMs, startMs + 90_000)).clamp(0, prefix), 1e-9),
-            reason: 'startMs=$startMs 与参考映射逐位一致');
+        expect(
+          reserve,
+          inInclusiveRange(0, prefix),
+          reason: 'startMs=$startMs',
+        );
+        expect(
+          reserve,
+          lessThanOrEqualTo(previous + 1e-9),
+          reason: 'startMs=$startMs 不应回升',
+        );
+        expect(
+          reserve,
+          closeTo(
+            refPrefixRight(win(startMs, startMs + 90_000)).clamp(0, prefix),
+            1e-9,
+          ),
+          reason: 'startMs=$startMs 与参考映射逐位一致',
+        );
         previous = reserve;
       }
     });
@@ -634,10 +683,16 @@ void main() {
       for (final startMs in [1_000, 5_000, 10_000, 15_317]) {
         final w = win(startMs, startMs + 90_000);
         final g = geo(prefixWidth: prefix, window: w);
-        expect(g.prefixRight, closeTo(refPrefixRight(w), 1e-9),
-            reason: 'startMs=$startMs');
-        expect(g.contentLeft, closeTo(refPrefixRight(w).clamp(0.0, prefix), 1e-9),
-            reason: 'startMs=$startMs');
+        expect(
+          g.prefixRight,
+          closeTo(refPrefixRight(w), 1e-9),
+          reason: 'startMs=$startMs',
+        );
+        expect(
+          g.contentLeft,
+          closeTo(refPrefixRight(w).clamp(0.0, prefix), 1e-9),
+          reason: 'startMs=$startMs',
+        );
       }
     });
 
@@ -650,10 +705,16 @@ void main() {
 
     test('像素↔时间与每像素微秒仍同一份几何派生（平移窗口下互逆）', () {
       final g = geo(prefixWidth: prefix, window: win(1_000, 91_000));
-      expect(g.microsecondsPerPixel,
-          g.effectiveWindow.visible.inMicroseconds / g.contentWidth);
+      expect(
+        g.microsecondsPerPixel,
+        g.effectiveWindow.visible.inMicroseconds / g.contentWidth,
+      );
       for (var x = g.contentLeft; x <= 300; x += 25) {
-        expect(g.timeToPixel(g.pixelToTime(x)), closeTo(x, 1e-4), reason: 'x=$x');
+        expect(
+          g.timeToPixel(g.pixelToTime(x)),
+          closeTo(x, 1e-4),
+          reason: 'x=$x',
+        );
       }
     });
   });

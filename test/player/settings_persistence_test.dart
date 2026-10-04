@@ -221,9 +221,7 @@ void main() {
           .read(overlayPlacementProvider.notifier)
           .set(
             const OverlayPlacements(
-              offsets: {
-                OverlayPlacementCell.portraitNormal: Offset(30, 40),
-              },
+              offsets: {OverlayPlacementCell.portraitNormal: Offset(30, 40)},
             ),
           );
       container.read(practiceClipsProvider.notifier).restore(const [trimmed]);
@@ -236,11 +234,7 @@ void main() {
           storages[idA]!.localSnapshot['prefs'] as Map<String, dynamic>;
       expect((prefs['overlay'] as Map)['dx'], 30.0);
       expect((prefs['overlay'] as Map)['dy'], 40.0);
-      expect(
-        storages[idA]!.markersSnapshot,
-        isEmpty,
-        reason: '取景不落盘',
-      );
+      expect(storages[idA]!.markersSnapshot, isEmpty, reason: '取景不落盘');
       final doc = await container
           .read(videoDocumentCoordinatorProvider(idA))
           .readLocal();
@@ -275,9 +269,7 @@ void main() {
           .read(overlayPlacementProvider.notifier)
           .set(
             const OverlayPlacements(
-              offsets: {
-                OverlayPlacementCell.portraitNormal: Offset(30, 40),
-              },
+              offsets: {OverlayPlacementCell.portraitNormal: Offset(30, 40)},
             ),
           );
       container.read(practiceClipsProvider.notifier).restore(const [trimmed]);
@@ -326,11 +318,7 @@ void main() {
         container.read(noticeTriggerProvider(NoticeId.documentReadOnly)),
         shownBefore,
       );
-      expect(
-        storages[idA]!.localSnapshot['version'],
-        99,
-        reason: '只读原文一字未动',
-      );
+      expect(storages[idA]!.localSnapshot['version'], 99, reason: '只读原文一字未动');
     });
 
     test('各视频相互独立：A 的偏好写 A 文件，B 重开取 B 自己的', () async {
@@ -1167,11 +1155,7 @@ void main() {
 
       await container.read(speedControlProvider.notifier).setStepEnabled(true);
       await session.flush;
-      expect(
-        storages[idA]!.localSnapshot,
-        isEmpty,
-        reason: '步进的启用不是这支舞的倍率决定',
-      );
+      expect(storages[idA]!.localSnapshot, isEmpty, reason: '步进的启用不是这支舞的倍率决定');
 
       await container.read(speedControlProvider.notifier).setStepEnabled(false);
       await session.flush;

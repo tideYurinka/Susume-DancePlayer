@@ -31,21 +31,16 @@ ui:
         onboardingCopyAssetKey: onboarding,
         '$guide/02-播放与手势/播放与手势.md': '# 播放与手势\n\n播放控制与手势。\n',
         '$guide/01-导入与舞库/导入与舞库.md': '# 导入与舞库\n\n导入与管理。\n',
-        '$tutorials/02-免费视频变清晰/用电脑将视频变清晰.md':
-            '# 用电脑将视频变清晰\n\n把视频变清晰。\n',
+        '$tutorials/02-免费视频变清晰/用电脑将视频变清晰.md': '# 用电脑将视频变清晰\n\n把视频变清晰。\n',
         '$tutorials/01-下载视频/下载视频.md': '# 下载视频\n\n先存到相册。\n',
       }),
     );
 
-    expect(
-      content.manualChapters.map((d) => d.id).toList(),
-      ['导入与舞库', '播放与手势'],
-      reason: '顺序取目录名的数字前缀，不按枚举次序',
-    );
-    expect(
-      content.tutorials.map((d) => d.id).toList(),
-      ['下载视频', '免费视频变清晰'],
-    );
+    expect(content.manualChapters.map((d) => d.id).toList(), [
+      '导入与舞库',
+      '播放与手势',
+    ], reason: '顺序取目录名的数字前缀，不按枚举次序');
+    expect(content.tutorials.map((d) => d.id).toList(), ['下载视频', '免费视频变清晰']);
     expect(content.manualChapters.first.displayTitle, '导入与舞库');
     expect(content.tutorials.first.displayTitle, '下载视频');
   });
@@ -53,13 +48,14 @@ ui:
   test('列表页的一句说明取标题之后的第一段；正文引用的图仍收进 imageAssets', () async {
     const directory = '$tutorials/01-下载视频';
     final content = await loadHelpContent(
-      FakeHelpAssetBundle({
-        onboardingCopyAssetKey: onboarding,
-        '$directory/下载视频.md':
-            '# 下载视频\n\n把舞蹈视频存到相册。\n\n## 方法一\n\n![截图](shot.png)\n',
-      }, binary: {
-        '$directory/shot.png': onePixelPng,
-      }),
+      FakeHelpAssetBundle(
+        {
+          onboardingCopyAssetKey: onboarding,
+          '$directory/下载视频.md':
+              '# 下载视频\n\n把舞蹈视频存到相册。\n\n## 方法一\n\n![截图](shot.png)\n',
+        },
+        binary: {'$directory/shot.png': onePixelPng},
+      ),
     );
 
     final entry = content.document('下载视频')!;
@@ -71,8 +67,7 @@ ui:
     final content = await loadHelpContent(
       FakeHelpAssetBundle({
         onboardingCopyAssetKey: onboarding,
-        '$tutorials/01-下载视频/下载视频.md':
-            '# 下载视频\n\n> 使用某开源软件\n\n把舞蹈视频存到相册。\n',
+        '$tutorials/01-下载视频/下载视频.md': '# 下载视频\n\n> 使用某开源软件\n\n把舞蹈视频存到相册。\n',
       }),
     );
 
@@ -99,12 +94,13 @@ ui:
 
   test('条目目录缺正文：仍出现在列表里，标题取目录名、说明留空', () async {
     final content = await loadHelpContent(
-      FakeHelpAssetBundle({
-        onboardingCopyAssetKey: onboarding,
-      }, binary: {
-        // 目录里只有一张图、没有 Markdown。
-        '$tutorials/01-下载视频/shot.png': onePixelPng,
-      }),
+      FakeHelpAssetBundle(
+        {onboardingCopyAssetKey: onboarding},
+        binary: {
+          // 目录里只有一张图、没有 Markdown。
+          '$tutorials/01-下载视频/shot.png': onePixelPng,
+        },
+      ),
     );
 
     final entry = content.document('下载视频');

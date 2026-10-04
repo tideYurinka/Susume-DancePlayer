@@ -116,9 +116,8 @@ extension BeatGridReads on BeatGrid {
 
   /// 前导档位：异常态档位数字即秒（2→2s / 4→4s / 8→8s），否则档位 ×
   /// 名义拍长；档位 0 两支都得零（`0 档特例`消失）。
-  Duration leadTier(int tier) => isSecondsFallback
-      ? Duration(seconds: tier)
-      : nominalBeat * tier;
+  Duration leadTier(int tier) =>
+      isSecondsFallback ? Duration(seconds: tier) : nominalBeat * tier;
 
   /// 定位 [position] 所属拍的**唯一拍边界求值**：
   /// 早于首拍的时间钳到首拍（[BeatBoundary.beforeFirst] 置位），有界网格

@@ -8,5 +8,5 @@ import '../persistence/practice_stats_providers.dart'
 /// provider，不新增缓存）。存储取自持久化层的练舞统计 store。
 final practiceStatsRecordsProvider =
     FutureProvider.autoDispose<List<PracticeSessionRecord>>((ref) {
-  return ref.watch(practiceStatsStoreProvider).records();
-});
+      return ref.watch(practiceStatsStoreProvider).records();
+    });

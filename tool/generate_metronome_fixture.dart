@@ -55,14 +55,18 @@ void main(List<String> args) {
     final n = (pulseMs * _sampleRate / 1000).round();
     for (var j = 0; j < n && onset + j < totalFrames; j++) {
       final env = math.pow(math.e, -4.0 * j / n).toDouble();
-      final tone = math.sin(2 * math.pi * (accent ? 1000 : 1500) * j / _sampleRate);
+      final tone = math.sin(
+        2 * math.pi * (accent ? 1000 : 1500) * j / _sampleRate,
+      );
       samples[onset + j] += (amp * env * tone);
     }
   }
 
   _writeWav16(out, samples, _sampleRate);
-  stdout.writeln('GREEN: $out（$bpm bpm × $beats 拍，第 0 拍 downbeat，'
-      '每 $beatPerBar 拍重音；拍点毫秒随 $bpm bpm 已知）');
+  stdout.writeln(
+    'GREEN: $out（$bpm bpm × $beats 拍，第 0 拍 downbeat，'
+    '每 $beatPerBar 拍重音；拍点毫秒随 $bpm bpm 已知）',
+  );
 }
 
 /// 16-bit 单声道 PCM WAV 写出。

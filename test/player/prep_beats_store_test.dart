@@ -28,9 +28,8 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  PrivateJsonStorage makeRealStorage() => AtomicJsonFile(
-    File(p.join(tempDir.path, 'global_private.json')),
-  );
+  PrivateJsonStorage makeRealStorage() =>
+      AtomicJsonFile(File(p.join(tempDir.path, 'global_private.json')));
 
   /// 磁盘原文（真实文件）/ 内存快照（fake）。
   Future<Map<String, dynamic>> readRaw(PrivateJsonStorage storage) async {
@@ -102,20 +101,20 @@ void main() {
 
       test('update：写入后重读一致；与既有设备级键互不覆盖', () async {
         final storage = makeStorage();
-        await storage.mutate((json, {required bool present}) async => json['speedHistory'] = [1.5]);
+        await storage.mutate(
+          (json, {required bool present}) async => json['speedHistory'] = [1.5],
+        );
         final store = PrepBeatsStore(storage);
 
-        await store.update((current) => current.withFields(
-              delayedPlay: 2,
-              recording: 4,
-              loopLead: 0,
-            ));
+        await store.update(
+          (current) =>
+              current.withFields(delayedPlay: 2, recording: 4, loopLead: 0),
+        );
 
-        expect(await store.load(), const PrepBeats(
-          delayedPlay: 2,
-          recording: 4,
-          loopLead: 0,
-        ));
+        expect(
+          await store.load(),
+          const PrepBeats(delayedPlay: 2, recording: 4, loopLead: 0),
+        );
         expect((await readRaw(storage))['speedHistory'], [1.5]);
 
         // 再改一项：其余两项保持（三项互不覆盖）。
@@ -129,23 +128,25 @@ void main() {
 
       test('prepBeats 整体损坏 → 各项回落默认，不抛错', () async {
         final storage = makeStorage();
-        await storage.mutate((json, {required bool present}) async => json['prepBeats'] = 42);
+        await storage.mutate(
+          (json, {required bool present}) async => json['prepBeats'] = 42,
+        );
         expect(await PrepBeatsStore(storage).load(), const PrepBeats());
       });
 
       test('PrepBeatsModel：启动恢复 + 变更即落盘 + 重启等价', () async {
         final storage = makeStorage();
-        await storage.mutate((json, {required bool present}) async => json['prepBeats'] = {
-              'delayedPlay': 2,
-              'recording': 8,
-              'loopLead': 8,
-            });
+        await storage.mutate(
+          (json, {required bool present}) async => json['prepBeats'] = {
+            'delayedPlay': 2,
+            'recording': 8,
+            'loopLead': 8,
+          },
+        );
 
         Future<PrepBeats> openRead() async {
           final container = ProviderContainer(
-            overrides: [
-              privateJsonStorageProvider.overrideWithValue(storage),
-            ],
+            overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
           );
           addTearDown(container.dispose);
           await container.read(prepBeatsProvider.notifier).restoreDone;
@@ -153,14 +154,14 @@ void main() {
         }
 
         // 「重启」：新容器从存储恢复同一组值。
-        expect(await openRead(),
-            const PrepBeats(delayedPlay: 2, recording: 8, loopLead: 8));
+        expect(
+          await openRead(),
+          const PrepBeats(delayedPlay: 2, recording: 8, loopLead: 8),
+        );
 
         // 改值即落盘。
         final container = ProviderContainer(
-          overrides: [
-            privateJsonStorageProvider.overrideWithValue(storage),
-          ],
+          overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
         );
         addTearDown(container.dispose);
         container.read(prepBeatsProvider);
@@ -180,12 +181,11 @@ void main() {
       test('启动恢复未完成时改动不冲掉另两项已存值；循环前导会话值自设备级恢复', () async {
         final storage = makeStorage();
         await storage.mutate(
-          (json, {required bool present}) async => json['prepBeats'] = {'loopLead': 0},
+          (json, {required bool present}) async =>
+              json['prepBeats'] = {'loopLead': 0},
         );
         final container = ProviderContainer(
-          overrides: [
-            privateJsonStorageProvider.overrideWithValue(storage),
-          ],
+          overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
         );
         addTearDown(container.dispose);
         container.listen(delayedLoopProvider, (_, _) {});
@@ -203,9 +203,7 @@ void main() {
           },
         );
         final container = ProviderContainer(
-          overrides: [
-            privateJsonStorageProvider.overrideWithValue(storage),
-          ],
+          overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
         );
         addTearDown(container.dispose);
         container
@@ -221,9 +219,7 @@ void main() {
       test('setLoopLead 后延迟循环档位派生同步', () async {
         final storage = makeStorage();
         final container = ProviderContainer(
-          overrides: [
-            privateJsonStorageProvider.overrideWithValue(storage),
-          ],
+          overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
         );
         addTearDown(container.dispose);
         container.listen(delayedLoopProvider, (_, _) {});

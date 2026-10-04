@@ -45,8 +45,7 @@ import 'package:flutter/gestures.dart'
         LongPressGestureRecognizer,
         PointerCancelEvent;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'
-    show KeyDownEvent, LogicalKeyboardKey;
+import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 
 import '../surface_direction/surface_direction.dart' show FaceDirection;
 import 'advanced_gestures.dart' show PlayerDoubleTapGestureRecognizer;
@@ -255,8 +254,13 @@ class PictureFeedbackInput {
       other.pictureRectOf == pictureRectOf;
 
   @override
-  int get hashCode =>
-      Object.hash(controller, scrubTarget, durationOf, frameRateOf, pictureRectOf);
+  int get hashCode => Object.hash(
+    controller,
+    scrubTarget,
+    durationOf,
+    frameRateOf,
+    pictureRectOf,
+  );
 }
 
 /// 播放指示：引擎播放态与打开态。
@@ -293,8 +297,7 @@ class PicturePlaybackInput {
       other.onTogglePlay == onTogglePlay;
 
   @override
-  int get hashCode =>
-      Object.hash(isPlaying, opened, openFailed, onTogglePlay);
+  int get hashCode => Object.hash(isPlaying, opened, openFailed, onTogglePlay);
 }
 
 /// 手势层件入参：识别器与回调。
@@ -584,8 +587,7 @@ class _PicturePlaySwitchState extends State<_PicturePlaySwitch> {
   final FocusNode _focusNode = FocusNode(debugLabel: 'picture_play_switch');
   bool _focused = false;
 
-  bool get _canToggle =>
-      widget.playback.opened && !widget.playback.openFailed;
+  bool get _canToggle => widget.playback.opened && !widget.playback.openFailed;
 
   @override
   void dispose() {
@@ -632,10 +634,7 @@ class _PicturePlaySwitchState extends State<_PicturePlaySwitch> {
                     key: Key('picture_focus_ring'),
                     decoration: BoxDecoration(
                       border: Border.fromBorderSide(
-                        BorderSide(
-                          color: kKeyboardFocusHighlight,
-                          width: 3,
-                        ),
+                        BorderSide(color: kKeyboardFocusHighlight, width: 3),
                       ),
                     ),
                   ),

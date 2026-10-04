@@ -23,7 +23,8 @@ import 'package:dance_learning_app/player/speed_history_store.dart'
     show speedHistoryAutoRestoreProvider;
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
-    as vdp show videoDocumentStorageProvider;
+    as vdp
+    show videoDocumentStorageProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -106,10 +107,7 @@ void main() {
 
       container.read(practiceClipActivationProvider.notifier).toggle(clip());
 
-      expect(
-        container.read(practiceClipActivationProvider)?.clipId,
-        'clip_m1',
-      );
+      expect(container.read(practiceClipActivationProvider)?.clipId, 'clip_m1');
       expect(container.read(selectedLearningSegmentsProvider), isEmpty);
       expect(container.read(transitionSegmentProvider), isNull);
 
@@ -134,10 +132,7 @@ void main() {
       container.read(practiceClipActivationProvider.notifier).toggle(clip());
 
       expect(container.read(transitionSegmentProvider), isNull);
-      expect(
-        container.read(practiceClipActivationProvider)?.clipId,
-        'clip_m1',
-      );
+      expect(container.read(practiceClipActivationProvider)?.clipId, 'clip_m1');
     });
 
     test('激活学习段清除片段激活；循环范围回到学习段', () {
@@ -251,10 +246,7 @@ void main() {
           .read(practiceClipActivationProvider.notifier)
           .restore('clip_m1', clips: [clip()]);
 
-      expect(
-        container.read(practiceClipActivationProvider)?.clipId,
-        'clip_m1',
-      );
+      expect(container.read(practiceClipActivationProvider)?.clipId, 'clip_m1');
       expect(container.read(activeLoopRangeProvider), isNotNull);
       expect(
         container
@@ -318,24 +310,26 @@ void main() {
         ),
       );
       final storages = {
-        idA: InMemoryVideoDocumentStorage(local: {
-          'version': 3,
-          'session': {
-            'activatedSegments': <int>[],
-            'activePracticeClipId': 'clip_m1',
+        idA: InMemoryVideoDocumentStorage(
+          local: {
+            'version': 3,
+            'session': {
+              'activatedSegments': <int>[],
+              'activePracticeClipId': 'clip_m1',
+            },
+            'prefs': {
+              'practiceClips': [
+                {
+                  'id': 'clip_m1',
+                  'materialId': 'm1',
+                  'materialSourceStartMs': 0,
+                  'inMs': 10000,
+                  'outMs': 20000,
+                },
+              ],
+            },
           },
-          'prefs': {
-            'practiceClips': [
-              {
-                'id': 'clip_m1',
-                'materialId': 'm1',
-                'materialSourceStartMs': 0,
-                'inMs': 10000,
-                'outMs': 20000,
-              },
-            ],
-          },
-        }),
+        ),
       };
       final restoreContainer = ProviderContainer(
         overrides: [
@@ -348,9 +342,9 @@ void main() {
             InMemoryPrivateJsonStorage(),
           ),
           for (final entry in storages.entries)
-            vdp.videoDocumentStorageProvider(
-              entry.key,
-            ).overrideWithValue(entry.value),
+            vdp
+                .videoDocumentStorageProvider(entry.key)
+                .overrideWithValue(entry.value),
         ],
       );
       addTearDown(restoreContainer.dispose);

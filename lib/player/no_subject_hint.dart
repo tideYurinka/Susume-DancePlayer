@@ -28,10 +28,7 @@ import 'visual_tokens.dart' show kNoticeTextStyle;
 const String kNoSubjectNoSegmentsText = '先用『分段』或『自动分段』切出段来';
 
 /// 「无对象」做法文案：按入口声明的 [hint] 与「这支舞有没有分段」两态取辞。
-String noSubjectHintText(
-  NoSubjectHint hint, {
-  required bool hasSegments,
-}) {
+String noSubjectHintText(NoSubjectHint hint, {required bool hasSegments}) {
   if (!hasSegments) return kNoSubjectNoSegmentsText;
   return switch (hint) {
     NoSubjectHint.learningSegment => '先点一段再点这里',
@@ -60,8 +57,8 @@ class NoSubjectFactsModel extends Notifier<NoSubjectFacts> {
 /// 无对象提示事实注入点。
 final noSubjectFactsProvider =
     NotifierProvider<NoSubjectFactsModel, NoSubjectFacts>(
-  NoSubjectFactsModel.new,
-);
+      NoSubjectFactsModel.new,
+    );
 
 /// 「无对象」提示内容（按注入的事实取那一句）。
 Widget noSubjectNoticeContent(BuildContext _) =>
@@ -93,8 +90,9 @@ void showNoSubjectHint(
   NoSubjectHint hint, {
   required bool hasSegments,
 }) {
-  ref
-      .read(noSubjectFactsProvider.notifier)
-      .write((hint: hint, hasSegments: hasSegments));
+  ref.read(noSubjectFactsProvider.notifier).write((
+    hint: hint,
+    hasSegments: hasSegments,
+  ));
   ref.read(noticeTriggerProvider(NoticeId.noSubject).notifier).show();
 }

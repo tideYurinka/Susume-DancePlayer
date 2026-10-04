@@ -348,9 +348,9 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
                                             key: const Key('naming_preview'),
                                             // 浅色卡上的正文：黑底胶囊的白字在这里读不出来。
                                             style: TextStyle(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
                                             ),

@@ -81,11 +81,7 @@ void main() {
       // 三段各宽 100ms：[1000,1100) [1200,1300) [1400,1500)，最小命中宽
       // 1000ms → 各扩 450ms，扩展域连片 [550,1950)。点 1300ms 距段 1
       // 中心 0 最近。
-      final fragments = [
-        frag(1000, 1100),
-        frag(1200, 1300),
-        frag(1400, 1500),
-      ];
+      final fragments = [frag(1000, 1100), frag(1200, 1300), frag(1400, 1500)];
       const minHit = 1000;
       expect(hitAt(fragments, 1300, minHitWidthMs: minHit), 1);
       // 真平票：点 1150ms 距段 0 中心 150 == 距段 1 中心 150 → 取靠前者。

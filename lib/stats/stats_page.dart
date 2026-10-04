@@ -111,11 +111,10 @@ class _StatsPageState extends ConsumerState<StatsPage> {
                     metric: _metric,
                     selectedDay: selectedDay,
                     selecting: _heatmapSelecting,
-                    onDayTap: (day) =>
-                        setState(() {
-                          _selectedDay = day;
-                          _barBubbleFingerY = null;
-                        }),
+                    onDayTap: (day) => setState(() {
+                      _selectedDay = day;
+                      _barBubbleFingerY = null;
+                    }),
                     onBlankTap: _clearSelection,
                     onSelectionModeChanged: (selecting) {
                       // 进模式经原生震动通道震一次；
@@ -396,7 +395,6 @@ class _DashboardCardFace extends StatelessWidget {
     );
   }
 }
-
 
 /// 单舞排行卡：排序与范围只认筛选行选中的窗口 × 单位；
 /// 行显示舞名与当前单位的一个数值；窗口内当前单位为 0 的舞不出行，空列表

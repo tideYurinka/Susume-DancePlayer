@@ -2,7 +2,8 @@ import 'package:dance_learning_app/annotation/note_sticker.dart';
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart';
 import 'package:dance_learning_app/player/annotation_edit.dart';
 import 'package:dance_learning_app/player/annotation_editor.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player/note_sticker_layout.dart';
 import 'package:dance_learning_app/player/note_sticker_overlay.dart';
 import 'package:dance_learning_app/player/note_sticker_overlay_registration.dart';
@@ -27,8 +28,7 @@ void main() {
   NoteGeometry geometry() =>
       container.read(noteStickersProvider).single.geometry;
 
-  int historyLength() =>
-      container.read(annotationEditHistoryProvider).length;
+  int historyLength() => container.read(annotationEditHistoryProvider).length;
 
   Future<void> pumpHost(
     WidgetTester tester, {
@@ -78,8 +78,7 @@ void main() {
   tearDown(() => container.dispose());
 
   group('单指拖动平移（播放态 + 选中态）', () {
-    testWidgets('贴纸主体随手指平移：归一化中心按内容矩形换算，一次手势一个撤销步',
-        (tester) async {
+    testWidgets('贴纸主体随手指平移：归一化中心按内容矩形换算，一次手势一个撤销步', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
@@ -105,8 +104,7 @@ void main() {
       expect(geometry(), const NoteGeometry());
     });
 
-    testWidgets('随面：镜像下贴纸仍跟手指走（屏幕向右 = 贴纸向右）',
-        (tester) async {
+    testWidgets('随面：镜像下贴纸仍跟手指走（屏幕向右 = 贴纸向右）', (tester) async {
       // 镜像下屏幕位置 = 1 − 归一化 x：手指向右时归一化 x 必须变小，
       // 渲染才向右。屏幕增量 → 归一化增量按面方向反相一次。
       await pumpHost(tester, faceDirection: FaceDirection.mirrored);
@@ -192,8 +190,7 @@ void main() {
   });
 
   group('双指等比缩放（字号随整体缩放承担）', () {
-    testWidgets('双指张开：等比系数放大、渲染字号随之；一次手势一个撤销步',
-        (tester) async {
+    testWidgets('双指张开：等比系数放大、渲染字号随之；一次手势一个撤销步', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
@@ -209,22 +206,22 @@ void main() {
       await g2.up();
       await tester.pump();
 
-      expect(geometry().scale, greaterThan(1.0),
-          reason: '双指张开等比放大');
+      expect(geometry().scale, greaterThan(1.0), reason: '双指张开等比放大');
       // 双指起手瞬间焦点中点可有微小漂移（两指识别起点不完全对称），中心
       // 只断言未离开邻域；等比放大本身不受影响。
       expect(geometry().centerX, closeTo(noteDefaultCenterX, 0.1));
       expect(historyLength(), 1);
       // 字号由贴纸整体缩放承担：渲染字号大于基准字号。
-      final fontSize =
-          tester.widget<Text>(find.byType(Text).first).style?.fontSize;
+      final fontSize = tester
+          .widget<Text>(find.byType(Text).first)
+          .style
+          ?.fontSize;
       expect(fontSize, greaterThan(kNoteStickerBaseFontSize));
     });
   });
 
   group('转屏粘附与手势中出窗', () {
-    testWidgets('转屏（内容矩形变化）后贴纸粘在画面同一点（归一化中心不变）',
-        (tester) async {
+    testWidgets('转屏（内容矩形变化）后贴纸粘在画面同一点（归一化中心不变）', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
@@ -253,12 +250,13 @@ void main() {
       );
     });
 
-    testWidgets('几何交叉断言：角落 + 大系数下模块几何与渲染像素一致收敛',
-        (tester) async {
+    testWidgets('几何交叉断言：角落 + 大系数下模块几何与渲染像素一致收敛', (tester) async {
       // 模块单点钳制把中心钳进 [0,1]、系数钳进具名界（读回落点即模块
       // 几何）；渲染侧把像素矩形完整收进内容矩形——两层口径在此交叉。
       await pumpHost(tester);
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const SetNoteGeometry(
               index: 0,
               geometry: NoteGeometry(centerX: 0.99, centerY: 0.99, scale: 99),
@@ -268,11 +266,10 @@ void main() {
 
       final geometryAfter = geometry();
       // 中心 0.99 本就在归一化域内原样保留；系数 99 钳到具名上界。
-      expect(geometryAfter, const NoteGeometry(
-        centerX: 0.99,
-        centerY: 0.99,
-        scale: noteMaxScale,
-      ));
+      expect(
+        geometryAfter,
+        const NoteGeometry(centerX: 0.99, centerY: 0.99, scale: noteMaxScale),
+      );
       final rendered = tester.getRect(find.byType(NoteStickerText));
       // 渲染像素矩形完整落在内容矩形内（角工具恒可达）。
       expect(rendered.left >= contentRect.left, isTrue);
@@ -283,17 +280,17 @@ void main() {
       // 同源基准样式，两层都必须是该字号。
       final scaledTexts = tester
           .widgetList<Text>(
-            find.byWidgetPredicate((w) => w is Text && w.style?.fontSize != null),
+            find.byWidgetPredicate(
+              (w) => w is Text && w.style?.fontSize != null,
+            ),
           )
           .toList();
-      expect(
-        scaledTexts.map((text) => text.style!.fontSize).toSet(),
-        {kNoteStickerBaseFontSize * noteMaxScale},
-      );
+      expect(scaledTexts.map((text) => text.style!.fontSize).toSet(), {
+        kNoteStickerBaseFontSize * noteMaxScale,
+      });
     });
 
-    testWidgets('手势进行中播放头出窗：会话走结束路径收口（净变化照常提交）',
-        (tester) async {
+    testWidgets('手势进行中播放头出窗：会话走结束路径收口（净变化照常提交）', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
@@ -333,13 +330,14 @@ void main() {
           );
     });
 
-    testWidgets('已锁贴纸单指平移起手静默：几何与历史不动、不弹提示',
-        (tester) async {
+    testWidgets('已锁贴纸单指平移起手静默：几何与历史不动、不弹提示', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
 
-      final promptCount = container.read(noticeTriggerProvider(NoticeId.noteContentLock));
+      final promptCount = container.read(
+        noticeTriggerProvider(NoticeId.noteContentLock),
+      );
       final start = tester.getRect(find.byType(NoteStickerText)).center;
       final gesture = await tester.startGesture(start);
       await tester.pump();
@@ -359,13 +357,14 @@ void main() {
       );
     });
 
-    testWidgets('已锁贴纸双指缩放起手静默：系数与历史不动、不弹提示',
-        (tester) async {
+    testWidgets('已锁贴纸双指缩放起手静默：系数与历史不动、不弹提示', (tester) async {
       await pumpHost(tester);
       registration.select();
       await tester.pump();
 
-      final promptCount = container.read(noticeTriggerProvider(NoticeId.noteContentLock));
+      final promptCount = container.read(
+        noticeTriggerProvider(NoticeId.noteContentLock),
+      );
       final center = tester.getRect(find.byType(NoteStickerText)).center;
       final g1 = await tester.startGesture(center - const Offset(24, 0));
       final g2 = await tester.startGesture(center + const Offset(24, 0));

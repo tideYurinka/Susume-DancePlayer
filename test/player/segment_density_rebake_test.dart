@@ -84,11 +84,7 @@ void main() {
 
     editor().undo();
 
-    expect(
-      densities(),
-      const {1: 0.5, 2: 0.5},
-      reason: '几何改动与段内档重烘焙同为一次标注编辑',
-    );
+    expect(densities(), const {1: 0.5, 2: 0.5}, reason: '几何改动与段内档重烘焙同为一次标注编辑');
   });
 
   test('删线：相邻两段融合取绝对值最大的档，撤销一步回退', () {
@@ -130,10 +126,7 @@ void main() {
       const AutoSegment(
         start: Duration.zero,
         end: Duration(seconds: 24),
-        cuts: [
-          Duration(seconds: 8),
-          Duration(seconds: 16),
-        ],
+        cuts: [Duration(seconds: 8), Duration(seconds: 16)],
       ),
     );
 
@@ -145,11 +138,7 @@ void main() {
 
     editor().undo();
 
-    expect(
-      densities(),
-      const {0: 0.5, 1: 2.0},
-      reason: '线与段内档同一步回退',
-    );
+    expect(densities(), const {0: 0.5, 1: 2.0}, reason: '线与段内档同一步回退');
     expect(
       container.read(annotationTimelineProvider).segmentLines,
       hasLength(3),
@@ -204,6 +193,9 @@ void main() {
     );
 
     expect(densities(), const {0: 2.0}, reason: '越界段序丢弃、宁丢不挂错段');
-    expect(deriveLearningSegments(container.read(annotationTimelineProvider)), hasLength(2));
+    expect(
+      deriveLearningSegments(container.read(annotationTimelineProvider)),
+      hasLength(2),
+    );
   });
 }

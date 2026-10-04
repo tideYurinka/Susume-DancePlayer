@@ -33,7 +33,8 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('issue_report_page_test');
     channel = FakeShareChannel();
-    logDirectory = Directory('${tempDir.path}/logs')..createSync(recursive: true);
+    logDirectory = Directory('${tempDir.path}/logs')
+      ..createSync(recursive: true);
     File('${logDirectory.path}/log.txt')
         .writeAsStringSync('2026-09-24 15:20:27.000 [节拍] 第一行\n');
   });
@@ -53,7 +54,9 @@ void main() {
           issueLogSinkProvider.overrideWithValue(
             IssueLogSink(directory: logDirectory),
           ),
-          deviceSnapshotProvider.overrideWith((ref) async => testDeviceSnapshot),
+          deviceSnapshotProvider.overrideWith(
+            (ref) async => testDeviceSnapshot,
+          ),
           shareChannelProvider.overrideWithValue(channel),
           susumeShareDirectoryProvider.overrideWith(
             (ref) async => Directory('${tempDir.path}/out'),
@@ -130,7 +133,9 @@ void main() {
     );
   });
 
-  testWidgets('填好描述点发送：递出一个存在且可解压的问题日志包，含 issue.txt、device.json 与日志', (tester) async {
+  testWidgets('填好描述点发送：递出一个存在且可解压的问题日志包，含 issue.txt、device.json 与日志', (
+    tester,
+  ) async {
     await pumpPage(tester);
 
     await tester.enterText(
@@ -375,7 +380,9 @@ void main() {
     expect(channel.sharedFiles, hasLength(1));
   });
 
-  testWidgets('勾了舞发送：包内 dances.json 逐项对回它自己的标题与标识，没有公开标记文件的不内联空壳', (tester) async {
+  testWidgets('勾了舞发送：包内 dances.json 逐项对回它自己的标题与标识，没有公开标记文件的不内联空壳', (
+    tester,
+  ) async {
     await pumpPage(
       tester,
       dances: [
@@ -458,8 +465,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final decoded = jsonDecode(
-      utf8.decode(readZipEntries(channel.sharedFiles.single.path)[
-          kIssueDancesEntry]!),
+      utf8.decode(
+        readZipEntries(channel.sharedFiles.single.path)[kIssueDancesEntry]!,
+      ),
     ) as List;
     expect((decoded.single as Map)['markers'], testDanceMarkers);
   });

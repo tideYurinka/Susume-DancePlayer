@@ -33,7 +33,12 @@ class TestItems {
 }
 
 class TestDoc {
-  const TestDoc({this.meta = const TestMeta(), this.items = const TestItems(), this.probe, this.extra = const {}});
+  const TestDoc({
+    this.meta = const TestMeta(),
+    this.items = const TestItems(),
+    this.probe,
+    this.extra = const {},
+  });
   final TestMeta meta;
   final TestItems items;
 
@@ -134,8 +139,10 @@ FieldDecl<TestItems> _itemsDecl(_ItemsField id) => switch (id) {
     write: (items) => [for (final e in items.entries) _itemCodec.encode(e)],
     equal: (a, b) =>
         a.entries.length == b.entries.length &&
-        List.generate(a.entries.length, (i) => _itemCodec.equals(a.entries[i], b.entries[i]))
-            .every((ok) => ok),
+        List.generate(
+          a.entries.length,
+          (i) => _itemCodec.equals(a.entries[i], b.entries[i]),
+        ).every((ok) => ok),
   ),
 };
 
@@ -164,8 +171,16 @@ final _docCodec = DocumentCodec<TestDoc, _DocSection>(
 );
 
 SectionDecl<TestDoc> _docSectionDecl(_DocSection id) => switch (id) {
-  _DocSection.meta => SectionDecl(key: 'meta', codec: _metaCodec, sectionOf: (doc) => doc.meta),
-  _DocSection.items => SectionDecl(key: 'items', codec: _itemsCodec, sectionOf: (doc) => doc.items),
+  _DocSection.meta => SectionDecl(
+    key: 'meta',
+    codec: _metaCodec,
+    sectionOf: (doc) => doc.meta,
+  ),
+  _DocSection.items => SectionDecl(
+    key: 'items',
+    codec: _itemsCodec,
+    sectionOf: (doc) => doc.items,
+  ),
   _DocSection.probe => SectionDecl(
     key: 'probe',
     codec: _metaCodec,
@@ -190,11 +205,17 @@ void main() {
     test('全字段往返：可空省略字段、列表、嵌套元素', () {
       const doc = TestDoc(
         meta: TestMeta(title: 'song', note: 'note-a'),
-        items: TestItems(entries: [
-          TestItem(positionMs: 1200, tag: 'intro'),
-          TestItem(positionMs: 3400, tag: null),
-        ]),
-        extra: {'topFuture': {'nested': [1, 2]}},
+        items: TestItems(
+          entries: [
+            TestItem(positionMs: 1200, tag: 'intro'),
+            TestItem(positionMs: 3400, tag: null),
+          ],
+        ),
+        extra: {
+          'topFuture': {
+            'nested': [1, 2],
+          },
+        },
       );
 
       final json = _docCodec.encode(doc);
@@ -207,7 +228,11 @@ void main() {
       expect(restored.items.entries[0].positionMs, 1200);
       expect(restored.items.entries[0].tag, 'intro');
       expect(restored.items.entries[1].tag, isNull);
-      expect(restored.extra, {'topFuture': {'nested': [1, 2]}});
+      expect(restored.extra, {
+        'topFuture': {
+          'nested': [1, 2],
+        },
+      });
     });
 
     test('未设置（null）不写键，设值写键', () {
@@ -228,13 +253,17 @@ void main() {
     test('文档层、段层、元素层的未知键都原样带回、写回原样', () {
       final json = <String, Object?>{
         'version': 2,
-        'meta': <String, Object?>{
-          'title': 'x',
-          'metaFuture': 'keep-me',
-        },
+        'meta': <String, Object?>{'title': 'x', 'metaFuture': 'keep-me'},
         'items': <String, Object?>{
           'entries': [
-            <String, Object?>{'positionMs': 5, 'tag': 'a', 'itemFuture': [1, {'k': 'v'}]},
+            <String, Object?>{
+              'positionMs': 5,
+              'tag': 'a',
+              'itemFuture': [
+                1,
+                {'k': 'v'},
+              ],
+            },
           ],
           'itemsFuture': 7,
         },
@@ -246,7 +275,12 @@ void main() {
       expect(restored.extra, {'docFuture': true});
       expect(restored.meta.extra, {'metaFuture': 'keep-me'});
       expect(restored.items.extra, {'itemsFuture': 7});
-      expect(restored.items.entries.single.extra, {'itemFuture': [1, {'k': 'v'}]});
+      expect(restored.items.entries.single.extra, {
+        'itemFuture': [
+          1,
+          {'k': 'v'},
+        ],
+      });
 
       final written = _docCodec.encode(restored);
       expect(written, json);
@@ -255,7 +289,10 @@ void main() {
     test('保底区不覆盖已登记字段：写盘时保底区先展开、已登记字段后写', () {
       // 元素层：extra 里塞入与已登记字段同名的键，注册值必须胜出。
       final itemJson = _itemCodec.encode(
-        const TestItem(positionMs: 100, extra: {'positionMs': 999, 'tag': 'hijack'}),
+        const TestItem(
+          positionMs: 100,
+          extra: {'positionMs': 999, 'tag': 'hijack'},
+        ),
       );
       expect(itemJson['positionMs'], 100);
       expect(itemJson['tag'], isNull);
@@ -324,7 +361,9 @@ void main() {
       };
       final doc = _docCodec.decode(onDisk);
       expect(doc.meta.title, 'old');
-      expect(doc.extra, {'docFuture': {'keep': 1}});
+      expect(doc.extra, {
+        'docFuture': {'keep': 1},
+      });
       expect(_docPolicy.isWritable(onDisk), isTrue);
       expect(_docCodec.encode(doc)['version'], 2);
     });
@@ -353,14 +392,21 @@ void main() {
       final doc = _docCodec.decode(onDisk);
       expect(doc.meta.title, 'from-the-future');
       expect(doc.items.entries.single.positionMs, 7);
-      expect(doc.extra, {'futureSection': {'x': 1}});
+      expect(doc.extra, {
+        'futureSection': {'x': 1},
+      });
       expect(_docPolicy.isWritable(onDisk), isFalse);
     });
 
     test('版本头读不出（缺失/非整数）→ 认识多少读多少 + 只读', () {
       for (final onDisk in const <Map<String, Object?>>[
-        {'meta': {'title': 'stale'}},
-        {'version': '2', 'meta': {'title': 'stale'}},
+        {
+          'meta': {'title': 'stale'},
+        },
+        {
+          'version': '2',
+          'meta': {'title': 'stale'},
+        },
       ]) {
         final doc = _docCodec.decode(onDisk);
         expect(doc.meta.title, 'stale', reason: '$onDisk');
@@ -439,10 +485,28 @@ void main() {
     });
 
     test('深相等与深哈希一致：数值 1 与 1.0 相等且同哈希', () {
-      expect(jsonDeepEquals([1, {'k': 2}], [1.0, {'k': 2.0}]), isTrue);
       expect(
-        jsonDeepHash([1, {'k': 2}]),
-        jsonDeepHash([1.0, {'k': 2.0}]),
+        jsonDeepEquals(
+          [
+            1,
+            {'k': 2},
+          ],
+          [
+            1.0,
+            {'k': 2.0},
+          ],
+        ),
+        isTrue,
+      );
+      expect(
+        jsonDeepHash([
+          1,
+          {'k': 2},
+        ]),
+        jsonDeepHash([
+          1.0,
+          {'k': 2.0},
+        ]),
       );
     });
   });
@@ -461,14 +525,17 @@ void main() {
       build: (elements) => TestListDoc(entries: elements),
       listOf: (doc) => doc.entries,
       extraOf: (doc) => doc.extra,
-      withExtra: (doc, extra) => TestListDoc(entries: doc.entries, extra: extra),
+      withExtra: (doc, extra) =>
+          TestListDoc(entries: doc.entries, extra: extra),
     );
 
     test('往返：写出去再读回来逐位相等', () {
-      const doc = TestListDoc(entries: [
-        TestItem(positionMs: 100, tag: 'a'),
-        TestItem(positionMs: 200),
-      ]);
+      const doc = TestListDoc(
+        entries: [
+          TestItem(positionMs: 100, tag: 'a'),
+          TestItem(positionMs: 200),
+        ],
+      );
       final json = codec.encode(doc);
       expect(json['version'], 3);
       expect((json['entries'] as List).length, 2);
@@ -505,7 +572,9 @@ void main() {
       };
       final doc = codec.decode(onDisk);
       expect(doc.entries.single.positionMs, 9);
-      expect(doc.extra, {'futureDoc': {'x': 1}});
+      expect(doc.extra, {
+        'futureDoc': {'x': 1},
+      });
       expect(listPolicy.isWritable(onDisk), isFalse);
     });
 
@@ -514,10 +583,7 @@ void main() {
         const TestListDoc(entries: [TestItem(positionMs: 1)]),
       );
       expect(codec.decode({...json, 'version': 1}).entries, isEmpty);
-      expect(
-        codec.decode({...json, 'entries': 'not-a-list'}).entries,
-        isEmpty,
-      );
+      expect(codec.decode({...json, 'entries': 'not-a-list'}).entries, isEmpty);
       expect(codec.decode(json).entries, hasLength(1));
       final noVersion = {...json}..remove('version');
       expect(codec.decode(noVersion).entries, hasLength(1));
@@ -527,8 +593,12 @@ void main() {
     test('逐层保底：文档级与元素级未知键都原样带回、写回原样', () {
       final json = codec.encode(
         const TestListDoc(
-          entries: [TestItem(positionMs: 1, extra: {'itemFuture': 'k'})],
-          extra: {'docFuture': {'n': 1}},
+          entries: [
+            TestItem(positionMs: 1, extra: {'itemFuture': 'k'}),
+          ],
+          extra: {
+            'docFuture': {'n': 1},
+          },
         ),
       );
       final restored = codec.decode(json);
@@ -536,10 +606,7 @@ void main() {
       expect(restored.entries.single.extra['itemFuture'], 'k');
       final rewritten = codec.encode(restored);
       expect(rewritten['docFuture'], {'n': 1});
-      expect(
-        (rewritten['entries'] as List).single['itemFuture'],
-        'k',
-      );
+      expect((rewritten['entries'] as List).single['itemFuture'], 'k');
     });
 
     test('相等语义：元素逐个比较、保底区不参与；哈希与相等一致', () {
@@ -548,7 +615,9 @@ void main() {
         extra: {'docFuture': 1},
       );
       const b = TestListDoc(
-        entries: [TestItem(positionMs: 1, extra: {'itemFuture': 2})],
+        entries: [
+          TestItem(positionMs: 1, extra: {'itemFuture': 2}),
+        ],
       );
       expect(codec.equals(a, b), isTrue);
       expect(codec.hash(a), codec.hash(b));

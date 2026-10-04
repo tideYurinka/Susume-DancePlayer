@@ -101,10 +101,7 @@ void main() {
 
   group('事件级达标汇总', () {
     DanceGateStatus s(TeamCheckGate gate, List<LearningMastery> list) =>
-        danceGateStatus(
-          gate: gate,
-          segmentMasteries: masteries(list),
-        );
+        danceGateStatus(gate: gate, segmentMasteries: masteries(list));
 
     test('全部参与判定的舞都达标 → 事件达标', () {
       expect(
@@ -148,10 +145,7 @@ void main() {
     });
 
     test('无关联舞 → 事件不判达标', () {
-      expect(
-        eventGateStatus(const {}),
-        TeamCheckEventStatus.notJudged,
-      );
+      expect(eventGateStatus(const {}), TeamCheckEventStatus.notJudged);
     });
   });
 }

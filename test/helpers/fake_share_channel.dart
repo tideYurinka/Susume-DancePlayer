@@ -7,7 +7,10 @@ import 'package:dance_learning_app/share_channel/share_channel.dart';
 /// 入站分享可脚本化——冷启动留存槽与热启动推送共用同一脚本来源；物化把
 /// 脚本字节真实写入目标文件（模拟原生整份复制），断言目标路径落在应用目录内。
 class FakeShareChannel implements ShareChannel {
-  FakeShareChannel({this.pendingScript = const [], this.materializeFails = false});
+  FakeShareChannel({
+    this.pendingScript = const [],
+    this.materializeFails = false,
+  });
 
   /// takePendingInbound 的逐次脚本（取尽后返回 null）；同时是 inboundShares
   /// 未推送前的冷启动态。

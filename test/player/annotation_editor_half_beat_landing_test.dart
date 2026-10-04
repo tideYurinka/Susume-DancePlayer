@@ -77,7 +77,8 @@ void main() {
             .single
             .position,
         ten25,
-        reason: '10s+300ms → 就近半拍格点 10.25s（距 10.25s 50ms、'
+        reason:
+            '10s+300ms → 就近半拍格点 10.25s（距 10.25s 50ms、'
             '距 10.75s 450ms）',
       );
     });
@@ -102,7 +103,9 @@ void main() {
       // 与分段线 resolver（就绪但空 = 无吸附依据直通）刻意不同：半拍
       // 落点消费派生格（[beatGridProvider] 就绪但空拍点时回落占位格），
       // 「占位照常派生」语义随行。直测钉死该态。
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               marker_doc.BeatGrid(
                 model: 'fake.onnx',

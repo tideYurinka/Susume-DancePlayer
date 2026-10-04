@@ -231,7 +231,11 @@ void main() {
     // 一个非 1.0× 的取值，确保不是「恰好 1.0×」让读数隐身；断言扫全树的
     // 文本而不认某个 key——旧的 `framing_scale_readout` 存在性断言正是
     // 「只断言存在不算过」的反例，已随之撤掉。
-    await buildBox(tester, from: const Offset(120, 150), to: const Offset(360, 320));
+    await buildBox(
+      tester,
+      from: const Offset(120, 150),
+      to: const Offset(360, 320),
+    );
     expect(
       framingBoxOnScreen(tester),
       isNotNull,
@@ -314,7 +318,11 @@ void main() {
 
     // 调出非默认取值 → 复位清取值、屏上框随之消失（回到本路径未调过的
     // 基线，只改显示值）。
-    await buildBox(tester, from: const Offset(120, 150), to: const Offset(360, 320));
+    await buildBox(
+      tester,
+      from: const Offset(120, 150),
+      to: const Offset(360, 320),
+    );
     expect(framingBoxOnScreen(tester), isNotNull);
     await tester.tap(find.byKey(const Key('framing_reset')));
     await settle(tester);
@@ -335,7 +343,11 @@ void main() {
     final resetBefore = tester.getRect(find.byKey(const Key('framing_reset')));
     final doneBefore = tester.getRect(find.byKey(const Key('framing_done')));
 
-    await buildBox(tester, from: const Offset(120, 150), to: const Offset(360, 320));
+    await buildBox(
+      tester,
+      from: const Offset(120, 150),
+      to: const Offset(360, 320),
+    );
     expect(
       framingBoxOnScreen(tester),
       isNotNull,
@@ -397,7 +409,11 @@ void main() {
     await pumpPlayer(tester);
     await enterFraming(tester, viaControlLayer: false);
 
-    expect(find.text(kCompareFramingBarHint), findsOneWidget, reason: '换行，绝不省掉');
+    expect(
+      find.text(kCompareFramingBarHint),
+      findsOneWidget,
+      reason: '换行，绝不省掉',
+    );
     expectWrappedCentered(tester);
     final bar = barRect(tester);
     expect(
@@ -458,10 +474,7 @@ void main() {
               alignment: Alignment.bottomCenter,
               child: SizedBox(
                 width: width,
-                child: FramingBar(
-                  onDone: () {},
-                  onReset: () {},
-                ),
+                child: FramingBar(onDone: () {}, onReset: () {}),
               ),
             ),
           ),

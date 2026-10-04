@@ -15,6 +15,8 @@ const double kHitTargetMinSize = 48;
 ///
 /// 钳进 `[0, extent − 边长]`（[extent] 小于边长时钳到 0）：越出可测界的
 /// 命中层收不到命中，也会让矩形断言落空，同时视觉件位置不受影响。
-double hitTargetStart(double center, double extent) => (center -
-        kHitTargetMinSize / 2)
-    .clamp(0.0, (extent - kHitTargetMinSize).clamp(0.0, double.infinity));
+double hitTargetStart(double center, double extent) =>
+    (center - kHitTargetMinSize / 2).clamp(
+      0.0,
+      (extent - kHitTargetMinSize).clamp(0.0, double.infinity),
+    );

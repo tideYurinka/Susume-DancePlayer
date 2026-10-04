@@ -221,8 +221,7 @@ class GestureSurfaceSession {
   bool get _hostOwnsScrub => onMultiFingerWhileScrub != null;
 
   /// 本 burst 曾进入跨面双指会话（混区起手）。
-  bool get _mixedPinchBurst =>
-      pinchSession?.burstEverMixed ?? false;
+  bool get _mixedPinchBurst => pinchSession?.burstEverMixed ?? false;
 
   /// 混区抑制闩锁只读查询。
   bool get suppressedByMixedPinch => _mixedPinchBurst;
@@ -438,10 +437,7 @@ class GestureSurfaceSession {
         return;
       }
       final consume = onIdleTapContent;
-      if (wasIdleTap &&
-          _downPoints.isEmpty &&
-          consume != null &&
-          consume()) {
+      if (wasIdleTap && _downPoints.isEmpty && consume != null && consume()) {
         return;
       }
       if (sawContent) {

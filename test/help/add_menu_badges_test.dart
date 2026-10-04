@@ -116,9 +116,7 @@ void main() {
       await _pumpBand(tester, storage: s, c: c);
 
       // 只触达、不记序号（等价于「入口不可用 / 没落成」：没有产物可指）。
-      containerOf(tester)
-          .read(guideSessionProvider.notifier)
-          .trigger(c.unitId);
+      containerOf(tester).read(guideSessionProvider.notifier).trigger(c.unitId);
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('guide_bubble')), findsNothing);
@@ -156,35 +154,32 @@ void main() {
   // 锚那枚「局部镜像」开关。开关住在播放页控制层，本装配面（只有轨道带）里
   // 不在场，故第二步在这里不出场、也不被消耗；「两步各自框准」的走查由
   // `control_layer_test` 的播放页接缝断言。
-  testWidgets(
-    '局部镜像：第一步框住刚落的那块（1/2）；推进后第二步锚点不在本装配面 → 不出场、不消耗',
-    (tester) async {
-      final c = _caseOfUnit(badgeLocalMirrorUnitId);
-      final s = storage();
-      await _pumpBand(tester, storage: s, c: c);
+  testWidgets('局部镜像：第一步框住刚落的那块（1/2）；推进后第二步锚点不在本装配面 → 不出场、不消耗', (tester) async {
+    final c = _caseOfUnit(badgeLocalMirrorUnitId);
+    final s = storage();
+    await _pumpBand(tester, storage: s, c: c);
 
-      await _touch(tester, c);
-      expect(
-        find.text(guideStepMessage('badge_local_mirror_step')),
-        findsOneWidget,
-      );
-      expect(find.text('1/2'), findsOneWidget);
-      expectGuidePointsAt(tester, find.byKey(Key(c.artifactKey)));
+    await _touch(tester, c);
+    expect(
+      find.text(guideStepMessage('badge_local_mirror_step')),
+      findsOneWidget,
+    );
+    expect(find.text('1/2'), findsOneWidget);
+    expectGuidePointsAt(tester, find.byKey(Key(c.artifactKey)));
 
-      await tester.tap(find.byKey(const Key('guide_next')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('guide_next')));
+    await tester.pumpAndSettle();
 
-      // 第二步的锚点（`tool_local_mirror`）不在场：锚点缺席即放行，浮层撤下、
-      // 整单元不置位。
-      expect(find.byKey(const Key('guide_bubble')), findsNothing);
-      expect(find.byKey(const Key('guide_highlight')), findsNothing);
-      expect(
-        (s.snapshot['onboarding'] as Map)[onboardingFlagFields[c.unitId]],
-        isNull,
-        reason: '第二步没演过，整单元不置位',
-      );
-    },
-  );
+    // 第二步的锚点（`tool_local_mirror`）不在场：锚点缺席即放行，浮层撤下、
+    // 整单元不置位。
+    expect(find.byKey(const Key('guide_bubble')), findsNothing);
+    expect(find.byKey(const Key('guide_highlight')), findsNothing);
+    expect(
+      (s.snapshot['onboarding'] as Map)[onboardingFlagFields[c.unitId]],
+      isNull,
+      reason: '第二步没演过，整单元不置位',
+    );
+  });
 
   testWidgets('局部镜像：两步同属一个单元——「跳过」即整单元置位，此后不再出现', (tester) async {
     final c = _caseOfUnit(badgeLocalMirrorUnitId);
@@ -208,26 +203,29 @@ void main() {
   // 各是一条独立单元，触发时点相同；两步同锚刚标记的那条线，第二步是动手
   // 演练（判据闩由测试直接记入，播放页记入点在 player_page_test 断言）。
   _MenuBadgeCase threeFingerCase() => _MenuBadgeCase(
-        unitId: badgeThreeFingerJumpUnitId,
-        anchorBase: segmentLineAnchorKeyBase,
-        index: 1,
-        artifactKey: 'segment_line_1',
-        timeline: AnnotationTimeline.normalized(
-          videoDuration: const Duration(seconds: 30),
-          segmentLines: const [
-            SegmentLine(position: Duration(seconds: 5)),
-            SegmentLine(position: Duration(seconds: 10), flagged: true),
-            SegmentLine(position: Duration(seconds: 15), flagged: true),
-          ],
-        ),
-      );
+    unitId: badgeThreeFingerJumpUnitId,
+    anchorBase: segmentLineAnchorKeyBase,
+    index: 1,
+    artifactKey: 'segment_line_1',
+    timeline: AnnotationTimeline.normalized(
+      videoDuration: const Duration(seconds: 30),
+      segmentLines: const [
+        SegmentLine(position: Duration(seconds: 5)),
+        SegmentLine(position: Duration(seconds: 10), flagged: true),
+        SegmentLine(position: Duration(seconds: 15), flagged: true),
+      ],
+    ),
+  );
 
   testWidgets('三指跳转：标记做成 → 单元触发，第一步讲解框住刚标记的线（1/2）', (tester) async {
     final c = threeFingerCase();
     await _pumpBand(tester, storage: storage(), c: c);
 
     await _touch(tester, c);
-    expect(find.text(guideStepMessage('badge_segment_flag_step')), findsOneWidget);
+    expect(
+      find.text(guideStepMessage('badge_segment_flag_step')),
+      findsOneWidget,
+    );
     expectGuidePointsAt(tester, find.byKey(Key(c.artifactKey)));
     expect(find.text('1/2'), findsOneWidget);
   });
@@ -250,7 +248,10 @@ void main() {
     await tester.pump();
 
     expect(requests, 1, reason: '推进到第二步的一帧请求一次，不重复');
-    expect(find.text(guideStepMessage('badge_three_finger_jump_step')), findsOneWidget);
+    expect(
+      find.text(guideStepMessage('badge_three_finger_jump_step')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('drill_anchor_highlight')), findsOneWidget);
     // 驻留锚点步（三指跳转 ②）：锚点还在屏上时条子也仍停靠安全区顶——矩形
     // 只用于画高亮框，不用于贴条。
@@ -265,7 +266,10 @@ void main() {
     container.read(guideAnchorRectsProvider.notifier).remove(c.artifactKey);
     await tester.pump();
     expect(find.byKey(const Key('drill_anchor_highlight')), findsOneWidget);
-    expect(find.text(guideStepMessage('badge_three_finger_jump_step')), findsOneWidget);
+    expect(
+      find.text(guideStepMessage('badge_three_finger_jump_step')),
+      findsOneWidget,
+    );
 
     // 做到（判据闩置位）→ 当场填勾 → 停约 0.4 秒推进 → 整单元置位。
     container
@@ -273,9 +277,14 @@ void main() {
         .latch(HandsOnCriterion.threeFingerJumpPerformed);
     await tester.pump();
     expect(find.byIcon(Icons.check_box), findsOneWidget);
-    await tester.pump(kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50));
+    await tester.pump(
+      kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50),
+    );
     await tester.pumpAndSettle();
-    expect(find.text(guideStepMessage('badge_three_finger_jump_step')), findsNothing);
+    expect(
+      find.text(guideStepMessage('badge_three_finger_jump_step')),
+      findsNothing,
+    );
     expect(
       (s.snapshot['onboarding'] as Map)[onboardingFlagFields[c.unitId]],
       isTrue,
@@ -298,7 +307,10 @@ void main() {
     container.read(guideSessionProvider.notifier).recordArtifact(c.unitId, 2);
     await tester.pumpAndSettle();
     // 第二步还在场，锚点实物换成了刚标记的那条（segment_line_2 在屏）。
-    expect(find.text(guideStepMessage('badge_three_finger_jump_step')), findsOneWidget);
+    expect(
+      find.text(guideStepMessage('badge_three_finger_jump_step')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('drill_anchor_highlight')), findsOneWidget);
     expect(find.byKey(const Key('segment_line_2')), findsOneWidget);
   });
@@ -334,9 +346,10 @@ void main() {
         .read(guideSessionProvider.notifier)
         .latch(HandsOnCriterion.threeFingerJumpPerformed);
     expect(
-      container.read(guideSessionProvider).criterionLatches.contains(
-        HandsOnCriterion.threeFingerJumpPerformed,
-      ),
+      container
+          .read(guideSessionProvider)
+          .criterionLatches
+          .contains(HandsOnCriterion.threeFingerJumpPerformed),
       isTrue,
     );
 
@@ -344,9 +357,10 @@ void main() {
         .read(guideResetProvider)
         .resetUnit(badgeThreeFingerJumpUnitId);
     expect(
-      container.read(guideSessionProvider).criterionLatches.contains(
-        HandsOnCriterion.threeFingerJumpPerformed,
-      ),
+      container
+          .read(guideSessionProvider)
+          .criterionLatches
+          .contains(HandsOnCriterion.threeFingerJumpPerformed),
       isFalse,
     );
   });

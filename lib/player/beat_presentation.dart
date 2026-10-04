@@ -510,12 +510,12 @@ class BeatPresentation {
     if (!_attached) return;
     if (context.sessionActive) return;
     _timebaseOf?.call().onMediaNow(
-          MediaClockSync(
-            mediaTimeMs: mediaMs,
-            rate: context.rate,
-            playing: context.playing,
-          ),
-        );
+      MediaClockSync(
+        mediaTimeMs: mediaMs,
+        rate: context.rate,
+        playing: context.playing,
+      ),
+    );
   }
 
   /// 当下：锚点报位 + 单调差 × 速率的外推（全仓唯一一条「现在」算式，
@@ -893,10 +893,7 @@ class BeatPresentation {
     );
     if (!accepted) {
       beatAudioLog('入队失败 ${commandMs}ms：原生未接受，按流记账触发自愈重试');
-      _openFailure ??= _OpenFailure(
-        cause: '入队失败',
-        atMs: _monotonicMs(),
-      );
+      _openFailure ??= _OpenFailure(cause: '入队失败', atMs: _monotonicMs());
     }
   }
 
@@ -1109,4 +1106,3 @@ class _BeatScanWindow {
   /// 指令时刻早于当下：不响过去、不补发。
   bool isPast(int beatMs, int estMs) => commandOf(beatMs) < estMs;
 }
-

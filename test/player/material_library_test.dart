@@ -167,8 +167,7 @@ void main() {
           ),
         );
 
-    testWidgets('每行「发给小组」可达；点开分享面初始勾选：熟练度与该条录像勾、源视频不勾',
-        (tester) async {
+    testWidgets('每行「发给小组」可达；点开分享面初始勾选：熟练度与该条录像勾、源视频不勾', (tester) async {
       await MaterialManifestStore(manifestStorage).append(record);
       // 第二条素材：验证「每一行」都有入口且可达，而非只有首行。
       final record2 = MaterialRecord(

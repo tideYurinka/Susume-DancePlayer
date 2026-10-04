@@ -179,7 +179,7 @@ void main() {
           startMs: 20000,
           endMs: 28000,
           text: '注意手',
-            geometry: NoteGeometry(centerX: 0.3, centerY: 0.4, scale: 1.5),
+          geometry: NoteGeometry(centerX: 0.3, centerY: 0.4, scale: 1.5),
         ),
       ]);
     });
@@ -321,30 +321,21 @@ void main() {
 
       session.end();
       expect(historyLength(), 1);
-      expect(
-        notes(),
-        const [
-          NoteSticker(startMs: 30500, endMs: 38500),
-          NoteSticker(startMs: 40000, endMs: 44000),
-        ],
-      );
+      expect(notes(), const [
+        NoteSticker(startMs: 30500, endMs: 38500),
+        NoteSticker(startMs: 40000, endMs: 44000),
+      ]);
 
       editor().undo();
-      expect(
-        notes(),
-        const [
-          NoteSticker(startMs: 10000, endMs: 18000),
-          NoteSticker(startMs: 40000, endMs: 44000),
-        ],
-      );
+      expect(notes(), const [
+        NoteSticker(startMs: 10000, endMs: 18000),
+        NoteSticker(startMs: 40000, endMs: 44000),
+      ]);
       editor().redo();
-      expect(
-        notes(),
-        const [
-          NoteSticker(startMs: 30500, endMs: 38500),
-          NoteSticker(startMs: 40000, endMs: 44000),
-        ],
-      );
+      expect(notes(), const [
+        NoteSticker(startMs: 30500, endMs: 38500),
+        NoteSticker(startMs: 40000, endMs: 44000),
+      ]);
     });
 
     test('端点拖会话：逐帧生效、收口一个撤销步', () {
@@ -391,8 +382,10 @@ void main() {
     test('会话索引越界抛 RangeError', () {
       restore();
       expect(() => editor().beginNoteMoveDrag(0), throwsRangeError);
-      expect(() => editor().beginNoteEdgeDrag(0, IntervalEdge.end),
-          throwsRangeError);
+      expect(
+        () => editor().beginNoteEdgeDrag(0, IntervalEdge.end),
+        throwsRangeError,
+      );
     });
   });
 

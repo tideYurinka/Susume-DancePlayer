@@ -147,7 +147,8 @@ class _RowHarness {
 
   /// 时间差 → 像素差。
   double pxFor(WidgetTester tester, Duration span, {TimelineWindow? window}) =>
-      xOf(tester, span, window: window) - xOf(tester, Duration.zero, window: window);
+      xOf(tester, span, window: window) -
+      xOf(tester, Duration.zero, window: window);
 
   /// 在该行空白处点按一次。
   Future<void> tapAt(WidgetTester tester, Offset position) async {
@@ -159,11 +160,7 @@ class _RowHarness {
 /// 起手一次水平拖动：先用一跳越过触摸 slop（起手点因此是确定的一处），再
 /// 按 [dx] 精确推进——落点断言因此不依赖分步数与 slop 的巧合：相对平移的
 /// 请求 = 片段（或端点）起点 + [dx] 换算的时间，与抓取点在块上的位置无关。
-Future<void> _dragByExact(
-  WidgetTester tester,
-  Offset from,
-  double dx,
-) async {
+Future<void> _dragByExact(WidgetTester tester, Offset from, double dx) async {
   final gesture = await tester.startGesture(from);
   await tester.pump(const Duration(milliseconds: 100));
   await gesture.moveBy(const Offset(kTouchSlop + 1, 0));
@@ -202,12 +199,14 @@ void main() {
         ),
       ],
     );
-    container.read(annotationEditorProvider).restoreDocument(
-      AnnotationRestoreDocument(
-        timeline: AnnotationTimeline.wholeVideo(rowTotal),
-        notes: notes,
-      ),
-    );
+    container
+        .read(annotationEditorProvider)
+        .restoreDocument(
+          AnnotationRestoreDocument(
+            timeline: AnnotationTimeline.wholeVideo(rowTotal),
+            notes: notes,
+          ),
+        );
     // 拖动域句柄：域的两族声明由本模块自己的登记点提交（不在本测试里拼）。
     final drag = TrackBandDragSession(
       families: TrackBandDragFamilies(),
@@ -276,7 +275,10 @@ void main() {
         ],
         window: textWindow,
       );
-      expect(find.byKey(const ValueKey('note_fragment_0_text')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('note_fragment_0_text')),
+        findsOneWidget,
+      );
       expect(
         inlineParagraph(tester).didExceedMaxLines,
         isFalse,
@@ -303,7 +305,10 @@ void main() {
       final available = block.width - 2 * kNoteInlineTextHorizontalPadding;
       expect(available, greaterThanOrEqualTo(naturalWidth('…')));
       expect(available, lessThan(naturalWidth('这里注意手腕')));
-      expect(find.byKey(const ValueKey('note_fragment_0_text')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('note_fragment_0_text')),
+        findsOneWidget,
+      );
       expect(
         inlineParagraph(tester).didExceedMaxLines,
         isTrue,
@@ -347,7 +352,9 @@ void main() {
         notes: const [NoteSticker(startMs: 10000, endMs: 18000)],
       );
       final rect = row.rowRect(tester);
-      final block = tester.getRect(find.byKey(const ValueKey('note_fragment_0')));
+      final block = tester.getRect(
+        find.byKey(const ValueKey('note_fragment_0')),
+      );
       final startBand = tester.getRect(
         find.byKey(const ValueKey('note_fragment_0_edge_start')),
       );
@@ -368,7 +375,10 @@ void main() {
         tester,
         notes: const [NoteSticker(startMs: 10000, endMs: 18000)],
       );
-      expect(find.byKey(const ValueKey('note_fragment_0_handle_start')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('note_fragment_0_handle_start')),
+        findsNothing,
+      );
 
       row.container
           .read(annotationSelectionDomainProvider)
@@ -420,7 +430,9 @@ void main() {
       final startBand = tester.getRect(
         find.byKey(const ValueKey('note_fragment_0_edge_start')),
       );
-      final block = tester.getRect(find.byKey(const ValueKey('note_fragment_0')));
+      final block = tester.getRect(
+        find.byKey(const ValueKey('note_fragment_0')),
+      );
       expect(startBand.left, greaterThanOrEqualTo(rect.left - 0.5));
       expect(
         startBand.width,
@@ -446,9 +458,7 @@ void main() {
         Offset(row.xOf(tester, const Duration(seconds: 14)), 18),
         row.pxFor(tester, const Duration(milliseconds: 2500)),
       );
-      final note = row.container
-          .read(noteStickersProvider)
-          .single;
+      final note = row.container.read(noteStickersProvider).single;
       expect(note.startMs, 12500, reason: '请求 = 起点 + 手指位移（抓取偏移守恒）');
       expect(note.endMs - note.startMs, 8000, reason: '整体移保持原宽');
       expect(row.calls.previewBegins, 1, reason: '起手视觉恰好一次');
@@ -467,9 +477,7 @@ void main() {
         Offset(blockLeft - kNoteEdgeHitWidth / 2, 18),
         row.pxFor(tester, const Duration(milliseconds: 2500)),
       );
-      final note = row.container
-          .read(noteStickersProvider)
-          .single;
+      final note = row.container.read(noteStickersProvider).single;
       expect(note.startMs, 12500, reason: '端点拖请求 = 端点 + 手指位移');
       expect(note.endMs, 18000, reason: '另一端不动');
       row.container.dispose();
@@ -527,16 +535,10 @@ void main() {
       final x = row.xOf(tester, const Duration(seconds: 14));
       await tester.longPressAt(Offset(x, 18));
       await tester.pumpAndSettle();
-      expect(
-        row.container.read(noteStickersProvider).single.locked,
-        isTrue,
-      );
+      expect(row.container.read(noteStickersProvider).single.locked, isTrue);
       await tester.longPressAt(Offset(x, 18));
       await tester.pumpAndSettle();
-      expect(
-        row.container.read(noteStickersProvider).single.locked,
-        isFalse,
-      );
+      expect(row.container.read(noteStickersProvider).single.locked, isFalse);
       row.container.dispose();
     });
 
@@ -630,7 +632,10 @@ void main() {
     testWidgets('空列表：不渲染块体，整行点按落穿带级仲裁', (tester) async {
       final row = await harness(tester, notes: const []);
       expect(find.byKey(const ValueKey('note_fragment_0')), findsNothing);
-      await row.tapAt(tester, Offset(row.xOf(tester, const Duration(seconds: 5)), 18));
+      await row.tapAt(
+        tester,
+        Offset(row.xOf(tester, const Duration(seconds: 5)), 18),
+      );
       expect(row.calls.blankTaps, 1);
       row.container.dispose();
     });
@@ -646,7 +651,10 @@ void main() {
         ),
       );
       expect(find.byKey(const ValueKey('note_fragment_0')), findsNothing);
-      await row.tapAt(tester, Offset(row.xOf(tester, const Duration(seconds: 35)), 18));
+      await row.tapAt(
+        tester,
+        Offset(row.xOf(tester, const Duration(seconds: 35)), 18),
+      );
       expect(row.calls.blankTaps, 1);
       row.container.dispose();
     });
@@ -661,7 +669,10 @@ void main() {
       expect(find.byKey(const ValueKey('note_fragment_0_text')), findsNothing);
       // 域自身不吸收命中（子树空）：带级手势层照常接住这次点按，故本域
       // 的落穿回调不被调用。
-      await row.tapAt(tester, Offset(row.xOf(tester, const Duration(seconds: 5)), 18));
+      await row.tapAt(
+        tester,
+        Offset(row.xOf(tester, const Duration(seconds: 5)), 18),
+      );
       expect(row.calls.blankTaps, 0);
       row.container.dispose();
     });

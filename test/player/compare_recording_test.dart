@@ -33,7 +33,8 @@ import 'package:dance_learning_app/player/compare_recording.dart'
         kCompareRecordButtonRecordingCoreSize,
         kCompareRecordButtonRingThickness;
 import 'package:dance_learning_app/player/speed_control.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -61,7 +62,10 @@ void main() {
     late File materialOutputFile;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -153,7 +157,9 @@ void main() {
     void givenActiveSegment(WidgetTester tester, int order) {
       final editor = containerOf(tester).read(annotationEditorProvider);
       // 插线受「网格未就绪」门：先置就绪网格。
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -271,26 +277,22 @@ void main() {
         RecordingOrientation.landscape,
       );
       expect(engine.rate, 1.0);
-      expect(find.byKey(const Key('compare_recording_indicator')), findsOneWidget);
+      expect(
+        find.byKey(const Key('compare_recording_indicator')),
+        findsOneWidget,
+      );
       // 起录时机：起播那一次定位（段首前 8 拍 = 6s）之后不再有
       // 任何 seek——旧实现在到点补一次帧级 seek 硬拉回起点，那就是源侧可见
       // 的顿挫。
-      expect(
-        engine.seekCalls,
-        [const Duration(seconds: 6)],
-        reason: '起播那次定位之后不得再出现 seek',
-      );
+      expect(engine.seekCalls, [
+        const Duration(seconds: 6),
+      ], reason: '起播那次定位之后不得再出现 seek');
       // 录制钮不显示已录时长：控制器秒表与素材时长不同源。
-      expect(
-        find.byKey(const Key('compare_recording_elapsed')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('compare_recording_elapsed')), findsNothing);
       expect(find.textContaining(':'), findsNothing);
     });
 
-    testWidgets('激活段段尾自动停并入库：素材文件与清单条目真存在、停后暂停在停止点、激活段保持', (
-      tester,
-    ) async {
+    testWidgets('激活段段尾自动停并入库：素材文件与清单条目真存在、停后暂停在停止点、激活段保持', (tester) async {
       setWideView(tester);
       materialOutputFile = File(
         '${Directory.systemTemp.createTempSync('cmp_rec').path}/rec_1.mp4',
@@ -374,9 +376,7 @@ void main() {
       expect(doc.materials.single.sourceStartMs, 12000);
     });
 
-    testWidgets('宿主接线：就绪网格下无激活段起录点吸附到相位最近八拍点', (
-      tester,
-    ) async {
+    testWidgets('宿主接线：就绪网格下无激活段起录点吸附到相位最近八拍点', (tester) async {
       setWideView(tester);
       materialOutputFile = File(
         '${Directory.systemTemp.createTempSync('cmp_rec').path}/rec_snap.mp4',
@@ -384,7 +384,9 @@ void main() {
       addTearDown(() => materialOutputFile.parent.delete(recursive: true));
       await pumpPlayer(tester);
       // 就绪网格（与 givenActiveSegment 同一套夹具）：八拍点 = 2、10、18…s。
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -419,9 +421,7 @@ void main() {
       expect((await readManifest()).materials.single.sourceStartMs, 10000);
     });
 
-    testWidgets('暂停态起录：准备期与录制期中央不出现播放指示，停录后按真实状态显示', (
-      tester,
-    ) async {
+    testWidgets('暂停态起录：准备期与录制期中央不出现播放指示，停录后按真实状态显示', (tester) async {
       setWideView(tester);
       await pumpPlayer(tester);
       await singleTapShow(tester);
@@ -519,14 +519,14 @@ void main() {
       );
       addTearDown(() => materialOutputFile.parent.delete(recursive: true));
       await pumpPlayer(tester);
-      await containerOf(
-        tester,
-      ).read(speedControlProvider.notifier).setRate(1.5);
+      await containerOf(tester)
+          .read(speedControlProvider.notifier)
+          .setRate(1.5);
       givenActiveSegment(tester, 1);
       // 节拍网格异常：录制准备走秒制兜底（建段后就绪网格被异常覆盖）。
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
-            const BeatTrackState.error(),
-          );
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(const BeatTrackState.error());
       await singleTapShow(tester);
       await tester.tap(find.byKey(const Key('tool_compare')));
       await tester.pumpAndSettle();
@@ -537,9 +537,9 @@ void main() {
       expect(engine.rate, 1.0);
 
       // 倍速设置临时失效。
-      await containerOf(
-        tester,
-      ).read(speedControlProvider.notifier).setRate(2.0);
+      await containerOf(tester)
+          .read(speedControlProvider.notifier)
+          .setRate(2.0);
       expect(engine.rate, 1.0);
 
       await pressRecord(tester);
@@ -571,9 +571,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('录制钮底部居中、外环 72、内芯随相位换形，且外观不随系统字号缩放', (
-      tester,
-    ) async {
+    testWidgets('录制钮底部居中、外环 72、内芯随相位换形，且外观不随系统字号缩放', (tester) async {
       setWideView(tester);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       materialOutputFile = File(
@@ -690,7 +688,8 @@ void main() {
         reason: '录制中内芯 32 方块',
       );
       final indicatorDecoration =
-          tester.widget<Container>(indicatorFinder).decoration! as BoxDecoration;
+          tester.widget<Container>(indicatorFinder).decoration!
+              as BoxDecoration;
       expect(indicatorDecoration.shape, BoxShape.rectangle);
       expect(
         indicatorDecoration.borderRadius,
@@ -777,10 +776,7 @@ void main() {
         '${Directory.systemTemp.createTempSync('cmp_rec').path}/rec_8.mp4',
       );
       addTearDown(() => materialOutputFile.parent.delete(recursive: true));
-      await pumpPlayer(
-        tester,
-        devicePrivate: {'recordingResolution': '720p'},
-      );
+      await pumpPlayer(tester, devicePrivate: {'recordingResolution': '720p'});
       await singleTapShow(tester);
       await tester.tap(find.byKey(const Key('tool_compare')));
       await tester.pumpAndSettle();

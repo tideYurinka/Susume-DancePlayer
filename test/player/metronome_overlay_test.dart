@@ -709,8 +709,14 @@ void main() {
       // ——首个强拍（序号 1，相位原点）所在大线；无论早多少拍。
       const grid = _WeakStartFakeGrid();
       final phase = phaseOf(grid);
-      expect(alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-1)), at(1));
-      expect(alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-10)), at(1));
+      expect(
+        alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-1)),
+        at(1),
+      );
+      expect(
+        alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-10)),
+        at(1),
+      );
       // 归位后：网格首拍落在锚点之前 → 前导区 0|8，过大线起 1|1。
       expect(
         deriveBeatCount(
@@ -737,8 +743,14 @@ void main() {
       // 的早于首拍锚——不再走「归首个强拍」分支，因不存在首个强拍）。
       const grid = _NoDownbeatReadyGrid();
       final phase = phaseOf(grid);
-      expect(alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(5)), at(5));
-      expect(alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-1)), at(-1));
+      expect(
+        alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(5)),
+        at(5),
+      );
+      expect(
+        alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(-1)),
+        at(-1),
+      );
     });
 
     test('错位线（大线前若干拍）→ 取其后最近的大线', () {
@@ -763,7 +775,10 @@ void main() {
       const placeholder = UniformBeatGrid();
       const anchor = Duration(seconds: 10);
       expect(
-        alignBeatCountAnchorToGridProbe(phase: phaseOf(placeholder), anchor: anchor),
+        alignBeatCountAnchorToGridProbe(
+          phase: phaseOf(placeholder),
+          anchor: anchor,
+        ),
         anchor,
       );
     });
@@ -774,7 +789,10 @@ void main() {
       // 8 的整数倍」算出的 24 并非强拍、不成大线。
       final grid = _irregularDownbeatGrid();
       final phase = phaseOf(grid);
-      expect(alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(20)), at(23));
+      expect(
+        alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(20)),
+        at(23),
+      );
       expect(grid.isDownbeat(23), isTrue, reason: '对齐结果必须落在真实大线上');
       expect(phase.isEightBeatPoint(23), isTrue);
       expect(grid.isDownbeat(24), isFalse);
@@ -843,7 +861,10 @@ void main() {
       const grid = _WeakStartFakeGrid();
       final phase = phaseOf(grid);
       // 序号 30 非大线（其前大线 25、其后最近大线 33）→ 锚归到 33。
-      final anchor = alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(30))!;
+      final anchor = alignBeatCountAnchorToGridProbe(
+        phase: phase,
+        anchor: at(30),
+      )!;
       expect(anchor, at(33));
       for (var i = 30; i <= 41; i++) {
         final display = deriveBeatCount(
@@ -872,7 +893,10 @@ void main() {
     test('弱起首线对齐到首个强拍所在大线：弱起区 0|8、过大线起 1|1', () {
       const grid = _WeakStartFakeGrid();
       final phase = phaseOf(grid);
-      final anchor = alignBeatCountAnchorToGridProbe(phase: phase, anchor: at(0))!;
+      final anchor = alignBeatCountAnchorToGridProbe(
+        phase: phase,
+        anchor: at(0),
+      )!;
       expect(anchor, at(1));
       expect(
         deriveBeatCount(
@@ -1140,29 +1164,24 @@ void main() {
 
     for (final scale in [1.3, 1.6]) {
       for (final style in BeatAnimationStyle.values) {
-        testWidgets(
-          'textScaler $scale ${style.name} 无溢出、数字行按缩放长高',
-          (tester) async {
-            await tester.pumpWidget(host(textScale: scale, style: style));
-            expect(tester.takeException(), isNull);
-            expect(
-              tester
-                  .getSize(find.byKey(const Key('beat_count_practice')))
-                  .height,
-              moreOrLessEquals(56 * scale, epsilon: 0.5),
-              reason: '语义档：1.3×/1.6× 下数字行真的随系统字号长高',
-            );
-            // 屏上可见尺寸（含 FittedBox 变换后）同步变大：「真的变大」
-            // 断言在渲染接缝上，不在布局中间量。
-            expect(
-              tester
-                  .getRect(find.byKey(const Key('beat_count_eight')))
-                  .height,
-              moreOrLessEquals(56 * scale, epsilon: 1.0),
-              reason: '数字在屏上的墨迹高按系统字号放大，不被压回',
-            );
-          },
-        );
+        testWidgets('textScaler $scale ${style.name} 无溢出、数字行按缩放长高', (
+          tester,
+        ) async {
+          await tester.pumpWidget(host(textScale: scale, style: style));
+          expect(tester.takeException(), isNull);
+          expect(
+            tester.getSize(find.byKey(const Key('beat_count_practice'))).height,
+            moreOrLessEquals(56 * scale, epsilon: 0.5),
+            reason: '语义档：1.3×/1.6× 下数字行真的随系统字号长高',
+          );
+          // 屏上可见尺寸（含 FittedBox 变换后）同步变大：「真的变大」
+          // 断言在渲染接缝上，不在布局中间量。
+          expect(
+            tester.getRect(find.byKey(const Key('beat_count_eight'))).height,
+            moreOrLessEquals(56 * scale, epsilon: 1.0),
+            reason: '数字在屏上的墨迹高按系统字号放大，不被压回',
+          );
+        });
       }
     }
   });
@@ -1613,11 +1632,7 @@ void main() {
       }
       for (var i = 0; i < rects.length; i++) {
         for (var j = i + 1; j < rects.length; j++) {
-          expect(
-            rects[i].overlaps(rects[j]),
-            isFalse,
-            reason: '四角命中域不互吞',
-          );
+          expect(rects[i].overlaps(rects[j]), isFalse, reason: '四角命中域不互吞');
         }
       }
     });
@@ -1984,9 +1999,7 @@ void main() {
         const Offset(370, 190),
       );
       expect(
-        tester
-            .getRect(find.byKey(const Key('metronome_overlay_reset')))
-            .size,
+        tester.getRect(find.byKey(const Key('metronome_overlay_reset'))).size,
         const Size(kHitTargetMinSize, kHitTargetMinSize),
       );
 

@@ -257,8 +257,16 @@ void main() {
         faceDirection: FaceDirection.original,
         selection: window,
       );
-      expect(at(0.25, 0.25).center, const Offset(120, 210), reason: '左上角内缩半个贴纸');
-      expect(at(0.75, 0.75).center, const Offset(480, 490), reason: '右下角内缩半个贴纸');
+      expect(
+        at(0.25, 0.25).center,
+        const Offset(120, 210),
+        reason: '左上角内缩半个贴纸',
+      );
+      expect(
+        at(0.75, 0.75).center,
+        const Offset(480, 490),
+        reason: '右下角内缩半个贴纸',
+      );
     });
 
     test('窗口换算在随面换算之前套：镜像把窗口内的横向分量取反', () {

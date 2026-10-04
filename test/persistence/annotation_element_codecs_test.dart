@@ -24,9 +24,10 @@ void main() {
     });
 
     test('flag 缺省读为 false；timeMs 非法条目丢弃', () {
-      expect(SegmentLine.fromJson({'timeMs': 7}), const SegmentLine(
-        position: Duration(milliseconds: 7),
-      ));
+      expect(
+        SegmentLine.fromJson({'timeMs': 7}),
+        const SegmentLine(position: Duration(milliseconds: 7)),
+      );
       expect(SegmentLine.fromJson('bad'), isNull);
       expect(SegmentLine.fromJson({'timeMs': 1.5}), isNull);
       expect(SegmentLine.fromJson({'flag': true}), isNull);
@@ -40,7 +41,9 @@ void main() {
           {'timeMs': 1.5},
           {'timeMs': 2500, 'flag': true},
         ]),
-        const [SegmentLine(position: Duration(milliseconds: 2500), flagged: true)],
+        const [
+          SegmentLine(position: Duration(milliseconds: 2500), flagged: true),
+        ],
       );
     });
 
@@ -50,10 +53,10 @@ void main() {
         'flag': true,
         'futureField': {'a': 1},
       });
-      expect(restored, const SegmentLine(
-        position: Duration(milliseconds: 100),
-        flagged: true,
-      ));
+      expect(
+        restored,
+        const SegmentLine(position: Duration(milliseconds: 100), flagged: true),
+      );
       final written = restored!.toJson();
       expect(written['futureField'], {'a': 1});
       expect(written['timeMs'], 100);
@@ -77,7 +80,10 @@ void main() {
     test('timeMs 非法条目丢弃；损坏列表条目跳过', () {
       expect(HalfBeatLine.fromJson({'timeMs': 2.5}), isNull);
       expect(
-        HalfBeatLine.fromJsonList(['bad', {'timeMs': 3}]),
+        HalfBeatLine.fromJsonList([
+          'bad',
+          {'timeMs': 3},
+        ]),
         const [HalfBeatLine(position: Duration(milliseconds: 3))],
       );
     });
@@ -90,14 +96,8 @@ void main() {
 
   group('LocalMirrorFragment：元素级编解码', () {
     test('往返保真；键名与既有文件形状逐位一致', () {
-      const fragment = LocalMirrorFragment(
-        startMs: 1000,
-        endMs: 8000,
-      );
-      expect(fragment.toJson(), {
-        'startMs': 1000,
-        'endMs': 8000,
-      });
+      const fragment = LocalMirrorFragment(startMs: 1000, endMs: 8000);
+      expect(fragment.toJson(), {'startMs': 1000, 'endMs': 8000});
       expect(LocalMirrorFragment.fromJson(fragment.toJson()), fragment);
     });
 
@@ -107,13 +107,22 @@ void main() {
         'endMs': 2,
         'enabled': false,
       });
-      expect(withLegacy, const LocalMirrorFragment(startMs: 1, endMs: 2),
-          reason: 'enabled 不再被解释');
-      expect(withLegacy!.toJson()['enabled'], isFalse,
-          reason: '遗留键走保底区写回原样（既有透传政策）');
+      expect(
+        withLegacy,
+        const LocalMirrorFragment(startMs: 1, endMs: 2),
+        reason: 'enabled 不再被解释',
+      );
+      expect(
+        withLegacy!.toJson()['enabled'],
+        isFalse,
+        reason: '遗留键走保底区写回原样（既有透传政策）',
+      );
       expect(LocalMirrorFragment.fromJson({'startMs': 1}), isNull);
       expect(LocalMirrorFragment.fromJson({'endMs': 2}), isNull);
-      expect(LocalMirrorFragment.fromJson({'startMs': 2.5, 'endMs': 3}), isNull);
+      expect(
+        LocalMirrorFragment.fromJson({'startMs': 2.5, 'endMs': 3}),
+        isNull,
+      );
     });
 
     test('fromJsonList 跳过损坏条目、保留合法项', () {

@@ -92,7 +92,9 @@ int nFramesOf(int samples) => samples > 0 ? (samples - 1) ~/ kHop + 1 : 0;
 /// would exceed any speedup.
 /// Numerically identical to [preprocessPcm] (bit-for-bit, verified).
 Future<Float32List> preprocessPcmParallel(
-    Float32List pcm, List<Filterbank> fbs) async {
+  Float32List pcm,
+  List<Filterbank> fbs,
+) async {
   final nFrames = nFramesOf(pcm.length);
   if (nFrames == 0) return Float32List(0);
 
@@ -107,20 +109,23 @@ Future<Float32List> preprocessPcmParallel(
     segs.add((f0, f1));
   }
   const lookback = 4; // covers max diff lag (2) + margin
-  final results = await Future.wait(segs.map((s) async {
-    final lo = (s.$1 == 0) ? 0 : (s.$1 - lookback);
-    // compute [lo, f1), discard the leading `lookback` rows (except seg 0)
-    // 分段切片：worker 只拿本段采样窗（±最大半帧长 2048，size 4096 的
-    // half），避免整轨 PCM 复制与 3×整轨 padded 分配。
-    final s0 = (lo * kHop - 2048).clamp(0, pcm.length);
-    final s1 = ((s.$2 - 1) * kHop + 2048).clamp(0, pcm.length);
-    final slice = Float32List(s1 - s0);
-    slice.setRange(0, slice.length, pcm, s0);
-    final rows = await Isolate.run(
-        () => _range(slice, fbs, lo, s.$2, sampleStart: s0));
-    final skip = s.$1 - lo; // 0 for seg0
-    return _sliceRows(rows, skip, s.$2 - s.$1);
-  }));
+  final results = await Future.wait(
+    segs.map((s) async {
+      final lo = (s.$1 == 0) ? 0 : (s.$1 - lookback);
+      // compute [lo, f1), discard the leading `lookback` rows (except seg 0)
+      // 分段切片：worker 只拿本段采样窗（±最大半帧长 2048，size 4096 的
+      // half），避免整轨 PCM 复制与 3×整轨 padded 分配。
+      final s0 = (lo * kHop - 2048).clamp(0, pcm.length);
+      final s1 = ((s.$2 - 1) * kHop + 2048).clamp(0, pcm.length);
+      final slice = Float32List(s1 - s0);
+      slice.setRange(0, slice.length, pcm, s0);
+      final rows = await Isolate.run(
+        () => _range(slice, fbs, lo, s.$2, sampleStart: s0),
+      );
+      final skip = s.$1 - lo; // 0 for seg0
+      return _sliceRows(rows, skip, s.$2 - s.$1);
+    }),
+  );
   final out = Float32List(nFrames * kFeatureDim);
   var rowOff = 0;
   for (final r in results) {
@@ -145,8 +150,13 @@ Float32List _sliceRows(Float32List full, int skipRows, int wantRows) {
 /// 峰值内存从 O(frames×bins) 降到 O(frames×bands)）；filterbank 预转置为
 /// 按 band 连续存储使内层乘加顺序访问。每个输出元素的累加顺序仍为
 /// b 升序，与madmom 参考逐位一致。
-Float32List _range(Float32List pcm, List<Filterbank> fbs, int lo, int hi,
-    {int sampleStart = 0}) {
+Float32List _range(
+  Float32List pcm,
+  List<Filterbank> fbs,
+  int lo,
+  int hi, {
+  int sampleStart = 0,
+}) {
   final t = pcm.length;
   final nFrames = hi - lo;
   if (nFrames <= 0) return Float32List(0);
@@ -234,8 +244,7 @@ Float32List _range(Float32List pcm, List<Filterbank> fbs, int lo, int hi,
     for (var i = 0; i < nFrames; i++) {
       if (i >= lag) {
         for (var c = 0; c < fb.cols; c++) {
-          final v = logFeat[i * fb.cols + c] -
-              logFeat[(i - lag) * fb.cols + c];
+          final v = logFeat[i * fb.cols + c] - logFeat[(i - lag) * fb.cols + c];
           diffFeat[i * fb.cols + c] = v > 0 ? v : 0.0;
         }
       }
@@ -296,8 +305,14 @@ void _twiddles(int n, Float64List re, Float64List im) {
   }
 }
 
-void _fftInPlace(Float64List re, Float64List im, int n, Uint32List rev,
-    Float64List twRe, Float64List twIm) {
+void _fftInPlace(
+  Float64List re,
+  Float64List im,
+  int n,
+  Uint32List rev,
+  Float64List twRe,
+  Float64List twIm,
+) {
   for (var i = 0; i < n; i++) {
     final j = rev[i];
     if (j > i) {

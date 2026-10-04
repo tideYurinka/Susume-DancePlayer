@@ -16,15 +16,16 @@ void main() {
   late Directory baseDirectory;
 
   setUp(() async {
-    baseDirectory = await Directory.systemTemp.createTemp('update_gateway_test');
+    baseDirectory = await Directory.systemTemp.createTemp(
+      'update_gateway_test',
+    );
   });
 
   tearDown(() async {
     if (baseDirectory.existsSync()) await baseDirectory.delete(recursive: true);
   });
 
-  File targetFile() =>
-      File(p.join(baseDirectory.path, updateApkFileName));
+  File targetFile() => File(p.join(baseDirectory.path, updateApkFileName));
 
   test('清单地址是 HTTPS 且指向本项目的自定义域', () {
     expect(updateManifestUrl.scheme, 'https');
@@ -131,10 +132,6 @@ void main() {
     await gateway.cancelDownload();
 
     await expectation;
-    expect(
-      await targetFile().exists(),
-      isFalse,
-      reason: '取消后目录里没有半成品',
-    );
+    expect(await targetFile().exists(), isFalse, reason: '取消后目录里没有半成品');
   });
 }

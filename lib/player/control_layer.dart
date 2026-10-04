@@ -33,9 +33,7 @@ import '../help/content_registry.dart'
         badgeSegmentUnitId;
 
 import '../help/guide_anchor.dart' show GuideAnchor, guideAnchorRectsProvider;
-import '../help/guide_state.dart'
-    show
-        guideSessionProvider;
+import '../help/guide_state.dart' show guideSessionProvider;
 import '../help/guide_units_page.dart' show GuideUnitsPage;
 import 'auto_scroll_title.dart';
 import 'annotation_edit.dart'
@@ -482,8 +480,8 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                       final showRenameIcon =
                           constraints.maxWidth >=
                           kTopBarRenameIconGap +
-                          kTopBarRenameIconSize +
-                          kTopBarRenameIconMinTitleFloor;
+                              kTopBarRenameIconSize +
+                              kTopBarRenameIconMinTitleFloor;
                       return Align(
                         key: const Key('control_layer_title_slot'),
                         alignment: Alignment.centerLeft,
@@ -618,7 +616,9 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   void _toggleFramingAdjust() {
     if (loadGateBlocksWrite(ref, PageWriteEntryId.framingAdjust)) return;
     final session = ref.read(playerSessionProvider);
-    ref.read(playerSessionProvider.notifier).requestEntry(
+    ref
+        .read(playerSessionProvider.notifier)
+        .requestEntry(
           session.mode == PlayerSessionMode.compareEditing
               ? PlayerSessionMode.compareFraming
               : PlayerSessionMode.framing,

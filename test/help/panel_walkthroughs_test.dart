@@ -5,7 +5,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
 import 'package:dance_learning_app/help/content_registry.dart';
-import 'package:dance_learning_app/help/guide_anchor.dart' show guideAnchorRectsProvider;
+import 'package:dance_learning_app/help/guide_anchor.dart'
+    show guideAnchorRectsProvider;
 import 'package:dance_learning_app/help/guide_host.dart' show GuideHost;
 import 'package:dance_learning_app/help/guide_state.dart'
     show
@@ -169,7 +170,8 @@ void main() {
           badgeSpeedUnitId,
           badgeAvSyncUnitId,
         ])
-          for (final step in guideStepsOfUnit(unitId)) guideStepMessage(step.id),
+          for (final step in guideStepsOfUnit(unitId))
+            guideStepMessage(step.id),
       ];
       expect(messages.length, 5);
       // 只禁「指栏位所在位置」的方位词（左栏/下栏这一类）；「对上声音」
@@ -304,11 +306,7 @@ void main() {
 
       final step = guideStepsOfUnit(badgeSpeedUnitId).single;
       expect(find.text(guideStepMessage(step.id)), findsOneWidget);
-      expect(
-        find.text('1/1'),
-        findsNothing,
-        reason: '单元只剩一步，不画步数指示',
-      );
+      expect(find.text('1/1'), findsNothing, reason: '单元只剩一步，不画步数指示');
       // 单步就地讲解只有 ✕（既有的单步形态），没有「下一步 / 跳过」。
       expect(find.byKey(const Key('guide_next')), findsNothing);
       expect(find.byKey(const Key('guide_skip')), findsNothing);

@@ -18,9 +18,9 @@ enum ViewportTier {
   final double devicePixelRatio;
 
   Size get logicalSize => Size(
-        physicalSize.width / devicePixelRatio,
-        physicalSize.height / devicePixelRatio,
-      );
+    physicalSize.width / devicePixelRatio,
+    physicalSize.height / devicePixelRatio,
+  );
 }
 
 /// 测试设置视口的唯一入口：按具名档查表设置物理尺寸与像素比，

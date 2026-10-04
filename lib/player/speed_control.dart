@@ -272,10 +272,7 @@ class SpeedControlModel extends Notifier<SpeedControlState> {
   /// 不记历史：历史改「气泡打开快照 → 关闭时若
   /// 最终倍速相对快照变化才记一次」，由 UI 在关闭点调用 [recordHistory]。
   Future<void> setRate(double rate) async {
-    assert(
-      !state.transientActive,
-      'setRate: 瞬态倍速（长按 2×）生效期间不允许手动写穿引擎 rate',
-    );
+    assert(!state.transientActive, 'setRate: 瞬态倍速（长按 2×）生效期间不允许手动写穿引擎 rate');
     if (_recordingLocksRate) return; // 录制中强制 1.0×。
     final clamped = _clampRate(rate);
     state = state.copyWith(

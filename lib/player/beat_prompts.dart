@@ -36,10 +36,8 @@ const beatNoDataNoticeSpec = NoticeSpec(
 /// 浮层 ✕ 关闭提示声明：一行声明 = 身份 + 内容 +
 /// 定位 key。触发面由提示模块持有（浮层关闭路径经 `noticeTriggerProvider(
 /// NoticeId.beatOverlayClose)` 只报身份）；挂载由演出层的唯一宿主承担。
-Widget beatOverlayCloseNoticeContent(BuildContext _) => const Text(
-      '节拍提示已关闭 · 编辑态顶栏可重新打开',
-      style: kNoticeTextStyle,
-    );
+Widget beatOverlayCloseNoticeContent(BuildContext _) =>
+    const Text('节拍提示已关闭 · 编辑态顶栏可重新打开', style: kNoticeTextStyle);
 
 /// 浮层 ✕ 关闭提示声明清单项（组合根装配）。
 const beatOverlayCloseNoticeSpec = NoticeSpec(

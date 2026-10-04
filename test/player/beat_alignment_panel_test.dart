@@ -1,4 +1,3 @@
-
 import 'package:dance_learning_app/beat_track_state/beat_track_state.dart'
     show BeatTrackState, beatAlignPreviewOffsetProvider, beatTrackStateProvider;
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
@@ -34,12 +33,18 @@ void main() {
           ],
         ),
       );
-      expect(beatShiftStep(BeatShiftStepUnit.oneBeat, grid),
-          const Duration(milliseconds: 500));
-      expect(beatShiftStep(BeatShiftStepUnit.halfBeat, grid),
-          const Duration(milliseconds: 250));
-      expect(beatShiftStep(BeatShiftStepUnit.tenMs, grid),
-          const Duration(milliseconds: 10));
+      expect(
+        beatShiftStep(BeatShiftStepUnit.oneBeat, grid),
+        const Duration(milliseconds: 500),
+      );
+      expect(
+        beatShiftStep(BeatShiftStepUnit.halfBeat, grid),
+        const Duration(milliseconds: 250),
+      );
+      expect(
+        beatShiftStep(BeatShiftStepUnit.tenMs, grid),
+        const Duration(milliseconds: 10),
+      );
     });
 
     test('读数换算：偏移秒 → 拍数（按拍距）+ 毫秒，含负偏移', () {
@@ -47,8 +52,10 @@ void main() {
       expect(readout.beats, 0.5);
       expect(readout.ms, 250);
 
-      final negative =
-          beatShiftReadout(-0.5, const Duration(milliseconds: 500));
+      final negative = beatShiftReadout(
+        -0.5,
+        const Duration(milliseconds: 500),
+      );
       expect(negative.beats, -1.0);
       expect(negative.ms, -500);
     });
@@ -59,10 +66,7 @@ void main() {
       // 已应用：committed 非零、无预览。
       expect(beatAlignStatusLabel(committed: 0.5, preview: null), '已应用');
       // 已改·未应用：预览与 committed 不同（预览优先，尚未提交）。
-      expect(
-        beatAlignStatusLabel(committed: 0.0, preview: 0.5),
-        '已改·未应用',
-      );
+      expect(beatAlignStatusLabel(committed: 0.0, preview: 0.5), '已改·未应用');
       // 预览与 committed 相同（如：reset 到已应用的 0 后）按 committed 判。
       expect(beatAlignStatusLabel(committed: 0.0, preview: 0.0), '未应用');
     });
@@ -98,7 +102,10 @@ void main() {
       // 节拍气泡三段内容宽（重校后 740，列间距 17 口径）按
       // 横屏宽屏消费，默认测试面 800 会硬截内容 → 用横屏宽测试面
       // （生产为 2736×1264）。
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -124,9 +131,9 @@ void main() {
       await pumpHost(tester);
       // 本组已自「节拍提示」气泡第三列迁入**独立对齐气泡**
       // （节拍提示气泡第三列是「节拍矫正」菜单列，只放两个入口）。
-      container.read(speedBubbleSessionProvider.notifier).open(
-            SpeedBubbleMode.beatAlign,
-          );
+      container
+          .read(speedBubbleSessionProvider.notifier)
+          .open(SpeedBubbleMode.beatAlign);
       await tester.pumpAndSettle();
     }
 
@@ -151,27 +158,29 @@ void main() {
 
       expect(find.byKey(const Key('beat_align_group')), findsOneWidget);
       expect(
-        tester.widget<IconButton>(
-          find.byKey(const Key('beat_align_minus')),
-        ).onPressed,
+        tester
+            .widget<IconButton>(find.byKey(const Key('beat_align_minus')))
+            .onPressed,
         isNull,
       );
       expect(
-        tester.widget<IconButton>(
-          find.byKey(const Key('beat_align_plus')),
-        ).onPressed,
+        tester
+            .widget<IconButton>(find.byKey(const Key('beat_align_plus')))
+            .onPressed,
         isNull,
       );
       expect(
-        tester.widget<TextButton>(
-          find.byKey(const Key('beat_align_reset')),
-        ).onPressed,
+        tester
+            .widget<TextButton>(find.byKey(const Key('beat_align_reset')))
+            .onPressed,
         isNull,
       );
       expect(
-        tester.widget<ButtonStyleButton>(
-          find.byKey(const Key('beat_align_apply')),
-        ).onPressed,
+        tester
+            .widget<ButtonStyleButton>(
+              find.byKey(const Key('beat_align_apply')),
+            )
+            .onPressed,
         isNull,
       );
       // 无对齐试听按钮。
@@ -187,15 +196,17 @@ void main() {
       await tester.pump();
 
       expect(
-        tester.widget<IconButton>(
-          find.byKey(const Key('beat_align_plus')),
-        ).onPressed,
+        tester
+            .widget<IconButton>(find.byKey(const Key('beat_align_plus')))
+            .onPressed,
         isNull,
       );
       expect(
-        tester.widget<ButtonStyleButton>(
-          find.byKey(const Key('beat_align_apply')),
-        ).onPressed,
+        tester
+            .widget<ButtonStyleButton>(
+              find.byKey(const Key('beat_align_apply')),
+            )
+            .onPressed,
         isNull,
       );
     });
@@ -280,8 +291,10 @@ void main() {
 
       // 预览阶段：已落盘线与 beat 段平移量都不动。
       final timeline = container.read(annotationTimelineProvider);
-      expect(timeline.segmentLines.single.position,
-          const Duration(seconds: 10));
+      expect(
+        timeline.segmentLines.single.position,
+        const Duration(seconds: 10),
+      );
       expect(container.read(beatTrackStateProvider).grid!.shift, 0.0);
 
       await tapPanel(tester, find.byKey(const Key('beat_align_reset')));
@@ -293,8 +306,7 @@ void main() {
       expect(container.read(beatTrackStateProvider).grid!.shift, 0.0);
     });
 
-    testWidgets('应用：调用 #17 应用命令提交，线平移、平移量写定、预览清空',
-        (tester) async {
+    testWidgets('应用：调用 #17 应用命令提交，线平移、平移量写定、预览清空', (tester) async {
       await openPanel(tester);
       // 先播种线（就绪网格未注入 → 加线不经吸附直通）、后注入
       // 就绪网格；既有线不回溯吸附。
@@ -374,33 +386,41 @@ void main() {
       );
 
       // 重置在步长所在行（同一横向跨度内），读数行居左。
-      final stepCenter = tester.getCenter(find.byKey(const Key('beat_align_step')));
+      final stepCenter = tester.getCenter(
+        find.byKey(const Key('beat_align_step')),
+      );
       final reset = tester.getCenter(find.byKey(const Key('beat_align_reset')));
-      final readout = tester.getCenter(find.byKey(const Key('beat_align_readout')));
-      expect((reset.dy - stepCenter.dy).abs() < 40, isTrue,
-          reason: '重置与步长同一行');
+      final readout = tester.getCenter(
+        find.byKey(const Key('beat_align_readout')),
+      );
+      expect((reset.dy - stepCenter.dy).abs() < 40, isTrue, reason: '重置与步长同一行');
       expect(stepCenter.dx < reset.dx, isTrue, reason: '重置在步长右方');
 
       // 读数居左（相对整组中点偏左），不居中。
-      final groupCenter = tester.getCenter(find.byKey(const Key('beat_align_group')));
+      final groupCenter = tester.getCenter(
+        find.byKey(const Key('beat_align_group')),
+      );
       expect(readout.dx < groupCenter.dx, isTrue, reason: '读数不居中、居左');
 
       // 行2 簇（−/读数/＋）起始与行1 分段控件左缘对齐；两行左内边距一致。
-      final stepLeft = tester.getTopLeft(find.byKey(const Key('beat_align_step')));
-      final minus = tester.getTopLeft(find.byKey(const Key('beat_align_minus')));
-      expect((minus.dx - stepLeft.dx).abs() < 6, isTrue,
-          reason: '− 读数簇与分段控件起始对齐');
+      final stepLeft = tester.getTopLeft(
+        find.byKey(const Key('beat_align_step')),
+      );
+      final minus = tester.getTopLeft(
+        find.byKey(const Key('beat_align_minus')),
+      );
+      expect(
+        (minus.dx - stepLeft.dx).abs() < 6,
+        isTrue,
+        reason: '− 读数簇与分段控件起始对齐',
+      );
 
       // 应用正对重置下方：应用中心 x 与重置同列，且在重置之下。
       final apply = tester.getCenter(find.byKey(const Key('beat_align_apply')));
       final resetCenter = tester.getCenter(
         find.byKey(const Key('beat_align_reset')),
       );
-      expect(
-        (apply.dx - resetCenter.dx).abs() < 20,
-        isTrue,
-        reason: '应用与重置同列',
-      );
+      expect((apply.dx - resetCenter.dx).abs() < 20, isTrue, reason: '应用与重置同列');
       expect(apply.dy > resetCenter.dy, isTrue, reason: '应用在重置下方');
 
       // 末行状态文本右对齐（位于右侧、在重置/应用之下）。

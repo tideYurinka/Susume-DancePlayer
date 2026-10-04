@@ -64,8 +64,7 @@ void main() {
       container.read(annotationSelectionDomainProvider);
   AnnotationSelection? selection() =>
       container.read(annotationSelectionProvider);
-  int? selectedNoteIndex() =>
-      container.read(selectedNoteFragmentIndexProvider);
+  int? selectedNoteIndex() => container.read(selectedNoteFragmentIndexProvider);
   int historyLength() => container.read(annotationEditHistoryProvider).length;
 
   void seedNotes() {
@@ -89,8 +88,7 @@ void main() {
     domain().select(NoteFragmentSelection(1));
     expect(selection(), isA<NoteFragmentSelection>());
     expect(selectedNoteIndex(), 1);
-    expect(container.read(noteStickersProvider), before,
-        reason: '选中不改几何');
+    expect(container.read(noteStickersProvider), before, reason: '选中不改几何');
     expect(historyLength(), 0, reason: '选中不产生编辑/撤销步');
   });
 

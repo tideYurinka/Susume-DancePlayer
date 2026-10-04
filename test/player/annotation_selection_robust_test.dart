@@ -127,8 +127,10 @@ void main() {
 
       domain().select(VideoRangeBoundarySelection(VideoRangeBoundary.start));
       expect(container.read(selectedSegmentLineIndexProvider), isNull);
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
 
       domain().toggle(HalfBeatLineSelection(0));
       expect(container.read(selectedVideoRangeBoundaryProvider), isNull);
@@ -159,10 +161,15 @@ void main() {
       seedHalfBeat(const Duration(seconds: 15, milliseconds: 250));
       domain().toggle(HalfBeatLineSelection(0));
 
-      editor.submit(AddHalfBeatLine(at: const Duration(seconds: 5, milliseconds: 250)));
+      editor.submit(
+        AddHalfBeatLine(at: const Duration(seconds: 5, milliseconds: 250)),
+      );
 
-      expect(container.read(selectedHalfBeatLineIndexProvider), 1,
-          reason: '结构性插线后选中仍指向同一条线（15.25s）');
+      expect(
+        container.read(selectedHalfBeatLineIndexProvider),
+        1,
+        reason: '结构性插线后选中仍指向同一条线（15.25s）',
+      );
     });
 
     test('删除选中半拍线（区间收缩剔除）→ 选中无效化', () {
@@ -237,8 +244,11 @@ void main() {
       editor.submit(SetVideoRange(start: const Duration(seconds: 15)));
 
       expect(timeline().segmentLines.length, 2);
-      expect(container.read(selectedSegmentLineIndexProvider), 0,
-          reason: '20s 线仍在，随 10s 被删左移一位');
+      expect(
+        container.read(selectedSegmentLineIndexProvider),
+        0,
+        reason: '20s 线仍在，随 10s 被删左移一位',
+      );
     });
 
     test('撤销内部先清选中：回放后线选中不凭空保留', () {

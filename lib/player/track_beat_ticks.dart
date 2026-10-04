@@ -53,11 +53,7 @@ import 'annotation_editor.dart'
         selectedHalfBeatLineIndexProvider;
 import 'annotation_selection.dart' show HalfBeatLineSelection;
 import 'beat_track_tiers.dart'
-    show
-        BeatTickTier,
-        beatEightCountLabels,
-        beatTickWidthOf,
-        beatTrackTicks;
+    show BeatTickTier, beatEightCountLabels, beatTickWidthOf, beatTrackTicks;
 import 'track_band_drag.dart'
     show
         TrackBandDragDeclaration,
@@ -685,9 +681,7 @@ class _TrackHalfBeatOverlayState extends ConsumerState<TrackHalfBeatOverlay> {
               .read(annotationSelectionDomainProvider)
               .toggle(HalfBeatLineSelection(index));
         },
-        onHorizontalDragStart: draggable
-            ? (_) => _beginDrag(index)
-            : null,
+        onHorizontalDragStart: draggable ? (_) => _beginDrag(index) : null,
         onHorizontalDragUpdate: draggable
             ? (details) => _updateDrag(details.globalPosition)
             : null,
@@ -704,6 +698,5 @@ class _TrackHalfBeatOverlayState extends ConsumerState<TrackHalfBeatOverlay> {
 
 /// 非空锚点 key 时给 [child] 包一层锚点包装器（null 原样返回）——角标只在
 /// 本会话记着的序号对上时才包，其余时刻被包内容逐位不变。
-Widget _guideAnchored(String? anchorKey, Widget child) => anchorKey == null
-    ? child
-    : GuideAnchor(anchorKey: anchorKey, child: child);
+Widget _guideAnchored(String? anchorKey, Widget child) =>
+    anchorKey == null ? child : GuideAnchor(anchorKey: anchorKey, child: child);

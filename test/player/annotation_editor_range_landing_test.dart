@@ -68,9 +68,7 @@ void main() {
     test('覆盖区内请求写入就近真实拍点（离散提交）', () {
       injectReadyGrid();
       final outcome = editor().submit(
-        SetVideoRange(
-          start: const Duration(seconds: 10, milliseconds: 300),
-        ),
+        SetVideoRange(start: const Duration(seconds: 10, milliseconds: 300)),
       );
 
       expect(outcome.applied, isTrue);

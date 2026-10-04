@@ -91,13 +91,10 @@ void main() {
     return container;
   }
 
-  testWidgets('默认无高亮；打高亮后对应片段出现高亮标识、另一片段没有',
-      (tester) async {
+  testWidgets('默认无高亮；打高亮后对应片段出现高亮标识、另一片段没有', (tester) async {
     final container = await pumpBandWithNotes(tester);
     expect(find.byKey(const Key('note_fragment_highlight')), findsNothing);
-    container
-        .read(noteFragmentHighlightProvider.notifier)
-        .highlight(30000);
+    container.read(noteFragmentHighlightProvider.notifier).highlight(30000);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('note_fragment_highlight')), findsOneWidget);
     container.dispose();
@@ -105,9 +102,7 @@ void main() {
 
   testWidgets('高亮只认起点匹配的备注；备注消失即无高亮', (tester) async {
     final container = await pumpBandWithNotes(tester);
-    container
-        .read(noteFragmentHighlightProvider.notifier)
-        .highlight(99999);
+    container.read(noteFragmentHighlightProvider.notifier).highlight(99999);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('note_fragment_highlight')), findsNothing);
     container.dispose();
@@ -115,16 +110,16 @@ void main() {
 
   testWidgets('点按备注片段后高亮清除（用户已到位）', (tester) async {
     final container = await pumpBandWithNotes(tester);
-    container
-        .read(noteFragmentHighlightProvider.notifier)
-        .highlight(10000);
+    container.read(noteFragmentHighlightProvider.notifier).highlight(10000);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('note_fragment_highlight')), findsOneWidget);
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(
-      rect.left + rect.width * 14000 / total.inMilliseconds,
-      rect.center.dy,
-    ));
+    await tester.tapAt(
+      Offset(
+        rect.left + rect.width * 14000 / total.inMilliseconds,
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(noteFragmentHighlightProvider),

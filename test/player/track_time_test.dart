@@ -30,8 +30,16 @@ void main() {
     });
 
     test('total 为 0 / width 为 0 → 0（不除零）', () {
-      const emptyTotal = TimelineAxis(total: Duration.zero, width: 300, contentLeft: 0);
-      const emptyWidth = TimelineAxis(total: Duration(minutes: 3), width: 0, contentLeft: 0);
+      const emptyTotal = TimelineAxis(
+        total: Duration.zero,
+        width: 300,
+        contentLeft: 0,
+      );
+      const emptyWidth = TimelineAxis(
+        total: Duration(minutes: 3),
+        width: 0,
+        contentLeft: 0,
+      );
       expect(emptyTotal.timeToX(const Duration(seconds: 3)), 0);
       expect(emptyWidth.timeToX(const Duration(seconds: 3)), 0);
       expect(emptyTotal.isEmpty, isTrue);
@@ -58,7 +66,11 @@ void main() {
     });
 
     test('与 timeToX 往返一致（整格时间点无损）', () {
-      const roundTrip = TimelineAxis(total: Duration(minutes: 3), width: 400, contentLeft: 0);
+      const roundTrip = TimelineAxis(
+        total: Duration(minutes: 3),
+        width: 400,
+        contentLeft: 0,
+      );
       for (final ms in [0, 1, 45_000, 90_000, 180_000]) {
         final d = Duration(milliseconds: ms);
         expect(roundTrip.xToTime(roundTrip.timeToX(d)), d);
@@ -143,7 +155,11 @@ void main() {
       expect(z.end, const Duration(seconds: 105));
       expect(z.visible, const Duration(seconds: 30));
       // 锚时间在缩放后的窗口内仍占一半 → 映射 x 不变（映射正确性）。
-      const axis = TimelineAxis(total: Duration(minutes: 3), width: 300, contentLeft: 0);
+      const axis = TimelineAxis(
+        total: Duration(minutes: 3),
+        width: 300,
+        contentLeft: 0,
+      );
       const zAxis = TimelineAxis(
         total: Duration(minutes: 3),
         width: 300,
@@ -169,7 +185,10 @@ void main() {
     });
 
     test('缩小（factor<1）可视变长；缩到全宽为止（不越出 total）', () {
-      final out = win.zoomed(anchor: const Duration(minutes: 1, seconds: 30), factor: 0.5);
+      final out = win.zoomed(
+        anchor: const Duration(minutes: 1, seconds: 30),
+        factor: 0.5,
+      );
       // 可视 120s，锚 90s 居中 → [30,150]。
       expect(out.start, const Duration(seconds: 30));
       expect(out.end, const Duration(seconds: 150));
@@ -295,10 +314,7 @@ void main() {
     });
 
     test('zoomSliderValueFor：全宽 = 0；与 zoomFactorForSliderValue 往返一致', () {
-      expect(
-        zoomSliderValueFor(TimelineWindow.full(threeMin)),
-        0,
-      );
+      expect(zoomSliderValueFor(TimelineWindow.full(threeMin)), 0);
       // visible 60s → factor 3 → v = ln3/ln90。
       const win = TimelineWindow(
         total: Duration(minutes: 3),
@@ -339,7 +355,12 @@ void main() {
       start: Duration(minutes: 1),
       end: Duration(minutes: 2),
     );
-    const axis = TimelineAxis(total: total, width: 300, window: win, contentLeft: 0);
+    const axis = TimelineAxis(
+      total: total,
+      width: 300,
+      window: win,
+      contentLeft: 0,
+    );
 
     test('timeToX：窗口左端 → 0、右端 → width、中点 → width/2', () {
       expect(axis.timeToX(const Duration(minutes: 1)), 0);
@@ -443,11 +464,7 @@ void main() {
         factor: 2,
       );
       expect(got.visible, zoomed.visible, reason: '时长由缩放决定');
-      expect(
-        got.start,
-        lessThan(zoomed.start),
-        reason: '向右拖在此基础上左移窗口',
-      );
+      expect(got.start, lessThan(zoomed.start), reason: '向右拖在此基础上左移窗口');
       expect(got.start, greaterThanOrEqualTo(Duration.zero));
       expect(got.end, lessThanOrEqualTo(total));
 
@@ -605,4 +622,3 @@ void main() {
     });
   });
 }
-

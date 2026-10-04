@@ -176,11 +176,10 @@ void main() {
     await harness.pumpHome(tester);
     await tester.runAsync(() async {
       await pollUntil(
-        () =>
-            find
-                .byKey(const Key('scheme_import_ownership_dialog'))
-                .evaluate()
-                .isNotEmpty,
+        () => find
+            .byKey(const Key('scheme_import_ownership_dialog'))
+            .evaluate()
+            .isNotEmpty,
         onTick: tester.pump,
         reason: '本机已有这支舞，归属选择面应出现',
       );

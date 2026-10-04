@@ -69,18 +69,18 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(effectivePracticeMirrorProvider), true);
-    await container.read(practiceMirrorDeviceDefaultProvider.notifier)
+    await container
+        .read(practiceMirrorDeviceDefaultProvider.notifier)
         .restoreDone;
     expect(container.read(effectivePracticeMirrorProvider), true);
   });
 
   test('设备级值可关：设备级文件存 false 且无覆盖时生效值为 false', () async {
-    container = makeContainer(
-      privateInitial: {'practiceMirrorDefault': false},
-    );
+    container = makeContainer(privateInitial: {'practiceMirrorDefault': false});
     addTearDown(container.dispose);
 
-    await container.read(practiceMirrorDeviceDefaultProvider.notifier)
+    await container
+        .read(practiceMirrorDeviceDefaultProvider.notifier)
         .restoreDone;
     expect(container.read(effectivePracticeMirrorProvider), false);
   });
@@ -95,10 +95,7 @@ void main() {
     container.read(practiceMirrorOverrideProvider.notifier).set(false);
     await session.flush;
 
-    expect(
-      storages[idA]!.localSnapshot['prefs']['practiceMirror'],
-      false,
-    );
+    expect(storages[idA]!.localSnapshot['prefs']['practiceMirror'], false);
     expect(storages[idA]!.markersSnapshot, isEmpty);
   });
 

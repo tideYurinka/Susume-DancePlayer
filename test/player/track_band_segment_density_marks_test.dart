@@ -45,12 +45,18 @@ void main() {
     await pumpSettle(tester);
 
     // 段 0 = ×2 → 红框 + 「×2」；段 1 = ×½ → 蓝框 + 「×½」；段 2 未设档无标记。
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsOneWidget);
-    expect(find.byKey(const Key('learning_segment_1_density_mark')),
-        findsOneWidget);
-    expect(find.byKey(const Key('learning_segment_2_density_mark')),
-        findsNothing);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('learning_segment_1_density_mark')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('learning_segment_2_density_mark')),
+      findsNothing,
+    );
     expect(find.text('×2'), findsOneWidget);
     expect(find.text('×½'), findsOneWidget);
 
@@ -68,34 +74,44 @@ void main() {
     );
     // 编辑面（两处之外）：不画。
     await pumpSettle(tester);
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsNothing);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsNothing,
+    );
 
     // 节拍倍频气泡打开：画。
     container
         .read(speedBubbleSessionProvider.notifier)
         .open(SpeedBubbleMode.beatDensity);
     await pumpSettle(tester);
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsOneWidget);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsOneWidget,
+    );
 
     // 关气泡即收。
     container.read(speedBubbleSessionProvider.notifier).close();
     await pumpSettle(tester);
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsNothing);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsNothing,
+    );
 
     // 退出待命态即收。
     enterStandby(container);
     await pumpSettle(tester);
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsOneWidget);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsOneWidget,
+    );
     container
         .read(playerSessionProvider.notifier)
         .enter(PlayerSessionMode.editing);
     await pumpSettle(tester);
-    expect(find.byKey(const Key('learning_segment_0_density_mark')),
-        findsNothing);
+    expect(
+      find.byKey(const Key('learning_segment_0_density_mark')),
+      findsNothing,
+    );
   });
 
   testWidgets('标记画在青色选中框之内：两层并存且不同宽同位', (tester) async {
@@ -144,7 +160,10 @@ void main() {
     // 填充仍是熟练度色（未练灰），星与八拍数两 key 都还在。
     final box = _boxDecoration(tester, 0);
     expect(box.color, learningMasteryColor(LearningMastery.unlearned));
-    expect(find.byKey(const Key('learning_segment_0_emphasis')), findsOneWidget);
+    expect(
+      find.byKey(const Key('learning_segment_0_emphasis')),
+      findsOneWidget,
+    );
     // 八拍数（段内淡字）仍在段上（缩字层级随段宽，不限定变体）。
     expect(
       find.descendant(
@@ -166,33 +185,44 @@ void main() {
       densities: const {1: 2.0},
       standby: true,
     );
-    expect(find.byKey(const Key('learning_segment_1_density_mark')),
-        findsOneWidget, reason: '框完整');
-    expect(find.byKey(const Key('learning_segment_1_density_label')),
-        findsNothing, reason: '小字不画');
+    expect(
+      find.byKey(const Key('learning_segment_1_density_mark')),
+      findsOneWidget,
+      reason: '框完整',
+    );
+    expect(
+      find.byKey(const Key('learning_segment_1_density_label')),
+      findsNothing,
+      reason: '小字不画',
+    );
   });
 }
 
 Border _markBorder(WidgetTester tester, int index) {
-  final decoration = tester.widget<DecoratedBox>(
-    find.byKey(Key('learning_segment_${index}_density_mark')),
-  ).decoration as BoxDecoration;
+  final decoration =
+      tester
+              .widget<DecoratedBox>(
+                find.byKey(Key('learning_segment_${index}_density_mark')),
+              )
+              .decoration
+          as BoxDecoration;
   return decoration.border! as Border;
 }
 
 /// 青色选中框的描边（生产 token 同值断言，同款读面）。
-Border _cyanBorder() => Border.all(
-  color: kCyanAccentColor,
-  width: kSegmentSelectedBorderWidth,
-);
+Border _cyanBorder() =>
+    Border.all(color: kCyanAccentColor, width: kSegmentSelectedBorderWidth);
 
 BoxDecoration _boxDecoration(WidgetTester tester, int index) {
-  return tester.widget<DecoratedBox>(
-    find.descendant(
-      of: find.byKey(Key('learning_segment_$index')),
-      matching: find.byKey(Key('learning_segment_${index}_box')),
-    ),
-  ).decoration as BoxDecoration;
+  return tester
+          .widget<DecoratedBox>(
+            find.descendant(
+              of: find.byKey(Key('learning_segment_$index')),
+              matching: find.byKey(Key('learning_segment_${index}_box')),
+            ),
+          )
+          .decoration
+      as BoxDecoration;
 }
 
 void enterStandby(ProviderContainer container) {
@@ -221,9 +251,7 @@ Future<ProviderContainer> pumpBand(
       playbackEngineProvider.overrideWithValue(engine),
       beatAnalyzingFlowProvider.overrideWithValue(true),
       beatTrackStateProvider.overrideWithBuild(
-        (ref, _) => uniformReadyBeatState(
-          seconds: total.inMilliseconds / 1000,
-        ),
+        (ref, _) => uniformReadyBeatState(seconds: total.inMilliseconds / 1000),
       ),
       annotationTimelineProvider.overrideWithBuild((ref, _) => timeline),
       learningEmphasisProvider.overrideWithBuild((ref, _) => emphasized),

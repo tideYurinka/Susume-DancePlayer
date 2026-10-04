@@ -76,18 +76,18 @@ List<DanceRankingRow> windowDanceRanking(
     }
   }
   bool inWindow(DanceRankingRow row) => row.valueFor(metric) > 0;
-  final rows = [
-    for (final dance in dances)
-      DanceRankingRow(
-        videoId: dance.videoId,
-        title: dance.title,
-        total: totalByVideo[dance.videoId] ?? Duration.zero,
-        sessions: sessionsByVideo[dance.videoId] ?? 0,
-      ),
-  ].where(inWindow).toList()
-    ..sort((a, b) {
-      final byMetric = b.valueFor(metric).compareTo(a.valueFor(metric));
-      return byMetric != 0 ? byMetric : a.videoId.compareTo(b.videoId);
-    });
+  final rows =
+      [
+        for (final dance in dances)
+          DanceRankingRow(
+            videoId: dance.videoId,
+            title: dance.title,
+            total: totalByVideo[dance.videoId] ?? Duration.zero,
+            sessions: sessionsByVideo[dance.videoId] ?? 0,
+          ),
+      ].where(inWindow).toList()..sort((a, b) {
+        final byMetric = b.valueFor(metric).compareTo(a.valueFor(metric));
+        return byMetric != 0 ? byMetric : a.videoId.compareTo(b.videoId);
+      });
   return List.unmodifiable(rows);
 }

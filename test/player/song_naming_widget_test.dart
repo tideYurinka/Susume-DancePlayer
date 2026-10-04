@@ -1,5 +1,4 @@
-import 'package:dance_learning_app/core/contrast.dart'
-    show meetsContrastFloor;
+import 'package:dance_learning_app/core/contrast.dart' show meetsContrastFloor;
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
@@ -18,7 +17,8 @@ import 'package:dance_learning_app/persistence/marker_document.dart';
 import 'package:dance_learning_app/persistence/song_signature.dart';
 import 'package:dance_learning_app/player/settings_persistence.dart';
 import 'package:dance_learning_app/player/song_naming.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/persistence/video_document_store.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_key.dart';
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
@@ -105,7 +105,10 @@ void main() {
     // （AutoScrollTitle 循环动画 → pumpAndSettle 不收敛）。本文件关心的是
     // 命名框/署名入口，取与真实横屏设备同量级的视口（dev 机约 995）。
     addTearDown(tester.view.reset);
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     await tester.pumpWidget(
       ProviderScope(
@@ -215,9 +218,7 @@ void main() {
       null;
 
   group('导入命名框', () {
-    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退文件名', (
-      tester,
-    ) async {
+    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退文件名', (tester) async {
       await pumpPlayer(tester, askNaming: true, entries: [unsignedEntry()]);
 
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
@@ -261,7 +262,9 @@ void main() {
   });
 
   group('命名框出口与保存门', () {
-    testWidgets('「跳过」经 Navigator.pop 返回 confirmed:false 与输入框现值', (tester) async {
+    testWidgets('「跳过」经 Navigator.pop 返回 confirmed:false 与输入框现值', (
+      tester,
+    ) async {
       final results = await pumpDialogReturning(
         tester,
         physicalSize: const Size(1080, 1920),
@@ -298,11 +301,16 @@ void main() {
       await tester.pump();
       expect(saveEnabled(tester), isFalse);
       expect(
-        tester.widget<TextButton>(find.byKey(const Key('naming_skip'))).onPressed,
+        tester
+            .widget<TextButton>(find.byKey(const Key('naming_skip')))
+            .onPressed,
         isNotNull,
       );
 
-      await tester.enterText(find.byKey(const Key('naming_song_field')), 'My Love');
+      await tester.enterText(
+        find.byKey(const Key('naming_song_field')),
+        'My Love',
+      );
       await tester.pump();
       expect(saveEnabled(tester), isTrue);
       await tester.tap(find.byKey(const Key('naming_save')));
@@ -726,7 +734,10 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key('naming_switch_song')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('naming_song_field')), 'My Love');
+      await tester.enterText(
+        find.byKey(const Key('naming_song_field')),
+        'My Love',
+      );
       await tester.pump();
       await tester.tap(find.byKey(const Key('naming_switch_dancer')));
       await tester.pumpAndSettle();

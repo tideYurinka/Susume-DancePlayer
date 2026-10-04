@@ -85,7 +85,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    container.read(annotationEditorProvider).restoreDocument(
+    container
+        .read(annotationEditorProvider)
+        .restoreDocument(
           AnnotationRestoreDocument(
             timeline: AnnotationTimeline.wholeVideo(total),
             localMirrorFragments: const [
@@ -101,7 +103,12 @@ void main() {
   Future<void> tapNote(WidgetTester tester, Rect row, int ms) async {
     await tester.tapAt(
       Offset(
-        bandXOf(Duration(milliseconds: ms), total: total, width: row.width, bandLeft: row.left),
+        bandXOf(
+          Duration(milliseconds: ms),
+          total: total,
+          width: row.width,
+          bandLeft: row.left,
+        ),
         row.center.dy,
       ),
     );
@@ -115,11 +122,27 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tapNote(tester, rect, 14000);
-    expect(container.read(annotationSelectionProvider), isA<NoteFragmentSelection>());
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 40000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    expect(
+      container.read(annotationSelectionProvider),
+      isA<NoteFragmentSelection>(),
+    );
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 40000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pump(kDoubleTapWindow);
-    expect(container.read(annotationSelectionProvider), isNull,
-        reason: '点轨道空白 = 清除路径一');
+    expect(
+      container.read(annotationSelectionProvider),
+      isNull,
+      reason: '点轨道空白 = 清除路径一',
+    );
     container.dispose();
   });
 
@@ -149,7 +172,10 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tapNote(tester, rect, 14000);
-    expect(container.read(annotationSelectionProvider), isA<NoteFragmentSelection>());
+    expect(
+      container.read(annotationSelectionProvider),
+      isA<NoteFragmentSelection>(),
+    );
 
     // 播放头从 0s 走进窗内：只在「跨出」时清，走进来不清。
     await engine.seek(const Duration(seconds: 12));
@@ -178,7 +204,10 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tapNote(tester, rect, 14000);
-    expect(container.read(annotationSelectionProvider), isA<NoteFragmentSelection>());
+    expect(
+      container.read(annotationSelectionProvider),
+      isA<NoteFragmentSelection>(),
+    );
     // 窗口平移到 30–40s：这条备注整段离场（选中框与浮条没有承载物）。
     session.updateWindow(
       const TimelineWindow(
@@ -199,7 +228,10 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tapNote(tester, rect, 14000);
-    expect(container.read(annotationSelectionProvider), isA<NoteFragmentSelection>());
+    expect(
+      container.read(annotationSelectionProvider),
+      isA<NoteFragmentSelection>(),
+    );
     container
         .read(annotationSelectionDomainProvider)
         .select(LocalMirrorFragmentSelection(0));
@@ -222,8 +254,11 @@ void main() {
     await tapNote(tester, rect, 10150);
     final bubble = tester.getSize(find.byKey(const Key('note_expand_bubble')));
     final fragment = tester.getSize(find.byKey(const Key('note_fragment_0')));
-    expect(bubble.width, greaterThan(fragment.width),
-        reason: '很短的片段也能读全句：浮条宽按文本实测');
+    expect(
+      bubble.width,
+      greaterThan(fragment.width),
+      reason: '很短的片段也能读全句：浮条宽按文本实测',
+    );
     container.dispose();
   });
 
@@ -284,7 +319,8 @@ void main() {
         NoteSticker(
           startMs: 10000,
           endMs: 10300,
-          text: '一条非常非常非常长的备注内容，用来把浮条宽度顶到屏幕边缘之外，'
+          text:
+              '一条非常非常非常长的备注内容，用来把浮条宽度顶到屏幕边缘之外，'
               '验证屏幕边缘钳制与超屏省略都生效，而不是把浮条画出屏幕。',
         ),
       ],
@@ -305,11 +341,17 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tapNote(tester, rect, 14000);
-    expect(container.read(annotationSelectionProvider), isA<NoteFragmentSelection>());
+    expect(
+      container.read(annotationSelectionProvider),
+      isA<NoteFragmentSelection>(),
+    );
     container.read(annotationEditorProvider).resetForVideo(total);
     await tester.pumpAndSettle();
-    expect(container.read(annotationSelectionProvider), isNull,
-        reason: '选中不持久化：重开播放页（全复位）不残留');
+    expect(
+      container.read(annotationSelectionProvider),
+      isNull,
+      reason: '选中不持久化：重开播放页（全复位）不残留',
+    );
     container.dispose();
   });
 
@@ -324,7 +366,12 @@ void main() {
     // 50s 处镜像轨无片段（片段在 30–34s）= 镜像轨空白。
     await tester.tapAt(
       Offset(
-        bandXOf(Duration(milliseconds: 50000), total: total, width: mirror.width, bandLeft: mirror.left),
+        bandXOf(
+          Duration(milliseconds: 50000),
+          total: total,
+          width: mirror.width,
+          bandLeft: mirror.left,
+        ),
         mirror.center.dy,
       ),
     );

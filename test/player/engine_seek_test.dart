@@ -44,7 +44,8 @@ void main() {
     return EngineSeek(
       engine: engine,
       takeoverOf: () => resolved,
-      timeline: () => AnnotationTimeline.wholeVideo(const Duration(seconds: 100)),
+      timeline: () =>
+          AnnotationTimeline.wholeVideo(const Duration(seconds: 100)),
       clearLoops: (_, _) => events.add('clearLoops'),
       interruptPendingDelayedPlay: () => interruptCalls++,
       onScrubCommitted: committed.add,

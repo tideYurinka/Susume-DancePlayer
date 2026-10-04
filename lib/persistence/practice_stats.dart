@@ -180,8 +180,12 @@ class PracticeStatsDocument {
   /// 文档级陌生键保底区：读入时原样带回、写回原样（不参与相等）。
   final Map<String, Object?> extra;
 
-  static final ListDocumentCodec<PracticeStatsDocument, PracticeSessionRecord,
-      PracticeSessionRecordField> _codec = ListDocumentCodec(
+  static final ListDocumentCodec<
+    PracticeStatsDocument,
+    PracticeSessionRecord,
+    PracticeSessionRecordField
+  >
+  _codec = ListDocumentCodec(
     policy: versionPolicy,
     listKey: 'sessions',
     elementCodec: PracticeSessionRecord.codec,
@@ -286,8 +290,7 @@ class PracticeStatsStore {
     try {
       final json = await _storage.loadOrNull();
       _readOnly =
-          json != null &&
-          !PracticeStatsDocument.versionPolicy.isWritable(json);
+          json != null && !PracticeStatsDocument.versionPolicy.isWritable(json);
       final records = json == null
           ? const <PracticeSessionRecord>[]
           : PracticeStatsDocument.fromJson(json).sessions;

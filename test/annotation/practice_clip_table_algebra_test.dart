@@ -4,12 +4,12 @@ import 'package:dance_learning_app/annotation/compare_materials.dart';
 import 'package:dance_learning_app/annotation/practice_clip_table_algebra.dart';
 
 PracticeClip clip(String id, int inMs, int outMs) => PracticeClip(
-      id: id,
-      materialId: 'm_$id',
-      materialSourceStartMs: 0,
-      inMs: inMs,
-      outMs: outMs,
-    );
+  id: id,
+  materialId: 'm_$id',
+  materialSourceStartMs: 0,
+  inMs: inMs,
+  outMs: outMs,
+);
 
 void main() {
   group('逐 id 三方合并（撤销/重做回放）', () {
@@ -102,10 +102,11 @@ void main() {
         clip('d', 600, 700),
       ];
 
-      expect(
-        clipIdsTouchedByEdit(before: before, after: after),
-        {'a', 'c', 'd'},
-      );
+      expect(clipIdsTouchedByEdit(before: before, after: after), {
+        'a',
+        'c',
+        'd',
+      });
     });
 
     test('无差异 = 未碰过', () {

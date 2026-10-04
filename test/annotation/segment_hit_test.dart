@@ -25,17 +25,16 @@ void main() {
     Duration lineHalfWidth = Duration.zero,
     Duration edgeHalfWidth = Duration.zero,
     Duration minSegmentHitWidth = Duration.zero,
-  }) =>
-      resolveLearningTrackHit(
-        segmentLines: t.segmentLines,
-        rangeStart: range == null ? t.rangeStart : range.$1,
-        rangeEnd: range == null ? t.rangeEnd : range.$2,
-        segments: segments ?? deriveLearningSegments(t),
-        time: time,
-        lineHalfWidth: lineHalfWidth,
-        edgeHalfWidth: edgeHalfWidth,
-        minSegmentHitWidth: minSegmentHitWidth,
-      );
+  }) => resolveLearningTrackHit(
+    segmentLines: t.segmentLines,
+    rangeStart: range == null ? t.rangeStart : range.$1,
+    rangeEnd: range == null ? t.rangeEnd : range.$2,
+    segments: segments ?? deriveLearningSegments(t),
+    time: time,
+    lineHalfWidth: lineHalfWidth,
+    edgeHalfWidth: edgeHalfWidth,
+    minSegmentHitWidth: minSegmentHitWidth,
+  );
 
   group('段体命中（最近段 + 最小命中宽扩展）', () {
     test('点在段内 → 命中该段', () {
@@ -108,16 +107,25 @@ void main() {
         range: (Duration.zero, total),
         minSegmentHitWidth: const Duration(seconds: 6),
       );
-      expect(hit(const Duration(milliseconds: 11500)), const SegmentHitTarget(0));
+      expect(
+        hit(const Duration(milliseconds: 11500)),
+        const SegmentHitTarget(0),
+      );
       // 镜像：点 12.5s 更近段 1 中心。
-      expect(hit(const Duration(milliseconds: 12500)), const SegmentHitTarget(1));
+      expect(
+        hit(const Duration(milliseconds: 12500)),
+        const SegmentHitTarget(1),
+      );
     });
 
     test('零扩展宽度时点在段间缝（段界）→ 段体不命中，段界恰为分段线则命中线', () {
       final t = timelineWith([const Duration(seconds: 10)]);
       // 段区间左闭右开：10s 恰在段界上、两侧段体皆不含；但段界即分段线 →
       // 线命中兜底（优先级线 > 段体）。
-      expect(hitAt(t, const Duration(seconds: 10)), const SegmentLineHitTarget(0));
+      expect(
+        hitAt(t, const Duration(seconds: 10)),
+        const SegmentLineHitTarget(0),
+      );
     });
   });
 
@@ -207,7 +215,10 @@ void main() {
         reason: '零扩展：段界左闭右开归右段',
       );
       expect(
-        bodyHit(const Duration(seconds: 5), minSegmentHitWidth: const Duration(seconds: 6)),
+        bodyHit(
+          const Duration(seconds: 5),
+          minSegmentHitWidth: const Duration(seconds: 6),
+        ),
         const SegmentHitTarget(0),
         reason: '两侧段都进候选时取距中心更近的左段',
       );

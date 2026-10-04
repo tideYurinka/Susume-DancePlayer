@@ -43,10 +43,12 @@ import 'package:dance_learning_app/player/beat_animation.dart'
 import 'package:dance_learning_app/player/beat_presentation_providers.dart'
     show beatCountPositionProvider;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../helpers/beat_test_seam.dart';
 
 import '../helpers/fake_camera_capture_service.dart';
@@ -138,7 +140,9 @@ void main() {
     }) {
       // 节拍动画总开关默认关——本组用例钉准备期数字内容，先置开。
       turnBeatAnimationOn(tester);
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               marker_doc.BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -322,7 +326,9 @@ void main() {
       }
     });
 
-    testWidgets('真机同款按下位置（无激活段、92.292s，拍距取整 0.3s）：准备期数字 0|1…0|8（取证支）', (tester) async {
+    testWidgets('真机同款按下位置（无激活段、92.292s，拍距取整 0.3s）：准备期数字 0|1…0|8（取证支）', (
+      tester,
+    ) async {
       // 2026-09-14 真机取证（开发素材 mmexport1788144136634.mp4）：无激活段按下
       // 92.292s → 真机日志 `press=92292 rangeStart=1070 beatLed=true times=8
       // [89850…92030]`、`gridPhase=ready`、`overlayVisible=true`、`leadingDisplayAt`
@@ -351,15 +357,15 @@ void main() {
         if (seen.isEmpty || seen.last != onScreen) seen.add(onScreen);
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect(
-        seen,
-        [for (var beat = 1; beat <= 8; beat++) 'L 0|$beat'],
-        reason: '真机取证支：准备期数字按准备拍序列顺数（与拍声同一刻推进）',
-      );
+      expect(seen, [
+        for (var beat = 1; beat <= 8; beat++) 'L 0|$beat',
+      ], reason: '真机取证支：准备期数字按准备拍序列顺数（与拍声同一刻推进）');
       expect(camera.startRecordingCalls, hasLength(1), reason: '越过起录点即起录');
     });
 
-    testWidgets('按下位置即有效区间头（起录点 = 区间头，room = 0）：无数字、无浮层、无声、到点即起录（口径支）', (tester) async {
+    testWidgets('按下位置即有效区间头（起录点 = 区间头，room = 0）：无数字、无浮层、无声、到点即起录（口径支）', (
+      tester,
+    ) async {
       // 真机「屏幕上没有数字」判定支之一（2026-09-14 取证：`press=33
       // rangeStart=1070 start=1070 leadDur=0 beatLed=false times=0` →
       // `visual=RecordingPrepSilentBeat()` → `overlayVisible=false`）：按下位置
@@ -383,11 +389,7 @@ void main() {
       await pressRecordAt(tester, Duration.zero);
       await tester.pump(const Duration(milliseconds: 100));
       // 无前导：准备期长度为 0 → 浮层整段不挂载（无数字，也不落回锚点链的数）。
-      expect(
-        beatCountOnScreen(tester),
-        '-',
-        reason: '无前导支：准备期无数字（浮层不挂载）',
-      );
+      expect(beatCountOnScreen(tester), '-', reason: '无前导支：准备期无数字（浮层不挂载）');
 
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();
@@ -410,11 +412,7 @@ void main() {
       // 即网格首拍，其前无可用拍点 → 无前导支。
       await pressRecordAt(tester, const Duration(seconds: 13));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(
-        beatCountOnScreen(tester),
-        '-',
-        reason: '无可用拍点：准备期无数字（浮层不挂载）',
-      );
+      expect(beatCountOnScreen(tester), '-', reason: '无可用拍点：准备期无数字（浮层不挂载）');
 
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump();

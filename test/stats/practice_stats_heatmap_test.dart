@@ -219,22 +219,23 @@ void main() {
     });
 
     test('按次数：分位集合是场次、边界为整数场次', () {
-      final bounds = heatmapQuantileBounds([
-        _session(DateTime(2026, 9, 7, 10), 10),
-        _session(DateTime(2026, 9, 8, 10), 10),
-        _session(DateTime(2026, 9, 8, 11), 10),
-        _session(DateTime(2026, 9, 8, 12), 10),
-        _session(DateTime(2026, 9, 9, 10), 10),
-      ], now: now, metric: StatsMetric.count);
+      final bounds = heatmapQuantileBounds(
+        [
+          _session(DateTime(2026, 9, 7, 10), 10),
+          _session(DateTime(2026, 9, 8, 10), 10),
+          _session(DateTime(2026, 9, 8, 11), 10),
+          _session(DateTime(2026, 9, 8, 12), 10),
+          _session(DateTime(2026, 9, 9, 10), 10),
+        ],
+        now: now,
+        metric: StatsMetric.count,
+      );
       // 场次集合 [1, 1, 3]：P25=1、P50=1、P75=3。
       expect(bounds, [1, 1, 3]);
     });
 
     test('窗口外的记录不入分位集合', () {
-      final outside = [
-        ...records,
-        _session(DateTime(2025, 9, 7, 10), 99900),
-      ];
+      final outside = [...records, _session(DateTime(2025, 9, 7, 10), 99900)];
       expect(heatmapQuantileBounds(outside, now: now), [
         us(100),
         us(200),
@@ -250,18 +251,16 @@ void main() {
         _session(DateTime(2026, 9, 10, 10), 100),
         _session(DateTime(2026, 9, 9, 10), 300),
       ], now: friday);
-      final visible = weeks
-          .expand((week) => week.cells)
-          .where((cell) => !cell.isFuture)
-          .map((cell) => cell.total.inSeconds)
-          .where((seconds) => seconds > 0)
-          .toList()
-        ..sort();
+      final visible =
+          weeks
+              .expand((week) => week.cells)
+              .where((cell) => !cell.isFuture)
+              .map((cell) => cell.total.inSeconds)
+              .where((seconds) => seconds > 0)
+              .toList()
+            ..sort();
       expect(visible, [100, 300]);
-      expect(
-        heatmapWindowTotal(weeks).total,
-        const Duration(seconds: 400),
-      );
+      expect(heatmapWindowTotal(weeks).total, const Duration(seconds: 400));
       // 未来日的场次也不进合计。
       expect(heatmapWindowTotal(weeks).sessions, 2);
     });
@@ -301,9 +300,11 @@ void main() {
 
     test('显式传入边界时按给定边界定档', () {
       final bounds = [1, 2, 3];
-      final weeks = yearHeatmapWeeks([
-        _session(DateTime(2026, 9, 9, 10), 30),
-      ], now: now, bounds: bounds);
+      final weeks = yearHeatmapWeeks(
+        [_session(DateTime(2026, 9, 9, 10), 30)],
+        now: now,
+        bounds: bounds,
+      );
       // 30 秒（微秒）严格大于全部边界 → 档 4。
       expect(cellAt(weeks, DateTime(2026, 9, 9)).level, 4);
     });
@@ -311,13 +312,17 @@ void main() {
 
   group('单位口径', () {
     test('按次数：色深按窗口内场次的分位动态分档', () {
-      final weeks = yearHeatmapWeeks([
-        _session(DateTime(2026, 9, 7, 10), 0),
-        _session(DateTime(2026, 9, 8, 10), 10),
-        _session(DateTime(2026, 9, 8, 11), 10),
-        _session(DateTime(2026, 9, 8, 12), 10),
-        _session(DateTime(2026, 9, 9, 10), 10),
-      ], now: now, metric: StatsMetric.count);
+      final weeks = yearHeatmapWeeks(
+        [
+          _session(DateTime(2026, 9, 7, 10), 0),
+          _session(DateTime(2026, 9, 8, 10), 10),
+          _session(DateTime(2026, 9, 8, 11), 10),
+          _session(DateTime(2026, 9, 8, 12), 10),
+          _session(DateTime(2026, 9, 9, 10), 10),
+        ],
+        now: now,
+        metric: StatsMetric.count,
+      );
       // 场次集合 [1, 3] → 边界 [1, 1, 3]：3 场档 3、1 场档 1、空档 0。
       expect(cellAt(weeks, DateTime(2026, 9, 7)).sessions, 0);
       expect(cellAt(weeks, DateTime(2026, 9, 8)).level, 3);
@@ -325,13 +330,17 @@ void main() {
     });
 
     test('按时间：档由时长决定，与场次无关', () {
-      final weeks = yearHeatmapWeeks([
-        // 三个短场次共 90 秒；窗口内还有一天 10 秒。
-        _session(DateTime(2026, 9, 8, 10), 10),
-        _session(DateTime(2026, 9, 9, 10), 30),
-        _session(DateTime(2026, 9, 9, 11), 30),
-        _session(DateTime(2026, 9, 9, 12), 30),
-      ], now: now, metric: StatsMetric.time);
+      final weeks = yearHeatmapWeeks(
+        [
+          // 三个短场次共 90 秒；窗口内还有一天 10 秒。
+          _session(DateTime(2026, 9, 8, 10), 10),
+          _session(DateTime(2026, 9, 9, 10), 30),
+          _session(DateTime(2026, 9, 9, 11), 30),
+          _session(DateTime(2026, 9, 9, 12), 30),
+        ],
+        now: now,
+        metric: StatsMetric.time,
+      );
       // 时长集合 [10, 90] 秒 → 边界 [10, 10, 90] 秒：90 秒档 3、10 秒档 1。
       expect(cellAt(weeks, DateTime(2026, 9, 9)).level, 3);
       expect(cellAt(weeks, DateTime(2026, 9, 8)).level, 1);
@@ -339,9 +348,11 @@ void main() {
     });
 
     test('0 秒记录不计场次：按次数仍是空格', () {
-      final weeks = yearHeatmapWeeks([
-        _session(DateTime(2026, 9, 9, 10), 0),
-      ], now: now, metric: StatsMetric.count);
+      final weeks = yearHeatmapWeeks(
+        [_session(DateTime(2026, 9, 9, 10), 0)],
+        now: now,
+        metric: StatsMetric.count,
+      );
       expect(cellAt(weeks, DateTime(2026, 9, 9)).level, 0);
     });
   });

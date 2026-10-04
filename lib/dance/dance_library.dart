@@ -70,8 +70,7 @@ class DanceSegmentDetail {
       other.eightBeatRange == eightBeatRange;
 
   @override
-  int get hashCode =>
-      Object.hash(order, start, end, mastery, eightBeatRange);
+  int get hashCode => Object.hash(order, start, end, mastery, eightBeatRange);
 
   @override
   String toString() =>

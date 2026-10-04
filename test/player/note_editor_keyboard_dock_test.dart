@@ -38,8 +38,11 @@ void main() {
     await pumpPanel(tester);
 
     final rect = editorRect(tester);
-    expect(rect.bottom, lessThanOrEqualTo(600 - 300),
-        reason: '输入条下沿必须落在键盘上沿之上');
+    expect(
+      rect.bottom,
+      lessThanOrEqualTo(600 - 300),
+      reason: '输入条下沿必须落在键盘上沿之上',
+    );
     expect(find.byKey(const Key('note_text_editor_field')), findsOneWidget);
     // 样式入口退场，留下的工具钮全带文字。
     for (final label in ['删除', '完成']) {
@@ -47,8 +50,11 @@ void main() {
     }
     expect(find.text('描边'), findsNothing);
     expect(find.text('最近'), findsNothing);
-    expect(find.byKey(const Key('note_editor_roster_strip')), findsOneWidget,
-        reason: '停靠后舞者快捷区仍全在');
+    expect(
+      find.byKey(const Key('note_editor_roster_strip')),
+      findsOneWidget,
+      reason: '停靠后舞者快捷区仍全在',
+    );
   });
 
   testWidgets('键盘开合：停靠位移到键盘上沿、收起回到底部原位（词条条换入工具行）', (tester) async {
@@ -88,8 +94,11 @@ void main() {
       await tester.pump();
     }
 
-    expect(editorRect(tester).bottom, lessThanOrEqualTo(600 - 255.14285714285714),
-        reason: '停靠位必须落在稳定后的键盘上沿之上');
+    expect(
+      editorRect(tester).bottom,
+      lessThanOrEqualTo(600 - 255.14285714285714),
+      reason: '停靠位必须落在稳定后的键盘上沿之上',
+    );
   });
 
   testWidgets('已停靠后 metrics 再变跟随：键盘变高变矮都跟着位移', (tester) async {
@@ -103,8 +112,11 @@ void main() {
 
     tester.view.viewInsets = const FakeViewPadding(bottom: 1350); // 450 逻辑
     await tester.pump();
-    expect(editorRect(tester).bottom, lessThanOrEqualTo(600 - 450),
-        reason: '键盘变高：跟随着抬起');
+    expect(
+      editorRect(tester).bottom,
+      lessThanOrEqualTo(600 - 450),
+      reason: '键盘变高：跟随着抬起',
+    );
 
     tester.view.viewInsets = const FakeViewPadding(bottom: 600); // 200 逻辑
     await tester.pump();
@@ -128,14 +140,8 @@ void main() {
 
     final after = container.read(noteStickersProvider).single;
     expect(after.text, '停靠编辑不改几何');
-    expect(
-      after.geometry.centerX,
-      before.geometry.centerX,
-    );
-    expect(
-      after.geometry.centerY,
-      before.geometry.centerY,
-    );
+    expect(after.geometry.centerX, before.geometry.centerX);
+    expect(after.geometry.centerY, before.geometry.centerY);
     expect(after.geometry.scale, before.geometry.scale);
     expect(after.startMs, before.startMs);
     expect(after.endMs, before.endMs);
@@ -178,7 +184,10 @@ void main() {
     final canUndoBefore = container.read(annotationEditHistoryProvider).canUndo;
     await tester.tapAt(const Offset(30, 30));
     await tester.pump();
-    expect(container.read(annotationEditHistoryProvider).canUndo, canUndoBefore);
+    expect(
+      container.read(annotationEditHistoryProvider).canUndo,
+      canUndoBefore,
+    );
     expect(find.byKey(const Key('note_text_editor')), findsNothing);
   });
 
@@ -190,13 +199,19 @@ void main() {
     await pumpPanel(tester);
     await tester.pumpAndSettle();
     final shrunkRect = editorRect(tester);
-    expect(shrunkRect.bottom, lessThanOrEqualTo(600 - 560),
-        reason: '缩小后仍要完整落在键盘上沿之上');
+    expect(
+      shrunkRect.bottom,
+      lessThanOrEqualTo(600 - 560),
+      reason: '缩小后仍要完整落在键盘上沿之上',
+    );
 
     tester.view.viewInsets = FakeViewPadding.zero;
     await tester.pumpAndSettle();
     final restored = editorRect(tester);
-    expect(restored.height, greaterThan(shrunkRect.height),
-        reason: '退出编辑（键盘收起）恢复原尺寸');
+    expect(
+      restored.height,
+      greaterThan(shrunkRect.height),
+      reason: '退出编辑（键盘收起）恢复原尺寸',
+    );
   });
 }

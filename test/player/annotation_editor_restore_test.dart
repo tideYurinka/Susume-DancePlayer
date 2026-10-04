@@ -75,15 +75,15 @@ void main() {
 
   /// 含 2 条分段线的时间线（3 个学习段）。
   AnnotationTimeline timelineWith2Lines() => AnnotationTimeline.normalized(
-        videoDuration: total,
-        rangeStart: Duration.zero,
-        rangeEnd: total,
-        segmentLines: const [
-          SegmentLine(position: ten),
-          SegmentLine(position: thirty),
-        ],
-        halfBeatLines: const [],
-      );
+    videoDuration: total,
+    rangeStart: Duration.zero,
+    rangeEnd: total,
+    segmentLines: const [
+      SegmentLine(position: ten),
+      SegmentLine(position: thirty),
+    ],
+    halfBeatLines: const [],
+  );
 
   group('restoreDocument：装载语义', () {
     test('时间线/重点/熟练度/激活按载荷就位；激活带恢复旗标', () {
@@ -100,9 +100,10 @@ void main() {
       );
 
       expect(
-        container.read(annotationTimelineProvider).segmentLines.map(
-              (line) => line.position,
-            ),
+        container
+            .read(annotationTimelineProvider)
+            .segmentLines
+            .map((line) => line.position),
         [ten, thirty],
       );
       expect(container.read(learningEmphasisProvider), {0, 2});
@@ -200,11 +201,11 @@ void main() {
       expect(container.read(annotationTimelineProvider), timeline);
       expect(container.read(learningMasteryProvider), mastery);
       expect(container.read(learningEmphasisProvider), emphasis);
+      expect(container.read(selectedLearningSegmentsProvider), activations);
       expect(
-        container.read(selectedLearningSegmentsProvider),
-        activations,
+        container.read(annotationEditHistoryProvider).length,
+        historyCount,
       );
-      expect(container.read(annotationEditHistoryProvider).length, historyCount);
       expect(container.read(selectedSegmentLineIndexProvider), 0);
       expect(sink.saved, isEmpty);
     });
@@ -237,8 +238,7 @@ void main() {
       domain().toggleLearningSegment(0);
       expect(container.read(selectedLearningSegmentsProvider), {0});
       sink.saved.clear();
-      final historyCount =
-          container.read(annotationEditHistoryProvider).length;
+      final historyCount = container.read(annotationEditHistoryProvider).length;
 
       editor().clearForVideoRestore();
 
@@ -249,8 +249,10 @@ void main() {
             .lastWriteSilent,
         isFalse,
       );
-      expect(container.read(annotationEditHistoryProvider).length,
-          historyCount,);
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        historyCount,
+      );
       expect(sink.saved, isEmpty);
 
       // 临时衔接段同清（互斥下两者不同时非空，分步验证）。

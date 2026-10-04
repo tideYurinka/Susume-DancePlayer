@@ -26,9 +26,9 @@ void main() {
 
   /// 真实文件与内存 fake 双跑同一用例体。
   VideoDocumentStorage makeReal(Directory dir) => AtomicVideoDocumentStorage(
-        markersFile: File(p.join(dir.path, 'markers_abc.json')),
-        localFile: File(p.join(dir.path, 'local_abc.json')),
-      );
+    markersFile: File(p.join(dir.path, 'markers_abc.json')),
+    localFile: File(p.join(dir.path, 'local_abc.json')),
+  );
 
   for (final (label, make) in [
     ('真实文件', makeReal),
@@ -49,8 +49,9 @@ void main() {
           await File(p.join(tempDir.path, 'local_abc.json'))
               .writeAsString('[1, 2]');
         } else {
-          await (storage as InMemoryVideoDocumentStorage)
-              .saveMarkers(const {'broken': true});
+          await (storage as InMemoryVideoDocumentStorage).saveMarkers(const {
+            'broken': true,
+          });
         }
         final coordinator = VideoDocumentCoordinator(storage);
         expect(await coordinator.readMarkers(), const MarkersDocument.empty());
@@ -75,30 +76,20 @@ void main() {
       test('并发 patch 不同字段互不覆盖（串行链无 lost-update）', () async {
         final coordinator = VideoDocumentCoordinator(make(tempDir));
         await Future.wait([
+          coordinator.patchMarkers((doc) => doc.withMirrored(true)),
           coordinator.patchMarkers(
-            (doc) => doc.withMirrored(true),
-          ),
-          coordinator.patchMarkers(
-            (doc) => doc.withSignature(
-              const SongSignature(song: 'My Love'),
-            ),
+            (doc) => doc.withSignature(const SongSignature(song: 'My Love')),
           ),
           coordinator.patchLocal(
             (doc) => doc.withMastery(0, LearningMastery.mastered),
           ),
-          coordinator.patchLocal(
-            (doc) => doc.withLayoutLocked(true),
-          ),
+          coordinator.patchLocal((doc) => doc.withLayoutLocked(true)),
         ]);
         expect((await coordinator.readMarkers()).mirrored, true);
-        expect(
-          (await coordinator.readMarkers()).signature?.song,
-          'My Love',
-        );
-        expect(
-          (await coordinator.readLocal()).mastery,
-          {0: LearningMastery.mastered},
-        );
+        expect((await coordinator.readMarkers()).signature?.song, 'My Love');
+        expect((await coordinator.readLocal()).mastery, {
+          0: LearningMastery.mastered,
+        });
         expect((await coordinator.readLocal()).layoutLocked, true);
       });
 
@@ -142,12 +133,10 @@ void main() {
         await coordinator.patchMarkers(
           (doc) => doc.withRange(startMs: 100, endMs: 900),
         );
-        await coordinator.patchMarkers(
-          (doc) {
-            expect(doc.rangeStartMs, 100);
-            return doc.withRange(startMs: 200, endMs: 900);
-          },
-        );
+        await coordinator.patchMarkers((doc) {
+          expect(doc.rangeStartMs, 100);
+          return doc.withRange(startMs: 200, endMs: 900);
+        });
         expect((await coordinator.readMarkers()).rangeStartMs, 200);
       });
 
@@ -177,9 +166,7 @@ void main() {
       test('文件里未知扩展字段在 patch 后保留', () async {
         final storage = make(tempDir);
         final coordinator = VideoDocumentCoordinator(storage);
-        await coordinator.patchMarkers(
-          (doc) => doc.withMirrored(true),
-        );
+        await coordinator.patchMarkers((doc) => doc.withMirrored(true));
         if (storage is AtomicVideoDocumentStorage) {
           final file = File(p.join(tempDir.path, 'markers_abc.json'));
           final json =
@@ -187,8 +174,7 @@ void main() {
           json['p1Reserved'] = {'future': true};
           await file.writeAsString(jsonEncode(json));
         } else {
-          final json = (storage as InMemoryVideoDocumentStorage)
-              .markersSnapshot
+          final json = (storage as InMemoryVideoDocumentStorage).markersSnapshot
             ..['p1Reserved'] = {'future': true};
           await storage.saveMarkers(json);
         }
@@ -235,26 +221,17 @@ void main() {
       test('patch 无变化时不重写文件', () async {
         final storage = make(tempDir);
         final coordinator = VideoDocumentCoordinator(storage);
-        await coordinator.patchMarkers(
-          (doc) => doc.withMirrored(true),
-        );
+        await coordinator.patchMarkers((doc) => doc.withMirrored(true));
         final before = await _readRawMarkers(storage, tempDir);
-        await coordinator.patchMarkers(
-          (doc) => doc.withMirrored(true),
-        );
+        await coordinator.patchMarkers((doc) => doc.withMirrored(true));
         expect(await _readRawMarkers(storage, tempDir), before);
       });
 
       test('readMarkersOrNull：缺失 null，落盘后读回文档', () async {
         final coordinator = VideoDocumentCoordinator(make(tempDir));
         expect(await coordinator.readMarkersOrNull(), isNull);
-        await coordinator.patchMarkers(
-          (doc) => doc.withMirrored(true),
-        );
-        expect(
-          (await coordinator.readMarkersOrNull())?.mirrored,
-          isTrue,
-        );
+        await coordinator.patchMarkers((doc) => doc.withMirrored(true));
+        expect((await coordinator.readMarkersOrNull())?.mirrored, isTrue);
       });
 
       test('readMarkersOrNull：损坏文件返回 null（首建判定依据）', () async {
@@ -272,12 +249,8 @@ void main() {
       test('markers 与 local 各自单一实例：两文件内容互不串', () async {
         final storage = make(tempDir);
         final coordinator = VideoDocumentCoordinator(storage);
-        await coordinator.patchMarkers(
-          (doc) => doc.withMirrored(true),
-        );
-        await coordinator.patchLocal(
-          (doc) => doc.withLayoutLocked(true),
-        );
+        await coordinator.patchMarkers((doc) => doc.withMirrored(true));
+        await coordinator.patchLocal((doc) => doc.withLayoutLocked(true));
         final markersJson = await _readRawMarkers(storage, tempDir);
         final localCoordinator = VideoDocumentCoordinator(storage);
         expect((await localCoordinator.readMarkers()).mirrored, true);

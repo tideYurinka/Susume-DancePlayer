@@ -38,12 +38,12 @@ enum BeatShiftStepUnit { oneBeat, halfBeat, tenMs }
 /// 步长换算（纯函数）：1 拍按当前网格拍距、½拍为其半（毫秒取整）、
 /// 10ms 恒定。
 Duration beatShiftStep(BeatShiftStepUnit unit, BeatGrid grid) => switch (unit) {
-      BeatShiftStepUnit.oneBeat => grid.beatsDuration(1),
-      BeatShiftStepUnit.halfBeat => Duration(
-          milliseconds: grid.beatsDuration(1).inMilliseconds ~/ 2,
-        ),
-      BeatShiftStepUnit.tenMs => const Duration(milliseconds: 10),
-    };
+  BeatShiftStepUnit.oneBeat => grid.beatsDuration(1),
+  BeatShiftStepUnit.halfBeat => Duration(
+    milliseconds: grid.beatsDuration(1).inMilliseconds ~/ 2,
+  ),
+  BeatShiftStepUnit.tenMs => const Duration(milliseconds: 10),
+};
 
 /// 读数换算（纯函数）：偏移秒 → 拍数（按拍距）+ 毫秒。
 class BeatShiftReadout {
@@ -92,10 +92,7 @@ String _formatMs(int ms) => '${ms < 0 ? '−' : '+'}${ms.abs()} ms';
 /// - **committed**：已应用平移量（grid.shift，落盘的派生网格平移量）。
 /// - **preview**：未提交的预览偏移；与 committed 不同即视为「已改·未应用」，
 ///   相同或无预览时按 committed 是否非零判 已应用/未应用。
-String beatAlignStatusLabel({
-  required double committed,
-  double? preview,
-}) {
+String beatAlignStatusLabel({required double committed, double? preview}) {
   final changed = preview != null && preview != committed;
   if (changed) return '已改·未应用';
   if (committed != 0.0) return '已应用';
@@ -112,7 +109,8 @@ class BeatAlignmentPanelGroup extends ConsumerWidget {
     final track = ref.watch(beatTrackStateProvider);
     final grid = track.grid;
     // 就绪判定用裸判（相位就绪 + 网格与拍点非空），不走共享谓词。
-    final ready = track.phase == BeatTrackPhase.ready &&
+    final ready =
+        track.phase == BeatTrackPhase.ready &&
         grid != null &&
         grid.beats.isNotEmpty;
     final preview = ref.watch(beatAlignPreviewOffsetProvider);
@@ -121,21 +119,17 @@ class BeatAlignmentPanelGroup extends ConsumerWidget {
     // 当前生效偏移：预览优先；未调整时为已应用平移量（读数即所见派生网格）。
     final effective = preview ?? (ready ? grid.shift : 0.0);
     final derivedGrid = ref.watch(beatGridProvider);
-    final stepMs =
-        ready ? beatShiftStep(stepUnit, derivedGrid).inMilliseconds : 0;
-    final intervalMs = ready
-        ? derivedGrid.beatsDuration(1).inMilliseconds
+    final stepMs = ready
+        ? beatShiftStep(stepUnit, derivedGrid).inMilliseconds
         : 0;
+    final intervalMs = ready ? derivedGrid.beatsDuration(1).inMilliseconds : 0;
     final readout = beatShiftReadout(
       effective,
       Duration(milliseconds: intervalMs),
     );
     // 末行状态小字：已应用平移量（grid.shift）+ 预览偏移判定三态。
     final committed = ready ? grid.shift : 0.0;
-    final status = beatAlignStatusLabel(
-      committed: committed,
-      preview: preview,
-    );
+    final status = beatAlignStatusLabel(committed: committed, preview: preview);
 
     void adjust(int sign) {
       if (!ready) return;
@@ -181,8 +175,8 @@ class BeatAlignmentPanelGroup extends ConsumerWidget {
                   selected: {stepUnit},
                   onSelectionChanged: ready
                       ? (selection) => ref
-                          .read(beatShiftStepUnitProvider.notifier)
-                          .set(selection.first)
+                            .read(beatShiftStepUnitProvider.notifier)
+                            .set(selection.first)
                       : null,
                 ),
               ),
@@ -192,8 +186,8 @@ class BeatAlignmentPanelGroup extends ConsumerWidget {
                   key: const Key('beat_align_reset'),
                   onPressed: ready
                       ? () => ref
-                          .read(beatAlignPreviewOffsetProvider.notifier)
-                          .set(0.0)
+                            .read(beatAlignPreviewOffsetProvider.notifier)
+                            .set(0.0)
                       : null,
                   child: const Text('重置'),
                 ),

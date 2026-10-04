@@ -243,7 +243,10 @@ void main() {
       expect(applyDiff.corrections?.shiftSeconds, 0.25);
       // 同一次 diff 的 annotations 段携带平移后的线绝对终值。
       expect(applyDiff.annotations?.segmentLines, isNotNull);
-      expect(applyDiff.annotations?.rangeStart, const Duration(milliseconds: 250));
+      expect(
+        applyDiff.annotations?.rangeStart,
+        const Duration(milliseconds: 250),
+      );
 
       editor().undo();
       expect(sink.diffs.last.corrections?.shiftSeconds, 0);

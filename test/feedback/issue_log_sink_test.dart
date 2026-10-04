@@ -28,9 +28,9 @@ void main() {
   });
 
   IssueLogSink sink({int maxBytes = kIssueLogMaxBytes}) => IssueLogSink(
-        directory: Directory('${tempDir.path}/logs'),
-        maxBytes: maxBytes,
-      );
+    directory: Directory('${tempDir.path}/logs'),
+    maxBytes: maxBytes,
+  );
 
   test('接管 debugPrint：一行一条、以本地时间前缀开头、原消息（含 tag）原样保留', () async {
     final log = sink();
@@ -39,8 +39,7 @@ void main() {
     debugPrint('[节拍] 第 3 拍');
     await log.flush();
 
-    final lines =
-        File('${tempDir.path}/logs/log.txt').readAsLinesSync();
+    final lines = File('${tempDir.path}/logs/log.txt').readAsLinesSync();
     expect(lines, hasLength(1));
     expect(
       lines.single,
@@ -61,12 +60,13 @@ void main() {
     }
     await log.flush();
 
-    final files = (Directory('${tempDir.path}/logs')
-            .listSync()
-            .whereType<File>()
-            .map((f) => f.uri.pathSegments.last)
-            .toList())
-      ..sort();
+    final files =
+        (Directory('${tempDir.path}/logs')
+              .listSync()
+              .whereType<File>()
+              .map((f) => f.uri.pathSegments.last)
+              .toList())
+          ..sort();
     expect(files, ['log.1.txt', 'log.txt'], reason: '只留两份，不多不少');
 
     final previous = File('${tempDir.path}/logs/log.1.txt').readAsStringSync();

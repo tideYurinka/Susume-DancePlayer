@@ -110,18 +110,16 @@ const playerSessionEntryDeclarationTable =
         PlayerSessionFace.editorFace,
         PlayerSessionEntryRequirement.none,
       ),
-      PlayerSessionMode.beatCorrectionStandby:
-          PlayerSessionEntryDeclaration(
-            PlayerSessionFace.editorFace,
-            PlayerSessionEntryRequirement.none,
-          ),
+      PlayerSessionMode.beatCorrectionStandby: PlayerSessionEntryDeclaration(
+        PlayerSessionFace.editorFace,
+        PlayerSessionEntryRequirement.none,
+      ),
       // 段内倍频待命态：编辑面、无进入前置
       // ——「待命态是会话模式的一个取值」同款形态。
-      PlayerSessionMode.segmentDensityStandby:
-          PlayerSessionEntryDeclaration(
-            PlayerSessionFace.editorFace,
-            PlayerSessionEntryRequirement.none,
-          ),
+      PlayerSessionMode.segmentDensityStandby: PlayerSessionEntryDeclaration(
+        PlayerSessionFace.editorFace,
+        PlayerSessionEntryRequirement.none,
+      ),
       PlayerSessionMode.compareWatching: PlayerSessionEntryDeclaration(
         PlayerSessionFace.watchingFace,
         // 进入前置 = 相机授权：拒绝不进入对比态、零副作用。
@@ -233,10 +231,9 @@ class PlayerSessionModel extends Notifier<PlayerSession> {
   /// 态调用是幂等 no-op（返回「本就在目标态」、值一位不动——不误收控制
   /// 层）。对比态内需保持控制层承接面的出口（顶栏槽开关、音画同步工具
   /// 先退对比）不经此便捷、直接 `enter(editing)`（见各调用点注释）。
-  PlayerSessionEntryResult exitCompare() =>
-      state.isCompare
-          ? enter(PlayerSessionMode.watching)
-          : PlayerSessionEntryResult.alreadyThere;
+  PlayerSessionEntryResult exitCompare() => state.isCompare
+      ? enter(PlayerSessionMode.watching)
+      : PlayerSessionEntryResult.alreadyThere;
 
   PlayerSessionEntryResult openEditor() => enter(PlayerSessionMode.editing);
 
@@ -266,6 +263,4 @@ class PlayerSessionModel extends Notifier<PlayerSession> {
 }
 
 final playerSessionProvider =
-    NotifierProvider<PlayerSessionModel, PlayerSession>(
-      PlayerSessionModel.new,
-    );
+    NotifierProvider<PlayerSessionModel, PlayerSession>(PlayerSessionModel.new);

@@ -103,8 +103,10 @@ void main() {
       expect(written['p1Reserved'], {'future': true});
       expect(written['meta']['mirrored'], isTrue);
       // 遗留 enabled 键不被解释、走保底区写回原样（不再有登记字段）。
-      expect(written['annotations']['localMirrorFragments'].single['enabled'],
-          isTrue);
+      expect(
+        written['annotations']['localMirrorFragments'].single['enabled'],
+        isTrue,
+      );
     });
   });
 
@@ -129,49 +131,55 @@ void main() {
       ('内存 fake', (Directory dir) => InMemoryVideoDocumentStorage()),
     ]) {
       group(label, () {
-        test('写入 localMirrorFragments 后其它段与 extra 不丢、版本恒为当前 schema 版本', () async {
-          final storage = make(tempDir);
-          final coordinator = VideoDocumentCoordinator(storage);
-          await coordinator.patchMarkers(
-            (doc) => doc
-                .withMirrored(true)
-                .withSegmentLines(const [
-                  SegmentLine(position: Duration(milliseconds: 4200)),
-                ])
-                .withLocalMirrorFragments(const [
-                  LocalMirrorFragment(startMs: 1000, endMs: 3000),
-                ]),
-          );
+        test(
+          '写入 localMirrorFragments 后其它段与 extra 不丢、版本恒为当前 schema 版本',
+          () async {
+            final storage = make(tempDir);
+            final coordinator = VideoDocumentCoordinator(storage);
+            await coordinator.patchMarkers(
+              (doc) => doc
+                  .withMirrored(true)
+                  .withSegmentLines(const [
+                    SegmentLine(position: Duration(milliseconds: 4200)),
+                  ])
+                  .withLocalMirrorFragments(const [
+                    LocalMirrorFragment(startMs: 1000, endMs: 3000),
+                  ]),
+            );
 
-          // 注入一个本版本不认识的保留键（模拟其它未来字段走 extra）。
-          await _seedUnknownKey(storage, tempDir, 'p1Reserved', {
-            'future': true,
-          });
+            // 注入一个本版本不认识的保留键（模拟其它未来字段走 extra）。
+            await _seedUnknownKey(storage, tempDir, 'p1Reserved', {
+              'future': true,
+            });
 
-          // 再写一次 typed 字段，确认既有关键与 extra 都被保回。
-          await coordinator.patchMarkers(
-            (doc) => doc.withLocalMirrorFragments(const [
+            // 再写一次 typed 字段，确认既有关键与 extra 都被保回。
+            await coordinator.patchMarkers(
+              (doc) => doc.withLocalMirrorFragments(const [
+                LocalMirrorFragment(startMs: 1000, endMs: 3000),
+              ]),
+            );
+
+            final json = await _readRawMarkers(storage, tempDir);
+            expect(
+              json['version'],
+              MarkersDocument.versionPolicy.currentVersion,
+            );
+            expect(json['meta']['mirrored'], true);
+            expect(json['annotations']['segmentLines'], [
+              {'timeMs': 4200, 'flag': false},
+            ]);
+            expect(json['annotations']['localMirrorFragments'], [
+              {'startMs': 1000, 'endMs': 3000},
+            ]);
+            expect(json['p1Reserved'], {'future': true});
+
+            final doc = await coordinator.readMarkers();
+            expect(doc.localMirrorFragments, const [
               LocalMirrorFragment(startMs: 1000, endMs: 3000),
-            ]),
-          );
-
-          final json = await _readRawMarkers(storage, tempDir);
-          expect(json['version'], MarkersDocument.versionPolicy.currentVersion);
-          expect(json['meta']['mirrored'], true);
-          expect(json['annotations']['segmentLines'], [
-            {'timeMs': 4200, 'flag': false},
-          ]);
-          expect(json['annotations']['localMirrorFragments'], [
-            {'startMs': 1000, 'endMs': 3000},
-          ]);
-          expect(json['p1Reserved'], {'future': true});
-
-          final doc = await coordinator.readMarkers();
-          expect(doc.localMirrorFragments, const [
-            LocalMirrorFragment(startMs: 1000, endMs: 3000),
-          ]);
-          expect(doc.extra['p1Reserved'], {'future': true});
-        });
+            ]);
+            expect(doc.extra['p1Reserved'], {'future': true});
+          },
+        );
 
         test('缺省（文件无 localMirrorFragments 键）读为空列表，typed 不落 extra', () async {
           final storage = make(tempDir);

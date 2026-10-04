@@ -53,7 +53,8 @@ class OutboundSchemeIdFileStore implements OutboundSchemeIdStore {
 
 final Random _random = Random();
 
-String _generateId() => 's-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-'
+String _generateId() =>
+    's-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}-'
     '${_random.nextInt(1 << 32).toRadixString(36)}';
 
 /// 出站方案标识注入点：生产文件在应用文档目录；测试覆盖为临时文件。

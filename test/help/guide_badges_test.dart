@@ -90,7 +90,10 @@ void main() {
     for (final unitId in badgeUnitIds) {
       expect(guideStepsOfUnit(unitId), hasLength(1));
     }
-    expect(badgeSteps.map((s) => s.anchorKey).toSet().length, badgeSteps.length);
+    expect(
+      badgeSteps.map((s) => s.anchorKey).toSet().length,
+      badgeSteps.length,
+    );
   });
 
   testWidgets('锚点尚未接线的步不出场、也不被消耗（锚点缺席即放行）', (tester) async {
@@ -218,10 +221,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      container.read(guideSessionProvider).triggered,
-      [badgeAutoSegmentUnitId],
-    );
+    expect(container.read(guideSessionProvider).triggered, [
+      badgeAutoSegmentUnitId,
+    ]);
 
     // 同一单元在两处各挂一枚触发器（同一功能有多个宿主位）：幂等。
     await tester.pumpWidget(
@@ -252,10 +254,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      container.read(guideSessionProvider).triggered,
-      [badgeAutoSegmentUnitId],
-    );
+    expect(container.read(guideSessionProvider).triggered, [
+      badgeAutoSegmentUnitId,
+    ]);
   });
 
   testWidgets('角标优先于未置位的首启/演练步：不被前置单元压制（不排队）', (tester) async {
@@ -355,7 +356,11 @@ void main() {
     container.read(guideSessionProvider.notifier).setDrillRunning(true);
     await _trigger(tester, step.unitId);
     await tester.pumpAndSettle();
-    expect(find.text(guideStepMessage(step.id)), findsNothing, reason: '演练期间屏幕归演练');
+    expect(
+      find.text(guideStepMessage(step.id)),
+      findsNothing,
+      reason: '演练期间屏幕归演练',
+    );
 
     container.read(guideSessionProvider.notifier).setDrillRunning(false);
     await tester.pumpAndSettle();

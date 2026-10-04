@@ -8,15 +8,17 @@ import 'package:xml/xml.dart';
 /// 「用其他应用打开」里、不出现在无关文件的打开方式里，宿主测试只能
 /// 断言注册声明本身；能否被系统匹配归真机验收。
 XmlDocument _manifest() => XmlDocument.parse(
-      File('android/app/src/main/AndroidManifest.xml').readAsStringSync(),
-    );
+  File('android/app/src/main/AndroidManifest.xml').readAsStringSync(),
+);
 
 Iterable<XmlElement> _viewFilters(XmlDocument manifest) => manifest
     .findAllElements('intent-filter')
     .where(
-      (f) => f.findAllElements('action').any(
-            (a) => a.getAttribute('android:name') ==
-                'android.intent.action.VIEW',
+      (f) => f
+          .findAllElements('action')
+          .any(
+            (a) =>
+                a.getAttribute('android:name') == 'android.intent.action.VIEW',
           ),
     );
 
@@ -25,14 +27,19 @@ void main() {
 
   test('两条独立 VIEW filter：content+pathPattern 一条、显式 MIME 一条', () {
     final filters = _viewFilters(_manifest());
-    expect(filters, hasLength(2), reason: '两条 filter 不合并（MIME 判据为空的 '
-        'intent 匹配不上任何声明了 MIME 的 filter）');
+    expect(
+      filters,
+      hasLength(2),
+      reason:
+          '两条 filter 不合并（MIME 判据为空的 '
+          'intent 匹配不上任何声明了 MIME 的 filter）',
+    );
 
     final schemeFilters = filters
         .where(
-          (f) => f.findAllElements('data').any(
-                (d) => d.getAttribute('android:scheme') == 'content',
-              ),
+          (f) => f
+              .findAllElements('data')
+              .any((d) => d.getAttribute('android:scheme') == 'content'),
         )
         .toList();
     expect(schemeFilters, hasLength(1));
@@ -48,16 +55,17 @@ void main() {
       expect(
         data.getAttribute('android:mimeType'),
         isNull,
-        reason: '这条 filter 不声明 MIME——MIME 判据为空的 intent 匹配不上 '
+        reason:
+            '这条 filter 不声明 MIME——MIME 判据为空的 intent 匹配不上 '
             '声明了 MIME 的 filter，合进一条会让 content 路径失效',
       );
     }
 
     final mimeFilters = filters
         .where(
-          (f) => f.findAllElements('data').any(
-                (d) => d.getAttribute('android:mimeType') != null,
-              ),
+          (f) => f
+              .findAllElements('data')
+              .any((d) => d.getAttribute('android:mimeType') != null),
         )
         .toList();
     expect(mimeFilters, hasLength(1));

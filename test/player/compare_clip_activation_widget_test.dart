@@ -19,7 +19,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationEditorProvider,
         practiceClipActivationProvider,
         practiceClipsProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     as vdp
     show videoDocumentStorageProvider, videoDocumentStorageFactoryProvider;
@@ -70,7 +71,10 @@ void main() {
   late MemoryManifestStorage manifestStorage;
 
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
@@ -170,9 +174,9 @@ void main() {
               ),
             ),
           ),
-          vdp.videoDocumentStorageProvider('vid-a').overrideWithValue(
-            docStorage,
-          ),
+          vdp
+              .videoDocumentStorageProvider('vid-a')
+              .overrideWithValue(docStorage),
           vdp.videoDocumentStorageFactoryProvider.overrideWithValue(
             (videoId) => docStorage,
           ),
@@ -212,9 +216,7 @@ void main() {
 
   /// 在轨放一个练习片段。
   void givenClipOnTrack(WidgetTester tester) {
-    containerOf(
-      tester,
-    ).read(practiceClipsProvider.notifier).restore([clip]);
+    containerOf(tester).read(practiceClipsProvider.notifier).restore([clip]);
   }
 
   /// 收尾停播（fake 引擎的 tick 定时器不跨用例遗留）。
@@ -279,9 +281,7 @@ void main() {
     await pauseEngines(tester);
   });
 
-  testWidgets('设备等效视口下点块体首端 14dp 带：与正中同一激活结果（判据①）', (
-    tester,
-  ) async {
+  testWidgets('设备等效视口下点块体首端 14dp 带：与正中同一激活结果（判据①）', (tester) async {
     setDeviceView(tester);
     // 一支 180 秒的舞里录 10 秒 = 块宽约 43dp（真机横屏的真实形状），而
     // 现有 6 条激活用例都在 960dp 宽的视口下点 160dp 块的正中——结构上
@@ -299,10 +299,7 @@ void main() {
       find.byKey(const Key('practice_clip_clip_m1')),
     );
     // 块宽按内容区宽（带宽让出轨道片头带）。
-    expect(
-      block.width,
-      closeTo(bandContentWidth(781.7) * 10000 / 180000, 1.5),
-    );
+    expect(block.width, closeTo(bandContentWidth(781.7) * 10000 / 180000, 1.5));
     expect(block.width - 2 * 14, lessThan(20), reason: '活区只有中间一小条');
 
     // 落点在左端 14dp 的截取端点带内（非中心）。
@@ -339,9 +336,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
   });
 
-  testWidgets('点选练习片段即起播：暂停态点段 → 两侧当场回看、源侧在区间首', (
-    tester,
-  ) async {
+  testWidgets('点选练习片段即起播：暂停态点段 → 两侧当场回看、源侧在区间首', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await enterCompareEditing(tester);
@@ -378,16 +373,14 @@ void main() {
     await pauseEngines(tester);
   });
 
-  testWidgets('与学习段激活互斥（widget 层）：激活学习段清除片段激活并恢复预览', (
-    tester,
-  ) async {
+  testWidgets('与学习段激活互斥（widget 层）：激活学习段清除片段激活并恢复预览', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     // 对比态几何只读：分段线在进对比态前落线。
     await singleTapShow(tester);
-    containerOf(tester).read(annotationEditorProvider).submit(
-      const AddSegmentLine(at: Duration(seconds: 30)),
-    );
+    containerOf(tester)
+        .read(annotationEditorProvider)
+        .submit(const AddSegmentLine(at: Duration(seconds: 30)));
     await tester.tap(find.byKey(const Key('tool_compare')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('player_surface')));
@@ -429,9 +422,7 @@ void main() {
     await pauseEngines(tester);
   });
 
-  testWidgets('重开恢复激活：激活还在、不自动跳转、不自动播放；进对比态不开摄像头', (
-    tester,
-  ) async {
+  testWidgets('重开恢复激活：激活还在、不自动跳转、不自动播放；进对比态不开摄像头', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester, restoreClipActive: true);
     await tester.pumpAndSettle();
@@ -487,9 +478,7 @@ void main() {
     await pauseEngines(tester);
   });
 
-  testWidgets('恢复跑过（无激活片段）后点选片段仍跳片段首：源间标志互不干扰', (
-    tester,
-  ) async {
+  testWidgets('恢复跑过（无激活片段）后点选片段仍跳片段首：源间标志互不干扰', (tester) async {
     setWideView(tester);
     // 打开恢复真实执行：片段列表从盘上恢复，无激活片段（恢复写回为空）。
     await pumpPlayer(tester, seedClipInDoc: true);

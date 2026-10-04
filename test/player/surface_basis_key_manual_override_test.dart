@@ -133,11 +133,9 @@ void main() {
       FaceDirection.original,
       reason: '素材方向 = 平台保存基准 ⇒ 不随人工键走',
     );
-    expect(
-      jsonDecode(await keyFile.readAsString()),
-      {'surfaceBasisKey': false},
-      reason: '人工覆盖的键读回后原样留在设备级文件里（不被判定链改写）',
-    );
+    expect(jsonDecode(await keyFile.readAsString()), {
+      'surfaceBasisKey': false,
+    }, reason: '人工覆盖的键读回后原样留在设备级文件里（不被判定链改写）');
   });
 
   // 反向（原相 → 镜像）：本机机型规则推导也是镜像，故这一条钉的是「人工改动后
@@ -177,11 +175,10 @@ void main() {
     addTearDown(container.dispose);
     await startAndSettle();
 
-    expect(
-      jsonDecode(await keyFile.readAsString()),
-      {'practiceMirrorDefault': true, 'surfaceBasisKey': false},
-      reason: '同文件并列键共存，应用不与人工改动争写',
-    );
+    expect(jsonDecode(await keyFile.readAsString()), {
+      'practiceMirrorDefault': true,
+      'surfaceBasisKey': false,
+    }, reason: '同文件并列键共存，应用不与人工改动争写');
   });
 
   test('人工写入损坏值时：不阻塞启动，按键读不到走判定链', () async {
@@ -194,10 +191,8 @@ void main() {
       FaceDirection.mirrored,
       reason: '类型损坏 = 读不到 ⇒ 判定链（Android 规则 = 镜像）',
     );
-    expect(
-      jsonDecode(await keyFile.readAsString()),
-      {'surfaceBasisKey': true},
-      reason: '人工写的非法值被判定结果就地替换为合法键',
-    );
+    expect(jsonDecode(await keyFile.readAsString()), {
+      'surfaceBasisKey': true,
+    }, reason: '人工写的非法值被判定结果就地替换为合法键');
   });
 }

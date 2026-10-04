@@ -30,8 +30,8 @@ void main() {
     Future<void> Function() action,
   ) async {
     final calls = <String>[];
-    final messenger = TestDefaultBinaryMessengerBinding
-        .instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       calls.add('${call.method}:${call.arguments}');
       return null;
@@ -74,7 +74,9 @@ void main() {
 
     expectOnlyPortrait(calls);
     expect(
-      calls.any((call) => call.startsWith('SystemChrome.setEnabledSystemUIMode')),
+      calls.any(
+        (call) => call.startsWith('SystemChrome.setEnabledSystemUIMode'),
+      ),
       isFalse,
       reason: '锁竖屏不改变系统 UI：启动瞬间与非播放器页面不得进入沉浸模式',
     );

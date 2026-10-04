@@ -60,9 +60,7 @@ class FakeBeatAudioSink implements BeatAudioSink {
     required double rate,
     required bool playing,
   }) {
-    syncs.add(
-      (mediaTimeMs: mediaTimeMs, rate: rate, playing: playing),
-    );
+    syncs.add((mediaTimeMs: mediaTimeMs, rate: rate, playing: playing));
   }
 
   @override
@@ -71,9 +69,11 @@ class FakeBeatAudioSink implements BeatAudioSink {
     required int segmentId,
     required double volume,
   }) {
-    enqueues.add(
-      (beatMediaTimeMs: beatMediaTimeMs, segmentId: segmentId, volume: volume),
-    );
+    enqueues.add((
+      beatMediaTimeMs: beatMediaTimeMs,
+      segmentId: segmentId,
+      volume: volume,
+    ));
     return acceptEnqueue;
   }
 
@@ -124,14 +124,12 @@ class FakeBeatAudioSink implements BeatAudioSink {
     if (segmentId < 0 || segmentId >= segmentCapacity) {
       throw StateError('段 id 越界（segmentId=$segmentId 容量=$segmentCapacity）');
     }
-    loads.add(
-      (
-        segmentId: segmentId,
-        sampleRate: sampleRate,
-        markerMs: markerMs,
-        frames: pcm.length,
-      ),
-    );
+    loads.add((
+      segmentId: segmentId,
+      sampleRate: sampleRate,
+      markerMs: markerMs,
+      frames: pcm.length,
+    ));
   }
 
   @override

@@ -203,7 +203,11 @@ void main() {
       );
     }
     // 搬进「更多」的三枚不常驻紧凑档横屏顶栏。
-    for (final key in ['tool_av_sync', 'tool_framing_adjust', 'tool_beat_prompt']) {
+    for (final key in [
+      'tool_av_sync',
+      'tool_framing_adjust',
+      'tool_beat_prompt',
+    ]) {
       expect(find.byKey(Key(key)), findsNothing, reason: '$key 由「更多」承载');
     }
   });

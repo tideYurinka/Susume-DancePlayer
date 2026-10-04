@@ -4,11 +4,9 @@ import 'package:dance_learning_app/help/content_registry.dart'
 import 'package:dance_learning_app/help/guide_anchor.dart' show GuideAnchor;
 import 'package:dance_learning_app/help/guide_host.dart' show GuideHost;
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        OnboardingStore,
-        guideSessionProvider,
-        onboardingStorageProvider;
-import 'package:dance_learning_app/help/help_documents.dart' show helpAssetBundleProvider;
+    show OnboardingStore, guideSessionProvider, onboardingStorageProvider;
+import 'package:dance_learning_app/help/help_documents.dart'
+    show helpAssetBundleProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;

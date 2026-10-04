@@ -330,11 +330,7 @@ void main() {
       );
       harness.nearest = 1;
       await tester.tap(find.byKey(segment0Key));
-      expect(
-        harness.tappedSegments,
-        [1],
-        reason: '密集线重叠时取解析答案而不是命中层下标',
-      );
+      expect(harness.tappedSegments, [1], reason: '密集线重叠时取解析答案而不是命中层下标');
     });
 
     testWidgets('点按分段线控制柄：未命中即回落命中层携带的下标', (tester) async {
@@ -580,9 +576,7 @@ void main() {
       expect(_barColor(tester, startKey), isNot(_barColor(tester, endKey)));
     });
 
-    testWidgets('引导锚点：第 0 条柄恒承载「编辑态上手第一条」，本会话新落线序号另包一枚', (
-      tester,
-    ) async {
+    testWidgets('引导锚点：第 0 条柄恒承载「编辑态上手第一条」，本会话新落线序号另包一枚', (tester) async {
       final harness = _Harness();
       await _pump(tester, harness.input());
       Finder anchorsOf(String key) => find.byWidgetPredicate(

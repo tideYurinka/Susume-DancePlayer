@@ -16,6 +16,7 @@ class FailingPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) async => throw StateError('无平台通道');
 }

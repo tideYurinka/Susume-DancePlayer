@@ -10,9 +10,9 @@ import 'package:dance_learning_app/help/content_registry.dart'
     show downloadVideoTutorialId;
 import 'package:dance_learning_app/help/guide_host.dart' show GuideHost;
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        guideSessionProvider;
-import 'package:dance_learning_app/help/help_documents.dart' show HelpContent, loadHelpContent;
+    show guideSessionProvider;
+import 'package:dance_learning_app/help/help_documents.dart'
+    show HelpContent, loadHelpContent;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/practice_stats_providers.dart'

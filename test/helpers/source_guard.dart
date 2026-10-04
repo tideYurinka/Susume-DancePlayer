@@ -47,7 +47,8 @@ Set<String> declaredMemberNamesOf(String classBody) {
       continue;
     }
     final rest = line.substring(2);
-    final method = RegExp(r'(_\w+|build|initState|dispose)\s*\(').firstMatch(rest);
+    final method = RegExp(r'(_\w+|build|initState|dispose)\s*\(')
+        .firstMatch(rest);
     if (method == null) continue;
     // 赋值右侧的调用不是声明。
     if (rest.substring(0, method.start).contains('=')) continue;
@@ -97,11 +98,7 @@ String codeOf(String path) =>
 /// 注释行不计入禁令（库头需要说明这条契约本身）。
 void expectNoDialogOrContextReads(String path) {
   final code = codeOf(path);
-  for (final forbidden in const [
-    'showDialog',
-    'Navigator.of',
-    'MediaQuery',
-  ]) {
+  for (final forbidden in const ['showDialog', 'Navigator.of', 'MediaQuery']) {
     expect(code.contains(forbidden), isFalse, reason: '$path 不得出现 $forbidden');
   }
   final contextLines = code

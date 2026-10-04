@@ -1,4 +1,5 @@
 import 'semantics_assertions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -92,11 +93,7 @@ void main() {
         ),
       ),
     );
-    expectButtonSemantics(
-      tester,
-      const Key('icon_tooltip'),
-      label: '关闭数拍浮层',
-    );
+    expectButtonSemantics(tester, const Key('icon_tooltip'), label: '关闭数拍浮层');
     expect(
       () => expectButtonSemantics(
         tester,
@@ -196,7 +193,11 @@ void main() {
   testWidgets('否定用例：不含期望词时断言失败', (tester) async {
     await tester.pumpWidget(_host(button: false, label: '计划'));
     expect(
-      () => expectSemanticsLabel(tester, const Key('target'), labelContains: '待办'),
+      () => expectSemanticsLabel(
+        tester,
+        const Key('target'),
+        labelContains: '待办',
+      ),
       throwsA(isA<TestFailure>()),
     );
   });
@@ -212,9 +213,7 @@ void main() {
   testWidgets('activateBySemantics：沿无障碍路径派发 tap，动作者被触发一次', (tester) async {
     final handle = tester.ensureSemantics();
     var taps = 0;
-    await tester.pumpWidget(
-      _host(label: '删除这段备注', onTap: () => taps++),
-    );
+    await tester.pumpWidget(_host(label: '删除这段备注', onTap: () => taps++));
     activateBySemantics(tester, const Key('target'));
     expect(taps, 1, reason: '语义 tap 应触发一次动作者');
     handle.dispose();

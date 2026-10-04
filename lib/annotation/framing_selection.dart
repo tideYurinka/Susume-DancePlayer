@@ -28,9 +28,9 @@ class FramingSelectionTransform {
 
   /// 无变换：画面按 contain 基座原样显示。
   const FramingSelectionTransform.identity()
-      : scale = 1,
-        translateX = 0,
-        translateY = 0;
+    : scale = 1,
+      translateX = 0,
+      translateY = 0;
 
   /// 等比缩放（1 = 画面 contain 基座本身）。
   final double scale;
@@ -73,10 +73,10 @@ class FramingSelection {
 
   /// 整帧选区 `[0, 1]`：未调过的显示等价物（但作为已存值在取景态里画框）。
   const FramingSelection.fullFrame()
-      : left = 0.0,
-        top = 0.0,
-        right = 1.0,
-        bottom = 1.0;
+    : left = 0.0,
+      top = 0.0,
+      right = 1.0,
+      bottom = 1.0;
 
   /// 左缘（源画面归一化）。
   final double left;
@@ -322,7 +322,8 @@ framingSelectionHandleCenters({
 );
 
 /// 控制点在已映射好的选区矩形里的中心点（本文件内唯一一处列八个点的名单）。
-List<({FramingSelectionHandle handle, double x, double y})> _handleCentersInRect(
+List<({FramingSelectionHandle handle, double x, double y})>
+_handleCentersInRect(
   ({double left, double top, double right, double bottom}) rect,
 ) {
   final midX = (rect.left + rect.right) / 2;

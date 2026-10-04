@@ -306,7 +306,8 @@ bool noteLandingOccupied(List<NoteSticker> notes, Duration at) {
 
 /// 备注表 → 区间表（共用件换算的统一入口）。
 List<IntervalSpan> _noteSpans(List<NoteSticker> notes) => [
-  for (final note in notes) IntervalSpan(startMs: note.startMs, endMs: note.endMs),
+  for (final note in notes)
+    IntervalSpan(startMs: note.startMs, endMs: note.endMs),
 ];
 
 /// 新建备注落点解析（模块内唯一一处；纯函数）：
@@ -338,9 +339,7 @@ NoteSticker? resolveNoteInsertion({
   if (point > rangeEndMs) point = rangeEndMs;
   if (noteLandingOccupied(notes, Duration(milliseconds: point))) return null;
   final snapped = nearestCandidate(
-    beatPoints.where(
-      (beat) => !noteLandingOccupied(notes, beat),
-    ),
+    beatPoints.where((beat) => !noteLandingOccupied(notes, beat)),
     Duration(milliseconds: point),
   );
   final startMs = snapped?.inMilliseconds ?? point;

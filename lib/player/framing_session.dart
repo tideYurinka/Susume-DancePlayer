@@ -42,8 +42,7 @@ import '../annotation/framing_selection.dart'
         resolveFramingSelectionGestureSession;
 import '../core/hit_target.dart' show kHitTargetMinSize;
 import 'framing_session_state.dart' show FramingState;
-import 'compare_framing_view.dart'
-    show compareFramingPictureRect;
+import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'editor_skeleton.dart' show EditorSkeleton;
 import 'framing_stage.dart' show singlePicturePictureRectOnScreen;
 
@@ -198,10 +197,7 @@ class FramingSessionHost {
   ///
   /// 取景态在 burst 中途退出时只吞掉余帧、不再改建框，也不把未起的手势会话
   /// 回落给 seek/音量/亮度。
-  bool adjust({
-    required Offset focal,
-    required int pointerCount,
-  }) {
+  bool adjust({required Offset focal, required int pointerCount}) {
     final session = _session;
     if (session == null) return false;
     if (!isActive()) return true;
@@ -232,23 +228,25 @@ class FramingSessionHost {
         x1: (focal.dx - pictureRect.left) / pictureRect.width,
         y1: (focal.dy - pictureRect.top) / pictureRect.height,
       ),
-      _TranslateDrag() => base == null
-          ? null
-          : framingSelectionTranslated(
-              base: base,
-              dx: dx,
-              dy: dy,
-              minEdge: _minEdge(pictureRect),
-            ),
-      _ResizeDrag(:final handle) => base == null
-          ? null
-          : framingSelectionResized(
-              base: base,
-              handle: handle,
-              dx: dx,
-              dy: dy,
-              minEdge: _minEdge(pictureRect),
-            ),
+      _TranslateDrag() =>
+        base == null
+            ? null
+            : framingSelectionTranslated(
+                base: base,
+                dx: dx,
+                dy: dy,
+                minEdge: _minEdge(pictureRect),
+              ),
+      _ResizeDrag(:final handle) =>
+        base == null
+            ? null
+            : framingSelectionResized(
+                base: base,
+                handle: handle,
+                dx: dx,
+                dy: dy,
+                minEdge: _minEdge(pictureRect),
+              ),
     };
     if (frame == null) return true;
     applySource(frame);

@@ -178,10 +178,7 @@ void main() {
     });
 
     test('未调过（无选区）= 整帧 contain：非贴底分支为恒等', () {
-      final t = framingSelectionTransform(
-        selection: null,
-        geometry: fullPath,
-      );
+      final t = framingSelectionTransform(selection: null, geometry: fullPath);
       expect(t.scale, 1);
       expect(t.translateX, 0);
       expect(t.translateY, 0);
@@ -198,10 +195,7 @@ void main() {
     );
 
     test('未调过时与既有 contain 贴底逐像素相同', () {
-      final t = framingSelectionTransform(
-        selection: null,
-        geometry: portrait,
-      );
+      final t = framingSelectionTransform(selection: null, geometry: portrait);
       final rect = mappedRect(
         t: t,
         g: portrait,
@@ -301,12 +295,8 @@ void main() {
     double dx = 0,
     double dy = 0,
     double minEdge = 0.05,
-  }) => framingSelectionTranslated(
-    base: base,
-    dx: dx,
-    dy: dy,
-    minEdge: minEdge,
-  );
+  }) =>
+      framingSelectionTranslated(base: base, dx: dx, dy: dy, minEdge: minEdge);
 
   /// 控制点路径（纯域入口）。
   FramingSelection resized(
@@ -325,7 +315,10 @@ void main() {
 
   group('⑤ 四边硬钳在整帧内 + 最小边（三条路径共用一个算式）', () {
     test('建框：对角矩形越出整帧时取交集、不撑最小边', () {
-      expect(diagonal(-0.2, -0.1, 1.3, 1.4), const FramingSelection.fullFrame());
+      expect(
+        diagonal(-0.2, -0.1, 1.3, 1.4),
+        const FramingSelection.fullFrame(),
+      );
 
       // 太小的框不被撑到最小边——是否成框交给调用侧判。
       final tooSmall = diagonal(0.1, 0.1, 0.12, 0.2);
@@ -733,7 +726,10 @@ void main() {
         right: 0.5 + 48 / 400,
         bottom: 0.5 + 48 / 300,
       );
-      expect(hitAt(300 + 12, 190, target: tiny), FramingSelectionHandle.topLeft);
+      expect(
+        hitAt(300 + 12, 190, target: tiny),
+        FramingSelectionHandle.topLeft,
+      );
       expect(hitAt(300, 190, target: tiny), FramingSelectionHandle.topLeft);
       // 越过相触点到上边中点一侧：命中上边中点。
       expect(hitAt(300 + 13, 190, target: tiny), FramingSelectionHandle.top);

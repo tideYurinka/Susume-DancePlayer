@@ -39,7 +39,7 @@ class EngineSeek {
     required RecordingPlaybackTakeover Function() takeoverOf,
     required AnnotationTimeline Function() timeline,
     required void Function(AnnotationTimeline timeline, Duration position)
-        clearLoops,
+    clearLoops,
     required void Function() interruptPendingDelayedPlay,
     required void Function(Duration target) onScrubCommitted,
     required this.feedback,
@@ -105,7 +105,9 @@ class EngineSeek {
   /// （[PlaybackEngine.isPlayingStream]）与播放完成事件
   /// （[PlaybackEngine.completedStream]）；重复调用幂等（已有订阅时不重建）。
   void attach() {
-    _positionSubscription ??= engine.positionStream.listen((_) => _positionTick());
+    _positionSubscription ??= engine.positionStream.listen(
+      (_) => _positionTick(),
+    );
     _playingSubscription ??= engine.isPlayingStream.listen(_playingEdge);
     _completedSubscription ??= engine.completedStream.listen((_) {
       unawaited(_completed());

@@ -209,8 +209,8 @@ int? mirrorRowHitAt({
   return resolveLocalMirrorTapHit(
     fragments: fragments,
     timeMs: geometry.axis.xToTime(localX).inMilliseconds,
-    minHitWidthMs:
-        (kLocalMirrorTapHitWidth * spanMs / axis.contentWidth).round(),
+    minHitWidthMs: (kLocalMirrorTapHitWidth * spanMs / axis.contentWidth)
+        .round(),
   );
 }
 
@@ -236,18 +236,27 @@ class _TrackMirrorRowState extends State<TrackMirrorRow> {
   TrackBandDragHandle? _dragHandle;
 
   /// 两族的目标身份模板（下标在每次起手时按命中结果给出）。
-  static const TrackBandDragTarget _moveTarget =
-      TrackBandDragTarget.mirrorMove(0);
-  static const TrackBandDragTarget _edgeTarget =
-      TrackBandDragTarget.mirrorEdge(0, IntervalEdge.start);
+  static const TrackBandDragTarget _moveTarget = TrackBandDragTarget.mirrorMove(
+    0,
+  );
+  static const TrackBandDragTarget _edgeTarget = TrackBandDragTarget.mirrorEdge(
+    0,
+    IntervalEdge.start,
+  );
 
   @override
   void initState() {
     super.initState();
     // 两族的声明条目**随族**经按族注册入口登记进拖动域的共享注册表：抓取
     // 偏移与准入形状按本域持有的片段表如实声明，换算按本族装配。
-    widget.input.dragFamilies.register(_moveTarget.gateTarget, _moveDeclaration);
-    widget.input.dragFamilies.register(_edgeTarget.gateTarget, _edgeDeclaration);
+    widget.input.dragFamilies.register(
+      _moveTarget.gateTarget,
+      _moveDeclaration,
+    );
+    widget.input.dragFamilies.register(
+      _edgeTarget.gateTarget,
+      _edgeDeclaration,
+    );
   }
 
   /// 本族的片段表（准入与抓取偏移的判据源；随输入刷新）。
@@ -275,7 +284,8 @@ class _TrackMirrorRowState extends State<TrackMirrorRow> {
     admit: _admitDrag,
     readGrabOffsetMs: (target, finger) {
       final fragment = _fragments[target.index];
-      final boundary = (target as MirrorEdgeDragTarget).edge == IntervalEdge.start
+      final boundary =
+          (target as MirrorEdgeDragTarget).edge == IntervalEdge.start
           ? fragment.startMs
           : fragment.endMs;
       return finger.inMilliseconds - boundary;

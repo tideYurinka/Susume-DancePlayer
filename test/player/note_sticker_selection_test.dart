@@ -23,8 +23,7 @@ void main() {
     int positionMs = 3000,
     NoteStickerOverlayRegistration? registration,
   }) async {
-    final noteRegistration =
-        registration ?? NoteStickerOverlayRegistration();
+    final noteRegistration = registration ?? NoteStickerOverlayRegistration();
     final container = ProviderContainer(
       overrides: [
         playbackEngineProvider.overrideWithValue(FakePlaybackEngine()),
@@ -105,9 +104,9 @@ void main() {
 
       // 尺寸变化（窗内改文本）→ 选中框跟着变宽。
       ProviderScope.containerOf(
-        tester.element(find.byType(NoteStickerOverlay)),
-        listen: false,
-      )
+            tester.element(find.byType(NoteStickerOverlay)),
+            listen: false,
+          )
           .read(annotationEditorProvider)
           .submit(SetNoteText(index: 0, text: '这里注意手这里注意手'));
       await tester.pump();
@@ -165,8 +164,7 @@ void main() {
       expect(registration.hitTest(center), isFalse);
     });
 
-    testWidgets('真实播放页结构：LayoutBuilder 包裹下挂载不抛 ParentData 异常',
-        (tester) async {
+    testWidgets('真实播放页结构：LayoutBuilder 包裹下挂载不抛 ParentData 异常', (tester) async {
       // 复刻 player_page 接线（外层 Stack → LayoutBuilder → 内层 Stack →
       // 浮层）：Positioned 的直接父级须是 Stack，包裹层不得破坏
       // ParentData 归属（集成回归：control_layer_test 曾暴露 Incorrect
@@ -182,9 +180,7 @@ void main() {
           .read(annotationEditorProvider)
           .restoreDocument(
             const AnnotationRestoreDocument(
-              notes: [
-                NoteSticker(startMs: 1000, endMs: 5000, text: '这里注意手'),
-              ],
+              notes: [NoteSticker(startMs: 1000, endMs: 5000, text: '这里注意手')],
             ),
           );
       await tester.pumpWidget(
@@ -234,24 +230,15 @@ void main() {
   group('内容矩形推导（引擎宽高比 → 信箱内画面区）', () {
     test('已知宽高比：按 contain 居中适配宿主框', () {
       expect(
-        videoContentRectInBox(
-          box: const Size(400, 200),
-          aspectRatio: 2,
-        ),
+        videoContentRectInBox(box: const Size(400, 200), aspectRatio: 2),
         const Rect.fromLTWH(0, 0, 400, 200),
       );
       expect(
-        videoContentRectInBox(
-          box: const Size(400, 200),
-          aspectRatio: 1,
-        ),
+        videoContentRectInBox(box: const Size(400, 200), aspectRatio: 1),
         const Rect.fromLTWH(100, 0, 200, 200),
       );
       expect(
-        videoContentRectInBox(
-          box: const Size(200, 400),
-          aspectRatio: 2,
-        ),
+        videoContentRectInBox(box: const Size(200, 400), aspectRatio: 2),
         const Rect.fromLTWH(0, 150, 200, 100),
       );
     });
@@ -265,10 +252,7 @@ void main() {
         videoContentRectInBox(box: const Size(400, 200), aspectRatio: -1),
         const Rect.fromLTWH(0, 0, 400, 200),
       );
-      expect(
-        videoContentRectInBox(box: Size.zero, aspectRatio: 2),
-        Rect.zero,
-      );
+      expect(videoContentRectInBox(box: Size.zero, aspectRatio: 2), Rect.zero);
     });
   });
 

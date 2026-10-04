@@ -202,10 +202,7 @@ void main() {
       final p = DocumentVersionPolicy(
         floor: 7,
         steps: [
-          MigrationStep(
-            7,
-            (json) => throw StateError('bad migration'),
-          ),
+          MigrationStep(7, (json) => throw StateError('bad migration')),
           MigrationStep(8, (json) => json),
         ],
       );

@@ -51,7 +51,8 @@ import 'package:dance_learning_app/player/preview_snap.dart'
 import 'package:dance_learning_app/player/scheme_open.dart'
     show MemberSchemeOpen;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
 import 'package:flutter/material.dart';
@@ -107,8 +108,7 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _inner.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _inner.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _inner.loadLocalOrNull();
 
   @override
   Future<void> saveLocal(Map<String, dynamic> json) async {
@@ -118,7 +118,8 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateMarkers(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     var wrote = false;
     await _inner.mutateMarkers((json, {required bool present}) async {
@@ -131,7 +132,8 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateLocal(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     var wrote = false;
     await _inner.mutateLocal((json, {required bool present}) async {
@@ -186,59 +188,54 @@ Map<String, dynamic> markersJson({
   List<int> anchors = const [],
   int rangeEndMs = 180000,
   List<Map<String, dynamic>> notes = const [],
-}) =>
-    {
-      'version': 9,
-      'meta': {
-        'mirrored': mirrored,
-        'localMirrorEnabled': ?localMirrorEnabled,
-        if (signature != null) 'signature': signature.toJson(),
-        'framingSelection': ?metaFramingSelection,
-      },
-      if (withBeat)
-        'beat': {
-          'model': 'madmom_downbeat_rnn_full.onnx',
-          'fps': 100,
-          'generatedAt': '2026-09-01T00:00:00.000Z',
-          'beats': [
-            {'t': 0.5, 'down': true},
-            {'t': 1.0, 'down': false},
-            {'t': 1.5, 'down': false},
-            {'t': 2.0, 'down': false},
-          ],
-        },
-      // 写回时 corrections 段由编解码重新装配、shift 键恒在（端到端
-      // 用例按落盘形断言段不被触碰，fixture 直接写成归一形）。
-      if (withBeat && anchors.isNotEmpty)
-        'corrections': {'shift': 0.0, 'anchors': anchors},
-      if (notes.isNotEmpty)
-        'notes': {
-          'notes': notes,
-        },
-      'annotations': {
-        'range': {'startMs': 0, 'endMs': rangeEndMs},
-        'segmentLines': lines,
-        'emphasizedSegments': emphasized,
-        if (localMirrorFragments.isNotEmpty)
-          'localMirrorFragments': localMirrorFragments,
-      },
-    };
+}) => {
+  'version': 9,
+  'meta': {
+    'mirrored': mirrored,
+    'localMirrorEnabled': ?localMirrorEnabled,
+    if (signature != null) 'signature': signature.toJson(),
+    'framingSelection': ?metaFramingSelection,
+  },
+  if (withBeat)
+    'beat': {
+      'model': 'madmom_downbeat_rnn_full.onnx',
+      'fps': 100,
+      'generatedAt': '2026-09-01T00:00:00.000Z',
+      'beats': [
+        {'t': 0.5, 'down': true},
+        {'t': 1.0, 'down': false},
+        {'t': 1.5, 'down': false},
+        {'t': 2.0, 'down': false},
+      ],
+    },
+  // 写回时 corrections 段由编解码重新装配、shift 键恒在（端到端
+  // 用例按落盘形断言段不被触碰，fixture 直接写成归一形）。
+  if (withBeat && anchors.isNotEmpty)
+    'corrections': {'shift': 0.0, 'anchors': anchors},
+  if (notes.isNotEmpty) 'notes': {'notes': notes},
+  'annotations': {
+    'range': {'startMs': 0, 'endMs': rangeEndMs},
+    'segmentLines': lines,
+    'emphasizedSegments': emphasized,
+    if (localMirrorFragments.isNotEmpty)
+      'localMirrorFragments': localMirrorFragments,
+  },
+};
 
 /// 命中场景的 local 文档：段 1 熟练度/激活（session）、吸附关、锁定分段
 /// （prefs）；delayedLoopBeats 为历史残留键。
 Map<String, dynamic> localJson({
   Map<String, String> mastery = const {'1': 'practicing'},
   List<int> activated = const [1],
-}) =>
-    {
-      'version': 3,
-      'session': {'mastery': mastery, 'activatedSegments': activated},
-      'prefs': {
-        'previewSnapEnabled': false,
-        'delayedLoopBeats': 8,
-        'layoutLocked': true,
-      },
-    };
+}) => {
+  'version': 3,
+  'session': {'mastery': mastery, 'activatedSegments': activated},
+  'prefs': {
+    'previewSnapEnabled': false,
+    'delayedLoopBeats': 8,
+    'layoutLocked': true,
+  },
+};
 
 class Probe {
   Probe({
@@ -258,9 +255,7 @@ class Probe {
   VideoOpenRestorer get restorer => container.read(videoOpenRestorerProvider);
 
   /// 装配并建立打开会话（宿主装配点），返回会话本身。
-  Future<OpenSession> establish({
-    String filePath = kFilePath,
-  }) async {
+  Future<OpenSession> establish({String filePath = kFilePath}) async {
     final session = OpenSession(
       filePath: filePath,
       indexStore: indexStorage,
@@ -306,8 +301,9 @@ Probe makeProbe({
       contentHasherProvider.overrideWithValue(hasher),
       videoDocumentStorageFactoryProvider.overrideWithValue(documentStorage),
       // 节拍分析注入 fake：本文件用例不消费节拍，避免真实管线启动。
-      beatAnalysisPipelineProvider
-          .overrideWithValue(pipeline ?? FakeBeatPipeline()),
+      beatAnalysisPipelineProvider.overrideWithValue(
+        pipeline ?? FakeBeatPipeline(),
+      ),
       if (memberSchemeStorage != null)
         memberSchemeStorageProvider.overrideWith(
           (ref, videoId) => memberSchemeStorage,
@@ -378,10 +374,9 @@ void main() {
     expect(timeline.segmentLines.first.position, const Duration(seconds: 60));
     expect(timeline.segmentLines.first.flagged, isTrue);
     expect(probe.container.read(learningEmphasisProvider), {1});
-    expect(
-      probe.container.read(learningMasteryProvider),
-      {1: LearningMastery.learning},
-    );
+    expect(probe.container.read(learningMasteryProvider), {
+      1: LearningMastery.learning,
+    });
 
     // 激活恢复：集合就位、循环作用域就位，但不 seek、不自动播放。
     expect(probe.container.read(selectedLearningSegmentsProvider), {1});
@@ -413,14 +408,11 @@ void main() {
     );
     await probe.open();
 
-    expect(
-      probe.container.read(learningEmphasisProvider),
-      {0, 1},
-    );
-    expect(
-      probe.container.read(learningMasteryProvider),
-      {0: LearningMastery.unlearned, 1: LearningMastery.learning},
-    );
+    expect(probe.container.read(learningEmphasisProvider), {0, 1});
+    expect(probe.container.read(learningMasteryProvider), {
+      0: LearningMastery.unlearned,
+      1: LearningMastery.learning,
+    });
     expect(probe.container.read(selectedLearningSegmentsProvider), {0, 1});
     expect(probe.engine.seekCalls, isEmpty);
   });
@@ -428,20 +420,19 @@ void main() {
   test('打开恢复把 markers.localMirrorFragments 水合进会话 store', () async {
     final probe = makeProbe(
       hasher: const FixedHasher(kVideoId),
-      markers: markersJson(localMirrorFragments: const [
-        {'startMs': 1000, 'endMs': 3000},
-        {'startMs': 5000, 'endMs': 9000, 'enabled': false},
-      ]),
+      markers: markersJson(
+        localMirrorFragments: const [
+          {'startMs': 1000, 'endMs': 3000},
+          {'startMs': 5000, 'endMs': 9000, 'enabled': false},
+        ],
+      ),
     );
     await probe.open();
 
-    expect(
-      probe.container.read(localMirrorFragmentsProvider),
-      const [
-        LocalMirrorFragment(startMs: 1000, endMs: 3000),
-        LocalMirrorFragment(startMs: 5000, endMs: 9000),
-      ],
-    );
+    expect(probe.container.read(localMirrorFragmentsProvider), const [
+      LocalMirrorFragment(startMs: 1000, endMs: 3000),
+      LocalMirrorFragment(startMs: 5000, endMs: 9000),
+    ]);
   });
 
   test('markers 无 localMirrorFragments 键 → 水合为空、不报错', () async {
@@ -469,18 +460,15 @@ void main() {
     );
     await probe.open();
 
-    expect(
-      probe.container.read(noteStickersProvider),
-      const [
-        NoteSticker(
-          startMs: 8000,
-          endMs: 16000,
-          text: '这里注意手',
-          locked: true,
-          geometry: NoteGeometry(centerX: 0.4, centerY: 0.2, scale: 1.5),
-        ),
-      ],
-    );
+    expect(probe.container.read(noteStickersProvider), const [
+      NoteSticker(
+        startMs: 8000,
+        endMs: 16000,
+        text: '这里注意手',
+        locked: true,
+        geometry: NoteGeometry(centerX: 0.4, centerY: 0.2, scale: 1.5),
+      ),
+    ]);
   });
 
   test('markers 缺 notes 段 → 备注贴纸为空、不崩', () async {
@@ -514,11 +502,9 @@ void main() {
     // 重开：同一存储、重新走打开恢复（恢复前清先清空备注贴纸 lane）。
     await probe.open();
 
-    expect(
-      container.read(noteStickersProvider),
-      [inserted],
-      reason: '重开后备注贴纸仍在且字段逐位一致（NoteSticker 相等覆盖全部字段）',
-    );
+    expect(container.read(noteStickersProvider), [
+      inserted,
+    ], reason: '重开后备注贴纸仍在且字段逐位一致（NoteSticker 相等覆盖全部字段）');
     // 备注贴纸编辑不触碰 beat / corrections 段（与并发写者不互相覆盖）。
     expect(probe.docStorage.markersSnapshot['beat'], beatBefore);
     expect(probe.docStorage.markersSnapshot['corrections'], correctionsBefore);
@@ -644,8 +630,7 @@ void main() {
     final probe = makeProbe(
       hasher: const FixedHasher('different-content'),
       index: VideoIndex(entries: [entryFor(videoId: 'hash-old')]),
-      storageFor: (videoId) =>
-          videoId == 'hash-old' ? oldStorage : newStorage,
+      storageFor: (videoId) => videoId == 'hash-old' ? oldStorage : newStorage,
     );
     await probe.open();
 
@@ -675,8 +660,10 @@ void main() {
     );
     await probe.open();
 
-    expect(probe.container.read(annotationTimelineProvider).segmentLines,
-        isEmpty);
+    expect(
+      probe.container.read(annotationTimelineProvider).segmentLines,
+      isEmpty,
+    );
     expect(probe.container.read(annotationSaveSinkProvider), isNull);
   });
 
@@ -687,8 +674,10 @@ void main() {
     );
     await probe.open();
 
-    expect(probe.container.read(annotationTimelineProvider).segmentLines,
-        isEmpty);
+    expect(
+      probe.container.read(annotationTimelineProvider).segmentLines,
+      isEmpty,
+    );
     expect(
       probe.container.read(annotationSaveSinkProvider),
       isNotNull,
@@ -735,7 +724,11 @@ void main() {
   });
 
   test('markers 存在：以其署名/镜像回写 index 缓存', () async {
-    const signature = SongSignature(dancer: '阿如', song: 'My Love', remark: '9人版');
+    const signature = SongSignature(
+      dancer: '阿如',
+      song: 'My Love',
+      remark: '9人版',
+    );
     final probe = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: VideoIndex(entries: [entryFor()]),
@@ -751,9 +744,9 @@ void main() {
 
   test('index 缓存已与 markers 一致：不因恢复触发写盘', () async {
     const signature = SongSignature(song: 'My Love');
-    final initial = VideoIndex(entries: [
-      entryFor(signatureCache: signature, mirrored: true),
-    ]);
+    final initial = VideoIndex(
+      entries: [entryFor(signatureCache: signature, mirrored: true)],
+    );
     final probe = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: initial,
@@ -789,11 +782,7 @@ void main() {
     final entry = probe.indexStorage.current.findById(kVideoId)!;
     expect(entry.signatureCache, signature, reason: 'markers 为真值：署名回写');
     expect(entry.mirrored, isTrue, reason: 'markers 为真值：镜像回写');
-    expect(
-      entry.lastPositionMs,
-      99000,
-      reason: '回写不回退并发写入的续播位置',
-    );
+    expect(entry.lastPositionMs, 99000, reason: '回写不回退并发写入的续播位置');
     expect(entry.mirrorAsked, isFalse, reason: '回写不覆盖并发写入的询问标记');
   });
 
@@ -815,13 +804,13 @@ void main() {
     // burst 合并窗口（300ms）到期落盘。
     await Future<void>.delayed(const Duration(milliseconds: 400));
     final markers = probe.docStorage.markersSnapshot;
-    expect(markers['version'], marker_doc.MarkersDocument.versionPolicy.currentVersion);
+    expect(
+      markers['version'],
+      marker_doc.MarkersDocument.versionPolicy.currentVersion,
+    );
     expect(markers['meta']['signature'], signature.toJson());
     expect(markers['meta']['mirrored'], isFalse);
-    expect(
-      (markers['annotations']['segmentLines'] as List).length,
-      1,
-    );
+    expect((markers['annotations']['segmentLines'] as List).length, 1);
   });
 
   testWidgets('播放页打开命中条目：恢复标注与激活，不自动跳转 seek', (tester) async {
@@ -859,10 +848,7 @@ void main() {
     // 恢复就位：标注与激活来自 markers/local。
     final element = tester.element(find.byType(PlayerPage));
     container = ProviderScope.containerOf(element);
-    expect(
-      container.read(annotationTimelineProvider).segmentLines.length,
-      1,
-    );
+    expect(container.read(annotationTimelineProvider).segmentLines.length, 1);
     expect(container.read(selectedLearningSegmentsProvider), {1});
     expect(container.read(activeLoopRangeProvider), isNotNull);
     // 恢复不自动跳转：除打开即播放外，无任何 seek，进度停在视频首。
@@ -894,19 +880,18 @@ void main() {
     // 调整：整体平移片段到另一段（轨上「调整」leg 的模块落点），随后一并落盘。
     final moved = probeA.container
         .read(annotationEditorProvider)
-        .submit(const MoveLocalMirrorFragment(
-          index: 0,
-          to: Duration(seconds: 30),
-        ));
+        .submit(
+          const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 30)),
+        );
     expect(moved.applied, isTrue, reason: '整体移 verb 生效');
-    final created =
-        probeA.container.read(localMirrorFragmentsProvider).single;
+    final created = probeA.container.read(localMirrorFragmentsProvider).single;
 
     // ── 落盘：flush 编排器把片段写进 markers 文件。
     await probeA.container.read(annotationSaveSinkProvider)?.flush();
     final persistedSnapshot = probeA.docStorage.markersSnapshot;
     expect(
-      marker_doc.MarkersDocument.fromJson(persistedSnapshot).localMirrorFragments,
+      marker_doc.MarkersDocument.fromJson(persistedSnapshot)
+          .localMirrorFragments,
       [created],
       reason: '片段随编排器落盘到 markers typed 字段',
     );
@@ -917,11 +902,9 @@ void main() {
       markers: persistedSnapshot,
     );
     await probeB.open();
-    expect(
-      probeB.container.read(localMirrorFragmentsProvider),
-      [created],
-      reason: '重开恢复：值 + 启停位 + 平移后几何逐位保真',
-    );
+    expect(probeB.container.read(localMirrorFragmentsProvider), [
+      created,
+    ], reason: '重开恢复：值 + 启停位 + 平移后几何逐位保真');
 
     // ── 会话三：删除片段 → 落盘 → 恢复侧不再带旧片段。
     final remove = probeB.container
@@ -941,7 +924,12 @@ void main() {
     const String otherPath = '/videos/b.mp4';
     final probe = makeProbe(
       // 真正的「换视频」：索引里另有 b.mp4，本次打开的是它。
-      index: VideoIndex(entries: [entryFor(), entryFor(filePath: otherPath)]),
+      index: VideoIndex(
+        entries: [
+          entryFor(),
+          entryFor(filePath: otherPath),
+        ],
+      ),
       hasher: const FixedHasher(kVideoId),
       // b.mp4 的公开 markers beat 段带一个八拍锚点（拍序号 0 = 强拍）。
       markers: markersJson(withBeat: true, anchors: const [0]),
@@ -961,11 +949,9 @@ void main() {
       isFalse,
       reason: '换视频/新视频打开不把上一首的待命态带过来',
     );
-    expect(
-      probe.container.read(beatTrackStateProvider).grid?.anchors,
-      [0],
-      reason: '锚点随公开 markers 的 beat 段恢复：待命态清零不等于数据丢',
-    );
+    expect(probe.container.read(beatTrackStateProvider).grid?.anchors, [
+      0,
+    ], reason: '锚点随公开 markers 的 beat 段恢复：待命态清零不等于数据丢');
   });
 
   group('启动序列折进打开恢复的 open 入口', () {
@@ -1033,7 +1019,6 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
   });
-
 
   test('取景随公开标记文件就位：打开这支舞即恢复那块选区，且零写盘', () async {
     final probe = makeProbe(

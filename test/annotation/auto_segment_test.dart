@@ -89,7 +89,6 @@ void main() {
       // 第 32 拍 → t = 1.23 + 32 × 0.33 = 11.79s。
       expect(cutsOf(grid), [const Duration(milliseconds: 11790)]);
     });
-
   });
 
   group('弱起网格（首拍非强拍）：起算点 = 首个八拍点（与旧口径的分歧域）', () {
@@ -115,7 +114,10 @@ void main() {
       final aligned = gridWith(pickup: 0);
       final weak = gridWith(pickup: 4); // 首强拍 = 第 4 拍（t=2s）。
       expect(aligned.beatTime(aligned.firstDownbeatIndex), Duration.zero);
-      expect(weak.beatTime(weak.firstDownbeatIndex), const Duration(seconds: 2));
+      expect(
+        weak.beatTime(weak.firstDownbeatIndex),
+        const Duration(seconds: 2),
+      );
       // 首拍即强拍：与旧口径一致（第 32 拍 = 16s）。
       expect(cutsOf(aligned).first, const Duration(seconds: 16));
       // 弱起：起算点 = 首个八拍点（t=2s）→ 第 4 个整八拍区间落在第 36 拍。
@@ -214,8 +216,11 @@ void main() {
     test('锚点刀与档位无关：锚点处必下刀并清空配额，其后重新数 N 个整八拍', () {
       // 锚点第 16 拍（8s）：锚点刀一刀，其后 8 个整八拍在第 80 拍（40s）下刀。
       expect(
-        cutsOf(gridOf(beats: 98), anchors: const [16],
-            fullIntervalsPerSegment: 8),
+        cutsOf(
+          gridOf(beats: 98),
+          anchors: const [16],
+          fullIntervalsPerSegment: 8,
+        ),
         [const Duration(seconds: 8), const Duration(seconds: 40)],
       );
     });

@@ -19,9 +19,7 @@ void main() {
         phase: container.read(compareRecordingPhaseProvider.notifier),
         prepBeat: container.read(recordingPrepBeatProvider.notifier),
         recordingStart: container.read(compareRecordingStartProvider.notifier),
-        armedBaselines: container.read(
-          armedSurfaceBaselinesProvider.notifier,
-        ),
+        armedBaselines: container.read(armedSurfaceBaselinesProvider.notifier),
       );
 
   test('写面直落值道模型', () {

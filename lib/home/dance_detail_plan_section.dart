@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/device_clock.dart';
 import '../plan/dance_plan_editor.dart';
 import '../plan/dance_plan_manager.dart' show dancePlanSettlementOutcomeLabel;
 import '../persistence/practice_plan.dart';
@@ -91,10 +92,8 @@ class DancePlanSection extends ConsumerWidget {
               context,
               ref,
               videoId,
-              (store) => store.removeChecklistItem(
-                videoId: videoId,
-                index: index,
-              ),
+              (store) =>
+                  store.removeChecklistItem(videoId: videoId, index: index),
             ),
             onAdd: (text) => runPlanWrite(
               context,
@@ -115,7 +114,11 @@ class DancePlanSection extends ConsumerWidget {
   }) async {
     final saved = await Navigator.of(context).push<DancePlanEditorResult>(
       MaterialPageRoute(
-        builder: (_) => DanceDdlEditorPage(videoId: videoId, initial: current),
+        builder: (_) => DanceDdlEditorPage(
+          videoId: videoId,
+          initial: current,
+          today: ref.read(deviceClockProvider)(),
+        ),
       ),
     );
     if (saved == null || !context.mounted) return;

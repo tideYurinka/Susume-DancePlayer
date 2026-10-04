@@ -17,10 +17,7 @@ int clampAvSyncMs(int ms) => ms.clamp(kAvSyncMinMs, kAvSyncMaxMs);
 
 /// 媒体层偏移（纯函数）：mpv `audio-delay` 秒值 = −Δ·rate（负 = 延迟
 /// 视频；倍速下墙钟延迟恒为 Δ，媒体偏移随倍速缩放）。
-double avSyncAudioDelaySeconds({
-  required int delayMs,
-  required double rate,
-}) {
+double avSyncAudioDelaySeconds({required int delayMs, required double rate}) {
   return -delayMs / 1000 * rate;
 }
 

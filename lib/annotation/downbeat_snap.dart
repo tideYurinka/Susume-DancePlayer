@@ -69,7 +69,5 @@ DownbeatLanding? resolveDownbeatLanding(
 
 /// 解析 [position] 就近的强拍时刻；网格无强拍返回 null（[resolveDownbeatLanding]
 /// 的时刻面）。
-Duration? resolveDownbeatSnap(
-  Duration position, {
-  required BeatGrid grid,
-}) => resolveDownbeatLanding(position, grid: grid)?.time;
+Duration? resolveDownbeatSnap(Duration position, {required BeatGrid grid}) =>
+    resolveDownbeatLanding(position, grid: grid)?.time;

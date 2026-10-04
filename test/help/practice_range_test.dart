@@ -11,9 +11,7 @@ import 'package:dance_learning_app/help/guide_anchor.dart';
 import 'package:dance_learning_app/help/guide_host.dart';
 import 'package:dance_learning_app/help/guide_layers.dart';
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        guideResetProvider,
-        guideSessionProvider;
+    show guideResetProvider, guideSessionProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show annotationTimelineProvider;
 import 'package:dance_learning_app/player/track_band.dart';
@@ -201,9 +199,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    container
-        .read(guideSessionProvider.notifier)
-        .trigger(practiceRangeUnitId);
+    container.read(guideSessionProvider.notifier).trigger(practiceRangeUnitId);
     await tester.pumpAndSettle();
     expect(session.window, isNull, reason: '重置后该单元重新触达，铺开照常再做一次');
     expect(find.text('这两条线圈出练习范围：圈外的部分不参与分段和循环'), findsOneWidget);
@@ -291,7 +287,11 @@ void main() {
 
     expect(find.byKey(const Key('guide_bubble')), findsNothing);
     expect(find.byKey(const Key('drill_task_bar')), findsNothing);
-    expect(session.window!.start, const Duration(seconds: 9), reason: '无学习段不动窗口');
+    expect(
+      session.window!.start,
+      const Duration(seconds: 9),
+      reason: '无学习段不动窗口',
+    );
     expect(storage.snapshot['onboarding'], isNull);
   });
 
@@ -312,7 +312,11 @@ void main() {
     );
     expect(step.form, GuideUnitForm.inplaceTour);
     for (final verb in ['拖', '拉', '点', '按', '滑']) {
-      expect(guideStepMessage(step.id).contains(verb), isFalse, reason: '文案含「$verb」');
+      expect(
+        guideStepMessage(step.id).contains(verb),
+        isFalse,
+        reason: '文案含「$verb」',
+      );
     }
   });
 }
@@ -325,14 +329,18 @@ TrackBandSession trackBandSession({
 /// 从编辑态上手第 ① 步走到第 ③ 步（就地讲解「线上的小把手」）：第 ① 步的
 /// 判据当场成立、停约 0.4 秒推进到第 ② 步；点第一段循环 → 第 ③ 步。
 Future<void> _advanceToLineHandle(WidgetTester tester) async {
-  await tester.pump(kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50));
+  await tester.pump(
+    kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50),
+  );
   await tester.pumpAndSettle();
   expect(find.textContaining(editorIntroLoopSentence), findsOneWidget);
   await tester.tap(find.byKey(const Key('learning_segment_0')));
   for (var i = 0; i < 4; i++) {
     await tester.pump();
   }
-  await tester.pump(kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50));
+  await tester.pump(
+    kDrillTaskBarAdvanceHold + const Duration(milliseconds: 50),
+  );
   await tester.pumpAndSettle();
   expect(find.text('线上的小把手可以拖着挪'), findsOneWidget);
 }

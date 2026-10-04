@@ -192,10 +192,7 @@ List<(int, bool)> deriveBeatPoints({
   // 段外 = 整曲档派生剔除落进生效段区间的点（段界时刻归段外/下一段首）。
   final merged = <int, bool>{
     for (final p in base)
-      if (!applied.any(
-        (s) => p.$1 >= s.startMs && p.$1 < s.endMs,
-      ))
-        p.$1: p.$2,
+      if (!applied.any((s) => p.$1 >= s.startMs && p.$1 < s.endMs)) p.$1: p.$2,
   };
   final rawTimes = [for (final p in shifted) p.$1];
   for (final s in applied) {
@@ -284,11 +281,15 @@ List<(int, bool)> _resample(List<(int, bool)> shifted, double density) {
   }
 
   // 新强拍：自原首个强拍的派生序号起每 4 个派生拍一个。
-  final firstDownDerived =
-      density > 1 ? (firstDown < 0 ? 0 : firstDown * density.round()) : 0;
+  final firstDownDerived = density > 1
+      ? (firstDown < 0 ? 0 : firstDown * density.round())
+      : 0;
   return [
     for (var i = 0; i < times.length; i++)
-      (times[i], i >= firstDownDerived && (i - firstDownDerived) % kBeatsPerBar == 0),
+      (
+        times[i],
+        i >= firstDownDerived && (i - firstDownDerived) % kBeatsPerBar == 0,
+      ),
   ];
 }
 

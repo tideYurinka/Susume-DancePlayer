@@ -23,10 +23,7 @@ void main() {
 
       gates[0].complete(); // 首个完成 → 只发最新（2 被 latest-wins 折叠）
       await pumpEventQueue();
-      expect(calls, [
-        const Duration(seconds: 1),
-        const Duration(seconds: 3),
-      ]);
+      expect(calls, [const Duration(seconds: 1), const Duration(seconds: 3)]);
 
       gates[1].complete();
       await pumpEventQueue();
@@ -53,10 +50,7 @@ void main() {
       gate.complete();
       await pumpEventQueue();
       expect(started, 2);
-      expect(calls, [
-        const Duration(seconds: 1),
-        const Duration(seconds: 5),
-      ]);
+      expect(calls, [const Duration(seconds: 1), const Duration(seconds: 5)]);
     });
 
     test('enqueue 返回目标（调用侧可同源消费入队值）', () {
@@ -100,10 +94,7 @@ void main() {
       now = now.add(const Duration(milliseconds: 16));
       delayGates.single.complete();
       await pumpEventQueue();
-      expect(calls, [
-        const Duration(seconds: 1),
-        const Duration(seconds: 3),
-      ]);
+      expect(calls, [const Duration(seconds: 1), const Duration(seconds: 3)]);
 
       // 排空：无遗留待发。
       queue.enqueue(const Duration(seconds: 4));
@@ -137,10 +128,7 @@ void main() {
       now = now.add(const Duration(milliseconds: 16));
       pendingDelay!.complete();
       await pumpEventQueue();
-      expect(calls, [
-        const Duration(seconds: 1),
-        const Duration(seconds: 7),
-      ]);
+      expect(calls, [const Duration(seconds: 1), const Duration(seconds: 7)]);
     });
 
     test('默认（minInterval = 0）不经节流路径：逐个串行行为不变', () async {
@@ -149,10 +137,7 @@ void main() {
       queue.enqueue(const Duration(seconds: 1));
       queue.enqueue(const Duration(seconds: 2));
       await pumpEventQueue();
-      expect(calls, [
-        const Duration(seconds: 1),
-        const Duration(seconds: 2),
-      ]);
+      expect(calls, [const Duration(seconds: 1), const Duration(seconds: 2)]);
     });
   });
 }

@@ -89,7 +89,10 @@ void main() {
   testWidgets('单击热力图卡内标题行与图例：取消选择，气泡与明细收起', (tester) async {
     await _pump(tester, records: [_record(today, 600)]);
     await _selectDay(tester, today);
-    await _expectClearedAfterTap(tester, find.byKey(const Key('heatmap_total')));
+    await _expectClearedAfterTap(
+      tester,
+      find.byKey(const Key('heatmap_total')),
+    );
     await _selectDay(tester, today);
     await _expectClearedAfterTap(tester, find.text('少'));
   });

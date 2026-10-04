@@ -605,7 +605,9 @@ class BeatPromptBubbleContent extends ConsumerWidget {
             hint: () {
               final reads = ref.watch(beatGridProvider);
               if (reads.hasRealBeats) return '识别快/慢一倍时用';
-              return reads.isSecondsFallback ? kBeatGridErrorHint : kBeatGridPlaceholderHint;
+              return reads.isSecondsFallback
+                  ? kBeatGridErrorHint
+                  : kBeatGridPlaceholderHint;
             }(),
             // 打开倍频控件本体所在的独立锚定气泡
             // （[SpeedBubbleMode.beatDensity]，会话单值互斥）。置灰门 =
@@ -828,8 +830,6 @@ class _ColumnVsepPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ColumnVsepPainter oldDelegate) => !listEquals(
-    oldDelegate.separatorsAt,
-    separatorsAt,
-  );
+  bool shouldRepaint(_ColumnVsepPainter oldDelegate) =>
+      !listEquals(oldDelegate.separatorsAt, separatorsAt);
 }

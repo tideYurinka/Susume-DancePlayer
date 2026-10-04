@@ -27,11 +27,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      systemUi.lockPortraitCount,
-      1,
-      reason: 'App 起来的那一刻就由 App 自己请求竖屏',
-    );
+    expect(systemUi.lockPortraitCount, 1, reason: 'App 起来的那一刻就由 App 自己请求竖屏');
     expect(systemUi.enterCount, 0, reason: '启动不进入播放器模式');
   });
 }

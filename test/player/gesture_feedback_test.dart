@@ -362,8 +362,8 @@ void main() {
     });
 
     testWidgets('滑条报出可播报读数：对象 + 整数百分比（期望值写死，不重算实现）', (tester) async {
-      Future<void> pumpSlider(LevelAdjustKind kind, double value) => tester
-          .pumpWidget(
+      Future<void> pumpSlider(LevelAdjustKind kind, double value) =>
+          tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
                 body: LevelAdjustSlider(kind: kind, value: value),

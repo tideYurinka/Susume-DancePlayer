@@ -5,7 +5,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:dance_learning_app/player/annotation_edit.dart';
 import 'package:dance_learning_app/player/annotation_editor.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

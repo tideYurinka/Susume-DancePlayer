@@ -22,19 +22,18 @@ void main() {
     String schemeId = 's1',
     String memberName = '小如',
     String schemeName = '真值名',
-  }) =>
-      MemberSchemeRecord(
-        schemeId: schemeId,
-        memberName: memberName,
-        schemeName: schemeName,
-        mastery: const {0: 2, 1: 4},
-        importedAt: DateTime.fromMillisecondsSinceEpoch(1700000000000),
-        markers: const {
-          'version': 3,
-          'meta': {'signature': 'x'},
-          'segmentLines': <Object?>[],
-        },
-      );
+  }) => MemberSchemeRecord(
+    schemeId: schemeId,
+    memberName: memberName,
+    schemeName: schemeName,
+    mastery: const {0: 2, 1: 4},
+    importedAt: DateTime.fromMillisecondsSinceEpoch(1700000000000),
+    markers: const {
+      'version': 3,
+      'meta': {'signature': 'x'},
+      'segmentLines': <Object?>[],
+    },
+  );
 
   Map<String, dynamic> readJson() =>
       jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
@@ -52,14 +51,10 @@ void main() {
       expect(entry['schemeName'], '真值名');
       expect(entry['mastery'], {'0': 2, '1': 4});
       expect(entry['importedAtMs'], 1700000000000);
-      expect(
-        entry['markers'],
-        containsPair('meta', {'signature': 'x'}),
-      );
+      expect(entry['markers'], containsPair('meta', {'signature': 'x'}));
 
-      final reopened = await MemberSchemeStore(
-        MemberSchemeFileStore(file),
-      ).read();
+      final reopened = await MemberSchemeStore(MemberSchemeFileStore(file))
+          .read();
       expect(reopened.schemes, [record()]);
     });
 
@@ -88,8 +83,9 @@ void main() {
 
       final mutated = readJson();
       mutated['futureDocKey'] = 'keep-doc';
-      ((mutated['schemes'] as List).single as Map<String, dynamic>)
-          ['futureEntryKey'] = 'keep-entry';
+      ((mutated['schemes'] as List).single
+              as Map<String, dynamic>)['futureEntryKey'] =
+          'keep-entry';
       file.writeAsStringSync(jsonEncode(mutated));
 
       final reopened = MemberSchemeStore(MemberSchemeFileStore(file));
@@ -123,10 +119,10 @@ void main() {
       await reopened.upsert(record(schemeId: 's2'));
       final written = readJson();
       expect(written['version'], 2);
-      expect(
-        (written['schemes'] as List).map((e) => (e as Map)['schemeId']),
-        ['s1', 's2'],
-      );
+      expect((written['schemes'] as List).map((e) => (e as Map)['schemeId']), [
+        's1',
+        's2',
+      ]);
       expect(written['futureDocKey'], 'keep-doc');
     });
 
@@ -134,14 +130,10 @@ void main() {
       final store = MemberSchemeStore(MemberSchemeFileStore(file));
       await store.upsert(record());
       final mutated = readJson();
-      (mutated['schemes'] as List).add({
-        'memberName': '坏条目',
-      });
+      (mutated['schemes'] as List).add({'memberName': '坏条目'});
       file.writeAsStringSync(jsonEncode(mutated));
 
-      final doc = await MemberSchemeStore(
-        MemberSchemeFileStore(file),
-      ).read();
+      final doc = await MemberSchemeStore(MemberSchemeFileStore(file)).read();
       expect(doc.schemes.map((s) => s.schemeId), ['s1']);
     });
 
@@ -161,9 +153,8 @@ void main() {
       expect(doc.schemes.length, 1);
       expect(doc.schemes.single.memberName, '小如改');
       expect(doc.schemes.single.markers, {'version': 4});
-      final reopened = await MemberSchemeStore(
-        MemberSchemeFileStore(file),
-      ).read();
+      final reopened = await MemberSchemeStore(MemberSchemeFileStore(file))
+          .read();
       expect(reopened.schemes, doc.schemes, reason: '替换落盘');
     });
 
@@ -183,9 +174,8 @@ void main() {
 
       final after = await store.remove('s1');
       expect(after.schemes.map((s) => s.schemeId), ['s2']);
-      final reopened = await MemberSchemeStore(
-        MemberSchemeFileStore(file),
-      ).read();
+      final reopened = await MemberSchemeStore(MemberSchemeFileStore(file))
+          .read();
       expect(reopened.schemes, after.schemes);
     });
 

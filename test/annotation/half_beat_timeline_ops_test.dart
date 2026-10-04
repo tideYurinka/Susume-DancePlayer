@@ -9,11 +9,11 @@ AnnotationTimeline timeline({
   List<HalfBeatLine> halfBeats = const [],
   Duration? rangeEnd,
 }) => AnnotationTimeline.normalized(
-      videoDuration: ms(30000),
-      rangeEnd: rangeEnd,
-      segmentLines: lines,
-      halfBeatLines: halfBeats,
-    );
+  videoDuration: ms(30000),
+  rangeEnd: rangeEnd,
+  segmentLines: lines,
+  halfBeatLines: halfBeats,
+);
 
 void main() {
   group('半拍线时间线模型不变式', () {
@@ -27,13 +27,10 @@ void main() {
           HalfBeatLine(position: ms(30000)), // 区间外（尾边界）剔除
         ],
       );
-      expect(
-        t.halfBeatLines,
-        [
-          HalfBeatLine(position: ms(3000)),
-          HalfBeatLine(position: ms(9000)),
-        ],
-      );
+      expect(t.halfBeatLines, [
+        HalfBeatLine(position: ms(3000)),
+        HalfBeatLine(position: ms(9000)),
+      ]);
     });
 
     test('区间收缩剔除界外半拍线（与分段线同规则）', () {
@@ -58,10 +55,7 @@ void main() {
 
     test('区间外抛 ArgumentError（新建被拒不是钳制）', () {
       expect(() => addHalfBeatLine(timeline(), ms(0)), throwsArgumentError);
-      expect(
-        () => addHalfBeatLine(timeline(), ms(30000)),
-        throwsArgumentError,
-      );
+      expect(() => addHalfBeatLine(timeline(), ms(30000)), throwsArgumentError);
     });
 
     test('半拍线与分段线可同位（互不排斥、分段几何不受影响）', () {

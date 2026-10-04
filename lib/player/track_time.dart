@@ -68,10 +68,7 @@ class TimelineAxis {
 
   /// 是否无可用映射（[total] ≤ 0、内容区宽 ≤ 0 或可视窗口退化）→ 换算
   /// 短路返回 0/zero。
-  bool get isEmpty =>
-      total <= Duration.zero ||
-      _span <= 0 ||
-      _end <= _start;
+  bool get isEmpty => total <= Duration.zero || _span <= 0 || _end <= _start;
 
   /// 时间 → 横向像素：可视窗口 [start,end] 满宽映射到 `[contentLeft, width]`，越界
   /// 钳制（窗口内元素映射到窗口两端）。
@@ -98,9 +95,7 @@ class TimelineAxis {
     var xc = x - contentLeft;
     if (xc < 0) xc = 0;
     if (xc > _span) xc = _span;
-    return Duration(
-      microseconds: startUs + (xc / _span * spanUs).round(),
-    );
+    return Duration(microseconds: startUs + (xc / _span * spanUs).round());
   }
 }
 
@@ -151,8 +146,7 @@ class TimelineWindow {
   bool contains(Duration t) => t >= start && t <= end;
 
   /// 每像素微秒数（边缘平移换算用）。
-  double microsecondsPerPixel(double width) =>
-      visible.inMicroseconds / width;
+  double microsecondsPerPixel(double width) => visible.inMicroseconds / width;
 
   /// 平移可视窗口 [delta]（正 = 窗口右移、看更晚的内容），窗口时长不变、
   /// 结果钳制在 `[0, total]` 内。
@@ -180,19 +174,12 @@ class TimelineWindow {
   ///
   /// 结果钳制：可视时长 ∈ `[min(total, kMinZoomVisibleDuration), total]`、
   /// 窗口 ∈ `[0, total]`（接近全宽的微尘误差吸附为全宽）。
-  TimelineWindow zoomed({
-    required Duration anchor,
-    required double factor,
-  }) {
+  TimelineWindow zoomed({required Duration anchor, required double factor}) {
     if (!isValid || factor <= 0) return this;
     final totalUs = total.inMicroseconds;
     final visibleUs = visible.inMicroseconds;
-    final minUs = math.min(
-      kMinZoomVisibleDuration.inMicroseconds,
-      totalUs,
-    );
-    var targetUs =
-        (visibleUs / factor).round().clamp(minUs, totalUs);
+    final minUs = math.min(kMinZoomVisibleDuration.inMicroseconds, totalUs);
+    var targetUs = (visibleUs / factor).round().clamp(minUs, totalUs);
     if (totalUs - targetUs <= kFullViewSnapUs) targetUs = totalUs;
     // 锚在窗口内的相对位置（钳到 [0,1]；锚在窗外时贴边）。
     final anchorUs = anchor.inMicroseconds.toDouble();
@@ -216,8 +203,7 @@ class TimelineWindow {
     if (!isValid || contains(time)) return this;
     final totalUs = total.inMicroseconds;
     final visibleUs = visible.inMicroseconds;
-    final s = (time.inMicroseconds -
-            visibleUs * fraction.clamp(0.0, 1.0))
+    final s = (time.inMicroseconds - visibleUs * fraction.clamp(0.0, 1.0))
         .round()
         .clamp(0, totalUs - visibleUs);
     return TimelineWindow(

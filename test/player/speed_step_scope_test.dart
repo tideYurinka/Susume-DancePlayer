@@ -84,7 +84,9 @@ void main() {
       final timeline = AnnotationTimeline.normalized(
         videoDuration: const Duration(seconds: 30),
         rangeStart: const Duration(seconds: 5),
-        segmentLines: [const Duration(seconds: 10)].map((p) => SegmentLine(position: p)).toList(),
+        segmentLines: [const Duration(seconds: 10)]
+            .map((p) => SegmentLine(position: p))
+            .toList(),
       );
       final decision = resolveSpeedStepScope(
         timeline: timeline,
@@ -99,7 +101,9 @@ void main() {
       final timeline = AnnotationTimeline.normalized(
         videoDuration: const Duration(seconds: 30),
         rangeEnd: const Duration(seconds: 25),
-        segmentLines: [const Duration(seconds: 10)].map((p) => SegmentLine(position: p)).toList(),
+        segmentLines: [const Duration(seconds: 10)]
+            .map((p) => SegmentLine(position: p))
+            .toList(),
       );
       final decision = resolveSpeedStepScope(
         timeline: timeline,
@@ -123,10 +127,10 @@ void main() {
 
   group('selectedLearningSegmentRange（合并范围回归）', () {
     test('相邻多段合并范围 = 第一段段首至最后段段尾', () {
-      final range = selectedLearningSegmentRange(
-        timelineWithLines(),
-        const {0, 1},
-      );
+      final range = selectedLearningSegmentRange(timelineWithLines(), const {
+        0,
+        1,
+      });
       expect(range!.start, Duration.zero);
       expect(range.end, const Duration(seconds: 20));
     });

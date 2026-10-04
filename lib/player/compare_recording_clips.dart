@@ -27,9 +27,9 @@ import 'dart:io';
 import '../annotation/compare_materials.dart';
 import '../camera_capture/camera_capture.dart';
 import '../core/playback/playback_engine.dart';
-import '../persistence/material_manifest.dart'
-    show MaterialManifestDocument;
+import '../persistence/material_manifest.dart' show MaterialManifestDocument;
 import '../surface_direction/surface_direction.dart';
+
 import 'package:path/path.dart' as p;
 
 import 'camera_stage.dart';
@@ -182,8 +182,7 @@ abstract interface class CompareRecordingClipsHost {
 }
 
 /// [CompareRecordingClipsHost] 的闭包装配实现（宿主接线一处组装）。
-class CallbackCompareRecordingClipsHost
-    implements CompareRecordingClipsHost {
+class CallbackCompareRecordingClipsHost implements CompareRecordingClipsHost {
   CallbackCompareRecordingClipsHost({
     required this.addClipFromMaterialOf,
     required this.appendMaterialOf,
@@ -453,9 +452,7 @@ class CompareRecordingClips {
     if (current == CompareRecordingPhase.idle) {
       takeover.disengage();
     } else {
-      takeover.engage(
-        suppressLoop: current == CompareRecordingPhase.recording,
-      );
+      takeover.engage(suppressLoop: current == CompareRecordingPhase.recording);
     }
   }
 }

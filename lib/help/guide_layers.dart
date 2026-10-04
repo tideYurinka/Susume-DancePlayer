@@ -33,10 +33,8 @@ void _openFullDocument(
 ) {
   helpRootNavigatorState()?.push(
     MaterialPageRoute<void>(
-      builder: (_) => HelpDocumentPage(
-        documentId: documentId,
-        initialAnchor: anchor,
-      ),
+      builder: (_) =>
+          HelpDocumentPage(documentId: documentId, initialAnchor: anchor),
     ),
   );
 }
@@ -110,9 +108,7 @@ class OneShotGuideLayer extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                content?.title ??
-                                    copy.title ??
-                                    copy.message,
+                                content?.title ?? copy.title ?? copy.message,
                                 key: const Key('guide_one_shot_title'),
                                 style: theme.textTheme.titleMedium,
                               ),
@@ -139,11 +135,9 @@ class OneShotGuideLayer extends ConsumerWidget {
                                   ),
                                 )
                               else if (content == null)
-                                for (final line
-                                    in copy.message.split('\n')) ...[
-                                  Text(line),
-                                  const SizedBox(height: 4),
-                                ],
+                                for (final line in copy.message.split(
+                                  '\n',
+                                )) ...[Text(line), const SizedBox(height: 4)],
                             ],
                           ),
                         ),

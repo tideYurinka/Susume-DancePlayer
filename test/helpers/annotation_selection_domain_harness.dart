@@ -27,8 +27,7 @@ AnnotationSelectionDomain buildAnnotationSelectionDomain({
   return AnnotationSelectionDomain(
     store: container.read(annotationSelectionProvider.notifier),
     learningStore: container.read(selectedLearningSegmentsProvider.notifier),
-    timeline:
-        timeline ?? () => AnnotationTimeline.wholeVideo(Duration.zero),
+    timeline: timeline ?? () => AnnotationTimeline.wholeVideo(Duration.zero),
     memberSchemeReadonly: memberSchemeReadonly ?? () => false,
     writePort: port,
     localMirrorFragmentCount: localMirrorFragmentCount ?? () => 0,

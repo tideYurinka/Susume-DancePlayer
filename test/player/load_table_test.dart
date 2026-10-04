@@ -37,18 +37,15 @@ import '../helpers/in_memory_video_index_storage.dart';
 void main() {
   group('装载表：次序即声明次序', () {
     test('行序 = 恢复次序（编辑器公开标记 → 编辑器本地私密 → 偏好 → 名册 → 署名 → 镜像 → 续播）', () {
-      expect(
-        LoadTable.standard.rows.map((row) => row.id).toList(),
-        [
-          LoadRowId.editorPublicMarkers,
-          LoadRowId.editorLocalPrivate,
-          LoadRowId.preferences,
-          LoadRowId.roster,
-          LoadRowId.signature,
-          LoadRowId.mirror,
-          LoadRowId.resume,
-        ],
-      );
+      expect(LoadTable.standard.rows.map((row) => row.id).toList(), [
+        LoadRowId.editorPublicMarkers,
+        LoadRowId.editorLocalPrivate,
+        LoadRowId.preferences,
+        LoadRowId.roster,
+        LoadRowId.signature,
+        LoadRowId.mirror,
+        LoadRowId.resume,
+      ]);
     });
 
     test('行标识的声明次序与表行序一致（声明即事实）', () {
@@ -60,9 +57,8 @@ void main() {
     });
 
     test('顺序依赖由声明次序承载：时间线先于熟练度/激活段过滤，也先于续播 seek', () {
-      int positionOf(LoadRowId id) => LoadTable.standard.rows.indexWhere(
-            (row) => row.id == id,
-          );
+      int positionOf(LoadRowId id) =>
+          LoadTable.standard.rows.indexWhere((row) => row.id == id);
       expect(
         positionOf(LoadRowId.editorPublicMarkers),
         lessThan(positionOf(LoadRowId.editorLocalPrivate)),
@@ -75,8 +71,14 @@ void main() {
 
     test('列：文档来源与段逐行声明', () {
       LoadRow rowOf(LoadRowId id) => LoadTable.standard.rowFor(id);
-      expect(rowOf(LoadRowId.editorPublicMarkers).source, LoadSource.publicMarkers);
-      expect(rowOf(LoadRowId.editorLocalPrivate).source, LoadSource.localPrivate);
+      expect(
+        rowOf(LoadRowId.editorPublicMarkers).source,
+        LoadSource.publicMarkers,
+      );
+      expect(
+        rowOf(LoadRowId.editorLocalPrivate).source,
+        LoadSource.localPrivate,
+      );
       expect(rowOf(LoadRowId.preferences).source, LoadSource.localPrivate);
       expect(rowOf(LoadRowId.roster).source, LoadSource.publicMarkers);
       expect(rowOf(LoadRowId.mirror).source, LoadSource.indexEntry);
@@ -108,7 +110,10 @@ void main() {
       expect(defaults.delayedLoopBeats, 4);
       expect(defaults.layoutLocked, isFalse);
       // 打开恢复的复位函数与拍数回落读的就是这一份。
-      expect(LoadTable.standard.rowFor(LoadRowId.preferences).defaults, defaults);
+      expect(
+        LoadTable.standard.rowFor(LoadRowId.preferences).defaults,
+        defaults,
+      );
       expect(loadPreferenceDefaults, defaults);
     });
 
@@ -130,12 +135,21 @@ void main() {
     test('markers / local 全空：取值道落成表里声明的默认值', () async {
       final probe = await _open(markers: const {}, local: const {});
       final defaults = LoadDefaults.preferences;
-      expect(probe.container.read(previewSnapEnabledProvider), defaults.previewSnapEnabled);
-      expect(probe.container.read(delayedLoopProvider).beats, defaults.delayedLoopBeats);
+      expect(
+        probe.container.read(previewSnapEnabledProvider),
+        defaults.previewSnapEnabled,
+      );
+      expect(
+        probe.container.read(delayedLoopProvider).beats,
+        defaults.delayedLoopBeats,
+      );
       expect(probe.container.read(layoutLockedProvider), defaults.layoutLocked);
 
       // 文档行：空文档回落为空态（无分段线、无熟练度、无激活、无备注）。
-      expect(probe.container.read(annotationTimelineProvider).segmentLines, isEmpty);
+      expect(
+        probe.container.read(annotationTimelineProvider).segmentLines,
+        isEmpty,
+      );
       expect(probe.container.read(learningMasteryProvider), isEmpty);
       expect(probe.container.read(selectedLearningSegmentsProvider), isEmpty);
       expect(probe.container.read(noteStickersProvider), isEmpty);
@@ -167,19 +181,27 @@ void main() {
       );
 
       // 在读的段恢复。
-      expect(probe.container.read(annotationTimelineProvider).segmentLines.length, 1);
       expect(
-        probe.container.read(learningMasteryProvider),
-        {1: LearningMastery.learning},
+        probe.container.read(annotationTimelineProvider).segmentLines.length,
+        1,
       );
+      expect(probe.container.read(learningMasteryProvider), {
+        1: LearningMastery.learning,
+      });
       expect(probe.container.read(selectedLearningSegmentsProvider), {1});
 
       // 缺的段回落：备注 / 局部镜像片段为空，偏好三值落表默认。
       expect(probe.container.read(noteStickersProvider), isEmpty);
       expect(probe.container.read(localMirrorFragmentsProvider), isEmpty);
       final defaults = LoadDefaults.preferences;
-      expect(probe.container.read(previewSnapEnabledProvider), defaults.previewSnapEnabled);
-      expect(probe.container.read(delayedLoopProvider).beats, defaults.delayedLoopBeats);
+      expect(
+        probe.container.read(previewSnapEnabledProvider),
+        defaults.previewSnapEnabled,
+      );
+      expect(
+        probe.container.read(delayedLoopProvider).beats,
+        defaults.delayedLoopBeats,
+      );
       expect(probe.container.read(layoutLockedProvider), defaults.layoutLocked);
     });
   });
@@ -201,9 +223,7 @@ Future<_Probe> _open({
       playbackEngineProvider.overrideWithValue(engine),
       videoIndexStoreProvider.overrideWithValue(indexStorage),
       contentHasherProvider.overrideWithValue(const FixedHasher('hash-1')),
-      videoDocumentStorageFactoryProvider.overrideWithValue(
-        (_) => docStorage,
-      ),
+      videoDocumentStorageFactoryProvider.overrideWithValue((_) => docStorage),
       beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
     ],
   );
@@ -226,10 +246,9 @@ Future<_Probe> _open({
         container.read(videoDocumentCoordinatorProvider(videoId)),
   );
   await session.establish();
-  await container.read(videoOpenRestorerProvider).resolve(
-        session: session,
-        videoDuration: engine.duration!,
-      );
+  await container
+      .read(videoOpenRestorerProvider)
+      .resolve(session: session, videoDuration: engine.duration!);
   return _Probe(container);
 }
 

@@ -24,13 +24,19 @@ void main() {
   /// 注入窗内备注并泵入宿主 Stack；四角工具按角序渲染。
   /// 工具回调按宿主接线实现（删除经模块命令、编辑器开唯一编辑器面），跳转
   /// 记一次调用（进编辑态归宿主编排），返回记录器供断言。
-  Future<({NoteStickerOverlayRegistration registration, ProviderContainer container, List<String> taps})> pumpOverlay(
+  Future<
+    ({
+      NoteStickerOverlayRegistration registration,
+      ProviderContainer container,
+      List<String> taps,
+    })
+  >
+  pumpOverlay(
     WidgetTester tester, {
     int positionMs = 3000,
     NoteStickerOverlayRegistration? registration,
   }) async {
-    final noteRegistration =
-        registration ?? NoteStickerOverlayRegistration();
+    final noteRegistration = registration ?? NoteStickerOverlayRegistration();
     final taps = <String>[];
     final container = ProviderContainer(
       overrides: [
@@ -40,9 +46,7 @@ void main() {
     addTearDown(container.dispose);
     container
         .read(annotationEditorProvider)
-        .restoreDocument(
-          const AnnotationRestoreDocument(notes: [note]),
-        );
+        .restoreDocument(const AnnotationRestoreDocument(notes: [note]));
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -111,14 +115,18 @@ void main() {
       final registration = (await pumpOverlay(tester)).registration;
       registration.select();
       await tester.pump();
-      final border = tester.getRect(find.byKey(const Key('note_sticker_selected')));
+      final border = tester.getRect(
+        find.byKey(const Key('note_sticker_selected')),
+      );
       final delete = tester.getRect(
         find.byKey(const Key('note_sticker_tool_delete')),
       );
       final editor = tester.getRect(
         find.byKey(const Key('note_sticker_tool_open_editor')),
       );
-      final jump = tester.getRect(find.byKey(const Key('note_sticker_tool_jump')));
+      final jump = tester.getRect(
+        find.byKey(const Key('note_sticker_tool_jump')),
+      );
       final lock = tester.getRect(
         find.byKey(const Key('note_sticker_tool_lock')),
       );
@@ -242,8 +250,7 @@ void main() {
       expect(container.read(noteStickersProvider).single, note);
     });
 
-    testWidgets('右上打开编辑器：与轨片段单击进同一个面（同编辑目标位）',
-        (tester) async {
+    testWidgets('右上打开编辑器：与轨片段单击进同一个面（同编辑目标位）', (tester) async {
       final handle = await pumpOverlay(tester);
       final container = handle.container;
       handle.registration.select();
@@ -258,8 +265,7 @@ void main() {
       );
     });
 
-    testWidgets('左下跳转：回调宿主（进编辑态 + 定位高亮归宿主编排）',
-        (tester) async {
+    testWidgets('左下跳转：回调宿主（进编辑态 + 定位高亮归宿主编排）', (tester) async {
       final handle = await pumpOverlay(tester);
       handle.registration.select();
       await tester.pump();
@@ -286,8 +292,7 @@ void main() {
       expect(container.read(noteStickersProvider).single.locked, isFalse);
     });
 
-    testWidgets('已锁备注：锁角显示闭锁图标，再点解锁；其余角工具仍可用',
-        (tester) async {
+    testWidgets('已锁备注：锁角显示闭锁图标，再点解锁；其余角工具仍可用', (tester) async {
       final handle = await pumpOverlay(tester);
       final container = handle.container;
       container
@@ -301,17 +306,13 @@ void main() {
       await tester.pump();
       expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
       // 已锁不锁死：其余角工具照常在位（点选/角工具不受锁影响）。
-      expect(
-        find.byKey(const Key('note_sticker_tool_delete')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('note_sticker_tool_delete')), findsOneWidget);
       await tester.tap(find.byKey(const Key('note_sticker_tool_lock')));
       await tester.pump();
       expect(container.read(noteStickersProvider).single.locked, isFalse);
     });
 
-    testWidgets('锁定态即时反映：锁角图标随 locked 字段切换（与 22 标识同源）',
-        (tester) async {
+    testWidgets('锁定态即时反映：锁角图标随 locked 字段切换（与 22 标识同源）', (tester) async {
       final handle = await pumpOverlay(tester);
       handle.registration.select();
       await tester.pump();

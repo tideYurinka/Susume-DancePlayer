@@ -66,7 +66,9 @@ DateTime _atPushHour(DateTime localDay) =>
     DateTime(localDay.year, localDay.month, localDay.day, kPushDeliveryHour);
 
 DateTime? _eventStartTimeOfDay(PlanEvent event) {
-  final minutes = event.startTime == null ? null : tryParseHhMm(event.startTime!);
+  final minutes = event.startTime == null
+      ? null
+      : tryParseHhMm(event.startTime!);
   if (minutes == null) return null;
   return DateTime(
     event.date.year,

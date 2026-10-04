@@ -230,11 +230,7 @@ void main() {
       // 在 1 号分段线处插线：原段 0 不受影响；原段 1（×2）切成新 1/2
       // 两段，均继承 ×2。
       expect(split, const {0: 0.5, 1: 2.0, 2: 2.0});
-      expect(
-        densities,
-        const <int, double>{0: 0.5, 1: 2.0},
-        reason: '原表不变',
-      );
+      expect(densities, const <int, double>{0: 0.5, 1: 2.0}, reason: '原表不变');
     });
 
     test('插线：原段无逐段档时切割不产生键（稀疏不变式）；负线索引被拒', () {
@@ -332,7 +328,8 @@ void main() {
           densities: const {0: 0.5, 1: 2.0},
         ),
         const {0: 0.5, 1: 2.0},
-        reason: '新段 0 [0,32) 与旧段 1 [32,48) 触界不相交 → 只继承旧段 0；'
+        reason:
+            '新段 0 [0,32) 与旧段 1 [32,48) 触界不相交 → 只继承旧段 0；'
             '新段 1 [32,64) 与旧段 1 相交 → ×2',
       );
       expect(
@@ -381,7 +378,10 @@ void main() {
       final result = rebakeLearningSegmentAttributes(
         oldTimeline: oldTimeline,
         newTimeline: newTimeline,
-        mastery: const {0: LearningMastery.keepingUp, 2: LearningMastery.mastered},
+        mastery: const {
+          0: LearningMastery.keepingUp,
+          2: LearningMastery.mastered,
+        },
         emphasis: const {1, 3},
       );
 
@@ -464,7 +464,10 @@ void main() {
       final result = rebakeLearningSegmentAttributes(
         oldTimeline: partition(const [s16, s32, s48]),
         newTimeline: partition(const [s16, s32, s48]),
-        mastery: const {0: LearningMastery.mastered, 9: LearningMastery.familiar},
+        mastery: const {
+          0: LearningMastery.mastered,
+          9: LearningMastery.familiar,
+        },
         emphasis: const {9},
       );
 

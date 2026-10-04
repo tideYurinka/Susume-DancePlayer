@@ -69,14 +69,12 @@ List<int> heatmapQuantileBounds(
   );
   final totals = dailyPracticeTotals(records);
   final counts = dailyPracticeSessionCounts(records);
-  final values =
-      [
-        for (final entry in totals.entries)
-          // 窗口（滚动 53 周）外与今天之后的非零日都不入分位集合。
-          if (!entry.key.isBefore(firstDay) && !entry.key.isAfter(today))
-            statsMetricValue(entry.value, counts[entry.key] ?? 0, metric),
-      ].where((value) => value > 0).toList()
-        ..sort();
+  final values = [
+    for (final entry in totals.entries)
+      // 窗口（滚动 53 周）外与今天之后的非零日都不入分位集合。
+      if (!entry.key.isBefore(firstDay) && !entry.key.isAfter(today))
+        statsMetricValue(entry.value, counts[entry.key] ?? 0, metric),
+  ].where((value) => value > 0).toList()..sort();
   return [
     for (final p in const [0.25, 0.50, 0.75]) _nearestRank(values, p),
   ].whereType<int>().toList();
@@ -125,13 +123,22 @@ List<HeatmapWeek> yearHeatmapWeeks(
   List<int>? bounds,
 }) {
   final today = localDay(now);
-  final resolvedBounds = bounds ?? heatmapQuantileBounds(records, now: now, metric: metric);
+  final resolvedBounds =
+      bounds ?? heatmapQuantileBounds(records, now: now, metric: metric);
   final totals = dailyPracticeTotals(records);
   final counts = dailyPracticeSessionCounts(records);
   final thisMonday = practiceStatsWeekStart(today);
   return [
     for (var weeksBack = _weekCount - 1; weeksBack >= 0; weeksBack--)
-      _week(thisMonday, weeksBack, today, totals, counts, metric, resolvedBounds),
+      _week(
+        thisMonday,
+        weeksBack,
+        today,
+        totals,
+        counts,
+        metric,
+        resolvedBounds,
+      ),
   ];
 }
 

@@ -266,8 +266,11 @@ void main() {
       ],
     );
     final codec =
-        ListDocumentCodec<PracticePlanDocument, DancePlanEntry,
-            DancePlanEntryField>(
+        ListDocumentCodec<
+          PracticePlanDocument,
+          DancePlanEntry,
+          DancePlanEntryField
+        >(
           policy: policy,
           listKey: 'entries',
           elementCodec: DancePlanEntry.codec,
@@ -690,18 +693,19 @@ void main() {
       expect(ok, isTrue);
       expect(storage.savedJson, backupJson);
       expect(await store.ddlOf('old'), isNull); // 替换不是合并
-      final expected = ddl(
-        '2026-10-01',
-        occasion: '演出',
-        remark: '道具扇子',
-        leadDays: 3,
-        checklist: const [PlanChecklistItem(text: '带水', checked: true)],
-      ).withSettlement(
-        DdlSettlement(
-          outcome: DdlSettlementOutcome.onTime,
-          judgedOn: DateTime(2026, 10, 2),
-        ),
-      );
+      final expected =
+          ddl(
+            '2026-10-01',
+            occasion: '演出',
+            remark: '道具扇子',
+            leadDays: 3,
+            checklist: const [PlanChecklistItem(text: '带水', checked: true)],
+          ).withSettlement(
+            DdlSettlement(
+              outcome: DdlSettlementOutcome.onTime,
+              judgedOn: DateTime(2026, 10, 2),
+            ),
+          );
       expect(await store.ddlOf('v1'), expected);
       // 随舞曲库开关：开关关着的条目随原文落位（缺项按开）。
       expect(await store.socialLibraryEnabledOf('v1'), isFalse);
@@ -785,7 +789,10 @@ void main() {
     });
 
     test('removeDance：该舞条目整条移除、事件保留且关联清单少一项（可为空）', () async {
-      await store.setDdl(videoId: 'v1', ddl: ddl('2026-10-01', remark: '备注'));
+      await store.setDdl(
+        videoId: 'v1',
+        ddl: ddl('2026-10-01', remark: '备注'),
+      );
       await store.setDdl(videoId: 'v2', ddl: ddl('2026-11-05'));
       await store.saveEvent(
         PlanEvent(
@@ -795,7 +802,11 @@ void main() {
         ),
       );
       await store.saveEvent(
-        PlanEvent(id: 'e2', date: DateTime(2026, 12, 1), danceIds: const ['v1']),
+        PlanEvent(
+          id: 'e2',
+          date: DateTime(2026, 12, 1),
+          danceIds: const ['v1'],
+        ),
       );
 
       expect(await store.removeDance('v1'), isTrue);

@@ -113,8 +113,10 @@ class MirrorController extends ChangeNotifier {
   bool _mirrored = false;
   bool _localMirrorEnabled = true;
   String? _filePath;
+
   /// 打开会话给出的已确认身份（镜像读写都锚定它，不各自解析索引条目）。
   String? _videoId;
+
   /// 会话给出的已确认条目（仅摘要相符时非空）：镜像历史判定与首建初值
   /// 只读它——摘要不符 / 无条目时按新视频，不套用旧条目。
   VideoIndexEntry? _entry;
@@ -243,10 +245,8 @@ class MirrorController extends ChangeNotifier {
   Future<void> _persist(String filePath, bool value) => _persistThrough(
     filePath,
     // 作答按 video_id 存取并标记「已询问」；该标记就位才算条目可用。
-    writeIndex: (index) => index.setMirrorAnswerByFilePath(
-      filePath,
-      mirrored: value,
-    ),
+    writeIndex: (index) =>
+        index.setMirrorAnswerByFilePath(filePath, mirrored: value),
     entryReady: (entry) => entry.mirrorAsked,
     writeMarkers: () => _patchMarkers((seeded) => seeded.withMirrored(value)),
     failureLog: '镜像状态持久化失败',
@@ -483,10 +483,7 @@ class MirrorOverlay extends StatelessWidget {
               child: IgnorePointer(
                 child: Center(
                   child: const NoticeBadge(
-                    child: Text(
-                      '已按历史应用镜像',
-                      style: kNoticeTextStyle,
-                    ),
+                    child: Text('已按历史应用镜像', style: kNoticeTextStyle),
                   ),
                 ),
               ),
@@ -519,10 +516,7 @@ class _QuestionCard extends StatelessWidget {
   ];
 
   /// 右栏「需要镜像」的适用场景（逐字）。
-  static const List<String> _yesItems = [
-    '没有镜像处理过的原始视频',
-    '正片、舞台、练习室、比赛等作品',
-  ];
+  static const List<String> _yesItems = ['没有镜像处理过的原始视频', '正片、舞台、练习室、比赛等作品'];
 
   @override
   Widget build(BuildContext context) {

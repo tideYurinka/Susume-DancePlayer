@@ -32,16 +32,13 @@ PlanEvent social(
   leadDays: leadDays,
 );
 
-PlanEvent teamCheck(
-  String id, {
-  required DateTime date,
-  int? leadDays,
-}) => PlanEvent(
-  id: id,
-  type: kPlanEventTypeTeamCheck,
-  date: date,
-  leadDays: leadDays,
-);
+PlanEvent teamCheck(String id, {required DateTime date, int? leadDays}) =>
+    PlanEvent(
+      id: id,
+      type: kPlanEventTypeTeamCheck,
+      date: date,
+      leadDays: leadDays,
+    );
 
 void main() {
   final now = day('2026-10-10').add(const Duration(hours: 12));
@@ -127,10 +124,7 @@ void main() {
         now: now,
       );
       expect(schedules.keys, ['event-lead:e1']);
-      expect(
-        schedules['event-lead:e1']!.deliverAt,
-        day('2026-10-18 19:30'),
-      );
+      expect(schedules['event-lead:e1']!.deliverAt, day('2026-10-18 19:30'));
     });
 
     test('团内检查与未填开始时间的随舞事件：投递在目标日减 N 天的 09:00', () {
@@ -150,9 +144,7 @@ void main() {
     test('投递时刻已过的排程不产生（含提前量落在过去）', () {
       final schedules = planPushSchedules(
         entries: [entry('v1', ddlDate: day('2026-10-10'), leadDays: 5)],
-        events: [
-          social('e1', date: day('2026-10-10'), leadDays: 1),
-        ],
+        events: [social('e1', date: day('2026-10-10'), leadDays: 1)],
         fullyMasteredIds: const {},
         now: now,
       );
@@ -280,10 +272,7 @@ void main() {
       );
       // 改期后剩 15 天，自动规则排程随旧 DDL 一并取消。
       expect(port.cancelled, ['ddl-lead:v1', 'ddl-auto:v1']);
-      expect(
-        port.scheduled['ddl-lead:v1']!.deliverAt,
-        day('2026-10-22 09:00'),
-      );
+      expect(port.scheduled['ddl-lead:v1']!.deliverAt, day('2026-10-22 09:00'));
     });
 
     test('删除事件：其排程被取消', () async {

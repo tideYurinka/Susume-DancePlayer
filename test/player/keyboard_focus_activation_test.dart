@@ -316,8 +316,11 @@ void main() {
       if (current == nodeOfEntry(tester, playKey)) reached.add(playKey);
       if (current == nodeOfEntry(tester, rotateKey)) reached.add(rotateKey);
     }
-    expect(reached, containsAll(<Key>[backKey, playKey, rotateKey]),
-        reason: 'Tab 遍历必须可达返回、播放开关、转屏钮');
+    expect(
+      reached,
+      containsAll(<Key>[backKey, playKey, rotateKey]),
+      reason: 'Tab 遍历必须可达返回、播放开关、转屏钮',
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();

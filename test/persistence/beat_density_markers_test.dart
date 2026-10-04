@@ -18,10 +18,7 @@ void main() {
   group('corrections 段节拍倍频字段', () {
     test('缺省 = 原样：不写 density 键；读回为 1', () {
       final json = MarkersDocument(beat: grid()).toJson();
-      expect(
-        (json['corrections'] as Map).containsKey('density'),
-        isFalse,
-      );
+      expect((json['corrections'] as Map).containsKey('density'), isFalse);
       final restored = MarkersDocument.fromJson(json);
       expect(restored.beat?.density, 1);
     });
@@ -64,7 +61,10 @@ void main() {
             {'t': 0.5, 'down': true},
           ],
         },
-        'corrections': {'density': 2, 'futureKey': {'a': 1}},
+        'corrections': {
+          'density': 2,
+          'futureKey': {'a': 1},
+        },
       });
       expect(doc.beat?.density, 2);
       expect(doc.correctionsExtra, {
@@ -84,7 +84,10 @@ void main() {
             {'t': 0.5, 'down': true},
           ],
         },
-        'corrections': {'shift': 0.25, 'anchors': [4]},
+        'corrections': {
+          'shift': 0.25,
+          'anchors': [4],
+        },
       });
       expect(doc.beat?.density, 1);
       expect(doc.beat?.shift, 0.25);

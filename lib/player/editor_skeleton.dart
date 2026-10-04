@@ -34,8 +34,7 @@ library;
 import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect, Size;
 
-import 'visual_tokens.dart'
-    show kHitTargetMinSize, kCornerPromptCardPaddingV;
+import 'visual_tokens.dart' show kHitTargetMinSize, kCornerPromptCardPaddingV;
 
 /// 编辑面顶栏名义行高（dp）：返回钮 + 工具槽行 + 上下内边距的既有实测值。
 /// 只进骨架分配，不改顶栏本身的布局。
@@ -217,7 +216,9 @@ EditorSkeleton editorSkeletonFor({
   final known = ratio != null && ratio > 0;
   final containHeight = known ? screen.width / ratio : 0.0;
   // 盒高封顶在未取景时的画面矩形高（源画面满宽 contain 高）。
-  final unframedHeight = sourceKnown ? screen.width / sourceRatio : containHeight;
+  final unframedHeight = sourceKnown
+      ? screen.width / sourceRatio
+      : containHeight;
   final stick = known && containHeight <= pictureAreaHeight;
   final bandHeight = stick ? math.min(containHeight, unframedHeight) : 0.0;
   return EditorSkeleton(
@@ -442,7 +443,7 @@ double cancelZoneRadius(Rect pictureRect) => math.min(
 /// 为圆心、[cancelZoneRadius] 为半径的四分之一圆扇形——扇内（含半径边界等号
 /// 档）待取消；方形角区内但扇形外的角落不待取消；画面外（dx 或 dy 为负）不
 /// 待取消。判据用平方距离，不开根。
-bool focalInCancelZone({ required Rect pictureRect, required Offset focal }) {
+bool focalInCancelZone({required Rect pictureRect, required Offset focal}) {
   final dx = focal.dx - pictureRect.left;
   final dy = focal.dy - pictureRect.top;
   if (dx < 0 || dy < 0) return false;

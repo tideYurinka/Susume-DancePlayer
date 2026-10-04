@@ -40,7 +40,14 @@ library;
 
 /// 练习视频轨 / 备注轨 / 局部镜像轨 / 学习段轨 / 节拍轨 / 轨道手柄带行
 /// 六行的标识。
-enum TrackRowId { practiceVideo, note, localMirror, learning, beat, handleStrip }
+enum TrackRowId {
+  practiceVideo,
+  note,
+  localMirror,
+  learning,
+  beat,
+  handleStrip,
+}
 
 /// 行间间隙（dp）：具名常量，normal 行集与其余行集共用同一取值。
 const double kTrackRowGap = 10;
@@ -99,9 +106,7 @@ class TrackRowRect {
 
   @override
   bool operator ==(Object other) =>
-      other is TrackRowRect &&
-      other.top == top &&
-      other.height == height;
+      other is TrackRowRect && other.top == top && other.height == height;
 
   @override
   int get hashCode => Object.hash(top, height);

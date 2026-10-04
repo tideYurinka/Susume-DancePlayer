@@ -167,7 +167,12 @@ void main() {
       // 真机竖屏基准 361.1×781.7、普通行集：「未取景」带高 = 361.1 ÷ 16/9
       // ≈ 203.12、带顶 ≈ 62.58。选区宽 0.5、高 0.6 → 内容比 ≈ 1.4815。
       const sourceRatio = 16 / 9;
-      const selection = FramingSelection(left: 0.25, top: 0.2, right: 0.75, bottom: 0.8);
+      const selection = FramingSelection(
+        left: 0.25,
+        top: 0.2,
+        right: 0.75,
+        bottom: 0.8,
+      );
       final skeleton = editorSkeletonFor(
         screen: const Size(361.1, 781.7),
         trackBandHeight: 208,
@@ -184,11 +189,18 @@ void main() {
       const bandHeight = 203.11875;
       const stageTop = kEditorTopBarHeight + 62.58125;
       expect(framed.height, closeTo(bandHeight, 0.01), reason: '盒高封顶在未取景画面矩形高');
-      expect(framed.bottom, closeTo(stageTop + bandHeight, 0.01), reason: '底边贴画面区下缘');
+      expect(
+        framed.bottom,
+        closeTo(stageTop + bandHeight, 0.01),
+        reason: '底边贴画面区下缘',
+      );
       expect(framed.top, closeTo(stageTop, 0.01), reason: '顶边不上移');
       expect(framed.width, lessThan(361.1), reason: '选区更「高」→ 左右留黑');
       // 显示宽 = 带高 × 内容比 ≈ 203.12 × 1.4815 ≈ 300.9，水平居中。
-      expect(framed.width, closeTo(bandHeight * selection.contentAspectRatio(sourceRatio), 0.05));
+      expect(
+        framed.width,
+        closeTo(bandHeight * selection.contentAspectRatio(sourceRatio), 0.05),
+      );
       expect(framed.center.dx, closeTo(361.1 / 2, 0.01));
     });
   });

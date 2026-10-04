@@ -148,9 +148,7 @@ void main() {
     // notes 段（备注贴纸，独立 lane）。
     before = snapshot();
     after = snapshot(
-      notes: const [
-        NoteSticker(startMs: 1000, endMs: 9000, text: '这里注意手'),
-      ],
+      notes: const [NoteSticker(startMs: 1000, endMs: 9000, text: '这里注意手')],
     );
     diff = foldSectionDiff(before, after);
     expect(diff.notes, const [
@@ -203,13 +201,9 @@ void main() {
         ),
       ),
       (
+        snapshot(notes: const [NoteSticker(startMs: 1000, endMs: 9000)]),
         snapshot(
-          notes: const [NoteSticker(startMs: 1000, endMs: 9000)],
-        ),
-        snapshot(
-          notes: const [
-            NoteSticker(startMs: 1000, endMs: 9000, locked: true),
-          ],
+          notes: const [NoteSticker(startMs: 1000, endMs: 9000, locked: true)],
         ),
       ),
     ];

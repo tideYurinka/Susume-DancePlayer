@@ -71,9 +71,7 @@ String? _targetOf(String filePath, String import) {
     return 'lib/${import.substring('package:dance_learning_app/'.length)}';
   }
   if (import.startsWith('package:')) return null;
-  return p
-      .normalize(p.join(p.dirname(filePath), import))
-      .replaceAll(r'\', '/');
+  return p.normalize(p.join(p.dirname(filePath), import)).replaceAll(r'\', '/');
 }
 
 /// 目标路径所属的上下文目录名（`lib/<主模块>/...`）；不在上下文内返回 null。

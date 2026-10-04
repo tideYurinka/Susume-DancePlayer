@@ -21,7 +21,9 @@ void main() {
 
   final markers = <String, Object?>{
     'version': 8,
-    'meta': <String, Object?>{'signature': <String, Object?>{'song': '野狼disco'}},
+    'meta': <String, Object?>{
+      'signature': <String, Object?>{'song': '野狼disco'},
+    },
     'annotations': <String, Object?>{'segmentLines': <Object?>[]},
   };
 
@@ -102,15 +104,21 @@ void main() {
       await writeStoredZip(file, [
         (
           name: 'manifest.json',
-          bytes: utf8.encode(jsonEncode({
-            'version': kSusumePackageFormatVersion,
-            'videoId': 'vid123',
-            'schemeName': '野狼disco',
-            'schemeId': 'scheme-abc',
-          })),
+          bytes: utf8.encode(
+            jsonEncode({
+              'version': kSusumePackageFormatVersion,
+              'videoId': 'vid123',
+              'schemeName': '野狼disco',
+              'schemeId': 'scheme-abc',
+            }),
+          ),
           file: null,
         ),
-        (name: 'markers.json', bytes: utf8.encode(jsonEncode(markers)), file: null),
+        (
+          name: 'markers.json',
+          bytes: utf8.encode(jsonEncode(markers)),
+          file: null,
+        ),
       ]);
 
       final pkg = await readSusumePackage(file.path);
@@ -140,10 +148,7 @@ void main() {
       final out = File('${tempDir.path}/p.susume');
       await writeSusumePackage(
         output: out,
-        manifest: manifest(
-          memberName: '果',
-          mastery: const {1: 2, 3: 4},
-        ),
+        manifest: manifest(memberName: '果', mastery: const {1: 2, 3: 4}),
         markers: markers,
       );
 
@@ -154,8 +159,11 @@ void main() {
 
     test('带媒体：解析出的媒体清单与字节一致', () async {
       final out = File('${tempDir.path}/p.susume');
-      final video = mediaSource('source.mp4', kind: SusumeMediaKind.sourceVideo,
-          bytes: List.generate(100000, (i) => i % 256));
+      final video = mediaSource(
+        'source.mp4',
+        kind: SusumeMediaKind.sourceVideo,
+        bytes: List.generate(100000, (i) => i % 256),
+      );
       final clip = mediaSource('clip_1.mp4', bytes: [9, 8, 7]);
       await writeSusumePackage(
         output: out,
@@ -182,7 +190,11 @@ void main() {
       final out = File(
         '${tempDir.path}/${susumePackageFileName(songName: '野狼disco', videoFileName: 'v.mp4')}',
       );
-      await writeSusumePackage(output: out, manifest: manifest(), markers: markers);
+      await writeSusumePackage(
+        output: out,
+        manifest: manifest(),
+        markers: markers,
+      );
       expect(out.existsSync(), isTrue);
     });
   });
@@ -193,7 +205,10 @@ void main() {
       final encoder = ZipFileEncoder();
       encoder.create(out.path);
       encoder.addArchiveFile(
-        ArchiveFile.bytes('manifest.json', utf8.encode(jsonEncode(manifestJson))),
+        ArchiveFile.bytes(
+          'manifest.json',
+          utf8.encode(jsonEncode(manifestJson)),
+        ),
       );
       encoder.addArchiveFile(
         ArchiveFile.bytes('markers.json', utf8.encode(jsonEncode(markers))),
@@ -450,31 +465,33 @@ void main() {
       );
     });
 
-    test('整机装配不收 payload 即 ArgumentError；舞级装配收 payload 即 ArgumentError',
-        () async {
-      await expectLater(
-        writeSusumePackage(
-          output: File('${tempDir.path}/a.susume'),
-          manifest: const SusumeManifest(
-            kind: SusumePackageKind.backup,
-            videoId: '',
-            schemeName: '',
-            schemeId: '',
+    test(
+      '整机装配不收 payload 即 ArgumentError；舞级装配收 payload 即 ArgumentError',
+      () async {
+        await expectLater(
+          writeSusumePackage(
+            output: File('${tempDir.path}/a.susume'),
+            manifest: const SusumeManifest(
+              kind: SusumePackageKind.backup,
+              videoId: '',
+              schemeName: '',
+              schemeId: '',
+            ),
+            markers: const {},
           ),
-          markers: const {},
-        ),
-        throwsArgumentError,
-      );
-      await expectLater(
-        writeSusumePackage(
-          output: File('${tempDir.path}/b.susume'),
-          manifest: manifest(),
-          markers: markers,
-          backup: backupPayload,
-        ),
-        throwsArgumentError,
-      );
-    });
+          throwsArgumentError,
+        );
+        await expectLater(
+          writeSusumePackage(
+            output: File('${tempDir.path}/b.susume'),
+            manifest: manifest(),
+            markers: markers,
+            backup: backupPayload,
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
 
     test('整机包文件名带日期、不含舞名', () {
       final name = susumeBackupFileName(now: DateTime(2026, 9, 15, 9, 5));
@@ -485,8 +502,11 @@ void main() {
   group('zip 条目', () {
     test('一律 STORED（method 0）', () async {
       final out = File('${tempDir.path}/p.susume');
-      final big = mediaSource('big.mp4', kind: SusumeMediaKind.sourceVideo,
-          bytes: List.generate(500000, (i) => i % 7));
+      final big = mediaSource(
+        'big.mp4',
+        kind: SusumeMediaKind.sourceVideo,
+        bytes: List.generate(500000, (i) => i % 7),
+      );
       await writeSusumePackage(
         output: out,
         manifest: manifest(media: [big]),
@@ -496,7 +516,11 @@ void main() {
       final archive = ZipDecoder().decodeBytes(out.readAsBytesSync());
       final raw = out.readAsBytesSync();
       for (final f in archive.files) {
-        expect(f.compression, CompressionType.none, reason: '${f.name} 应为 STORED');
+        expect(
+          f.compression,
+          CompressionType.none,
+          reason: '${f.name} 应为 STORED',
+        );
       }
       // 按原始字节核本地文件头的 method 字段：只核名字段（签名后
       // offset 26 = 名长 uint16，offset 28 起）能对上包内已知条目名的
@@ -522,9 +546,10 @@ void main() {
         checked++;
       }
       expect(checked, 3, reason: '三个已知条目的本地文件头都应核到');
-      expect(archive.files.map((f) => f.name), containsAll(
-        <String>['manifest.json', 'markers.json', 'media/big.mp4'],
-      ));
+      expect(
+        archive.files.map((f) => f.name),
+        containsAll(<String>['manifest.json', 'markers.json', 'media/big.mp4']),
+      );
     });
   });
 }

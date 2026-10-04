@@ -65,7 +65,9 @@ import 'package:dance_learning_app/player/speed_control.dart';
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
 import 'package:dance_learning_app/player/track_time.dart';
+
 import '../helpers/video_surface.dart';
+
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
@@ -2094,7 +2096,8 @@ void main() {
       await tester.pumpAndSettle();
       // 点选只产生单元素集合；多段选中由长按圈选产生，此处直接布置。
       container.read(selectedLearningSegmentsProvider.notifier).state = const {
-        0, 1,
+        0,
+        1,
       };
       await tester.pumpAndSettle();
       expect(container.read(selectedLearningSegmentsProvider), const {0, 1});
@@ -2891,11 +2894,12 @@ void main() {
         currentPosition: const Duration(seconds: 30),
       );
       expect(
-      container.read(guideSessionProvider).criterionLatches.contains(
-        HandsOnCriterion.threeFingerJumpPerformed,
-      ),
-      isFalse,
-    );
+        container
+            .read(guideSessionProvider)
+            .criterionLatches
+            .contains(HandsOnCriterion.threeFingerJumpPerformed),
+        isFalse,
+      );
 
       await stepDragThreeFingers(
         tester,
@@ -2905,11 +2909,12 @@ void main() {
 
       expect(engine.seekCalls, hasLength(1), reason: '前置：三指跳转真的发生了');
       expect(
-      container.read(guideSessionProvider).criterionLatches.contains(
-        HandsOnCriterion.threeFingerJumpPerformed,
-      ),
-      isTrue,
-    );
+        container
+            .read(guideSessionProvider)
+            .criterionLatches
+            .contains(HandsOnCriterion.threeFingerJumpPerformed),
+        isTrue,
+      );
     });
 
     testWidgets('组合根把收起动作挂进「进观看态」注入点：请求即收起控制层；观看态下幂等', (tester) async {
@@ -2987,7 +2992,10 @@ void main() {
     testWidgets('窄屏（竖屏 360 逻辑宽）真实流程：胶囊贴右缘气泡完整进屏、倍速栏可达', (tester) async {
       // 竖屏可用宽不足以并排 → 上下堆叠，气泡宽回到 300 上限，
       // 水平钳制后完整进屏（左右留边）。
-      tester.view.physicalSize = const Size(720, 1440); // 合成档 360.0×720.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        720,
+        1440,
+      ); // 合成档 360.0×720.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
 
@@ -4253,13 +4261,19 @@ void main() {
   group('数拍浮层四格切格与重置', () {
     // 竖屏 600×1000 / 横屏 1000×600（转屏 = 视口宽高互换）。
     void setPortraitView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1200, 2000); // 合成档 600.0×1000.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1200,
+        2000,
+      ); // 合成档 600.0×1000.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
 
     void setLandscapeView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(2000, 1200); // 合成档 1000.0×600.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        2000,
+        1200,
+      ); // 合成档 1000.0×600.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -4931,9 +4945,7 @@ void main() {
       );
     }
 
-    testWidgets('激活临时段即 1｜1、不闪 0|8；起播后复位暂停也不冻结', (
-      tester,
-    ) async {
+    testWidgets('激活临时段即 1｜1、不闪 0|8；起播后复位暂停也不冻结', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       final container = await openEditorWithLines(tester, engine);
 

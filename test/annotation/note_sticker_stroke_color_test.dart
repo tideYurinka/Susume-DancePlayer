@@ -17,30 +17,42 @@ void main() {
   group('备注段描边取色', () {
     test('正文段固定黑边（不走亮度判据）', () {
       // 深色与浅色正文都描黑边——正文恒为白字，与底色无关。
-      expect(noteSegmentStrokeColor(0xFF000000, mention: false),
-          kNoteStrokeBlackColor);
-      expect(noteSegmentStrokeColor(0xFFFFFFFF, mention: false),
-          kNoteStrokeBlackColor);
-      expect(noteSegmentStrokeColor(0xFFFDD835, mention: false),
-          kNoteStrokeBlackColor);
+      expect(
+        noteSegmentStrokeColor(0xFF000000, mention: false),
+        kNoteStrokeBlackColor,
+      );
+      expect(
+        noteSegmentStrokeColor(0xFFFFFFFF, mention: false),
+        kNoteStrokeBlackColor,
+      );
+      expect(
+        noteSegmentStrokeColor(0xFFFDD835, mention: false),
+        kNoteStrokeBlackColor,
+      );
     });
 
     test('纯白点名固定描白边（不走亮度判据）', () {
-      expect(noteSegmentStrokeColor(0xFFFFFFFF, mention: true),
-          kNoteStrokeWhiteColor);
+      expect(
+        noteSegmentStrokeColor(0xFFFFFFFF, mention: true),
+        kNoteStrokeWhiteColor,
+      );
     });
 
     test('阈值 0.40 两侧：浅色点名描黑边', () {
       // 黄（亮度 ≈ 0.84 > 0.40）→ 黑边。
       const yellow = 0xFFFDD835;
       expect(luminanceOf(yellow), greaterThan(0.40));
-      expect(noteSegmentStrokeColor(yellow, mention: true),
-          kNoteStrokeBlackColor);
+      expect(
+        noteSegmentStrokeColor(yellow, mention: true),
+        kNoteStrokeBlackColor,
+      );
       // 近阈值浅侧：中灰偏亮（亮度 ≈ 0.5 > 0.40）→ 黑边。
       const lightGray = 0xFF808080;
       expect(luminanceOf(lightGray), greaterThan(0.40));
-      expect(noteSegmentStrokeColor(lightGray, mention: true),
-          kNoteStrokeBlackColor);
+      expect(
+        noteSegmentStrokeColor(lightGray, mention: true),
+        kNoteStrokeBlackColor,
+      );
     });
 
     test('阈值恰等 0.40：不走黑支（判据为严格大于）', () {
@@ -57,14 +69,15 @@ void main() {
       // 24 色板红（亮度 ≈ 0.423 > 0.40，判据的浅侧）→ 黑边。
       const red = 0xFFE53935;
       expect(luminanceOf(red), greaterThan(0.40));
-      expect(noteSegmentStrokeColor(red, mention: true),
-          kNoteStrokeBlackColor);
+      expect(noteSegmentStrokeColor(red, mention: true), kNoteStrokeBlackColor);
       // 近阈值深侧：中灰偏暗（亮度 ≈ 0.4 以下）→ 白边。0x64 = 100，
       // 亮度 = 100/255 ≈ 0.392 ≤ 0.40。
       const darkGray = 0xFF646464;
       expect(luminanceOf(darkGray), lessThanOrEqualTo(0.40));
-      expect(noteSegmentStrokeColor(darkGray, mention: true),
-          kNoteStrokeWhiteColor);
+      expect(
+        noteSegmentStrokeColor(darkGray, mention: true),
+        kNoteStrokeWhiteColor,
+      );
     });
 
     test('正文恒白：备注正文填充色为具名常量纯白', () {
@@ -74,8 +87,10 @@ void main() {
 
   group('纯白点名段外层黑边取色', () {
     test('纯白点名 → 黑', () {
-      expect(noteSegmentOuterStrokeColor(0xFFFFFFFF, mention: true),
-          kNoteStrokeBlackColor);
+      expect(
+        noteSegmentOuterStrokeColor(0xFFFFFFFF, mention: true),
+        kNoteStrokeBlackColor,
+      );
     });
 
     test('正文段（底色即便也是纯白）→ null', () {

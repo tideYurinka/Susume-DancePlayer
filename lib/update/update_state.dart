@@ -240,17 +240,19 @@ class UpdateController extends Notifier<UpdateState> {
     );
     final String filePath;
     try {
-      filePath = await ref.read(updateGatewayProvider).downloadApk(
-        url: manifest.apkUrl,
-        onProgress: (received, total) {
-          if (!ref.mounted || generation != _generation) return;
-          state = _copyWith(
-            phase: UpdateDownloadPhase.downloading,
-            received: received,
-            total: total > 0 ? total : manifest.size,
+      filePath = await ref
+          .read(updateGatewayProvider)
+          .downloadApk(
+            url: manifest.apkUrl,
+            onProgress: (received, total) {
+              if (!ref.mounted || generation != _generation) return;
+              state = _copyWith(
+                phase: UpdateDownloadPhase.downloading,
+                received: received,
+                total: total > 0 ? total : manifest.size,
+              );
+            },
           );
-        },
-      );
     } catch (_) {
       if (!ref.mounted || generation != _generation) return;
       state = _copyWith(phase: UpdateDownloadPhase.failed, received: 0);

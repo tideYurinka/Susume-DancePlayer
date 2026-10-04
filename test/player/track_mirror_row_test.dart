@@ -85,9 +85,8 @@ void main() {
       (ms / total.inMilliseconds) * (bandWidth - kTrackPrefixWidth);
 
   /// 紧窗下的 时间 → 全局 x（经本域时间轴，与渲染同源）。
-  double tightXOf(int ms) => axisFor(window: tightWindow).timeToX(
-    Duration(milliseconds: ms),
-  );
+  double tightXOf(int ms) =>
+      axisFor(window: tightWindow).timeToX(Duration(milliseconds: ms));
 
   IntervalBlockRect? expectedBlock(
     LocalMirrorFragment fragment, {
@@ -193,9 +192,7 @@ void main() {
   );
 
   group('片段块体渲染（块矩形与端点带）', () {
-    testWidgets('块左缘/宽与共用件 intervalBlockRect 求值逐位一致（含片头让位）', (
-      tester,
-    ) async {
+    testWidgets('块左缘/宽与共用件 intervalBlockRect 求值逐位一致（含片头让位）', (tester) async {
       const fragments = [
         LocalMirrorFragment(startMs: 8000, endMs: 12000),
         LocalMirrorFragment(startMs: 20000, endMs: 24000),
@@ -389,10 +386,7 @@ void main() {
       await tester.pumpWidget(
         mount(
           TrackMirrorRow(
-            input: buildInput(
-              axis: axisFor(),
-              onTapBlank: (_) => blankTaps++,
-            ),
+            input: buildInput(axis: axisFor(), onTapBlank: (_) => blankTaps++),
           ),
         ),
       );
@@ -433,7 +427,9 @@ void main() {
           TrackMirrorRow(
             input: buildInput(
               axis: axisFor(),
-              fragments: const [LocalMirrorFragment(startMs: 8000, endMs: 8000)],
+              fragments: const [
+                LocalMirrorFragment(startMs: 8000, endMs: 8000),
+              ],
             ),
           ),
         ),
@@ -566,9 +562,7 @@ void main() {
       );
     });
 
-    testWidgets('整体移：抓取偏移 = 手指 − 片段起点，逐帧落点回写、起手/收口钩子各一次', (
-      tester,
-    ) async {
+    testWidgets('整体移：抓取偏移 = 手指 − 片段起点，逐帧落点回写、起手/收口钩子各一次', (tester) async {
       final tapped = <int>[];
       await tester.pumpWidget(
         mount(

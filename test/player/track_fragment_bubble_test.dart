@@ -86,7 +86,9 @@ void main() {
         onAction: () => taps++,
       );
 
-      final hitRect = tester.getRect(find.byKey(const Key('bubble_action_hit')));
+      final hitRect = tester.getRect(
+        find.byKey(const Key('bubble_action_hit')),
+      );
       final bubbleRect = tester.getRect(find.byKey(const Key('bubble')));
       // 命中盒补到 48 下限：向下溢出浮条下缘——溢出区照样接点按。
       expect(hitRect.height, greaterThanOrEqualTo(kHitTargetMinSize));
@@ -129,10 +131,7 @@ void main() {
       final tailRect = tester.getRect(tailOf(tester));
 
       // 改放锚点下方：浮条上缘与锚点下缘留出间隙（不覆盖片段）。
-      expect(
-        bubbleRect.top,
-        closeTo(anchorRect.bottom + kNoteBubbleGap, 0.01),
-      );
+      expect(bubbleRect.top, closeTo(anchorRect.bottom + kNoteBubbleGap, 0.01));
       expect(bubbleRect.top, greaterThanOrEqualTo(anchorRect.bottom));
       // 尾尖仍在浮条下缘那一格，只是整条纵向翻转（朝上）。
       expect(tailRect.top, greaterThanOrEqualTo(bubbleRect.bottom - 0.01));

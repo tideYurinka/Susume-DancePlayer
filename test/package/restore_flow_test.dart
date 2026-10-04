@@ -174,8 +174,10 @@ void main() {
   BackupPorts senderPorts() => BackupPorts(
     loadIndexJson: () async => machineIndexJson(sender, 'v1', 'keptSenderKey'),
     loadIndex: () async => VideoIndex(entries: [senderEntry()]),
-    documentStorageFor: (_) =>
-        InMemoryVideoDocumentStorage(markers: senderMarkers, local: senderLocal),
+    documentStorageFor: (_) => InMemoryVideoDocumentStorage(
+      markers: senderMarkers,
+      local: senderLocal,
+    ),
     memberSchemeStorageFor: (_) => InMemoryMemberSchemeStorage(senderSchemes),
     loadBucketShardJson: (_) async => null,
     loadPracticeStatsJson: () async => null,
@@ -201,9 +203,8 @@ void main() {
     loadBucketShardJson: (_) async => null,
     loadPracticeStatsJson: () async => null,
     loadPracticePlanJson: () async => null,
-    loadDeviceSettings: () async => await AtomicJsonFile(
-      File('${local.path}/global_private.json'),
-    ).read(),
+    loadDeviceSettings: () async =>
+        await AtomicJsonFile(File('${local.path}/global_private.json')).read(),
     loadMaterialsManifestJson: () async => null,
     loadMaterialRecords: () async => const [],
     materialsBaseDirectory: () async => Directory('${local.path}/materials'),
@@ -267,11 +268,13 @@ void main() {
     deviceStorage = InMemoryPrivateJsonStorage();
     materialsStorage = MemoryManifestStorage();
 
-    File('${local.path}/index.json')
-        .writeAsStringSync(jsonEncode(machineIndexJson(local, 'v2', 'keptLocalKey')));
+    File('${local.path}/index.json').writeAsStringSync(
+      jsonEncode(machineIndexJson(local, 'v2', 'keptLocalKey')),
+    );
     File('${local.path}/markers_v2.json')
         .writeAsStringSync(jsonEncode(localMarkers));
-    File('${local.path}/local_v2.json').writeAsStringSync(jsonEncode(localLocal));
+    File('${local.path}/local_v2.json')
+        .writeAsStringSync(jsonEncode(localLocal));
     File('${local.path}/schemes_v2.json')
         .writeAsStringSync(jsonEncode(localSchemes));
     File('${local.path}/global_private.json')
@@ -318,7 +321,10 @@ void main() {
   Future<void> awaitRestoreConfirm(WidgetTester tester) =>
       tester.runAsync(() async {
         await pollUntil(
-          () => find.byKey(const Key('restore_confirm_dialog')).evaluate().isNotEmpty,
+          () => find
+              .byKey(const Key('restore_confirm_dialog'))
+              .evaluate()
+              .isNotEmpty,
           onTick: () => tester.pump(),
           reason: '应弹恢复确认面',
         );
@@ -374,7 +380,8 @@ void main() {
 
   testWidgets('备份包：取消确认面则什么都不做', (tester) async {
     final indexBefore = File('${local.path}/index.json').readAsStringSync();
-    final markersBefore = File('${local.path}/markers_v2.json').readAsStringSync();
+    final markersBefore = File('${local.path}/markers_v2.json')
+        .readAsStringSync();
     final harness = _Harness(
       restorer: restorer(),
       picked: _pickedFor(backupPackage),
@@ -389,13 +396,17 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     // 索引与文档逐字段不变。
     expect(File('${local.path}/index.json').readAsStringSync(), indexBefore);
-    expect(File('${local.path}/markers_v2.json').readAsStringSync(), markersBefore);
+    expect(
+      File('${local.path}/markers_v2.json').readAsStringSync(),
+      markersBefore,
+    );
     expect(File('${local.path}/markers_v1.json').existsSync(), isFalse);
     expect(Directory('${local.path}/恢复留档').existsSync(), isFalse);
   });
 
   testWidgets('留档失败：以短暂提示中止并说明本机数据未改动', (tester) async {
-    final markersBefore = File('${local.path}/markers_v2.json').readAsStringSync();
+    final markersBefore = File('${local.path}/markers_v2.json')
+        .readAsStringSync();
     final harness = _Harness(
       restorer: restorer(failArchive: true),
       picked: _pickedFor(backupPackage),
@@ -407,16 +418,16 @@ void main() {
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('restore_confirm_button')));
       await pollUntil(
-        () => find
-            .text('留档失败，已中止恢复，本机数据未改动')
-            .evaluate()
-            .isNotEmpty,
+        () => find.text('留档失败，已中止恢复，本机数据未改动').evaluate().isNotEmpty,
         onTick: () => tester.pump(),
         reason: '留档失败应明确出声',
       );
     });
 
-    expect(File('${local.path}/markers_v2.json').readAsStringSync(), markersBefore);
+    expect(
+      File('${local.path}/markers_v2.json').readAsStringSync(),
+      markersBefore,
+    );
     expect(File('${local.path}/markers_v1.json').existsSync(), isFalse);
   });
 
@@ -439,7 +450,10 @@ void main() {
 
     expect(find.byKey(const Key('restore_confirm_dialog')), findsNothing);
     // 无舞无熟练度：直接建舞写成我的，不弹任何面。
-    expect(find.byKey(const Key('scheme_import_ownership_dialog')), findsNothing);
+    expect(
+      find.byKey(const Key('scheme_import_ownership_dialog')),
+      findsNothing,
+    );
     expect(find.byKey(const Key('scheme_import_dialog')), findsNothing);
     expect(find.textContaining('已把 小如 的标注写成我的'), findsOneWidget);
     // 落盘结果：包里的公开标注整份写进新建舞的 markers。
@@ -515,15 +529,11 @@ class _Harness {
             indexStore: indexStorage,
             hasher: const FixedHasher('hash-v1'),
           ),
-    schemeStoreFor: (videoId) =>
-        MemberSchemeStore(schemeStorages.putIfAbsent(
-          videoId,
-          InMemoryMemberSchemeStorage.new,
-        )),
-    documentStorageFor: (videoId) => documents.putIfAbsent(
-      videoId,
-      InMemoryVideoDocumentStorage.new,
+    schemeStoreFor: (videoId) => MemberSchemeStore(
+      schemeStorages.putIfAbsent(videoId, InMemoryMemberSchemeStorage.new),
     ),
+    documentStorageFor: (videoId) =>
+        documents.putIfAbsent(videoId, InMemoryVideoDocumentStorage.new),
     now: () => DateTime(2026, 9, 15, 14, 5),
   );
 

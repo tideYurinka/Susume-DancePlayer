@@ -247,7 +247,9 @@ void main() {
     expect(find.byKey(const Key('av_sync_device_notice')), findsNothing);
   });
 
-  testWidgets('BPM 快选读写会话状态：按钮读 state.tier、点击经 setTier 写意图；设备切换不清档', (tester) async {
+  testWidgets('BPM 快选读写会话状态：按钮读 state.tier、点击经 setTier 写意图；设备切换不清档', (
+    tester,
+  ) async {
     final controller = FakeAudioOutputDeviceController(
       const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机'),
     );
@@ -403,16 +405,8 @@ void main() {
       storage: InMemoryPrivateJsonStorage(),
     );
 
-    expectButtonSemantics(
-      tester,
-      const Key('av_sync_minus'),
-      label: '音画同步减一档',
-    );
-    expectButtonSemantics(
-      tester,
-      const Key('av_sync_plus'),
-      label: '音画同步加一档',
-    );
+    expectButtonSemantics(tester, const Key('av_sync_minus'), label: '音画同步减一档');
+    expectButtonSemantics(tester, const Key('av_sync_plus'), label: '音画同步加一档');
 
     activateBySemantics(tester, const Key('av_sync_plus'));
     await tester.pump();

@@ -169,17 +169,16 @@ void main() {
     });
 
     test('相邻两段各设一档互不串；各自结果与单独设置一致', () {
-      List<(int, bool)> derive(Map<int, double> densities) =>
-          deriveBeatPoints(
-            beats: rawGrid().beats,
-            shiftMs: 0,
-            density: 1,
-            segmentDensities: densities,
-            segments: const [
-              (startMs: 2000, endMs: 3000),
-              (startMs: 3000, endMs: 4000),
-            ],
-          );
+      List<(int, bool)> derive(Map<int, double> densities) => deriveBeatPoints(
+        beats: rawGrid().beats,
+        shiftMs: 0,
+        density: 1,
+        segmentDensities: densities,
+        segments: const [
+          (startMs: 2000, endMs: 3000),
+          (startMs: 3000, endMs: 4000),
+        ],
+      );
       final both = derive(const {0: 2, 1: 0.5});
       final onlyFast = derive(const {0: 2});
       final onlySlow = derive(const {1: 0.5});
@@ -265,9 +264,16 @@ void main() {
     test('缺省构造与整曲派生逐位一致（既有消费方零变化）', () {
       final grid = documentGridOf(rawGrid());
       expect(grid.segmentDensities, isEmpty);
-      final beats = grid.beatsInWindow(Duration.zero, const Duration(seconds: 6));
+      final beats = grid.beatsInWindow(
+        Duration.zero,
+        const Duration(seconds: 6),
+      );
       expect(beats.map((d) => d.inMilliseconds).toList(), [
-        1000, 2000, 3000, 4000, 5000,
+        1000,
+        2000,
+        3000,
+        4000,
+        5000,
       ]);
     });
   });

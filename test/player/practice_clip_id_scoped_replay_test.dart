@@ -60,14 +60,14 @@ void main() {
   // 录制产出素材：源起点 60000（与既有片段零重叠——入轨清理不波及 c1），
   // 全长 20000 → 入轨片段 clip_mX 源区间 60000–80000。
   MaterialRecord material(String id) => MaterialRecord(
-        id: id,
-        videoId: idA,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
-        durationMs: 20000,
-        sourceStartMs: 60000,
-        fileName: '$id.mp4',
-        sizeBytes: 100,
-      );
+    id: id,
+    videoId: idA,
+    createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
+    durationMs: 20000,
+    sourceStartMs: 60000,
+    fileName: '$id.mp4',
+    sizeBytes: 100,
+  );
 
   late ProviderContainer container;
   late FakePlaybackEngine engine;
@@ -83,9 +83,8 @@ void main() {
       overrides: [
         playbackEngineProvider.overrideWithValue(engine),
         videoIndexStoreProvider.overrideWithValue(index),
-        videoDocumentStorageProvider(
-          idA,
-        ).overrideWithValue(InMemoryVideoDocumentStorage(local: const {})),
+        videoDocumentStorageProvider(idA)
+            .overrideWithValue(InMemoryVideoDocumentStorage(local: const {})),
         materialManifestStorageProvider.overrideWithValue(
           MemoryManifestStorage(),
         ),
@@ -141,16 +140,14 @@ void main() {
       final doc = await container
           .read(videoDocumentCoordinatorProvider(idA))
           .readLocal();
-      expect([for (final clip in doc.practiceClips) clip.id], [
-        'c1',
-        'clip_m2',
-      ]);
+      expect(
+        [for (final clip in doc.practiceClips) clip.id],
+        ['c1', 'clip_m2'],
+      );
     });
 
     test('片段被素材连带删除后撤销更早的截取：被删片段不复活', () {
-      container
-          .read(practiceClipsProvider.notifier)
-          .restore(const [c1, c2]);
+      container.read(practiceClipsProvider.notifier).restore(const [c1, c2]);
 
       trimC1Tail();
       container.read(practiceClipsProvider.notifier).removeByMaterial('m2');
@@ -231,12 +228,8 @@ void main() {
     );
 
     test('删除撤销（复活）：表按源起点升序', () {
-      container
-          .read(practiceClipsProvider.notifier)
-          .restore(const [c0, c1]);
-      editor().submit(
-        RemovePracticeClip(clipId: 'c0'),
-      );
+      container.read(practiceClipsProvider.notifier).restore(const [c0, c1]);
+      editor().submit(RemovePracticeClip(clipId: 'c0'));
       expect(clips().map((c) => c.id), ['c1']);
 
       editor().undo();

@@ -59,8 +59,14 @@ void main() {
     });
 
     test('既有值年超出范围：夹到最近边界且日不越月', () {
-      expect(planDateWheelFromDay(DateTime(2035, 3, 5), today: today).yearIndex, 4);
-      expect(planDateWheelFromDay(DateTime(2000, 3, 5), today: today).yearIndex, 0);
+      expect(
+        planDateWheelFromDay(DateTime(2035, 3, 5), today: today).yearIndex,
+        4,
+      );
+      expect(
+        planDateWheelFromDay(DateTime(2000, 3, 5), today: today).yearIndex,
+        0,
+      );
       expect(
         planDateWheelFromDay(DateTime(2035, 2, 28), today: today).dayIndex,
         27,

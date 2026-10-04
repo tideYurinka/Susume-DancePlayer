@@ -28,8 +28,7 @@ import '../import/import_providers.dart' show importVideosDirectoryProvider;
 import '../persistence/index_file_provider.dart' show importIndexFileProvider;
 import '../persistence/four_beat_bucket_providers.dart'
     show fourBeatBucketStorageProvider;
-import '../persistence/four_beat_bucket_store.dart'
-    show FourBeatBucketStorage;
+import '../persistence/four_beat_bucket_store.dart' show FourBeatBucketStorage;
 import '../persistence/material_manifest.dart';
 import '../persistence/member_scheme_store.dart';
 import '../persistence/practice_stats.dart' show PracticeStatsStorage;
@@ -39,8 +38,7 @@ import '../persistence/practice_plan_providers.dart'
     show practicePlanStoreProvider;
 import '../persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
-import '../persistence/video_document_store.dart'
-    show VideoDocumentStorage;
+import '../persistence/video_document_store.dart' show VideoDocumentStorage;
 import 'susume_package.dart';
 import 'whole_machine_backup.dart';
 
@@ -236,7 +234,11 @@ class WholeMachineRestorer {
           case SusumeMediaKind.practiceClip:
             final base = await ports.materialsBaseDirectory();
             final dest = File(
-              p.join(base.path, dance.videoId, backupMediaStrippedName(dance.videoId, name)),
+              p.join(
+                base.path,
+                dance.videoId,
+                backupMediaStrippedName(dance.videoId, name),
+              ),
             );
             await dest.parent.create(recursive: true);
             await extractMediaEntry(packagePath, entry.entryName, dest);
@@ -260,13 +262,9 @@ class WholeMachineRestorer {
         final entry = entries[i];
         if (entry is! Map) continue;
         final videoId = entry['videoId'];
-        final repoint =
-            videoPaths[videoId] ?? localVideoPaths[videoId];
+        final repoint = videoPaths[videoId] ?? localVideoPaths[videoId];
         if (repoint != null) {
-          entries[i] = {
-            ...entry.cast<String, Object?>(),
-            'filePath': repoint,
-          };
+          entries[i] = {...entry.cast<String, Object?>(), 'filePath': repoint};
         }
       }
     }
@@ -291,13 +289,16 @@ class WholeMachineRestorer {
         );
       }
     }
-    await ports.practiceStatsStorage
-        .save(Map<String, dynamic>.from(payload.practiceStats));
+    await ports.practiceStatsStorage.save(
+      Map<String, dynamic>.from(payload.practiceStats),
+    );
     await ports.practicePlanReplace(payload.practicePlan);
-    await ports.deviceSettingsStorage
-        .write(Map<String, dynamic>.from(payload.deviceSettings));
-    await ports.materialsStorage
-        .save(Map<String, dynamic>.from(payload.materialsManifest ?? {}));
+    await ports.deviceSettingsStorage.write(
+      Map<String, dynamic>.from(payload.deviceSettings),
+    );
+    await ports.materialsStorage.save(
+      Map<String, dynamic>.from(payload.materialsManifest ?? {}),
+    );
   }
 
   /// 本机有而备份没有的舞：文档、组员方案、素材、视频副本按
@@ -322,9 +323,7 @@ class WholeMachineRestorer {
       if (videoId is! String || backupIds.contains(videoId)) continue;
 
       await bestEffort(() => ports.documentStorageFor(videoId).delete());
-      await bestEffort(
-        () => ports.memberSchemeStorageFor(videoId).delete(),
-      );
+      await bestEffort(() => ports.memberSchemeStorageFor(videoId).delete());
       await bestEffort(() => ports.bucketStorage.delete(videoId));
       await bestEffort(() async {
         final base = await ports.materialsBaseDirectory();
@@ -348,11 +347,9 @@ class WholeMachineRestorer {
 /// 恢复语境独立成句，不与之合并）。
 String restoreErrorMessage(SusumePackageException error) =>
     switch (error.kind) {
-      SusumePackageError.versionMismatch =>
-        '这份备份来自更新版本的 Susume，请先升级',
+      SusumePackageError.versionMismatch => '这份备份来自更新版本的 Susume，请先升级',
       SusumePackageError.notZip ||
-      SusumePackageError.corrupt =>
-        '备份内容损坏或不是 Susume 包，无法恢复',
+      SusumePackageError.corrupt => '备份内容损坏或不是 Susume 包，无法恢复',
     };
 
 /// 恢复注入点：全部生产来源都在既有 provider 上，不新建路径。
@@ -374,13 +371,11 @@ final wholeMachineRestorerProvider = Provider<WholeMachineRestorer>((ref) {
             .replaceWithJson(json);
         if (!ok) throw StateError('计划文档写盘失败');
       },
-      practicePlanRetainDances: (videoIds) => ref
-          .watch(practicePlanStoreProvider)
-          .retainDances(videoIds),
+      practicePlanRetainDances: (videoIds) =>
+          ref.watch(practicePlanStoreProvider).retainDances(videoIds),
       deviceSettingsStorage: ref.watch(privateJsonStorageProvider),
       materialsStorage: ref.watch(materialManifestStorageProvider),
-      materialsBaseDirectory: () =>
-          ref.watch(materialsBaseDirectoryProvider)(),
+      materialsBaseDirectory: () => ref.watch(materialsBaseDirectoryProvider)(),
       archiveDirectory: () async {
         final indexFile = await ref.watch(importIndexFileProvider);
         return Directory(p.join(indexFile.parent.path, '恢复留档'));

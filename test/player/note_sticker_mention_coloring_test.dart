@@ -33,7 +33,8 @@ void main() {
     final span = texts.single.textSpan as TextSpan;
     final children = [
       for (final child in span.children ?? const <InlineSpan>[])
-        if (child is TextSpan && child.style?.color != null) child.style!.color!,
+        if (child is TextSpan && child.style?.color != null)
+          child.style!.color!,
     ];
     return children.isNotEmpty
         ? children
@@ -41,10 +42,10 @@ void main() {
   }
 
   /// 全部文本层（描边层 + 填充层）的可见明文。
-  Set<String> renderedPlainTexts(WidgetTester tester) =>
-      tester.renderObjectList<RenderParagraph>(find.byType(RichText)).map(
-        (p) => p.text.toPlainText(),
-      ).toSet();
+  Set<String> renderedPlainTexts(WidgetTester tester) => tester
+      .renderObjectList<RenderParagraph>(find.byType(RichText))
+      .map((p) => p.text.toPlainText())
+      .toSet();
 
   Future<ProviderContainer> pumpHost(
     WidgetTester tester, {
@@ -56,7 +57,9 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    container.read(annotationEditorProvider).restoreDocument(
+    container
+        .read(annotationEditorProvider)
+        .restoreDocument(
           AnnotationRestoreDocument(
             notes: [NoteSticker(startMs: 1000, endMs: 5000, text: text)],
           ),
@@ -100,7 +103,9 @@ void main() {
 
   testWidgets('点名段用名册代表色、@ 与紧随空格被隐藏', (tester) async {
     final container = await pumpHost(tester, text: '@果 走位偏左');
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF123456)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF123456),
+    ]);
     await tester.pump();
 
     // 可见文本：看不到 @、也看不到那个空格（描边层与填充层一致）。
@@ -114,7 +119,9 @@ void main() {
 
   testWidgets('不构成点名的 @ 原样显示、不着色、不报错', (tester) async {
     final container = await pumpHost(tester, text: '@小明 上场');
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF123456)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF123456),
+    ]);
     await tester.pump();
 
     expect(renderedPlainTexts(tester), {'@小明 上场'});
@@ -123,7 +130,9 @@ void main() {
 
   testWidgets('孤立 @ 原样显示（@ 后不是名册名）', (tester) async {
     final container = await pumpHost(tester, text: '邮箱 a@b.com');
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF123456)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF123456),
+    ]);
     await tester.pump();
 
     expect(renderedPlainTexts(tester), {'邮箱 a@b.com'});
@@ -154,13 +163,17 @@ void main() {
     expect(fillSpanColors(tester), everyElement(const Color(0xFFFFFFFF)));
 
     // 增：新名立刻点亮（文本里的 @ + 空格即刻被隐藏）。
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF0000AA)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF0000AA),
+    ]);
     await tester.pump();
     expect(renderedPlainTexts(tester), {'果走位偏左'});
     expect(fillSpanColors(tester).first, const Color(0xFF0000AA));
 
     // 改色：立刻换色。
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF0000BB)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF0000BB),
+    ]);
     await tester.pump();
     expect(fillSpanColors(tester).first, const Color(0xFF0000BB));
 
@@ -177,27 +190,23 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final container = await pumpHost(tester, text: '@果 走位偏左');
-    await setRoster(container, const [DancerRosterEntry(name: '果', color: 0xFF123456)]);
+    await setRoster(container, const [
+      DancerRosterEntry(name: '果', color: 0xFF123456),
+    ]);
     await tester.pump();
 
     final rendered = tester.getRect(find.byType(NoteStickerText));
     final fontSize = kNoteStickerBaseFontSize * noteDefaultScale;
     // 独立真值：可见文本「果走位偏左」的同样式、同一缩放值的排版。
     final visibleTp = TextPainter(
-      text: TextSpan(
-        text: '果走位偏左',
-        style: noteStickerTextStyle(fontSize),
-      ),
+      text: TextSpan(text: '果走位偏左', style: noteStickerTextStyle(fontSize)),
       textScaler: const TextScaler.linear(1.3),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     )..layout();
     // 含语法字符的原文排版更宽——盒尺寸必须贴可见分段，而非原文。
     final rawTp = TextPainter(
-      text: TextSpan(
-        text: '@果 走位偏左',
-        style: noteStickerTextStyle(fontSize),
-      ),
+      text: TextSpan(text: '@果 走位偏左', style: noteStickerTextStyle(fontSize)),
       textScaler: const TextScaler.linear(1.3),
       maxLines: 1,
       textDirection: TextDirection.ltr,

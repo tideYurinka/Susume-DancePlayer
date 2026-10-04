@@ -43,7 +43,11 @@ void main() {
     test('屏高大于屏宽为竖屏、反之为横屏', () {
       expect(editorIsPortrait(const Size(361.1, 781.7)), isTrue);
       expect(editorIsPortrait(const Size(781.7, 361.1)), isFalse);
-      expect(editorIsPortrait(const Size(400, 400)), isFalse, reason: '正方形按横屏行处理');
+      expect(
+        editorIsPortrait(const Size(400, 400)),
+        isFalse,
+        reason: '正方形按横屏行处理',
+      );
     });
   });
 
@@ -66,10 +70,7 @@ void main() {
     test('骨架原样透出送进来的那一档：不按屏尺寸自行重判', () {
       // 送 599 那一档的判据结果、屏本身按 600 判常规档——透出的仍是送进来的
       // 那一份（同屏各消费点因此不会分裂成两档）。
-      final compact = skeletonFor(
-        screen: const Size(600, 800),
-        compact: true,
-      );
+      final compact = skeletonFor(screen: const Size(600, 800), compact: true);
       expect(compact.compact, isTrue);
       final normal = skeletonFor(screen: const Size(599, 800));
       expect(normal.compact, isFalse, reason: '缺省 = 常规档');
@@ -262,7 +263,11 @@ void main() {
         framingAspectRatio: contentRatio,
       );
       final uncapped = portraitScreen.width / contentRatio;
-      expect(uncapped, greaterThan(unframed.pictureBandHeight), reason: '未封顶会顶穿上方黑区');
+      expect(
+        uncapped,
+        greaterThan(unframed.pictureBandHeight),
+        reason: '未封顶会顶穿上方黑区',
+      );
       expect(uncapped, lessThan(normalPictureArea), reason: '仍放得进画面区 → 贴底');
       expect(s.picturePlacement, PicturePlacement.stickToBottom);
       expect(
@@ -310,7 +315,10 @@ void main() {
         videoAspectRatio: sourceRatio,
         framingAspectRatio: contentRatio,
       );
-      expect(portraitScreen.width / contentRatio, greaterThan(normalPictureArea));
+      expect(
+        portraitScreen.width / contentRatio,
+        greaterThan(normalPictureArea),
+      );
       expect(s.picturePlacement, PicturePlacement.background);
       expect(s.pictureBandHeight, 0);
       expect(s.pictureBandTop, 0);
@@ -485,8 +493,11 @@ void main() {
   group('竖屏名义高表', () {
     test('计入底栏两行与视频播放工具栏两行', () {
       expect(kEditorPortraitToolbarRowsHeight, kEditorToolbarHeight * 2);
-      expect(kEditorVideoToolbarHeight, kEditorToolbarHeight * 2,
-          reason: '视频播放工具栏拆两行，名义高随之翻倍');
+      expect(
+        kEditorVideoToolbarHeight,
+        kEditorToolbarHeight * 2,
+        reason: '视频播放工具栏拆两行，名义高随之翻倍',
+      );
       // 未知宽高比时画面区仍按同一名义高表扣除（先出观看态画面）。
       final s = skeletonFor(screen: const Size(360, 800), aspectRatio: null);
       expect(
@@ -558,79 +569,81 @@ void main() {
 
     test('八格表：姿态 × 源方向 × 控制层展开/收起 → 卡左下角', () {
       final cells =
-          <({
-            String name,
-            Rect picture,
-            Size screen,
-            EditorSkeleton? editing,
-            double? left,
-            double? bottom,
-          })>[
-        (
-          name: '竖·横源·展开',
-          picture: bandRect,
-          screen: portrait,
-          editing: portraitSkeleton,
-          left: 24,
-          bottom: 293.7,
-        ),
-        (
-          name: '竖·竖源·展开（上抬到画面区下缘之上）',
-          picture: tallRect,
-          screen: portrait,
-          editing: portraitSkeleton,
-          left: 24,
-          bottom: 293.7,
-        ),
-        (
-          name: '竖·横源·收起',
-          picture: watchingRect,
-          screen: portrait,
-          editing: null,
-          left: 24,
-          bottom: 468.4,
-        ),
-        (
-          name: '竖·竖源·收起',
-          picture: tallRect,
-          screen: portrait,
-          editing: null,
-          left: 24,
-          bottom: 687.8,
-        ),
-        (
-          name: '横·横源·展开（放不下）',
-          picture: wideRect,
-          screen: landscape,
-          editing: landscapeSkeleton,
-          left: null,
-          bottom: null,
-        ),
-        (
-          name: '横·竖源·展开（放不下）',
-          picture: landscapeTallRect,
-          screen: landscape,
-          editing: landscapeSkeleton,
-          left: null,
-          bottom: null,
-        ),
-        (
-          name: '横·横源·收起',
-          picture: wideRect,
-          screen: landscape,
-          editing: null,
-          left: 93.9,
-          bottom: 317.1,
-        ),
-        (
-          name: '横·竖源·收起（跟着居中的画面走）',
-          picture: landscapeTallRect,
-          screen: landscape,
-          editing: null,
-          left: 313.3,
-          bottom: 317.1,
-        ),
-      ];
+          <
+            ({
+              String name,
+              Rect picture,
+              Size screen,
+              EditorSkeleton? editing,
+              double? left,
+              double? bottom,
+            })
+          >[
+            (
+              name: '竖·横源·展开',
+              picture: bandRect,
+              screen: portrait,
+              editing: portraitSkeleton,
+              left: 24,
+              bottom: 293.7,
+            ),
+            (
+              name: '竖·竖源·展开（上抬到画面区下缘之上）',
+              picture: tallRect,
+              screen: portrait,
+              editing: portraitSkeleton,
+              left: 24,
+              bottom: 293.7,
+            ),
+            (
+              name: '竖·横源·收起',
+              picture: watchingRect,
+              screen: portrait,
+              editing: null,
+              left: 24,
+              bottom: 468.4,
+            ),
+            (
+              name: '竖·竖源·收起',
+              picture: tallRect,
+              screen: portrait,
+              editing: null,
+              left: 24,
+              bottom: 687.8,
+            ),
+            (
+              name: '横·横源·展开（放不下）',
+              picture: wideRect,
+              screen: landscape,
+              editing: landscapeSkeleton,
+              left: null,
+              bottom: null,
+            ),
+            (
+              name: '横·竖源·展开（放不下）',
+              picture: landscapeTallRect,
+              screen: landscape,
+              editing: landscapeSkeleton,
+              left: null,
+              bottom: null,
+            ),
+            (
+              name: '横·横源·收起',
+              picture: wideRect,
+              screen: landscape,
+              editing: null,
+              left: 93.9,
+              bottom: 317.1,
+            ),
+            (
+              name: '横·竖源·收起（跟着居中的画面走）',
+              picture: landscapeTallRect,
+              screen: landscape,
+              editing: null,
+              left: 313.3,
+              bottom: 317.1,
+            ),
+          ];
 
       for (final cell in cells) {
         final anchor = anchorOf(
@@ -643,7 +656,11 @@ void main() {
           continue;
         }
         expect(anchor, isNotNull, reason: '${cell.name}：本次应画出');
-        expect(anchor!.left, closeTo(cell.left!, 0.05), reason: '${cell.name} 左');
+        expect(
+          anchor!.left,
+          closeTo(cell.left!, 0.05),
+          reason: '${cell.name} 左',
+        );
         expect(
           anchor.bottom,
           closeTo(cell.bottom!, 0.05),

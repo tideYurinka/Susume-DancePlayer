@@ -51,11 +51,7 @@ void main() {
     for (final entry in expected.entries) {
       final policy = documentVersionPolicies[entry.key]!;
       expect(policy.floor, entry.value.$1, reason: '${entry.key} 地板');
-      expect(
-        policy.currentVersion,
-        entry.value.$2,
-        reason: '${entry.key} 本版',
-      );
+      expect(policy.currentVersion, entry.value.$2, reason: '${entry.key} 本版');
     }
   });
 }

@@ -6,13 +6,10 @@ import 'framing_stage.dart' show framedContentRectInStage;
 
 /// 侧别半区尺寸（分屏几何的单一声明：横屏左右等分、竖屏上下等分，
 /// 扣除细缝）。取景手势的归一化与「点画面外」判定共用。
-Size compareFramingPaneSize({
-  required Size screen,
-  required bool landscape,
-}) =>
+Size compareFramingPaneSize({required Size screen, required bool landscape}) =>
     landscape
-        ? Size((screen.width - kCompareSplitGap) / 2, screen.height)
-        : Size(screen.width, (screen.height - kCompareSplitGap) / 2);
+    ? Size((screen.width - kCompareSplitGap) / 2, screen.height)
+    : Size(screen.width, (screen.height - kCompareSplitGap) / 2);
 
 /// 源侧半区**取景后的画面矩形**（半区原点 + 选区内容 contain 居中画面，
 /// 全局坐标）：取景手势的「点画面外」退出判定、落点换算与 scrub

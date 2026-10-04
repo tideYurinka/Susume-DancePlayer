@@ -236,13 +236,15 @@ void main() {
     await pumpEdges();
 
     expect(
-      PracticeStatsDocument.fromJson(storage.savedJson!).sessions.single.signature,
+      PracticeStatsDocument.fromJson(storage.savedJson!)
+          .sessions
+          .single
+          .signature,
       migrated,
     );
     expect(
-      FourBeatBucketShard.fromJson(
-        bucketStorage.savedJsonFor('vid-a')!,
-      ).signature,
+      FourBeatBucketShard.fromJson(bucketStorage.savedJsonFor('vid-a')!)
+          .signature,
       migrated,
     );
   });
@@ -273,6 +275,12 @@ void main() {
     );
     await pumpEdges();
 
-    expect(PracticeStatsDocument.fromJson(storage.savedJson!).sessions.single.signature, sig);
+    expect(
+      PracticeStatsDocument.fromJson(storage.savedJson!)
+          .sessions
+          .single
+          .signature,
+      sig,
+    );
   });
 }

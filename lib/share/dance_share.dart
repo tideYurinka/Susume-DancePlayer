@@ -37,13 +37,15 @@ Future<File> assembleDancePackage({
   required String videoFileName,
 }) async {
   await outputDir.create(recursive: true);
-  final output = File(p.join(
-    outputDir.path,
-    susumePackageFileName(
-      songName: manifest.schemeName,
-      videoFileName: videoFileName,
+  final output = File(
+    p.join(
+      outputDir.path,
+      susumePackageFileName(
+        songName: manifest.schemeName,
+        videoFileName: videoFileName,
+      ),
     ),
-  ));
+  );
   await writeSusumePackage(
     output: output,
     manifest: manifest,

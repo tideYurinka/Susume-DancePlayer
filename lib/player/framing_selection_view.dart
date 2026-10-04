@@ -47,9 +47,7 @@ class FramingSelectionView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selection = ref.watch(
-      framingStateProvider.select((s) => s.source),
-    );
+    final selection = ref.watch(framingStateProvider.select((s) => s.source));
     // 取景调节态内画面按整帧显示，故变换与裁切都按未调过。
     final applied = framingActive ? null : selection;
     return LayoutBuilder(

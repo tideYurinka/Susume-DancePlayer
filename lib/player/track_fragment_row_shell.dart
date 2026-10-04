@@ -151,10 +151,7 @@ class TrackFragmentRowShell extends StatelessWidget {
             height: rowRect.height,
             child: guideAnchorKey == null
                 ? blockContent
-                : GuideAnchor(
-                    anchorKey: guideAnchorKey,
-                    child: blockContent,
-                  ),
+                : GuideAnchor(anchorKey: guideAnchorKey, child: blockContent),
           ),
           // 端点命中带层：起手进入端点拖。宽度 0 的侧让出、不渲染（备注轨
           // 的冲突让位与镜像轨的窄块抑制同款收口）。

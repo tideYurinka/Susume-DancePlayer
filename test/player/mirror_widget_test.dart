@@ -22,8 +22,11 @@ import 'package:dance_learning_app/player/level_control.dart'
     show screenBrightnessControllerProvider;
 import 'package:dance_learning_app/player/settings_persistence.dart'
     show videoDocumentCoordinatorProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
+
 import '../helpers/video_surface.dart';
+
 import 'package:dance_learning_app/player/visual_tokens.dart';
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
@@ -199,12 +202,7 @@ void main() {
 
     // 文案逐字比对（含中文弯引号），不从实现复算。
     const subtitle = '对于正面拍摄的视频，总共需要一次镜像处理，就能像照镜子一样直接学';
-    const noItems = [
-      '视频来源已经镜像过了',
-      '标题有“镜像”“镜面”的字样',
-      '大多数舞蹈教程视频',
-      '从背面拍摄的练习视频',
-    ];
+    const noItems = ['视频来源已经镜像过了', '标题有“镜像”“镜面”的字样', '大多数舞蹈教程视频', '从背面拍摄的练习视频'];
     const yesItems = ['没有镜像处理过的原始视频', '正片、舞台、练习室、比赛等作品'];
 
     final title = find.text('需要镜像吗？');
@@ -228,10 +226,26 @@ void main() {
     ) {
       final bubble = tester.getRect(viewport);
       final rect = tester.getRect(finder);
-      expect(rect.left, greaterThanOrEqualTo(bubble.left - 0.5), reason: '$label：左缘未被裁');
-      expect(rect.right, lessThanOrEqualTo(bubble.right + 0.5), reason: '$label：右缘未被裁');
-      expect(rect.top, greaterThanOrEqualTo(bubble.top - 0.5), reason: '$label：上缘未被裁');
-      expect(rect.bottom, lessThanOrEqualTo(bubble.bottom + 0.5), reason: '$label：下缘未被裁');
+      expect(
+        rect.left,
+        greaterThanOrEqualTo(bubble.left - 0.5),
+        reason: '$label：左缘未被裁',
+      );
+      expect(
+        rect.right,
+        lessThanOrEqualTo(bubble.right + 0.5),
+        reason: '$label：右缘未被裁',
+      );
+      expect(
+        rect.top,
+        greaterThanOrEqualTo(bubble.top - 0.5),
+        reason: '$label：上缘未被裁',
+      );
+      expect(
+        rect.bottom,
+        lessThanOrEqualTo(bubble.bottom + 0.5),
+        reason: '$label：下缘未被裁',
+      );
     }
 
     testWidgets('标题 + 副标题 + 两栏标题与全部条目逐字可见', (tester) async {
@@ -298,9 +312,11 @@ void main() {
       );
       // 长条目确实折行（高度超过一行），折行后仍与首行文字左缘同列。
       expect(
-        tester.getSize(
-          find.descendant(of: noColumn, matching: find.text(noItems[1])),
-        ).height,
+        tester
+            .getSize(
+              find.descendant(of: noColumn, matching: find.text(noItems[1])),
+            )
+            .height,
         greaterThan(kNoticeCardItemSize * kNoticeCardItemLineHeight * 1.5),
         reason: '竖屏下长条目折行',
       );
@@ -353,7 +369,9 @@ void main() {
       expect(find.byKey(const Key('mirror_question_scrim')), findsOneWidget);
     });
 
-    testWidgets('竖屏 361.1×781.7 与横屏 781.7×361.1：气泡在屏内居中、留边、无溢出', (tester) async {
+    testWidgets('竖屏 361.1×781.7 与横屏 781.7×361.1：气泡在屏内居中、留边、无溢出', (
+      tester,
+    ) async {
       for (final (label, setViewport, width, height) in [
         ('竖屏', setPortrait, 1264 / 3.5, 2736 / 3.5),
         ('横屏', setLandscape, 2736 / 3.5, 1264 / 3.5),
@@ -366,14 +384,42 @@ void main() {
         expect(title, findsOneWidget, reason: '$label：询问卡在屏');
         final bubble = tester.getRect(viewport);
         // 屏内 + 留边（最大高 = 屏高 − 上下留边；最大宽 = 屏宽 − 左右留边）。
-        expect(bubble.left, greaterThanOrEqualTo(kNoticeCardScreenInsetH - 0.5), reason: '$label：左留边');
-        expect(bubble.right, lessThanOrEqualTo(width - kNoticeCardScreenInsetH + 0.5), reason: '$label：右留边');
-        expect(bubble.top, greaterThanOrEqualTo(kNoticeCardScreenInsetV - 0.5), reason: '$label：上留边');
-        expect(bubble.bottom, lessThanOrEqualTo(height - kNoticeCardScreenInsetV + 0.5), reason: '$label：下留边');
+        expect(
+          bubble.left,
+          greaterThanOrEqualTo(kNoticeCardScreenInsetH - 0.5),
+          reason: '$label：左留边',
+        );
+        expect(
+          bubble.right,
+          lessThanOrEqualTo(width - kNoticeCardScreenInsetH + 0.5),
+          reason: '$label：右留边',
+        );
+        expect(
+          bubble.top,
+          greaterThanOrEqualTo(kNoticeCardScreenInsetV - 0.5),
+          reason: '$label：上留边',
+        );
+        expect(
+          bubble.bottom,
+          lessThanOrEqualTo(height - kNoticeCardScreenInsetV + 0.5),
+          reason: '$label：下留边',
+        );
         // 屏内居中（内容未顶到最大高时）。
-        expect(bubble.center.dx, moreOrLessEquals(width / 2, epsilon: 0.5), reason: '$label：水平居中');
-        expect(bubble.center.dy, moreOrLessEquals(height / 2, epsilon: 0.5), reason: '$label：垂直居中');
-        expect(tester.takeException(), isNull, reason: '$label：无 RenderFlex 溢出/异常');
+        expect(
+          bubble.center.dx,
+          moreOrLessEquals(width / 2, epsilon: 0.5),
+          reason: '$label：水平居中',
+        );
+        expect(
+          bubble.center.dy,
+          moreOrLessEquals(height / 2, epsilon: 0.5),
+          reason: '$label：垂直居中',
+        );
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '$label：无 RenderFlex 溢出/异常',
+        );
       }
     });
 
@@ -420,7 +466,11 @@ void main() {
         lessThanOrEqualTo(screenHeight - kNoticeCardScreenInsetV + 0.5),
         reason: '气泡最大高 = 屏高 − 上下留边',
       );
-      expect(bubble.center.dy, moreOrLessEquals(screenHeight / 2, epsilon: 0.5), reason: '居中');
+      expect(
+        bubble.center.dy,
+        moreOrLessEquals(screenHeight / 2, epsilon: 0.5),
+        reason: '居中',
+      );
       expect(title, findsOneWidget);
       // 内容确实超出气泡最大高 → 内部滚动兜底（不是被裁掉）。
       final scrollable = tester.state<ScrollableState>(
@@ -443,7 +493,13 @@ void main() {
       final engine = FakePlaybackEngine();
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: true)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: true,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -462,7 +518,13 @@ void main() {
       final engine = FakePlaybackEngine();
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -482,21 +544,23 @@ void main() {
     Map<String, dynamic> markersMeta({
       required bool mirrored,
       required bool localMirrorEnabled,
-    }) =>
-        {
-          'version': 8,
-          'meta': {
-            'mirrored': mirrored,
-            'localMirrorEnabled': localMirrorEnabled,
-          },
-        };
+    }) => {
+      'version': 8,
+      'meta': {'mirrored': mirrored, 'localMirrorEnabled': localMirrorEnabled},
+    };
 
     testWidgets('全局镜像：markers 真值优先于 index 过渡值（双写通路的读侧闭环）', (tester) async {
       final engine = FakePlaybackEngine();
       // index 过渡值是关、标记文件真值是开 → 画面翻转。
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(
@@ -521,7 +585,13 @@ void main() {
       final engine = FakePlaybackEngine();
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(
@@ -558,8 +628,11 @@ void main() {
 
     /// 把播放头定格到 [position]（暂停态 seek → 引擎补发位置事件 → 翻转
     /// 门按当前位置重判）并重建一帧。
-    Future<void> pauseAt(WidgetTester tester, FakePlaybackEngine engine,
-        Duration position) async {
+    Future<void> pauseAt(
+      WidgetTester tester,
+      FakePlaybackEngine engine,
+      Duration position,
+    ) async {
       await engine.pause(); // 停 ticker，位置由显式 seek 精确驱动
       await engine.seek(position);
       await tester.pump();
@@ -569,7 +642,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -607,7 +686,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: true)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: true,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -640,7 +725,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -681,7 +772,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -708,14 +805,20 @@ void main() {
       // 起播：位置流逐步推进穿过片段 → 进入即反相。
       await engine.play();
       await tester.pump(const Duration(milliseconds: 150)); // ≥1 个 100ms 拍
-      expect(engine.position.inMilliseconds > fragment.startMs, isTrue,
-          reason: '播放应已推进进片段区间内');
+      expect(
+        engine.position.inMilliseconds > fragment.startMs,
+        isTrue,
+        reason: '播放应已推进进片段区间内',
+      );
       expect(surfaceMirrored(tester), isTrue);
 
       // 继续播放越过片段右端 → 离开即恢复。
       await tester.pump(const Duration(seconds: 5));
-      expect(engine.position.inMilliseconds >= fragment.endMs, isTrue,
-          reason: '播放应已推进越过片段右端');
+      expect(
+        engine.position.inMilliseconds >= fragment.endMs,
+        isTrue,
+        reason: '播放应已推进越过片段右端',
+      );
       expect(surfaceMirrored(tester), isFalse);
 
       expect(sourceFile.readAsBytesSync(), [1, 2, 3]);
@@ -725,7 +828,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -759,7 +868,13 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(tester, engine: engine, storage: storage);
@@ -775,12 +890,20 @@ void main() {
       expect(fragments, hasLength(2));
 
       // 停在第一段内 → 翻转；两段间空隙 → 不翻转；停在第二段内 → 翻转。
-      await pauseAt(tester, engine, Duration(milliseconds: fragments[0].startMs));
+      await pauseAt(
+        tester,
+        engine,
+        Duration(milliseconds: fragments[0].startMs),
+      );
       expect(surfaceMirrored(tester), isTrue);
       final gap = (fragments[0].endMs + fragments[1].startMs) ~/ 2;
       await pauseAt(tester, engine, Duration(milliseconds: gap));
       expect(surfaceMirrored(tester), isFalse);
-      await pauseAt(tester, engine, Duration(milliseconds: fragments[1].startMs));
+      await pauseAt(
+        tester,
+        engine,
+        Duration(milliseconds: fragments[1].startMs),
+      );
       expect(surfaceMirrored(tester), isTrue);
     });
   });
@@ -827,7 +950,13 @@ void main() {
       );
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: true)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: true,
+            ),
+          ],
         ),
       );
       await pumpPlayer(
@@ -871,15 +1000,20 @@ void main() {
       );
     });
 
-    testWidgets('进出局部镜像片段：贴纸随该刻方向实时换算（半开两端与窗外同判）',
-        (tester) async {
+    testWidgets('进出局部镜像片段：贴纸随该刻方向实时换算（半开两端与窗外同判）', (tester) async {
       final engine = FakePlaybackEngine(
         duration: const Duration(minutes: 1),
         videoAspectRatio: 2,
       );
       final storage = InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [historyEntry(filePath: sourceFile.path, videoId: 'hash-1', mirrored: false)],
+          entries: [
+            historyEntry(
+              filePath: sourceFile.path,
+              videoId: 'hash-1',
+              mirrored: false,
+            ),
+          ],
         ),
       );
       await pumpPlayer(
@@ -932,8 +1066,6 @@ void main() {
     });
   });
 }
-
-
 
 /// 打开即抛错的测试引擎（覆盖 FakePlaybackEngine 的 open 行为）。
 class _ThrowingOpenEngine extends FakePlaybackEngine {

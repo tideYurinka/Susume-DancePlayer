@@ -12,8 +12,7 @@ import 'contributors_page.dart';
 /// 更新说明的落点：**下载页**上「更新说明」那一块的就地锚点——浏览器落在锚点
 /// 上即展开该块，不必让用户自己在页面上找。下载页地址是固定地址
 /// （见 `lib/help/CONTEXT.md`）。
-const String aboutUpdateNotesUrl =
-    'https://susume.yurinka.top/download/#notes';
+const String aboutUpdateNotesUrl = 'https://susume.yurinka.top/download/#notes';
 
 /// 版本号的显示串：只给用户看版本名（形如 `0.1.0`），构建号不进用户可见的
 /// 版本号；构建号只留在诊断信息（`lib/feedback/device_snapshot.dart`）里。
@@ -102,9 +101,9 @@ class _ContributorsRow extends StatelessWidget {
       leading: const Icon(Icons.people_outline),
       title: const Text('贡献者名单'),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ContributorsPage()),
-      ),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const ContributorsPage())),
     );
   }
 }

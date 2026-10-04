@@ -15,7 +15,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationSaveSinkProvider,
         noteStickersProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player/note_editor.dart'
     show noteFragmentHighlightProvider;
 import 'package:dance_learning_app/player/track_band.dart';
@@ -263,10 +264,7 @@ void main() {
       notes: const [NoteSticker(startMs: 8000, endMs: 9250)],
     );
     final blockRect = tester.getRect(find.byKey(const Key('note_fragment_0')));
-    expect(
-      blockRect.width,
-      closeTo(bandContentWidth(800) * 1250 / 60000, 0.5),
-    );
+    expect(blockRect.width, closeTo(bandContentWidth(800) * 1250 / 60000, 0.5));
     expect(
       find.byKey(const Key('note_fragment_0_edge_start')),
       findsOneWidget,
@@ -364,7 +362,9 @@ void main() {
       tester: tester,
       notes: const [NoteSticker(startMs: 10000, endMs: 18000, locked: true)],
     );
-    final promptCount = container.read(noticeTriggerProvider(NoticeId.noteContentLock));
+    final promptCount = container.read(
+      noticeTriggerProvider(NoticeId.noteContentLock),
+    );
     final highlightCount = container.read(noteFragmentHighlightProvider);
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await dragFromRight(
@@ -395,14 +395,13 @@ void main() {
       tester: tester,
       notes: const [NoteSticker(startMs: 10000, endMs: 18000, locked: true)],
     );
-    final promptCount = container.read(noticeTriggerProvider(NoticeId.noteContentLock));
+    final promptCount = container.read(
+      noticeTriggerProvider(NoticeId.noteContentLock),
+    );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await dragFromRight(
       tester,
-      Offset(
-        xOf(rect, 10000) - kNoteEdgeHitWidth / 2,
-        rect.center.dy,
-      ),
+      Offset(xOf(rect, 10000) - kNoteEdgeHitWidth / 2, rect.center.dy),
       pxFor(rect, 3000),
     );
     expect(

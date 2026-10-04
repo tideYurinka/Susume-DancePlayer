@@ -21,7 +21,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
     show practiceClipActivationProvider, practiceClipsProvider;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/practice_clip_playback.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -74,7 +75,10 @@ void main() {
   void advanceStatsClock(Duration d) => statsNow = statsNow.add(d);
 
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960×540dp（dpr 2.0），非设备档。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960×540dp（dpr 2.0），非设备档。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }

@@ -11,16 +11,16 @@ void main() {
     test('不足一小时省略时位', () {
       expect(statsDurationText(Duration(seconds: 372)), '6:12');
       expect(statsDurationText(Duration()), '0:00');
-      expect(statsDurationText(const Duration(minutes: 59, seconds: 59)),
-          '59:59');
+      expect(
+        statsDurationText(const Duration(minutes: 59, seconds: 59)),
+        '59:59',
+      );
     });
 
     test('满一小时出现时位，分秒补零', () {
       expect(statsDurationText(const Duration(hours: 1)), '1:00:00');
       expect(
-        statsDurationText(
-          const Duration(hours: 2, minutes: 3, seconds: 4),
-        ),
+        statsDurationText(const Duration(hours: 2, minutes: 3, seconds: 4)),
         '2:03:04',
       );
     });

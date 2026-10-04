@@ -71,7 +71,9 @@ void main() {
       editor().submit(AddSegmentLine(at: ten));
       sink.saved.clear();
 
-      editor().submit(SetSegmentMastery(order: 0, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
+      );
       final diff = sink.saved.single;
       expect(diff.session?.mastery, {0: LearningMastery.mastered});
       expect(diff.annotations, isNull);
@@ -83,7 +85,10 @@ void main() {
       sink.saved.clear();
 
       editor().submit(ToggleSegmentFlag(index: 0));
-      expect(sink.saved.single.annotations?.segmentLines.single.flagged, isTrue);
+      expect(
+        sink.saved.single.annotations?.segmentLines.single.flagged,
+        isTrue,
+      );
     });
 
     test('自动分段：重写后的熟练度落 session 段、重点落 annotations 段', () {

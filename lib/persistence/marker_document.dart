@@ -619,7 +619,8 @@ MarkersDocument _buildMarkersDocument(Map<_MarkersSection, Object?> sections) {
       sections[_MarkersSection.notes] as _ListSectionValue<NoteSticker>? ??
       const _ListSectionValue<NoteSticker>();
   final rosterValue =
-      sections[_MarkersSection.roster] as _ListSectionValue<DancerRosterEntry>? ??
+      sections[_MarkersSection.roster]
+          as _ListSectionValue<DancerRosterEntry>? ??
       const _ListSectionValue<DancerRosterEntry>();
   return MarkersDocument(
     mirrored: meta.mirrored,
@@ -1095,7 +1096,8 @@ FieldDecl<_AnnotationsValue> _annotationsDecl(_AnnotationsField id) =>
                   if (_segmentDensityTiers.contains(entry.value))
                     '${entry.key}': entry.value,
               },
-        equal: (a, b) => _densitiesEquals(a.segmentDensities, b.segmentDensities),
+        equal: (a, b) =>
+            _densitiesEquals(a.segmentDensities, b.segmentDensities),
       ),
       _AnnotationsField.localMirrorFragments => FieldDecl(
         key: 'localMirrorFragments',

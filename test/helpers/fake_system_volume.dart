@@ -13,7 +13,8 @@ class FakeSystemMediaVolumeController implements SystemMediaVolumeController {
   /// 控制器一致：写入口即钳制语义）。
   final List<double> setCalls = [];
 
-  final StreamController<double> _changes = StreamController<double>.broadcast();
+  final StreamController<double> _changes =
+      StreamController<double>.broadcast();
 
   @override
   Future<double> get volume async => currentVolume;

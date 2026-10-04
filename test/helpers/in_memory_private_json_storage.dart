@@ -9,7 +9,7 @@ import 'package:dance_learning_app/core/private_json.dart';
 /// fake async 时钟下不可完成；本实现以微任务完成 read/write。
 class InMemoryPrivateJsonStorage implements PrivateJsonStorage {
   InMemoryPrivateJsonStorage({Map<String, dynamic> initial = const {}})
-      : _json = Map.of(initial);
+    : _json = Map.of(initial);
 
   Map<String, dynamic> _json;
 
@@ -30,7 +30,8 @@ class InMemoryPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) async {
     final copy = Map<String, dynamic>.of(_json);
     // 内存替身只表达「有一份内容」，没有文件不在态，故恒 present。

@@ -195,8 +195,9 @@ class CameraKitCaptureService implements CameraCaptureService {
     if (_controller != null) return;
     final cameras = await availableCameras();
     // 仅前置摄像头：无前置相机不静默退回其它镜头。
-    final fronts = cameras
-        .where((c) => c.lensDirection == CameraLensDirection.front);
+    final fronts = cameras.where(
+      (c) => c.lensDirection == CameraLensDirection.front,
+    );
     if (fronts.isEmpty) {
       throw CameraException('cameraNotFound', '无可用前置相机');
     }

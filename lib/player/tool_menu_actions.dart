@@ -137,10 +137,7 @@ Map<AddEntryId, VoidCallback> addEntryActions(
       if (!outcome.applied) return;
       // 标记真实发生（做上或取消）即停播。
       pauseAfterCommit();
-      if (!ref
-          .read(annotationTimelineProvider)
-          .segmentLines[line]
-          .flagged) {
+      if (!ref.read(annotationTimelineProvider).segmentLines[line].flagged) {
         return;
       }
       recordGuideArtifact(ref, badgeSegmentFlagUnitId, line);
@@ -194,7 +191,9 @@ Map<AddEntryId, VoidCallback> addEntryActions(
         (a, b) => a.startMs == b.startMs,
       );
       if (index == null) return;
-      ref.read(noteTextEditorTargetProvider.notifier).open(notes[index].startMs);
+      ref
+          .read(noteTextEditorTargetProvider.notifier)
+          .open(notes[index].startMs);
     },
   };
 }

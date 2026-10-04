@@ -16,15 +16,19 @@ void main() {
 
   /// 断言 [line]（1 起）那一行被报出，原因含 [reason]，且错误信息里条目名与
   /// 行号都在。
-  void expectIssueAt(String markdown, {required int line, required String reason}) {
+  void expectIssueAt(
+    String markdown, {
+    required int line,
+    required String reason,
+  }) {
     final issues = issuesOf(markdown);
-    expect(
-      issues,
-      isNotEmpty,
-      reason: '写坏的内容必须报错，不能静默丢弃',
-    );
+    expect(issues, isNotEmpty, reason: '写坏的内容必须报错，不能静默丢弃');
     final hit = issues.where((issue) => issue.line == line);
-    expect(hit, isNotEmpty, reason: '第 $line 行应有一条：${issues.map((i) => i.message)}');
+    expect(
+      hit,
+      isNotEmpty,
+      reason: '第 $line 行应有一条：${issues.map((i) => i.message)}',
+    );
     expect(hit.map((issue) => issue.reason), anyElement(contains(reason)));
     expect(hit.first.message, contains(entryName), reason: '错误信息要指出是哪个条目');
     expect(hit.first.message, contains('第 $line 行'), reason: '错误信息要指出行号');
@@ -155,11 +159,10 @@ void main() {
         '\n'
         '<summary>游离</summary>\n',
       );
-      expect(
-        issues.map((issue) => issue.line).toSet(),
-        {6, 8},
-        reason: '闭合行与它后面游离的 `<summary>` 各报一条：${issues.map((i) => i.message)}',
-      );
+      expect(issues.map((issue) => issue.line).toSet(), {
+        6,
+        8,
+      }, reason: '闭合行与它后面游离的 `<summary>` 各报一条：${issues.map((i) => i.message)}');
       expect(
         issues.firstWhere((issue) => issue.line == 6).reason,
         contains('details'),
@@ -177,7 +180,8 @@ void main() {
         expect(
           issuesOf(broken.value),
           isNotEmpty,
-          reason: '${broken.key}：未识别的折叠块在 App 里无声消失，校验必须报出：\n'
+          reason:
+              '${broken.key}：未识别的折叠块在 App 里无声消失，校验必须报出：\n'
               '${broken.value}',
         );
       }

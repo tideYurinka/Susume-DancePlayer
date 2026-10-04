@@ -58,9 +58,12 @@ class BeatAudioRenderer
 
   final BeatAudioSink? _sink;
   final MetronomeSourceEntry _entry;
+
   /// 当前音源段表（组序、槽 → 哑段 id）：装载按 [MetronomeSegmentTable.loads]
   /// 逐 id 装载，转发按指令自带的 id 原样下推（查表在段表内，不在本类）。
-  late final MetronomeSegmentTable _segmentTable = MetronomeSegmentTable.of(_entry);
+  late final MetronomeSegmentTable _segmentTable = MetronomeSegmentTable.of(
+    _entry,
+  );
   final Future<ByteData> Function(String asset) _loadAsset;
 
   /// 当前音源项（生效音源 seam 的只读观察口；测试断言重建用）。
@@ -229,11 +232,7 @@ class BeatAudioRenderer
     if (sink == null) return;
     final anchorMs = _anchorMediaMs;
     if (anchorMs == null) return; // 无锚：不下推、不伪造
-    sink.sync(
-      mediaTimeMs: anchorMs.toDouble(),
-      rate: _rate,
-      playing: _playing,
-    );
+    sink.sync(mediaTimeMs: anchorMs.toDouble(), rate: _rate, playing: _playing);
   }
 
   /// 会话时钟源锚：会话时间轴（自会话启动 0 起算）→ 墙钟
@@ -243,11 +242,7 @@ class BeatAudioRenderer
     final sink = _sink;
     if (sink == null) return;
     _sessionAnchorWallMs = sink.monotonicMs();
-    sink.sync(
-      mediaTimeMs: 0,
-      rate: 1.0,
-      playing: true,
-    );
+    sink.sync(mediaTimeMs: 0, rate: 1.0, playing: true);
   }
 
   /// 段资产惰性预载一次（当前音源段表的去重段清单按 id 装载 + 标记下传

@@ -17,7 +17,11 @@ const String feedbackTutorialId = '问题反馈';
 /// 条目按 id 从装载结果取（目录名去数字前缀）；装载中或条目不在时页面标题
 /// 退回 id、正文区为空，不崩不白屏。
 class HelpDocumentPage extends ConsumerWidget {
-  const HelpDocumentPage({super.key, required this.documentId, this.initialAnchor});
+  const HelpDocumentPage({
+    super.key,
+    required this.documentId,
+    this.initialAnchor,
+  });
 
   final String documentId;
 

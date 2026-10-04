@@ -120,10 +120,7 @@ void main() {
         firstLine: const Duration(seconds: 6),
         halfBeatLines: const [Duration(milliseconds: 6250)],
       );
-      expect(
-        practice!.halfBeatLines,
-        [const Duration(milliseconds: 6250)],
-      );
+      expect(practice!.halfBeatLines, [const Duration(milliseconds: 6250)]);
     });
 
     test('与整拍同毫秒的半拍线不双响（不进值）', () {
@@ -336,18 +333,16 @@ void main() {
         );
         final fromAnchor = switch (directCount) {
           PracticeBeatCount(:final eightCount, :final beatCount) ||
-          LeadingBeatCount(:final eightCount, :final beatCount) =>
-            selectMetronomeSlot(
-              eightCount: eightCount,
-              beatCount: beatCount,
-              mode: MetronomeSlotMode.effect,
-            ),
+          LeadingBeatCount(
+            :final eightCount,
+            :final beatCount,
+          ) => selectMetronomeSlot(
+            eightCount: eightCount,
+            beatCount: beatCount,
+            mode: MetronomeSlotMode.effect,
+          ),
         };
-        expect(
-          fromEvaluation,
-          fromAnchor,
-          reason: '位置 $ms 处选段同源',
-        );
+        expect(fromEvaluation, fromAnchor, reason: '位置 $ms 处选段同源');
       }
     });
   });

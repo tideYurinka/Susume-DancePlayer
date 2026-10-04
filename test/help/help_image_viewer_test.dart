@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:dance_learning_app/help/help_documents.dart' show onboardingCopyAssetKey;
+import 'package:dance_learning_app/help/help_documents.dart'
+    show onboardingCopyAssetKey;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -211,17 +212,11 @@ void main() {
 
     // 除右上角关闭钮外没有任何可点控件。
     expect(
-      find.descendant(
-        of: viewer(),
-        matching: find.byType(TextButton),
-      ),
+      find.descendant(of: viewer(), matching: find.byType(TextButton)),
       findsNothing,
     );
     expect(
-      find.descendant(
-        of: viewer(),
-        matching: find.byType(FilledButton),
-      ),
+      find.descendant(of: viewer(), matching: find.byType(FilledButton)),
       findsNothing,
     );
     expect(
@@ -402,13 +397,16 @@ Future<void> _pumpFirstRunCard(
   await pumpFirstRunHost(
     tester,
     storage: storage,
-    helpAssets: FakeHelpAssetBundle({
-      onboardingCopyAssetKey: File(onboardingCopyAssetKey).readAsStringSync(),
-      '$downloadVideoTutorialDirectory/下载视频.md': tutorialMarkdown,
-    }, binary: {
-      '$downloadVideoTutorialDirectory/reward.png': onePixelPng,
-      ...images,
-    }),
+    helpAssets: FakeHelpAssetBundle(
+      {
+        onboardingCopyAssetKey: File(onboardingCopyAssetKey).readAsStringSync(),
+        '$downloadVideoTutorialDirectory/下载视频.md': tutorialMarkdown,
+      },
+      binary: {
+        '$downloadVideoTutorialDirectory/reward.png': onePixelPng,
+        ...images,
+      },
+    ),
   );
   resetFirstRunSession(tester);
   await tester.pump();

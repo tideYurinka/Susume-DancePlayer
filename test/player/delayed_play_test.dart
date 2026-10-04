@@ -1,7 +1,6 @@
 import 'dart:async' show unawaited;
 
-import 'package:dance_learning_app/core/eight_beat_phase.dart'
-    show BeatPhase;
+import 'package:dance_learning_app/core/eight_beat_phase.dart' show BeatPhase;
 import 'package:dance_learning_app/core/beat_grid.dart';
 import 'package:dance_learning_app/player/delayed_play.dart';
 import 'package:fake_async/fake_async.dart';

@@ -184,7 +184,10 @@ void main() {
         ),
       );
       expect(BeatPhase(grid: grid).nearest(ms(1000)), isNull);
-      expect(BeatPhase(grid: grid, anchors: const [4]).nearest(ms(1000)), isNull);
+      expect(
+        BeatPhase(grid: grid, anchors: const [4]).nearest(ms(1000)),
+        isNull,
+      );
 
       final uniform = uniformGrid();
       final ignored = BeatPhase(grid: uniform, anchors: const [30]);
@@ -305,18 +308,17 @@ void main() {
       final grid = uniformGrid();
       final anchored = BeatPhase(grid: grid, anchors: const [28]);
 
-      expect(BeatPhase(grid: grid).eightBeatPointIndicesInRange(0, 20), [0, 8, 16]);
+      expect(BeatPhase(grid: grid).eightBeatPointIndicesInRange(0, 20), [
+        0,
+        8,
+        16,
+      ]);
       expect(anchored.eightBeatPointIndicesInRange(1, 27), [8, 16, 24]);
-      expect(
-        anchored.eightBeatPointIndicesInRange(25, 28),
-        [28],
-        reason: '半八拍：锚点 28 落在区间内',
-      );
+      expect(anchored.eightBeatPointIndicesInRange(25, 28), [
+        28,
+      ], reason: '半八拍：锚点 28 落在区间内');
       expect(anchored.eightBeatPointIndicesInRange(29, 35), isEmpty);
-      expect(
-        anchored.eightBeatPointIndicesInRange(25, 36),
-        [28, 36],
-      );
+      expect(anchored.eightBeatPointIndicesInRange(25, 36), [28, 36]);
     });
 
     test('强拍判定 = 八拍点或 downbeat（大线/中线同一条判定）', () {

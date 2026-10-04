@@ -142,10 +142,8 @@ List<AgendaReviewItem> agendaReviewItems({
     }
     final exceed = dance.lastPracticeDay == null
         ? null
-        : localDay(now)
-                .difference(localDay(dance.lastPracticeDay!))
-                .inDays -
-            reviewReminderThresholdDays(dance.level);
+        : localDay(now).difference(localDay(dance.lastPracticeDay!)).inDays -
+              reviewReminderThresholdDays(dance.level);
     items.add(
       AgendaReviewItem(
         videoId: dance.videoId,
@@ -163,15 +161,12 @@ List<AgendaReviewItem> agendaReviewItems({
 List<PlanEvent> agendaSocialItems({
   required List<PlanEvent> events,
   required DateTime now,
-}) => stableSorted(
-  [
-    for (final event in events)
-      if (event.type == kPlanEventTypeSocial &&
-          planRemainingDays(dueDay: event.date, now: now) >= 0)
-        event,
-  ],
-  (event) => localDay(event.date).millisecondsSinceEpoch,
-);
+}) => stableSorted([
+  for (final event in events)
+    if (event.type == kPlanEventTypeSocial &&
+        planRemainingDays(dueDay: event.date, now: now) >= 0)
+      event,
+], (event) => localDay(event.date).millisecondsSinceEpoch);
 
 /// 键升序、键并列时保持原次序的稳定排序（Dart 的 List.sort 不保证稳定）。
 List<T> stableSorted<T>(List<T> items, int Function(T item) key) {

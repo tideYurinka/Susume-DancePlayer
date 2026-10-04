@@ -113,9 +113,7 @@ final dancePracticeDistributionProvider = FutureProvider.autoDispose
           .watch(videoDocumentStorageFactoryProvider)(videoId)
           .loadMarkers();
       final markers = MarkersDocument.fromJson(markersJson);
-      final shard = await ref
-          .watch(fourBeatBucketStoreProvider)
-          .shard(videoId);
+      final shard = await ref.watch(fourBeatBucketStoreProvider).shard(videoId);
       return practiceDistributionInputFor(
         markers,
         _bucketReadFace(shard, markers),
@@ -275,9 +273,7 @@ Future<void> _deleteDance(_DanceDeletionPorts ports, String videoId) async {
   await _bestEffort(
     () => ports.bucketStore.deleteShard(videoId),
   ); // 四拍桶分片（见词条「四拍桶」：随舞删除；按天会话保留）
-  await _bestEffort(
-    () => ports.deleteCover(videoId),
-  ); // 封面缓存（随舞删除，不留再也进不去的画面）
+  await _bestEffort(() => ports.deleteCover(videoId)); // 封面缓存（随舞删除，不留再也进不去的画面）
   await _bestEffort(
     () => ports.deletePlanForDance(videoId),
   ); // 计划项（该舞 DDL 与清单随舞删除）

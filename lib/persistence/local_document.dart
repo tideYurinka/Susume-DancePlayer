@@ -1,10 +1,10 @@
 import '../annotation/compare_materials.dart'
     show
-      MaterialAutoDeleteSettings,
-      MaterialAutoDeleteStrategy,
-      kDefaultMaterialAutoDeleteKeepCount,
-      kDefaultMaterialAutoDeleteKeepDays,
-      PracticeClip;
+        MaterialAutoDeleteSettings,
+        MaterialAutoDeleteStrategy,
+        kDefaultMaterialAutoDeleteKeepCount,
+        kDefaultMaterialAutoDeleteKeepDays,
+        PracticeClip;
 import '../annotation/learning_segment_attributes.dart';
 import 'annotation_sections.dart';
 import '../core/document_codec.dart';
@@ -146,13 +146,8 @@ class BeatPromptMemoryFields {
       other.halfBeat == halfBeat;
 
   @override
-  int get hashCode => Object.hash(
-    animation,
-    animationStyle,
-    sound,
-    soundType,
-    halfBeat,
-  );
+  int get hashCode =>
+      Object.hash(animation, animationStyle, sound, soundType, halfBeat);
 }
 
 /// 本地文档 `local_<hash>.json` 的 schema v4 文档模型。
@@ -458,42 +453,41 @@ Map<String, Object?> _migrateLocalV3ToV4(Map<String, Object?> json) {
   return next;
 }
 
-SectionDecl<LocalDocument> _localSectionDecl(_LocalSection id) =>
-    switch (id) {
-      _LocalSection.session => SectionDecl(
-        key: 'session',
-        codec: _sessionCodec,
-        sectionOf: (doc) => _SessionValue(
-          mastery: doc.mastery,
-          activatedSegments: doc.activatedSegments,
-          activePracticeClipId: doc.activePracticeClipId,
-          extra: doc.sessionExtra,
-        ),
+SectionDecl<LocalDocument> _localSectionDecl(_LocalSection id) => switch (id) {
+  _LocalSection.session => SectionDecl(
+    key: 'session',
+    codec: _sessionCodec,
+    sectionOf: (doc) => _SessionValue(
+      mastery: doc.mastery,
+      activatedSegments: doc.activatedSegments,
+      activePracticeClipId: doc.activePracticeClipId,
+      extra: doc.sessionExtra,
+    ),
+  ),
+  _LocalSection.prefs => SectionDecl(
+    key: 'prefs',
+    codec: _prefsCodec,
+    sectionOf: (doc) => _PrefsValue(
+      previewSnapEnabled: doc.previewSnapEnabled,
+      layoutLocked: doc.layoutLocked,
+      overlay: _OverlayValue(
+        fields: doc.overlay ?? const OverlayPlacementFields(),
+        extra: doc.overlayExtra,
       ),
-      _LocalSection.prefs => SectionDecl(
-        key: 'prefs',
-        codec: _prefsCodec,
-        sectionOf: (doc) => _PrefsValue(
-          previewSnapEnabled: doc.previewSnapEnabled,
-          layoutLocked: doc.layoutLocked,
-          overlay: _OverlayValue(
-            fields: doc.overlay ?? const OverlayPlacementFields(),
-            extra: doc.overlayExtra,
-          ),
-          beatPrompt: doc.beatPrompt == null
-              ? _beatPromptAbsent
-              : _BeatPromptValue(
-                  fields: doc.beatPrompt!,
-                  extra: doc.beatPromptExtra,
-                ),
-          speedRate: doc.speedRate,
-          practiceMirror: doc.practiceMirror,
-          practiceClips: doc.practiceClips,
-          autoDelete: doc.autoDelete,
-          extra: doc.prefsExtra,
-        ),
-      ),
-    };
+      beatPrompt: doc.beatPrompt == null
+          ? _beatPromptAbsent
+          : _BeatPromptValue(
+              fields: doc.beatPrompt!,
+              extra: doc.beatPromptExtra,
+            ),
+      speedRate: doc.speedRate,
+      practiceMirror: doc.practiceMirror,
+      practiceClips: doc.practiceClips,
+      autoDelete: doc.autoDelete,
+      extra: doc.prefsExtra,
+    ),
+  ),
+};
 
 LocalDocument _buildLocalDocument(Map<_LocalSection, Object?> sections) {
   final session = sections[_LocalSection.session] as _SessionValue;
@@ -598,8 +592,7 @@ FieldDecl<_SessionValue> _sessionDecl(_SessionField id) => switch (id) {
 _SessionValue _buildSession(Map<_SessionField, Object?> values) =>
     _SessionValue(
       mastery: values[_SessionField.mastery] as Map<int, LearningMastery>,
-      activatedSegments:
-          values[_SessionField.activatedSegments] as List<int>,
+      activatedSegments: values[_SessionField.activatedSegments] as List<int>,
       activePracticeClipId:
           values[_SessionField.activePracticeClipId] as String?,
     );
@@ -687,7 +680,8 @@ FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
         ? _overlayCodec.decode(json['overlay'] as Map<String, Object?>)
         : const _OverlayValue(),
     // 承诺：无自定义浮层（四个字段全未设）不写该键。
-    write: (v) => v.overlay.isUnset ? omitField : _overlayCodec.encode(v.overlay),
+    write: (v) =>
+        v.overlay.isUnset ? omitField : _overlayCodec.encode(v.overlay),
     equal: (a, b) => _overlayCodec.equals(a.overlay, b.overlay),
   ),
   _PrefsField.beatPrompt => FieldDecl(
@@ -699,12 +693,12 @@ FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
     },
     // 承诺：整份记录不存在（null）不写该键——缺键即无记录；记录在但
     // 五个字段全缺席仍写空对象（与无记录是两种状态）。
-    write: (v) =>
-        v.beatPrompt.present ? _beatPromptCodec.encode(v.beatPrompt) : omitField,
+    write: (v) => v.beatPrompt.present
+        ? _beatPromptCodec.encode(v.beatPrompt)
+        : omitField,
     equal: (a, b) =>
         a.beatPrompt.present == b.beatPrompt.present &&
-        (!a.beatPrompt.present ||
-            a.beatPrompt.fields == b.beatPrompt.fields),
+        (!a.beatPrompt.present || a.beatPrompt.fields == b.beatPrompt.fields),
   ),
   _PrefsField.speedRate => FieldDecl(
     key: 'speedRate',
@@ -715,9 +709,8 @@ FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
   ),
   _PrefsField.practiceMirror => FieldDecl(
     key: 'practiceMirror',
-    read: (json) => json['practiceMirror'] is bool
-        ? json['practiceMirror'] as bool
-        : null,
+    read: (json) =>
+        json['practiceMirror'] is bool ? json['practiceMirror'] as bool : null,
     // 承诺：未覆盖（null）不写该键——覆盖值缺省即用设备级值。
     write: (v) => v.practiceMirror ?? omitField,
     equal: (a, b) => a.practiceMirror == b.practiceMirror,
@@ -739,18 +732,17 @@ FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
     key: 'autoDelete',
     read: (json) => _readAutoDelete(json['autoDelete']),
     // 承诺：默认设置（关 + 30 条 / 90 天）不写该键——缺键即默认值。
-    write: (v) =>
-        v.autoDelete == const MaterialAutoDeleteSettings()
+    write: (v) => v.autoDelete == const MaterialAutoDeleteSettings()
         ? omitField
         : {
-          'enabled': v.autoDelete.enabled,
-          'strategy': switch (v.autoDelete.strategy) {
-            MaterialAutoDeleteStrategy.keepRecentCount => 'count',
-            MaterialAutoDeleteStrategy.keepRecentDays => 'days',
+            'enabled': v.autoDelete.enabled,
+            'strategy': switch (v.autoDelete.strategy) {
+              MaterialAutoDeleteStrategy.keepRecentCount => 'count',
+              MaterialAutoDeleteStrategy.keepRecentDays => 'days',
+            },
+            'keepCount': v.autoDelete.keepCount,
+            'keepDays': v.autoDelete.keepDays,
           },
-          'keepCount': v.autoDelete.keepCount,
-          'keepDays': v.autoDelete.keepDays,
-        },
     equal: (a, b) => a.autoDelete == b.autoDelete,
   ),
 };
@@ -821,40 +813,38 @@ final RecordCodec<_BeatPromptValue, _BeatPromptField> _beatPromptCodec =
       decl: _beatPromptDecl,
       build: _buildBeatPrompt,
       extraOf: (v) => v.extra,
-      withExtra: (v, extra) => _BeatPromptValue(
-        fields: v.fields,
-        extra: extra,
-        present: v.present,
-      ),
+      withExtra: (v, extra) =>
+          _BeatPromptValue(fields: v.fields, extra: extra, present: v.present),
     );
 
-FieldDecl<_BeatPromptValue> _beatPromptDecl(_BeatPromptField id) => switch (id) {
-  _BeatPromptField.animation => _beatPromptFieldDecl(
-    key: 'animation',
-    read: (f) => f.animation,
-    parse: _parseBool,
-  ),
-  _BeatPromptField.animationStyle => _beatPromptFieldDecl(
-    key: 'animationStyle',
-    read: (f) => f.animationStyle,
-    parse: (raw) => _parseName(raw, const {'bar', 'pendulum'}),
-  ),
-  _BeatPromptField.sound => _beatPromptFieldDecl(
-    key: 'sound',
-    read: (f) => f.sound,
-    parse: _parseBool,
-  ),
-  _BeatPromptField.soundType => _beatPromptFieldDecl(
-    key: 'soundType',
-    read: (f) => f.soundType,
-    parse: (raw) => _parseName(raw, const {'normal', 'vocal', 'geigi'}),
-  ),
-  _BeatPromptField.halfBeat => _beatPromptFieldDecl(
-    key: 'halfBeat',
-    read: (f) => f.halfBeat,
-    parse: _parseBool,
-  ),
-};
+FieldDecl<_BeatPromptValue> _beatPromptDecl(_BeatPromptField id) =>
+    switch (id) {
+      _BeatPromptField.animation => _beatPromptFieldDecl(
+        key: 'animation',
+        read: (f) => f.animation,
+        parse: _parseBool,
+      ),
+      _BeatPromptField.animationStyle => _beatPromptFieldDecl(
+        key: 'animationStyle',
+        read: (f) => f.animationStyle,
+        parse: (raw) => _parseName(raw, const {'bar', 'pendulum'}),
+      ),
+      _BeatPromptField.sound => _beatPromptFieldDecl(
+        key: 'sound',
+        read: (f) => f.sound,
+        parse: _parseBool,
+      ),
+      _BeatPromptField.soundType => _beatPromptFieldDecl(
+        key: 'soundType',
+        read: (f) => f.soundType,
+        parse: (raw) => _parseName(raw, const {'normal', 'vocal', 'geigi'}),
+      ),
+      _BeatPromptField.halfBeat => _beatPromptFieldDecl(
+        key: 'halfBeat',
+        read: (f) => f.halfBeat,
+        parse: _parseBool,
+      ),
+    };
 
 /// 记忆单元的单字段声明：缺席（null）时写 [omitField]，词表外的值读入
 /// 归缺席。
@@ -869,17 +859,16 @@ FieldDecl<_BeatPromptValue> _beatPromptFieldDecl<T>({
   equal: (a, b) => read(a.fields) == read(b.fields),
 );
 
-_BeatPromptValue _buildBeatPrompt(
-  Map<_BeatPromptField, Object?> values,
-) => _BeatPromptValue(
-  fields: BeatPromptMemoryFields(
-    animation: values[_BeatPromptField.animation] as bool?,
-    animationStyle: values[_BeatPromptField.animationStyle] as String?,
-    sound: values[_BeatPromptField.sound] as bool?,
-    soundType: values[_BeatPromptField.soundType] as String?,
-    halfBeat: values[_BeatPromptField.halfBeat] as bool?,
-  ),
-);
+_BeatPromptValue _buildBeatPrompt(Map<_BeatPromptField, Object?> values) =>
+    _BeatPromptValue(
+      fields: BeatPromptMemoryFields(
+        animation: values[_BeatPromptField.animation] as bool?,
+        animationStyle: values[_BeatPromptField.animationStyle] as String?,
+        sound: values[_BeatPromptField.sound] as bool?,
+        soundType: values[_BeatPromptField.soundType] as String?,
+        halfBeat: values[_BeatPromptField.halfBeat] as bool?,
+      ),
+    );
 
 bool? _parseBool(Object? raw) => raw is bool ? raw : null;
 
@@ -1002,7 +991,10 @@ _OverlayValue _buildOverlay(Map<_OverlayField, Object?> values) {
     _OverlayField.landscapeDx,
     _OverlayField.landscapeDy,
   );
-  final portraitCompare = pair(_OverlayField.compareDx, _OverlayField.compareDy);
+  final portraitCompare = pair(
+    _OverlayField.compareDx,
+    _OverlayField.compareDy,
+  );
   final landscapeCompare = pair(
     _OverlayField.landscapeCompareDx,
     _OverlayField.landscapeCompareDy,

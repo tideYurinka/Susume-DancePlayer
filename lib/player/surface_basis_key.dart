@@ -44,13 +44,14 @@ class SurfaceBasisKeyStore {
   }
 
   /// 写入基准键（null = 清除，恢复默认）；同文件其它键保留。
-  Future<void> save(FaceDirection? value) => _storage.mutate((json, {required bool present}) {
-    if (value == null) {
-      json.remove(kSurfaceBasisKeyKey);
-    } else {
-      json[kSurfaceBasisKeyKey] = value.isMirrored;
-    }
-  });
+  Future<void> save(FaceDirection? value) =>
+      _storage.mutate((json, {required bool present}) {
+        if (value == null) {
+          json.remove(kSurfaceBasisKeyKey);
+        } else {
+          json[kSurfaceBasisKeyKey] = value.isMirrored;
+        }
+      });
 }
 
 /// 顶层布尔键的取值口径：true = 镜像、false = 原相；其余（含缺失）= 读不到。

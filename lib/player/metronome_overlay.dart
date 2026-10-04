@@ -105,7 +105,7 @@ final overlayPlacementProvider =
 /// 沿 GestureFeedbackController 等 plain-class 先例，不进 Riverpod）。
 class MetronomeOverlayController extends ChangeNotifier {
   MetronomeOverlayController({OverlayPlacements? initialPlacement})
-      : _placements = initialPlacement ?? const OverlayPlacements();
+    : _placements = initialPlacement ?? const OverlayPlacements();
 
   /// 用户意图载荷（四格容器）：写回一律是用户意图，钳制只进生效面。
   OverlayPlacements _placements;
@@ -130,7 +130,8 @@ class MetronomeOverlayController extends ChangeNotifier {
       pendulumScale: _placements.pendulumScale,
       viewport: box,
     );
-    final raw = _placements.offsetFor(_cell) ??
+    final raw =
+        _placements.offsetFor(_cell) ??
         (box == null ? Offset.zero : defaultOverlayOffset(box));
     if (box == null) return (offset: raw, size: size);
     return (
@@ -334,9 +335,7 @@ class MetronomeOverlayController extends ChangeNotifier {
   /// [applyRectPinch]。
   void applyPendulumPinch(double scale) {
     _applyPinchPlacement(
-      _placements.withFactors(
-        pendulumScale: _placements.pendulumScale * scale,
-      ),
+      _placements.withFactors(pendulumScale: _placements.pendulumScale * scale),
     );
   }
 
@@ -369,10 +368,7 @@ class MetronomeOverlayController extends ChangeNotifier {
   /// 半灵敏度的「原始倍率减半」口径一致，且与帧数/帧率无关）。非会话期间
   /// 忽略。两指语义随形态：矩形只取水平分量只改宽度，摆锤整体等比。钳制
   /// 收口在 [_applyPinchPlacement]（内容相对钳 + 生效面视口钳）。
-  void updatePinch({
-    required double scale,
-    required double horizontalScale,
-  }) {
+  void updatePinch({required double scale, required double horizontalScale}) {
     final pinch = _pinch;
     if (pinch == null) return;
     switch (_style) {
@@ -662,30 +658,30 @@ class _MetronomeOverlayState extends State<MetronomeOverlay> {
             key: const Key('metronome_overlay_selected'),
             clipBehavior: Clip.none,
             children: [
-                // 按实际尺寸布局的内容（左上锚定）。
-                // 语义档（随系统字号）：数拍两数与格内拍号承载语义，
-                // 随设备 textScaler 缩放；盒几何（命中矩形 / 摆锤基准盒 +
-                // FittedBox）不变，摆锤形态经 FittedBox 单次缩放仍全域无溢出。
-                // 选中态 body 对指针穿透：宿主全局双指
-                // 缩放需在「任意位置」起手都拿到指针；单指主体拖动与锁定
-                // 后穿透给视频都归宿主 scale 识别器仲裁——浮层自身内容
-                // 不吞命中，仅 4 角工具各自保留独立命中。
-                IgnorePointer(child: content),
-                // 虚线青矩形选中框（纯装饰：对指针穿透，仅角工具交互）。
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: DashedSelectionBoxPainter(
-                        color: kCyanAccentColor,
-                        strokeWidth: 1.5,
-                      ),
+              // 按实际尺寸布局的内容（左上锚定）。
+              // 语义档（随系统字号）：数拍两数与格内拍号承载语义，
+              // 随设备 textScaler 缩放；盒几何（命中矩形 / 摆锤基准盒 +
+              // FittedBox）不变，摆锤形态经 FittedBox 单次缩放仍全域无溢出。
+              // 选中态 body 对指针穿透：宿主全局双指
+              // 缩放需在「任意位置」起手都拿到指针；单指主体拖动与锁定
+              // 后穿透给视频都归宿主 scale 识别器仲裁——浮层自身内容
+              // 不吞命中，仅 4 角工具各自保留独立命中。
+              IgnorePointer(child: content),
+              // 虚线青矩形选中框（纯装饰：对指针穿透，仅角工具交互）。
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: DashedSelectionBoxPainter(
+                      color: kCyanAccentColor,
+                      strokeWidth: 1.5,
                     ),
                   ),
                 ),
-                // 4 角工具（次序 = [OverlayCorner] 枚举序）。
-                ..._cornerTools(),
-              ],
-            ),
+              ),
+              // 4 角工具（次序 = [OverlayCorner] 枚举序）。
+              ..._cornerTools(),
+            ],
+          ),
         );
       },
     );
@@ -839,12 +835,11 @@ class OverlayPlacementSessionStore implements OverlayGeometryStore {
   void listen(
     void Function(OverlayPlacements? value) onChanged, {
     required bool fireImmediately,
-  }) =>
-      _ref.listenManual(
-        overlayPlacementProvider,
-        (_, OverlayPlacements? next) => onChanged(next),
-        fireImmediately: fireImmediately,
-      );
+  }) => _ref.listenManual(
+    overlayPlacementProvider,
+    (_, OverlayPlacements? next) => onChanged(next),
+    fireImmediately: fireImmediately,
+  );
 }
 
 /// 缺省几何存取实现：几何只在本会话内存中，不落盘。

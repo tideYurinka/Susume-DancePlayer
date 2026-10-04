@@ -20,8 +20,7 @@ class PlatformShareChannel implements ShareChannel {
   final Future<Directory> Function() resolveBaseDirectory;
 
   PlatformShareChannel({Future<Directory> Function()? resolveBaseDirectory})
-    : resolveBaseDirectory =
-          resolveBaseDirectory ?? getTemporaryDirectory {
+    : resolveBaseDirectory = resolveBaseDirectory ?? getTemporaryDirectory {
     _channel.setMethodCallHandler(_onNativeCall);
   }
 
@@ -45,9 +44,7 @@ class PlatformShareChannel implements ShareChannel {
 
   Future<void> _drainSlotAfter(String pushedUri) async {
     try {
-      final pending = await _channel.invokeMethod<String>(
-        'takePendingInbound',
-      );
+      final pending = await _channel.invokeMethod<String>('takePendingInbound');
       // 槽里是推送那条之外的更新入站（容量 1 内的覆盖）才补发。
       if (pending != null && pending != pushedUri) {
         _inboundController.add(InboundShare(contentUri: pending));

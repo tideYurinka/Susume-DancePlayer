@@ -822,11 +822,7 @@ const double kCompareRecordButtonBottomInset = 24;
 /// 长的值——会撒谎的数字不如不给）。取景调节态内整枚钮不画（底部
 /// 居中让给取景条），故本件没有置灰相位。
 class CompareRecordButton extends StatelessWidget {
-  const CompareRecordButton({
-    super.key,
-    required this.controller,
-    this.onTap,
-  });
+  const CompareRecordButton({super.key, required this.controller, this.onTap});
 
   final CompareRecordingController controller;
 

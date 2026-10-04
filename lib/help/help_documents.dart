@@ -47,7 +47,10 @@ class HelpContent {
   final List<HelpDocumentContent> tutorials;
 
   /// 全部条目的合并清单（手册在前、教程次之），按 id 查条目与全量遍历共用。
-  List<HelpDocumentContent> get allDocuments => [...manualChapters, ...tutorials];
+  List<HelpDocumentContent> get allDocuments => [
+    ...manualChapters,
+    ...tutorials,
+  ];
 
   /// 全部条目合起来按 id 查条目；找不到为 null。
   HelpDocumentContent? document(String id) {
@@ -286,18 +289,14 @@ Future<HelpDocumentContent> _loadDocumentContent(
       final body = helpBodyMarkdown(markdown);
       final bodySegments = helpMarkdownSegments(body);
       final firstSection = helpFirstSectionMarkdown(body);
-      final imageAssets = _existingImageAssets(
-        directory,
-        [
-          ...parsed.imageSources,
-          // 折叠块在 Markdown 解析器眼里是整块 HTML，拿不到 img 节点；按同一份
-          // 切段结果单独解析块内 Markdown，块内图片照常解析到同目录资产。
-          for (final segment in bodySegments)
-            if (segment is HelpFoldSegment)
-              ...parseHelpMarkdown(segment.markdown).imageSources,
-        ],
-        keys,
-      );
+      final imageAssets = _existingImageAssets(directory, [
+        ...parsed.imageSources,
+        // 折叠块在 Markdown 解析器眼里是整块 HTML，拿不到 img 节点；按同一份
+        // 切段结果单独解析块内 Markdown，块内图片照常解析到同目录资产。
+        for (final segment in bodySegments)
+          if (segment is HelpFoldSegment)
+            ...parseHelpMarkdown(segment.markdown).imageSources,
+      ], keys);
       return HelpDocumentContent(
         id: id,
         directory: directory,
@@ -490,7 +489,5 @@ String? _linkIssueReason(
     directory: entry.directory,
     href: href,
   );
-  return link == null
-      ? '`$href` 解析不到一个已被扫到的帮助条目，或它带的锚点在目标条目里不唯一命中'
-      : null;
+  return link == null ? '`$href` 解析不到一个已被扫到的帮助条目，或它带的锚点在目标条目里不唯一命中' : null;
 }

@@ -30,14 +30,8 @@ void main() {
         contains(PlayerSessionMode.compareFraming),
       );
       // 单画面取景调节态：观看面、非对比态。
-      expect(
-        PlayerSessionMode.values,
-        contains(PlayerSessionMode.framing),
-      );
-      expect(
-        const PlayerSession(PlayerSessionMode.framing).isCompare,
-        isFalse,
-      );
+      expect(PlayerSessionMode.values, contains(PlayerSessionMode.framing));
+      expect(const PlayerSession(PlayerSessionMode.framing).isCompare, isFalse);
       expect(
         const PlayerSession(PlayerSessionMode.framing).controlOpen,
         isFalse,

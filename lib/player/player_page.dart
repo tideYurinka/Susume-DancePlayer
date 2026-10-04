@@ -92,15 +92,11 @@ import 'framing_stage.dart' show singlePictureFramedPictureRectOnScreen;
 import 'framing_session.dart';
 import 'presentation_session.dart' show PresentationSession;
 import 'presentation_layer.dart'
-    show
-        PresentationLayer,
-        PresentationLayerInput,
-        threeFingerToastNoticeSpec;
+    show PresentationLayer, PresentationLayerInput, threeFingerToastNoticeSpec;
 import 'practice_clip_playback.dart'
     show PracticeClipPlaybackController, practiceClipEngineProvider;
 import 'surface_basis_key.dart' show liveSurfaceBaselinesProvider;
-import 'surface_face_assembly.dart'
-    show SurfaceFaceAssembly, SurfaceFaceScope;
+import 'surface_face_assembly.dart' show SurfaceFaceAssembly, SurfaceFaceScope;
 import 'material_library.dart' show currentVideoIdProvider;
 import '../annotation/compare_materials.dart' show PracticeClip;
 import '../persistence/material_manifest.dart'
@@ -549,8 +545,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       // 不动选中态与锁定态，生效位置与命中区随即由新格派生（控制器通知
       // 同步注册几何）。展开/收起控制层不在对比边沿上，故不切格。
       _presentation.setCell(
-        landscape:
-            MediaQuery.orientationOf(context) == Orientation.landscape,
+        landscape: MediaQuery.orientationOf(context) == Orientation.landscape,
         compare: next.isCompare,
       );
       if (next.isCompare) {
@@ -567,9 +562,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 恢复接线（local → 会话态 → 控制器）与「变更即存」回写（控制器 →
     // 会话态 → VideoSettingsPersistence 落盘）都由演出层会话装配
     //（[PresentationSession.attachGeometry]）；本页只把会话态投影实现交进去。
-    _presentation.attachGeometry(
-      store: OverlayPlacementSessionStore(ref),
-    );
+    _presentation.attachGeometry(store: OverlayPlacementSessionStore(ref));
     // 浮层存在性 = 内容可见性：内容转为为空即退出选中态
     // （浮层不存在时不可保持选中；隐藏期间位置/缩放记忆不受影响）。
     ref.listenManual(beatOverlayContentVisibleProvider, (_, bool visible) {
@@ -585,8 +578,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     _beatDriver = BeatPresentationDriver(
       presentation: _beatPresentation,
       readFacts: () => ref.read(beatPresentationFactsProvider),
-      readTransport: () =>
-          (rate: engine.rate, playing: engine.isPlaying),
+      readTransport: () => (rate: engine.rate, playing: engine.isPlaying),
       readPosition: () => ref.read(playbackPositionProvider).value,
     );
     unawaited(_beatPresentation.attach());
@@ -630,10 +622,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       isTakenOverOf: () => _engineSeek.takenOver,
     );
     _delayedPlay.attachChannels(
-      writeAnchor: (anchor) => ref.read(delayAnchorProvider.notifier).set(anchor),
-      writePreparing: (preparing) => ref
-          .read(delayedPlayPreparingProvider.notifier)
-          .set(preparing),
+      writeAnchor: (anchor) =>
+          ref.read(delayAnchorProvider.notifier).set(anchor),
+      writePreparing: (preparing) =>
+          ref.read(delayedPlayPreparingProvider.notifier).set(preparing),
     );
     // 延迟锚值道模型引用（dispose 复位用，同款形状）。
     _delayAnchorModel = ref.read(delayAnchorProvider.notifier);
@@ -910,7 +902,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     unawaited(Future.microtask(_open));
   }
 
-
   /// 组装对比录制与练习片段域：录制相位与四个值道、录制钮的起停、
   /// 素材入轨、练习片段的回放都收在域内；此处把读取闭包、写缝与宿主动作一次
   /// 给全（组合根的第五项职责：组装层域）。
@@ -977,8 +968,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         },
         activeClipIdOf: () => ref.read(practiceClipActivationProvider)?.clipId,
         clipPlaybackOnscreenOf: () =>
-            ref.read(practiceOnscreenFaceProvider) ==
-            SurfaceFace.clipPlayback,
+            ref.read(practiceOnscreenFaceProvider) == SurfaceFace.clipPlayback,
         restoreQuietWriteOf: () => restoreQuietLoopWrite(ref),
         isCompareOf: () => ref.read(playerSessionProvider).isCompare,
         isMountedOf: () => mounted,
@@ -1021,7 +1011,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
             loadGateBlocksWrite(ref, PageWriteEntryId.recording),
         endTransientRateOf: _speedControl.endTransientRate,
         showRejectedPromptOf: () => ref
-            .read(noticeTriggerProvider(NoticeId.compareRecordRejected).notifier)
+            .read(
+              noticeTriggerProvider(NoticeId.compareRecordRejected).notifier,
+            )
             .show(),
         exitClipReviewOf: () => exitPracticeClipReview(ref),
       ),
@@ -1101,8 +1093,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               .read(guideSessionProvider.notifier)
               .latch(HandsOnCriterion.threeFingerJumpPerformed);
         },
-        showNotice: (id) =>
-            ref.read(noticeTriggerProvider(id).notifier).show(),
+        showNotice: (id) => ref.read(noticeTriggerProvider(id).notifier).show(),
         presentation: _presentation,
       ),
     );
@@ -1193,8 +1184,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       _naming.promptImportIfNeeded(isNewImport: isNewImport);
 
   @override
-  Future<void> resolveMirror(OpenSession session) => _mirror.resolveFor(session);
-
+  Future<void> resolveMirror(OpenSession session) =>
+      _mirror.resolveFor(session);
 
   Future<void> _togglePlayPause() async {
     // 录制期（含准备期）双击 = **停录**：与录制钮同一个动作——准备期 =
@@ -1354,9 +1345,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   /// 取景调节态谓词（模式值 = 对比取景 `compareFraming` 或单画面取景
   /// `framing`）。
   bool get _framingActive => switch (ref.read(playerSessionProvider).mode) {
-        PlayerSessionMode.compareFraming || PlayerSessionMode.framing => true,
-        _ => false,
-      };
+    PlayerSessionMode.compareFraming || PlayerSessionMode.framing => true,
+    _ => false,
+  };
 
   /// 切后台强制 flush 标注保存：挂起 burst 不等到期窗口；
   /// 未接编排器（null sink）时零行为。写失败由编排器静默兜底。
@@ -1604,8 +1595,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                     startPointerCount: () => _feedback.startPointerCount,
                   ),
                   playingFlips: _engineSeek.engine.isPlayingStream,
-                  transientRateActive: speedControlProvider
-                      .select((s) => s.transientActive),
+                  transientRateActive: speedControlProvider.select(
+                    (s) => s.transientActive,
+                  ),
                   delayedPlayPreparing: delayedPlayPreparingProvider,
                 ),
               ),
@@ -1680,8 +1672,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       opened: _opened,
       openFailed: _openFailed,
       reviewingClip: reviewingClip,
-      landscape:
-          MediaQuery.orientationOf(context) == Orientation.landscape,
+      landscape: MediaQuery.orientationOf(context) == Orientation.landscape,
       systemTopInset: padding.top,
       // 系统栏底内缩：与顶内缩同一条口径，
       // 供横屏编辑态的提示卡占用区上缘换算。

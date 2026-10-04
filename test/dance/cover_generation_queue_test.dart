@@ -113,9 +113,9 @@ void main() {
   });
 }
 
-
 /// 让真实文件 IO（缓存 rename / 位置标记）跑完若干轮事件循环。
-Future<void> _settleIo() => Future<void>.delayed(const Duration(milliseconds: 20));
+Future<void> _settleIo() =>
+    Future<void>.delayed(const Duration(milliseconds: 20));
 
 /// 内存执行器替身：记录起步次序，等用例显式放行才完成（据此观察并发上限）。
 class _BlockingExecutor implements CoverFrameExecutor {

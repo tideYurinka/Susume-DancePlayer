@@ -71,12 +71,15 @@ void main() {
     expect(find.byKey(const Key('guide_one_shot')), findsOneWidget);
     expect(tester.takeException(), isNull, reason: '大字号矮视口下无溢出');
 
-    final screen = tester.view.physicalSize /
-        tester.view.devicePixelRatio;
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     for (final Element button in _oneShotActions().evaluate()) {
       final rect = tester.getRect(find.byWidget(button.widget));
       expect(rect.top, greaterThanOrEqualTo(0), reason: '出口按钮不越上缘');
-      expect(rect.bottom, lessThanOrEqualTo(screen.height), reason: '出口按钮不越下缘（不被推出屏幕）');
+      expect(
+        rect.bottom,
+        lessThanOrEqualTo(screen.height),
+        reason: '出口按钮不越下缘（不被推出屏幕）',
+      );
       expect(rect.left, greaterThanOrEqualTo(0), reason: '出口按钮不越左缘');
       expect(rect.right, lessThanOrEqualTo(screen.width), reason: '出口按钮不越右缘');
     }
@@ -86,7 +89,10 @@ void main() {
     final titleBefore = tester.getTopLeft(
       find.byKey(const Key('guide_one_shot_title')),
     );
-    await tester.drag(find.byKey(const Key('guide_one_shot_title')), const Offset(0, -200));
+    await tester.drag(
+      find.byKey(const Key('guide_one_shot_title')),
+      const Offset(0, -200),
+    );
     await tester.pumpAndSettle();
     final titleAfter = tester.getTopLeft(
       find.byKey(const Key('guide_one_shot_title')),

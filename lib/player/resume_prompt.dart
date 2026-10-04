@@ -41,9 +41,8 @@ class ResumePromptOverlay extends ConsumerWidget {
             const SizedBox(width: kCornerPromptCardGap),
             TextButton(
               key: const Key('resume_prompt_restart'),
-              onPressed: () => ref
-                  .read(resumePromptProvider.notifier)
-                  .restartFromHead(),
+              onPressed: () =>
+                  ref.read(resumePromptProvider.notifier).restartFromHead(),
               style: kCornerPromptCardButtonStyle,
               child: const Text('从头播放？'),
             ),

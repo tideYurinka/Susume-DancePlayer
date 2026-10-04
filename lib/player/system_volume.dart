@@ -39,10 +39,7 @@ class PlatformSystemMediaVolumeController
   Future<double> get volume async {
     final args = await _channel.invokeMapMethod<String, int>('get');
     if (args == null) throw StateError('系统媒体音量读取失败');
-    return _ratio(
-      args['volume'] ?? 0,
-      args['max'] ?? 0,
-    ).clamp(0.0, 1.0);
+    return _ratio(args['volume'] ?? 0, args['max'] ?? 0).clamp(0.0, 1.0);
   }
 
   @override

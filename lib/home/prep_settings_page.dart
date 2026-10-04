@@ -70,8 +70,7 @@ class _PrepTierRow extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
 
-  String _segmentLabel(int tier) =>
-      tier == 0 ? '不前导' : '$tier';
+  String _segmentLabel(int tier) => tier == 0 ? '不前导' : '$tier';
 
   @override
   Widget build(BuildContext context) {

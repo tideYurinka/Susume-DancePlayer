@@ -7,16 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('具名行集 normal', () {
     test('行序 = 备注轨 → 局部镜像轨 → 学习段轨 → 节拍轨 → 轨道手柄带行', () {
-      expect(
-        TrackRowTable.normal.rows.map((r) => r.id),
-        const [
-          TrackRowId.note,
-          TrackRowId.localMirror,
-          TrackRowId.learning,
-          TrackRowId.beat,
-          TrackRowId.handleStrip,
-        ],
-      );
+      expect(TrackRowTable.normal.rows.map((r) => r.id), const [
+        TrackRowId.note,
+        TrackRowId.localMirror,
+        TrackRowId.learning,
+        TrackRowId.beat,
+        TrackRowId.handleStrip,
+      ]);
     });
 
     test('逐行行高与行键：备注轨 36dp 新增，其余逐位沿用今天取值', () {
@@ -94,10 +91,7 @@ void main() {
         ],
         gap: kTrackRowGap,
       );
-      expect(
-        () => onlyMirror.rectOf(TrackRowId.beat),
-        throwsArgumentError,
-      );
+      expect(() => onlyMirror.rectOf(TrackRowId.beat), throwsArgumentError);
     });
   });
 
@@ -134,15 +128,12 @@ void main() {
 
   group('具名行集 compare（对比练习）', () {
     test('行序 = 备注轨 → 练习视频轨 → 学习段轨 → 节拍轨（无局部镜像轨、无手柄带行）', () {
-      expect(
-        TrackRowTable.compare.rows.map((r) => r.id),
-        const [
-          TrackRowId.note,
-          TrackRowId.practiceVideo,
-          TrackRowId.learning,
-          TrackRowId.beat,
-        ],
-      );
+      expect(TrackRowTable.compare.rows.map((r) => r.id), const [
+        TrackRowId.note,
+        TrackRowId.practiceVideo,
+        TrackRowId.learning,
+        TrackRowId.beat,
+      ]);
     });
 
     test('逐行行高与行键：备注轨 36dp 在顶、练习视频轨 48dp（与学习段轨同高、不新增视觉常量）', () {
@@ -198,11 +189,19 @@ void main() {
     });
 
     test('对比态标签集：条数与次序跟随该态行集，无局部镜像轨即无「镜像」', () {
-      expect(TrackRowTable.compare.prefixLabels, const ['备注', '练习', '分段', '节拍']);
+      expect(TrackRowTable.compare.prefixLabels, const [
+        '备注',
+        '练习',
+        '分段',
+        '节拍',
+      ]);
     });
 
     test('标签文案与行键、行标识分离：标签不改行键', () {
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo), '练习');
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo),
+        '练习',
+      );
       expect(
         TrackRowTable.compare.rows
             .firstWhere((row) => row.id == TrackRowId.practiceVideo)
@@ -224,9 +223,18 @@ void main() {
         TrackRowTable.normal.prefixLabelOf(TrackRowId.practiceVideo),
         isNull,
       );
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo), '练习');
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.localMirror), isNull);
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.handleStrip), isNull);
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo),
+        '练习',
+      );
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.localMirror),
+        isNull,
+      );
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.handleStrip),
+        isNull,
+      );
     });
 
     test('自下而上（片头列读序）= 行集倒序的标签', () {
@@ -326,7 +334,9 @@ void main() {
     });
 
     test('对比行集剪掉空备注轨：练习视频轨升到最顶，整带高 140', () {
-      final trimmed = TrackRowTable.compare.withoutRows(const {TrackRowId.note});
+      final trimmed = TrackRowTable.compare.withoutRows(const {
+        TrackRowId.note,
+      });
       expect(trimmed.rows.map((r) => r.id), const [
         TrackRowId.practiceVideo,
         TrackRowId.learning,

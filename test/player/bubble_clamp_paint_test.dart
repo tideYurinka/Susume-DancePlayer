@@ -114,21 +114,23 @@ void main() {
         ),
       ),
     );
-    container.read(beatTrackStateProvider.notifier).replace(
-      BeatTrackState.ready(
-        BeatGrid(
-          model: 'fake.onnx',
-          fps: 100,
-          generatedAt: DateTime.utc(2026, 9, 18),
-          beats: const [
-            BeatPoint(t: 0.5, down: true),
-            BeatPoint(t: 1.0, down: false),
-            BeatPoint(t: 1.5, down: false),
-            BeatPoint(t: 2.0, down: false),
-          ],
-        ),
-      ),
-    );
+    container
+        .read(beatTrackStateProvider.notifier)
+        .replace(
+          BeatTrackState.ready(
+            BeatGrid(
+              model: 'fake.onnx',
+              fps: 100,
+              generatedAt: DateTime.utc(2026, 9, 18),
+              beats: const [
+                BeatPoint(t: 0.5, down: true),
+                BeatPoint(t: 1.0, down: false),
+                BeatPoint(t: 1.5, down: false),
+                BeatPoint(t: 2.0, down: false),
+              ],
+            ),
+          ),
+        );
 
     // 先开节拍提示气泡（高、需竖直钳位），再切节拍倍频气泡（矮、钳位回 0）。
     container

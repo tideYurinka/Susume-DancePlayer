@@ -204,9 +204,7 @@ class DrillTaskBar extends StatelessWidget {
                   const SizedBox(width: 8),
                   IgnorePointer(
                     child: Icon(
-                      checked
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
+                      checked ? Icons.check_box : Icons.check_box_outline_blank,
                       key: const Key('drill_task_checkbox'),
                       size: 20,
                     ),
@@ -214,10 +212,7 @@ class DrillTaskBar extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: IgnorePointer(
-                      child: Text(
-                        message,
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      child: Text(message, style: theme.textTheme.bodyMedium),
                     ),
                   ),
                   if (stepIndicator != null)
@@ -245,15 +240,10 @@ class DrillTaskBar extends StatelessWidget {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(8),
-                        ),
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
                     ),
-                    child: Text(
-                      skipLabel,
-                      style: theme.textTheme.labelMedium,
-                    ),
+                    child: Text(skipLabel, style: theme.textTheme.labelMedium),
                   ),
                 ],
               ),
@@ -277,10 +267,7 @@ class DrillTaskBar extends StatelessWidget {
               IgnorePointer(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: _ProgressDots(
-                    count: stepCount,
-                    current: currentStep,
-                  ),
+                  child: _ProgressDots(count: stepCount, current: currentStep),
                 ),
               ),
             ],

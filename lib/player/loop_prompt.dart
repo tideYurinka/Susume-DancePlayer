@@ -365,10 +365,7 @@ class LoopPromptOverlay extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  '即将自动循环播放',
-                  style: kCornerPromptCardTextStyle,
-                ),
+                const Text('即将自动循环播放', style: kCornerPromptCardTextStyle),
                 const SizedBox(width: kCornerPromptCardGap),
                 TextButton(
                   key: const Key('loop_dismiss_button'),

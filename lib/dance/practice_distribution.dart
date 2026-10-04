@@ -131,7 +131,12 @@ class PracticeDistributionInput {
 /// 比较）。逐段档并入失效键：段内档不改变派生拍数，「末拍序号」一维覆盖
 /// 不到它，故键含逐段档
 /// 集合的规范形（按段序升序的 `段序:档值` 串）——改完段内档不会读到旧网格。
-({int beatsPerBar, int firstDownbeatIndex, int? lastBeatIndex, String segmentDensities})?
+({
+  int beatsPerBar,
+  int firstDownbeatIndex,
+  int? lastBeatIndex,
+  String segmentDensities,
+})?
 _gridKey(BeatGrid? grid) {
   if (grid == null) return null;
   final densities = grid is DocumentBeatGrid
@@ -186,9 +191,7 @@ Map<String, Map<int, SegmentBucketValue>> filterPracticeBuckets(
       localDayKey(today)
     else
       for (var offset = 0; offset < 7; offset++)
-        localDayKey(
-          DateTime(today.year, today.month, today.day - offset),
-        ),
+        localDayKey(DateTime(today.year, today.month, today.day - offset)),
   };
   return {
     for (final entry in buckets.entries)
@@ -217,7 +220,11 @@ buildPracticeDistributionView({
   required PracticeDistributionRange range,
   required DateTime now,
 }) {
-  final filtered = filterPracticeBuckets(source.buckets, range: range, now: now);
+  final filtered = filterPracticeBuckets(
+    source.buckets,
+    range: range,
+    now: now,
+  );
   return (
     distribution: _distributionOf(source, filtered),
     segmentPractices: aggregateSegmentPractice(
@@ -233,7 +240,9 @@ PracticeDistribution _distributionOf(
   Map<String, Map<int, SegmentBucketValue>> filtered,
 ) {
   final ready = source.grid != null && source.grid!.hasRealBeats;
-  final buckets = ready ? _bucketPoints(source.grid!, filtered) : const <PracticeDistributionBucket>[];
+  final buckets = ready
+      ? _bucketPoints(source.grid!, filtered)
+      : const <PracticeDistributionBucket>[];
   return PracticeDistribution(
     buckets: List.unmodifiable(buckets),
     beatGridNotReady: !ready,
@@ -350,7 +359,8 @@ class MasteryBand {
       other.trailTransition == trailTransition;
 
   @override
-  int get hashCode => Object.hash(left, right, mastery, leadTransition, trailTransition);
+  int get hashCode =>
+      Object.hash(left, right, mastery, leadTransition, trailTransition);
 
   @override
   String toString() =>
@@ -407,9 +417,14 @@ Duration timeAtPixel(
     if (time > domainEnd) return domainEnd;
     return time;
   }
+
   final start = clampToDomain(segment.start);
   final end = clampToDomain(segment.end);
-  final mapped = timeLerpX([domainStart, start, end, domainEnd], width: width, pad: pad);
+  final mapped = timeLerpX(
+    [domainStart, start, end, domainEnd],
+    width: width,
+    pad: pad,
+  );
   return (
     left: mapped[1].clamp(plotLeft, plotRight),
     right: mapped[2].clamp(plotLeft, plotRight),
@@ -451,12 +466,10 @@ List<MasteryBand> masteryBands({
         left: leftOf(i),
         right: rightOf(i),
         mastery: masteries[segments[i].order] ?? LearningMastery.unlearned,
-        leadTransition:
-            i > 0 && leftOf(i) == rightOf(i - 1)
+        leadTransition: i > 0 && leftOf(i) == rightOf(i - 1)
             ? bandTransitionWidth(widths[i - 1], widths[i])
             : 0,
-        trailTransition:
-            i + 1 < segments.length && rightOf(i) == leftOf(i + 1)
+        trailTransition: i + 1 < segments.length && rightOf(i) == leftOf(i + 1)
             ? bandTransitionWidth(widths[i], widths[i + 1])
             : 0,
       ),

@@ -64,12 +64,14 @@ void main() {
 
     // 上行输入框与下行动作区上下两行（垂直方向不重叠）。
     final deleteRect = tester.getRect(find.text('删除'));
-    expect(fieldRect.bottom, lessThanOrEqualTo(deleteRect.top),
-        reason: '输入框在上行、动作区在下行');
+    expect(
+      fieldRect.bottom,
+      lessThanOrEqualTo(deleteRect.top),
+      reason: '输入框在上行、动作区在下行',
+    );
   });
 
-  testWidgets('上行输入框满宽、单行、自动聚焦、回车与粘贴换行归一为空格',
-      (tester) async {
+  testWidgets('上行输入框满宽、单行、自动聚焦、回车与粘贴换行归一为空格', (tester) async {
     setPortraitView(tester);
     seedAndOpenNoteEditor(container);
     await pumpPanel(tester);
@@ -109,8 +111,7 @@ void main() {
     );
   });
 
-  testWidgets('下行动作区含快捷区、名册、删除、完成；快捷区占满剩余宽且条内横滚',
-      (tester) async {
+  testWidgets('下行动作区含快捷区、名册、删除、完成；快捷区占满剩余宽且条内横滚', (tester) async {
     setPortraitView(tester);
     await seedDancer('小舞');
     seedAndOpenNoteEditor(container);
@@ -118,7 +119,9 @@ void main() {
 
     final barRect = tester.getRect(find.byKey(barKey));
     final stripRect = tester.getRect(find.byKey(stripKey));
-    final rosterRect = tester.getRect(find.byKey(const Key('note_editor_roster')));
+    final rosterRect = tester.getRect(
+      find.byKey(const Key('note_editor_roster')),
+    );
     final deleteRect = tester.getRect(find.text('删除'));
     final doneRect = tester.getRect(find.text('完成'));
 
@@ -134,8 +137,11 @@ void main() {
     // 竖屏这里由 [Expanded] 的紧约束接管宽度，因此「上限只在横屏那一行」
     // 的两半各有着落。
     expect(stripRect.left, closeTo(barRect.left + 16 + 8, 1));
-    expect((rosterRect.left - stripRect.right).abs(), lessThan(1),
-        reason: '快捷区吃掉按钮之外的全部剩余宽、不留空隙');
+    expect(
+      (rosterRect.left - stripRect.right).abs(),
+      lessThan(1),
+      reason: '快捷区吃掉按钮之外的全部剩余宽、不留空隙',
+    );
 
     // 条内横向滚动：名字超长时内容溢出视口仍不报错（沿用条内横滚）。
     await seedDancer('舞者名字很长很长很长很长很长');
@@ -143,13 +149,15 @@ void main() {
     final longChip = tester.getRect(
       find.byKey(const Key('roster_chip_舞者名字很长很长很长很长很长')),
     );
-    expect(longChip.right, greaterThan(stripRect.right),
-        reason: '内容超出视口宽度 = 条内横滚');
+    expect(
+      longChip.right,
+      greaterThan(stripRect.right),
+      reason: '内容超出视口宽度 = 条内横滚',
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('名册态在竖屏下同样两行可达：新建与返回备注编辑都可操作',
-      (tester) async {
+  testWidgets('名册态在竖屏下同样两行可达：新建与返回备注编辑都可操作', (tester) async {
     setPortraitView(tester);
     await seedDancer('小舞');
     seedAndOpenNoteEditor(container);
@@ -171,16 +179,21 @@ void main() {
       find.byKey(const Key('note_editor_roster_new')),
     );
     final stripRect = tester.getRect(find.byKey(stripKey));
-    expect(dancerRect.bottom, lessThanOrEqualTo(stripRect.top),
-        reason: '输入框在上行');
+    expect(
+      dancerRect.bottom,
+      lessThanOrEqualTo(stripRect.top),
+      reason: '输入框在上行',
+    );
     expect(newRect.top, lessThan(stripRect.top), reason: '「新建」随输入框在上行');
 
     // 「返回备注编辑」与「删除」「完成」同处下行且可点。
     final backRect = tester.getRect(find.text('返回备注编辑'));
     final doneRect = tester.getRect(find.text('完成'));
-    expect(backRect.top < doneRect.bottom && doneRect.top < backRect.bottom,
-        isTrue,
-        reason: '「返回备注编辑」在下行动作区');
+    expect(
+      backRect.top < doneRect.bottom && doneRect.top < backRect.bottom,
+      isTrue,
+      reason: '「返回备注编辑」在下行动作区',
+    );
 
     await tester.tap(find.text('返回备注编辑'));
     await tester.pump();
@@ -199,7 +212,9 @@ void main() {
     final deleteRect = tester.getRect(find.text('删除'));
 
     const keyboardHeight = 300.0;
-    tester.view.viewInsets = const FakeViewPadding(bottom: keyboardHeight * 3.5);
+    tester.view.viewInsets = const FakeViewPadding(
+      bottom: keyboardHeight * 3.5,
+    );
     await tester.pump();
 
     final dockedRect = tester.getRect(find.byKey(barKey));

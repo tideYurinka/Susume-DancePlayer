@@ -67,9 +67,7 @@ void main() {
       final subscription = events.listen(received.add);
       await Future<void>.delayed(Duration.zero);
 
-      await TestDefaultBinaryMessengerBinding
-          .instance
-          .defaultBinaryMessenger
+      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .handlePlatformMessage(
             'dance_learning_app/system_media_volume_events',
             const StandardMethodCodec().encodeSuccessEnvelope({

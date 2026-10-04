@@ -62,7 +62,8 @@ class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
 
   Future<void> _load() async {
     try {
-      final markers = await ref
+      final markers =
+          await ref
               .read(videoDocumentStorageProvider(widget.dance.videoId))
               .loadShareableMarkersOrNull() ??
           const <String, dynamic>{};
@@ -225,8 +226,8 @@ class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
                                 ? '带练习录像'
                                 // 多条时按录制区间区分，不暴露素材文件名。
                                 : '带练习录像 '
-                                    '${clockMmSs(Duration(milliseconds: clip.record.sourceStartMs))} - '
-                                    '${clockMmSs(Duration(milliseconds: clip.record.sourceStartMs + clip.record.durationMs))}',
+                                      '${clockMmSs(Duration(milliseconds: clip.record.sourceStartMs))} - '
+                                      '${clockMmSs(Duration(milliseconds: clip.record.sourceStartMs + clip.record.durationMs))}',
                           ),
                           value: _selectedClipIds.contains(clip.record.id),
                           onChanged: (v) => setState(() {
@@ -251,8 +252,7 @@ class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
                                 key: const Key('share_sheet_size'),
                                 child: Text(
                                   '包体约 ${_formatBytes(estimate)}',
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ),
                               if (nearLimit)

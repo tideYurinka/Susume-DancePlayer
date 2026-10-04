@@ -30,7 +30,8 @@ void main() {
     seeks = <Duration>[];
     delays.clear();
     displayHead = head ?? ValueNotifier(Duration.zero);
-    final AnnotationTimeline Function() tlFn = timelineDuration ??
+    final AnnotationTimeline Function() tlFn =
+        timelineDuration ??
         () => AnnotationTimeline.wholeVideo(const Duration(seconds: 10));
     return SeekSubmitter(
       engineSeek: (t) async {
@@ -39,7 +40,8 @@ void main() {
       },
       minInterval: minInterval,
       clock: clock ?? () => now,
-      delay: delay ??
+      delay:
+          delay ??
           (d) {
             delays.add(d);
             now = now.add(d);
@@ -57,7 +59,10 @@ void main() {
   group('SeekSubmitter.submit（唯一提交口）', () {
     test('钳制到 [0, total] 并返回钳制后实际入队值', () async {
       final s = build();
-      expect(s.submit(const Duration(seconds: 12)), const Duration(seconds: 10));
+      expect(
+        s.submit(const Duration(seconds: 12)),
+        const Duration(seconds: 10),
+      );
       expect(s.submit(const Duration(seconds: -3)), Duration.zero);
       await pumpEventQueue();
       expect(seeks, [const Duration(seconds: 10), Duration.zero]);
@@ -99,8 +104,11 @@ void main() {
     test('total 未知（null）：只钳 ≥0、照常入队', () async {
       final s = build(total: () => null);
       expect(s.submit(const Duration(seconds: -1)), Duration.zero);
-      expect(s.submit(const Duration(seconds: 999)), const Duration(seconds: 999),
-          reason: '无上界不钳');
+      expect(
+        s.submit(const Duration(seconds: 999)),
+        const Duration(seconds: 999),
+        reason: '无上界不钳',
+      );
       await pumpEventQueue();
       expect(seeks, [Duration.zero, const Duration(seconds: 999)]);
     });
@@ -122,8 +130,10 @@ void main() {
       // 节流等待经注入 delay 前进假时钟后放行 → 最新目标必达。
       await pumpEventQueue();
       expect(delays, contains(kScrubSeekMinInterval));
-      expect(seeks, [const Duration(seconds: 1), const Duration(seconds: 3)],
-          reason: '首个立即发出，窗口内中间目标 2s 被折叠，只发最新 3s');
+      expect(seeks, [
+        const Duration(seconds: 1),
+        const Duration(seconds: 3),
+      ], reason: '首个立即发出，窗口内中间目标 2s 被折叠，只发最新 3s');
     });
 
     test('minInterval zero（player）：不节流，逐个串行发出', () async {
@@ -156,7 +166,8 @@ void main() {
           now0 = now0.add(d);
         },
         total: () => const Duration(seconds: 10),
-        timeline: () => AnnotationTimeline.wholeVideo(const Duration(seconds: 10)),
+        timeline: () =>
+            AnnotationTimeline.wholeVideo(const Duration(seconds: 10)),
         clearLoops: (_, _) => events.add('clearLoops'),
       );
       s.submit(const Duration(seconds: 1)); // 在途（被 gate 挡住）

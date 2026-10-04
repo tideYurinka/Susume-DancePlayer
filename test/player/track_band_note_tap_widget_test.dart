@@ -55,11 +55,14 @@ void main() {
   });
 
   /// 泵出一个带就绪节拍网格 + 备注片段的 TrackBand，返回宿主与回调记录。
-  Future<({
-    ProviderContainer container,
-    ValueNotifier<int> collapses,
-    ValueNotifier<int> doubleTaps,
-  })> pumpBandWithNotes({
+  Future<
+    ({
+      ProviderContainer container,
+      ValueNotifier<int> collapses,
+      ValueNotifier<int> doubleTaps,
+    })
+  >
+  pumpBandWithNotes({
     required WidgetTester tester,
     required List<NoteSticker> notes,
     TrackBandSession? session,
@@ -104,18 +107,16 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    container.read(annotationEditorProvider).restoreDocument(
+    container
+        .read(annotationEditorProvider)
+        .restoreDocument(
           AnnotationRestoreDocument(
             timeline: AnnotationTimeline.wholeVideo(total),
             notes: notes,
           ),
         );
     await tester.pumpAndSettle();
-    return (
-      container: container,
-      collapses: collapses,
-      doubleTaps: doubleTaps,
-    );
+    return (container: container, collapses: collapses, doubleTaps: doubleTaps);
   }
 
   testWidgets('单击备注片段进选中态并在片段上方展开内容浮条', (tester) async {
@@ -125,7 +126,17 @@ void main() {
     );
     expect(container.read(annotationSelectionProvider), isNull);
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(annotationSelectionProvider),
@@ -148,16 +159,40 @@ void main() {
   });
 
   testWidgets('再单击已选中的片段 = 打开编辑器（编辑器以备注起点标识目标）', (tester) async {
-    final (:container, collapses: collapses, doubleTaps: _) = await pumpBandWithNotes(
+    final (
+      :container,
+      collapses: collapses,
+      doubleTaps: _,
+    ) = await pumpBandWithNotes(
       tester: tester,
       notes: const [NoteSticker(startMs: 10000, endMs: 18000, text: '注意手')],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(container.read(noteTextEditorTargetProvider), isNull);
     expect(collapses.value, 0);
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(container.read(noteTextEditorTargetProvider), 10000);
     container.dispose();
@@ -169,7 +204,17 @@ void main() {
       notes: const [NoteSticker(startMs: 10000, endMs: 18000, text: '注意手')],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(container.read(noteTextEditorTargetProvider), isNull);
     await tester.tap(find.byKey(const Key('note_expand_bubble_edit')));
@@ -184,7 +229,17 @@ void main() {
       notes: const [NoteSticker(startMs: 10000, endMs: 18000, text: '注意手')],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
 
     final hit = tester.getRect(
@@ -221,7 +276,17 @@ void main() {
       notes: const [NoteSticker(startMs: 10000, endMs: 18000)],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 40000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 40000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pump();
     expect(collapses.value, 0, reason: '判定窗口内尚未收起');
     await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
@@ -237,9 +302,29 @@ void main() {
       notes: const [NoteSticker(startMs: 10000, endMs: 18000)],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 40000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 40000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 50));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 40000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 40000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 50));
     expect(doubleTaps.value, 1, reason: '双击 = 只切播放');
     expect(collapses.value, 0, reason: '双击不收起');
@@ -258,7 +343,17 @@ void main() {
     // 两窄片段视觉宽 ≈ 8px / 6px，均远小于最小命中宽 [kNoteTapHitWidth]；
     // 点按 10650 落在间隙，两片段扩展域重叠且距两中心等距（10650 =
     // 10250/11050 中点）→ 同距取靠前。
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 10650), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 10650),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(annotationSelectionProvider),
@@ -267,11 +362,34 @@ void main() {
     );
     // 点按 10560 更靠近首片段中心——但首片段已被选中：再单击已选中的片
     // 段 = 打开编辑器，顺带见证命中解析仍指向首片段。
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 10560), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 10560),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(container.read(noteTextEditorTargetProvider), 10000,
-        reason: '再单击已选中的首片段 → 打开编辑器（解析更近首片段中心）');
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 10810), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    expect(
+      container.read(noteTextEditorTargetProvider),
+      10000,
+      reason: '再单击已选中的首片段 → 打开编辑器（解析更近首片段中心）',
+    );
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 10810),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(annotationSelectionProvider),
@@ -288,7 +406,17 @@ void main() {
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     // 视觉宽 50ms ≈ 0.7px；点按片段右缘外 300ms 处仍在扩展命中域内。
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 10300), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 10300),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(annotationSelectionProvider),
@@ -305,7 +433,17 @@ void main() {
     container.read(layoutLockedProvider.notifier).toggle();
     await tester.pumpAndSettle();
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
-    await tester.tapAt(Offset(bandXOf(Duration(milliseconds: 14000), total: total, width: rect.width, bandLeft: rect.left), rect.center.dy));
+    await tester.tapAt(
+      Offset(
+        bandXOf(
+          Duration(milliseconds: 14000),
+          total: total,
+          width: rect.width,
+          bandLeft: rect.left,
+        ),
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       container.read(annotationSelectionProvider),

@@ -23,14 +23,16 @@ import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 
-PracticeSessionRecord _record(DateTime start, double seconds,
-        {String videoId = 'v1'}) =>
-    PracticeSessionRecord(
-      start: start,
-      videoId: videoId,
-      signature: SongSignature(song: videoId),
-      wallSeconds: seconds,
-    );
+PracticeSessionRecord _record(
+  DateTime start,
+  double seconds, {
+  String videoId = 'v1',
+}) => PracticeSessionRecord(
+  start: start,
+  videoId: videoId,
+  signature: SongSignature(song: videoId),
+  wallSeconds: seconds,
+);
 
 String _dayKey(DateTime day) {
   String two(int value) => value.toString().padLeft(2, '0');
@@ -60,8 +62,9 @@ Future<void> _pump(
         practiceStatsStoreProvider.overrideWithValue(
           PracticeStatsStore(statsStorage),
         ),
-        videoIndexStoreProvider
-            .overrideWithValue(InMemoryVideoIndexStorage(initial: VideoIndex.empty)),
+        videoIndexStoreProvider.overrideWithValue(
+          InMemoryVideoIndexStorage(initial: VideoIndex.empty),
+        ),
         videoDocumentStorageFactoryProvider.overrideWithValue(
           (videoId) => InMemoryVideoDocumentStorage(),
         ),
@@ -94,9 +97,7 @@ Future<void> _tapBarAt(
 
 String _bubbleHeadline(WidgetTester tester) => tester
     .widget<Text>(
-      find
-          .descendant(of: _bubble(), matching: find.byType(Text))
-          .first,
+      find.descendant(of: _bubble(), matching: find.byType(Text)).first,
     )
     .data!;
 
@@ -223,7 +224,10 @@ void main() {
     // 先拖过 slop 选中起点柱，再滑向最右列。
     await gesture.moveBy(const Offset(19, 0));
     await tester.pump();
-    expect(_bubbleHeadline(tester), contains('${fiveDaysAgo.month}月${fiveDaysAgo.day}日'));
+    expect(
+      _bubbleHeadline(tester),
+      contains('${fiveDaysAgo.month}月${fiveDaysAgo.day}日'),
+    );
 
     // 滑到最右列：气泡实时换日并重新避让（气泡在目标柱左侧）。
     await gesture.moveBy(Offset(endRect.center.dx - startX - 19, 0));

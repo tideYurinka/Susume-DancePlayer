@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:dance_learning_app/help/help_documents.dart' show onboardingCopyAssetKey;
+import 'package:dance_learning_app/help/help_documents.dart'
+    show onboardingCopyAssetKey;
 import 'package:dance_learning_app/help/help_platform_actions.dart';
 import 'package:dance_learning_app/help/platform_help_actions.dart'
     show helpImageSaverProvider;
@@ -52,7 +53,11 @@ void main() {
     expect(saver.names, ['shot.png'], reason: '文件名取资产文件名');
     expect(saver.bytes, [onePixelPng], reason: '字节是这张图从资产包读出的');
     expect(find.text('已保存到相册'), findsOneWidget);
-    expect(find.byType(PopupMenuItem<Object>), findsNothing, reason: '长按直接保存，不弹菜单');
+    expect(
+      find.byType(PopupMenuItem<Object>),
+      findsNothing,
+      reason: '长按直接保存，不弹菜单',
+    );
     expect(viewer(), findsNothing, reason: '长按缩略图只保存，不顺便打开查看器');
     expect(tester.takeException(), isNull);
   });
@@ -75,10 +80,7 @@ void main() {
   });
 
   testWidgets('权限被拒：提示「需要相册权限才能保存」', (tester) async {
-    await pumpDocument(
-      tester,
-      failure: const HelpImageSavePermissionDenied(),
-    );
+    await pumpDocument(tester, failure: const HelpImageSavePermissionDenied());
 
     await tester.longPress(_imageWithAsset(imageKey));
     await tester.pumpAndSettle();
@@ -137,17 +139,21 @@ void main() {
     await pumpFirstRunHost(
       tester,
       storage: InMemoryPrivateJsonStorage(),
-      helpAssets: FakeHelpAssetBundle({
-        onboardingCopyAssetKey: File(onboardingCopyAssetKey).readAsStringSync(),
-        '$directory/下载视频.md':
-            '# 下载视频\n'
-            '\n'
-            '## 方法一\n'
-            '\n'
-            '把视频存下来。\n'
-            '\n'
-            '![步骤截图](cover.png)\n',
-      }, binary: {coverKey: onePixelPng}),
+      helpAssets: FakeHelpAssetBundle(
+        {
+          onboardingCopyAssetKey: File(onboardingCopyAssetKey)
+              .readAsStringSync(),
+          '$directory/下载视频.md':
+              '# 下载视频\n'
+              '\n'
+              '## 方法一\n'
+              '\n'
+              '把视频存下来。\n'
+              '\n'
+              '![步骤截图](cover.png)\n',
+        },
+        binary: {coverKey: onePixelPng},
+      ),
       overrides: [helpImageSaverProvider.overrideWithValue(saver)],
     );
     resetFirstRunSession(tester);

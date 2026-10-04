@@ -4,7 +4,8 @@ import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/player/auto_scroll_title.dart';
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,8 +15,7 @@ import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 
-const longTitle =
-    '「小舞」青春修炼手册超长版教学署名 - 十人队形完整注记版';
+const longTitle = '「小舞」青春修炼手册超长版教学署名 - 十人队形完整注记版';
 
 Widget host(String text, {double width = 200}) {
   return MaterialApp(

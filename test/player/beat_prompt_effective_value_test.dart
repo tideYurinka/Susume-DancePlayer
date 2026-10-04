@@ -20,14 +20,10 @@ import '../helpers/in_memory_private_json_storage.dart';
 void main() {
   late InMemoryPrivateJsonStorage storage;
 
-  ProviderContainer makeContainer({
-    Map<String, dynamic> initial = const {},
-  }) {
+  ProviderContainer makeContainer({Map<String, dynamic> initial = const {}}) {
     storage = InMemoryPrivateJsonStorage(initial: initial);
     final container = ProviderContainer(
-      overrides: [
-        privateJsonStorageProvider.overrideWithValue(storage),
-      ],
+      overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
     );
     addTearDown(container.dispose);
     return container;
@@ -35,8 +31,12 @@ void main() {
 
   /// 设备级「新舞默认」三槽的启动恢复完成。
   Future<void> deviceRestored(ProviderContainer container) async {
-    await container.read(beatAnimationStyleDefaultProvider.notifier).restoreDone;
-    await container.read(metronomeSoundTypeDefaultProvider.notifier).restoreDone;
+    await container
+        .read(beatAnimationStyleDefaultProvider.notifier)
+        .restoreDone;
+    await container
+        .read(metronomeSoundTypeDefaultProvider.notifier)
+        .restoreDone;
     await container
         .read(metronomeHalfBeatEnabledDefaultProvider.notifier)
         .restoreDone;
@@ -55,10 +55,14 @@ void main() {
 
     expect(container.read(beatPromptEnabledProvider), isFalse);
     expect(container.read(metronomeSoundEnabledProvider), isFalse);
-    expect(container.read(beatAnimationStyleProvider),
-        BeatAnimationStyle.pendulum);
-    expect(container.read(metronomeSoundTypeProvider),
-        MetronomeSoundType.normal);
+    expect(
+      container.read(beatAnimationStyleProvider),
+      BeatAnimationStyle.pendulum,
+    );
+    expect(
+      container.read(metronomeSoundTypeProvider),
+      MetronomeSoundType.normal,
+    );
     expect(container.read(metronomeHalfBeatEnabledProvider), isFalse);
   });
 
@@ -73,22 +77,21 @@ void main() {
     container.read(beatPromptMemoryProvider.notifier).setHalfBeat(false);
 
     // 设备级那一层被另行改动（另一支舞的用户动作）：本支舞不受影响。
-    container.read(beatAnimationStyleDefaultProvider.notifier).set(
-          BeatAnimationStyle.bar,
-        );
     container
-        .read(metronomeHalfBeatEnabledDefaultProvider.notifier)
-        .set(true);
+        .read(beatAnimationStyleDefaultProvider.notifier)
+        .set(BeatAnimationStyle.bar);
+    container.read(metronomeHalfBeatEnabledDefaultProvider.notifier).set(true);
     await container.read(beatAnimationStyleDefaultProvider.notifier).flushDone;
 
     expect(container.read(beatPromptEnabledProvider), isTrue);
-    expect(container.read(beatAnimationStyleProvider),
-        BeatAnimationStyle.pendulum);
+    expect(
+      container.read(beatAnimationStyleProvider),
+      BeatAnimationStyle.pendulum,
+    );
     expect(container.read(metronomeHalfBeatEnabledProvider), isFalse);
   });
 
-  test('记忆缺席舞上改形态/音源/半拍：生效值立刻变，设备级同时写成同一个值',
-      () async {
+  test('记忆缺席舞上改形态/音源/半拍：生效值立刻变，设备级同时写成同一个值', () async {
     final container = makeContainer();
     await deviceRestored(container);
 
@@ -97,9 +100,7 @@ void main() {
     container
         .read(beatAnimationStyleProvider.notifier)
         .set(BeatAnimationStyle.pendulum);
-    await container
-        .read(beatAnimationStyleDefaultProvider.notifier)
-        .flushDone;
+    await container.read(beatAnimationStyleDefaultProvider.notifier).flushDone;
     container
         .read(metronomeSoundTypeProvider.notifier)
         .set(MetronomeSoundType.vocal);
@@ -109,10 +110,14 @@ void main() {
         .read(metronomeHalfBeatEnabledDefaultProvider.notifier)
         .flushDone;
 
-    expect(container.read(beatAnimationStyleProvider),
-        BeatAnimationStyle.pendulum);
-    expect(container.read(metronomeSoundTypeProvider),
-        MetronomeSoundType.vocal);
+    expect(
+      container.read(beatAnimationStyleProvider),
+      BeatAnimationStyle.pendulum,
+    );
+    expect(
+      container.read(metronomeSoundTypeProvider),
+      MetronomeSoundType.vocal,
+    );
     expect(container.read(metronomeHalfBeatEnabledProvider), isFalse);
     expect(storage.snapshot['metronomeSettings'], {
       'animationStyle': 'pendulum',
@@ -121,8 +126,7 @@ void main() {
     });
   });
 
-  test('改完之后：新的一支无记忆舞按新设备级值生效；有记忆的舞保持自己的记忆值',
-      () async {
+  test('改完之后：新的一支无记忆舞按新设备级值生效；有记忆的舞保持自己的记忆值', () async {
     final first = makeContainer();
     await deviceRestored(first);
     // 第一支舞：改了形态，也带着自己的记忆值（半拍关）。
@@ -130,17 +134,13 @@ void main() {
     first
         .read(beatAnimationStyleProvider.notifier)
         .set(BeatAnimationStyle.pendulum);
-    await first
-        .read(beatAnimationStyleDefaultProvider.notifier)
-        .flushDone;
+    await first.read(beatAnimationStyleDefaultProvider.notifier).flushDone;
     first.dispose();
 
     // 下一支无记忆的新舞（同设备）：按新的设备级默认生效。
     final nextStorage = storage;
     final next = ProviderContainer(
-      overrides: [
-        privateJsonStorageProvider.overrideWithValue(nextStorage),
-      ],
+      overrides: [privateJsonStorageProvider.overrideWithValue(nextStorage)],
     );
     addTearDown(next.dispose);
     await next.read(beatAnimationStyleDefaultProvider.notifier).restoreDone;
@@ -154,14 +154,11 @@ void main() {
     // （音源记忆值受归一口径约束、只有「普通」可解码，与设备默认
     // 无法构成可观测的分歧，故本支舞的记忆独立性用半拍声断言。）
     next.read(beatPromptMemoryProvider.notifier).setHalfBeat(false);
-    next
-        .read(metronomeHalfBeatEnabledDefaultProvider.notifier)
-        .set(true);
+    next.read(metronomeHalfBeatEnabledDefaultProvider.notifier).set(true);
     expect(next.read(metronomeHalfBeatEnabledProvider), isFalse);
   });
 
-  test('记忆缺席舞上重选同值也是一次表态：记忆字段照落（否则仍是「无记录」）',
-      () async {
+  test('记忆缺席舞上重选同值也是一次表态：记忆字段照落（否则仍是「无记录」）', () async {
     final container = makeContainer();
     await deviceRestored(container);
     expect(container.read(beatPromptMemoryProvider), isNull);
@@ -170,8 +167,10 @@ void main() {
     container
         .read(beatAnimationStyleProvider.notifier)
         .set(BeatAnimationStyle.pendulum);
-    expect(container.read(beatAnimationStyleProvider),
-        BeatAnimationStyle.pendulum);
+    expect(
+      container.read(beatAnimationStyleProvider),
+      BeatAnimationStyle.pendulum,
+    );
     expect(
       container.read(beatPromptMemoryProvider)?.animationStyle,
       'pendulum',
@@ -190,7 +189,9 @@ void main() {
     expect(container.read(beatPromptEnabledProvider), isTrue);
     expect(container.read(metronomeSoundEnabledProvider), isTrue);
     expect(storage.snapshot, before);
-    expect(container.read(beatPromptMemoryProvider),
-        const BeatPromptMemoryFields(animation: true, sound: true));
+    expect(
+      container.read(beatPromptMemoryProvider),
+      const BeatPromptMemoryFields(animation: true, sound: true),
+    );
   });
 }

@@ -39,12 +39,8 @@ final beatCorrectionAvailableProvider = Provider<bool>((ref) {
 final previewDownbeatProvider = Provider<DownbeatLanding?>((ref) {
   if (!ref.watch(beatGridProvider).hasRealBeats) return null;
   final engine = ref.watch(playbackEngineProvider);
-  final position =
-      ref.watch(playbackPositionProvider).value ?? engine.position;
-  return resolveDownbeatLanding(
-    position,
-    grid: ref.watch(beatGridProvider),
-  );
+  final position = ref.watch(playbackPositionProvider).value ?? engine.position;
+  return resolveDownbeatLanding(position, grid: ref.watch(beatGridProvider));
 });
 
 /// 预览位置**已有八拍锚点**（待命态「添加八拍线」置灰谓词；

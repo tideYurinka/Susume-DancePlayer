@@ -25,21 +25,19 @@ void main() {
       final emptyJson = emptyDoc.toJson();
       expect(emptyJson['corrections']['shift'], 0);
       // 承诺：无锚点时 corrections 不产出 anchors 键。
-      expect(
-        (emptyJson['corrections'] as Map).containsKey('anchors'),
-        isFalse,
-      );
+      expect((emptyJson['corrections'] as Map).containsKey('anchors'), isFalse);
 
-      final anchored = MarkersDocument(beat: grid(shift: 0.37, anchors: const [4, 12]));
+      final anchored = MarkersDocument(
+        beat: grid(shift: 0.37, anchors: const [4, 12]),
+      );
       final restored = MarkersDocument.fromJson(anchored.toJson());
       expect(restored.beat?.anchors, [4, 12]);
       expect(restored.beat?.shift, 0.37);
     });
 
     test('beat 段是纯生成物：shift/anchors 不在 beat 段内', () {
-      final json = MarkersDocument(
-        beat: grid(shift: 0.25, anchors: const [4]),
-      ).toJson();
+      final json = MarkersDocument(beat: grid(shift: 0.25, anchors: const [4]))
+          .toJson();
       expect(json['beat'], {
         'model': 'm.onnx',
         'fps': 100,
@@ -77,10 +75,7 @@ void main() {
           'generatedAt': '2026-09-10T00:00:00.000Z',
           'beats': [],
         },
-        'corrections': {
-          'shift': 0.25,
-          'corrFuture': 1,
-        },
+        'corrections': {'shift': 0.25, 'corrFuture': 1},
       });
       final written = withFuture.toJson();
       expect(written['corrections']['corrFuture'], 1);
@@ -108,7 +103,10 @@ void main() {
       // 行为在此显式登记：无处装配的修正值被丢弃、写回为 {shift: 0.0}。
       final doc = MarkersDocument.fromJson(const {
         'version': 8,
-        'corrections': {'shift': 0.25, 'anchors': [4]},
+        'corrections': {
+          'shift': 0.25,
+          'anchors': [4],
+        },
       });
       expect(doc.beat, isNull);
       expect(doc.toJson()['corrections'], {'shift': 0.0});

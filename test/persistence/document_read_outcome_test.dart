@@ -28,9 +28,9 @@ void main() {
   });
 
   VideoDocumentStorage makeReal() => AtomicVideoDocumentStorage(
-        markersFile: File(p.join(tempDir.path, 'markers_abc.json')),
-        localFile: File(p.join(tempDir.path, 'local_abc.json')),
-      );
+    markersFile: File(p.join(tempDir.path, 'markers_abc.json')),
+    localFile: File(p.join(tempDir.path, 'local_abc.json')),
+  );
 
   /// 真实文件读原始字节（「盘上一字未动」的证据）。
   Future<String> rawMarkersText(VideoDocumentStorage storage) async {
@@ -75,7 +75,10 @@ void main() {
           final storage = make();
           await storage.saveMarkers(const {
             'version': 8,
-            'meta': {'mirrored': true, 'metaReserved': {'newer': true}},
+            'meta': {
+              'mirrored': true,
+              'metaReserved': {'newer': true},
+            },
             'docReserved': 7,
           });
           final coordinator = VideoDocumentCoordinator(storage);
@@ -88,8 +91,8 @@ void main() {
             (context) => context.document.withSegmentLines(const []),
           );
           expect(result, isA<DocumentWriteCommitted<MarkersDocument>>());
-          final raw = jsonDecode(await rawMarkersText(storage))
-              as Map<String, dynamic>;
+          final raw =
+              jsonDecode(await rawMarkersText(storage)) as Map<String, dynamic>;
           expect(raw['version'], 8, reason: '无变化跳写：盘上原文一字未动');
           expect(raw['docReserved'], 7);
           expect((raw['meta'] as Map)['metaReserved'], {'newer': true});
@@ -106,8 +109,8 @@ void main() {
           };
           await storage.saveMarkers(Map<String, dynamic>.of(forward));
           final before = await rawMarkersText(storage);
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(
             (outcome as DocumentReadOnly<MarkersDocument>).reason,
@@ -119,11 +122,14 @@ void main() {
 
         test('低于地板 → belowFloor；空态；不写回', () async {
           final storage = make();
-          const legacy = {'version': 6, 'meta': {'mirrored': true}};
+          const legacy = {
+            'version': 6,
+            'meta': {'mirrored': true},
+          };
           await storage.saveMarkers(Map<String, dynamic>.of(legacy));
           final before = await rawMarkersText(storage);
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(
             (outcome as DocumentReadOnly<MarkersDocument>).reason,
@@ -142,8 +148,8 @@ void main() {
           };
           await storage.saveMarkers(Map<String, dynamic>.of(headless));
           final before = await rawMarkersText(storage);
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(
             (outcome as DocumentReadOnly<MarkersDocument>).reason,
@@ -156,9 +162,12 @@ void main() {
         test('只读结局不是可写结局：类型上没有写回入口', () async {
           final storage = make();
           await storage.saveMarkers(const {'version': 99});
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
-          expect(outcome, isNot(isA<WritableDocumentReadOutcome<MarkersDocument>>()));
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
+          expect(
+            outcome,
+            isNot(isA<WritableDocumentReadOutcome<MarkersDocument>>()),
+          );
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
         });
       });
@@ -177,12 +186,13 @@ void main() {
             await File(p.join(tempDir.path, 'markers_abc.json'))
                 .writeAsString('[1, 2]');
           } else {
-            await (storage as InMemoryVideoDocumentStorage)
-                .saveMarkers(const {'broken': true});
+            await (storage as InMemoryVideoDocumentStorage).saveMarkers(const {
+              'broken': true,
+            });
             storage.corruptMarkers();
           }
-          final corrupt =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final corrupt = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(corrupt, isA<DocumentAbsent<MarkersDocument>>());
           expect(corrupt.document, const MarkersDocument.empty());
         });
@@ -193,8 +203,8 @@ void main() {
             'version': '8',
             'meta': {'mirrored': true},
           });
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(outcome.document, isNot(const MarkersDocument.empty()));
           expect(
@@ -206,8 +216,8 @@ void main() {
         test('存在但内容为空对象 → 版本头缺失、只读（不折叠成可写空态）', () async {
           final storage = make();
           await storage.saveMarkers(const <String, dynamic>{});
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(
             (outcome as DocumentReadOnly<MarkersDocument>).reason,
@@ -229,7 +239,10 @@ void main() {
           expect(outcome, isA<DocumentUnderstood<MarkersDocument>>());
 
           // 读之后、写之前换成更高版本（唯一写回入口仍试图写）。
-          const forward = {'version': 99, 'meta': {'mirrored': true}};
+          const forward = {
+            'version': 99,
+            'meta': {'mirrored': true},
+          };
           await storage.saveMarkers(Map<String, dynamic>.of(forward));
           final before = await rawMarkersText(storage);
 
@@ -257,8 +270,8 @@ void main() {
             'prefs': {'layoutLocked': true},
           });
           final before = await rawLocalText(storage);
-          final outcome =
-              await VideoDocumentCoordinator(storage).readLocalOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readLocalOutcome();
           expect(outcome, isA<DocumentReadOnly<LocalDocument>>());
           expect(
             (outcome as DocumentReadOnly<LocalDocument>).reason,
@@ -274,8 +287,8 @@ void main() {
             'version': 2,
             'prefs': {'layoutLocked': true},
           });
-          final below =
-              await VideoDocumentCoordinator(storage).readLocalOutcome();
+          final below = await VideoDocumentCoordinator(storage)
+              .readLocalOutcome();
           expect(below, isA<DocumentReadOnly<LocalDocument>>());
           expect(
             (below as DocumentReadOnly<LocalDocument>).reason,
@@ -287,8 +300,8 @@ void main() {
           await headless.saveLocal(const {
             'prefs': {'layoutLocked': true},
           });
-          final outcome =
-              await VideoDocumentCoordinator(headless).readLocalOutcome();
+          final outcome = await VideoDocumentCoordinator(headless)
+              .readLocalOutcome();
           expect(outcome, isA<DocumentReadOnly<LocalDocument>>());
           expect(
             (outcome as DocumentReadOnly<LocalDocument>).reason,

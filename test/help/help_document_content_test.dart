@@ -26,11 +26,10 @@ void main() {
 
 普通**粗体**与裸网址 https://example.com/a
 ''';
-    final bundle = FakeHelpAssetBundle({
-      markdownKey: source,
-    }, binary: {
-      '$directory/download_video.jpg': onePixelPng,
-    });
+    final bundle = FakeHelpAssetBundle(
+      {markdownKey: source},
+      binary: {'$directory/download_video.jpg': onePixelPng},
+    );
 
     final content = await loadHelpDocumentContent(
       bundle,
@@ -40,11 +39,7 @@ void main() {
 
     expect(content.id, '下载视频');
     expect(content.directory, directory);
-    expect(
-      content.markdown,
-      source,
-      reason: '装载不加工原文（不做任何规范化预处理）',
-    );
+    expect(content.markdown, source, reason: '装载不加工原文（不做任何规范化预处理）');
     expect(content.title, '下载视频');
     expect(content.imageAssets, {'$directory/download_video.jpg'});
   });
@@ -67,9 +62,10 @@ void main() {
 方法二的正文。
 ''';
     final content = await loadHelpDocumentContent(
-      FakeHelpAssetBundle({markdownKey: source}, binary: {
-        '$directory/download_video.jpg': onePixelPng,
-      }),
+      FakeHelpAssetBundle(
+        {markdownKey: source},
+        binary: {'$directory/download_video.jpg': onePixelPng},
+      ),
       id: '下载视频',
       directory: directory,
     );
@@ -201,9 +197,10 @@ void main() {
   test('正文引用的图片不在盘上：不进图片集（渲染时跳过、不留空框）', () async {
     const source = '# 标题\n\n![缺图](missing.png)\n\n![在盘](there.png)\n';
     final content = await loadHelpDocumentContent(
-      FakeHelpAssetBundle({markdownKey: source}, binary: {
-        '$directory/there.png': onePixelPng,
-      }),
+      FakeHelpAssetBundle(
+        {markdownKey: source},
+        binary: {'$directory/there.png': onePixelPng},
+      ),
       id: '下载视频',
       directory: directory,
     );
@@ -225,9 +222,10 @@ void main() {
   test('图片名带 ./ 前缀：按目录内相对路径归位到同目录资产', () async {
     const source = '# 标题\n\n![截图](./shot.png)\n';
     final content = await loadHelpDocumentContent(
-      FakeHelpAssetBundle({markdownKey: source}, binary: {
-        '$directory/shot.png': onePixelPng,
-      }),
+      FakeHelpAssetBundle(
+        {markdownKey: source},
+        binary: {'$directory/shot.png': onePixelPng},
+      ),
       id: '下载视频',
       directory: directory,
     );
@@ -277,8 +275,7 @@ void main() {
     });
 
     test('折叠块的标记本身不出现在普通段里', () {
-      const source =
-          '<details>\n<summary>标题</summary>\n正文。\n</details>\n';
+      const source = '<details>\n<summary>标题</summary>\n正文。\n</details>\n';
       final segments = helpMarkdownSegments(source);
       expect(segments, hasLength(1));
       expect(segments.single, isA<HelpFoldSegment>());
@@ -325,9 +322,10 @@ void main() {
           '![赞赏码](reward.png)\n'
           '</details>\n';
       final content = await loadHelpDocumentContent(
-        FakeHelpAssetBundle({markdownKey: source}, binary: {
-          '$directory/reward.png': onePixelPng,
-        }),
+        FakeHelpAssetBundle(
+          {markdownKey: source},
+          binary: {'$directory/reward.png': onePixelPng},
+        ),
         id: '下载视频',
         directory: directory,
       );

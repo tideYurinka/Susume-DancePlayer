@@ -78,9 +78,7 @@ void main() {
 
     final screenWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
-    final row = tester.getRect(
-      find.byKey(kAnnotationToolRowKey),
-    );
+    final row = tester.getRect(find.byKey(kAnnotationToolRowKey));
     expect(row.right, lessThanOrEqualTo(screenWidth), reason: '标注工具行不越右缘');
     expect(row.left, greaterThanOrEqualTo(0), reason: '标注工具行不越左缘');
     // 不裁字：槽位标签文本完整在场（整行等比缩小，而非把字裁掉）——

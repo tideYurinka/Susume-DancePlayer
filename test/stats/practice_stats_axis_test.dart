@@ -149,10 +149,9 @@ void main() {
     });
 
     test('全零窗口：最小步长单档', () {
-      final axis = barChartAxisForBars(
-        [bar(DateTime(2026, 9, 13))],
-        StatsMetric.time,
-      );
+      final axis = barChartAxisForBars([
+        bar(DateTime(2026, 9, 13)),
+      ], StatsMetric.time);
       expect(axis.step, 1);
       expect(axis.upperBound, 1);
     });

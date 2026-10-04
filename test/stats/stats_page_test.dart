@@ -102,21 +102,21 @@ void main() {
     _expectDashboardValue(tester, 'dashboard_longest_streak', '2 天');
 
     // 上行两张宽卡（今日 / 累计）、下行三张窄卡（本周 / 当前 / 最长）。
-    final todayTop = tester.getTopLeft(
-      find.byKey(const Key('dashboard_today')),
-    ).dy;
-    final totalTop = tester.getTopLeft(
-      find.byKey(const Key('dashboard_total')),
-    ).dy;
-    final weekTop = tester.getTopLeft(
-      find.byKey(const Key('dashboard_week')),
-    ).dy;
-    final currentTop = tester.getTopLeft(
-      find.byKey(const Key('dashboard_current_streak')),
-    ).dy;
-    final longestTop = tester.getTopLeft(
-      find.byKey(const Key('dashboard_longest_streak')),
-    ).dy;
+    final todayTop = tester
+        .getTopLeft(find.byKey(const Key('dashboard_today')))
+        .dy;
+    final totalTop = tester
+        .getTopLeft(find.byKey(const Key('dashboard_total')))
+        .dy;
+    final weekTop = tester
+        .getTopLeft(find.byKey(const Key('dashboard_week')))
+        .dy;
+    final currentTop = tester
+        .getTopLeft(find.byKey(const Key('dashboard_current_streak')))
+        .dy;
+    final longestTop = tester
+        .getTopLeft(find.byKey(const Key('dashboard_longest_streak')))
+        .dy;
     expect(todayTop, totalTop);
     expect(todayTop, lessThan(weekTop));
     expect(weekTop, currentTop);
@@ -240,10 +240,9 @@ void main() {
       final tile = tester.getRect(find.byKey(Key(key)));
       // 卡面首个 Text 是大号数字：单行（高度不超字号行高）且不越出卡面。
       final value = tester.getRect(
-        find.descendant(
-          of: find.byKey(Key(key)),
-          matching: find.byType(Text),
-        ).first,
+        find
+            .descendant(of: find.byKey(Key(key)), matching: find.byType(Text))
+            .first,
       );
       expect(value.height, lessThanOrEqualTo(40), reason: key);
       expect(value.left, greaterThanOrEqualTo(tile.left), reason: key);
@@ -263,9 +262,10 @@ void main() {
 
   testWidgets('只有 0 秒记录：仍是空态引导，不出零值汇总卡', (tester) async {
     final now = DateTime.now();
-    await _pump(tester, records: [
-      _record(DateTime(now.year, now.month, now.day, 10), 0, 'a'),
-    ]);
+    await _pump(
+      tester,
+      records: [_record(DateTime(now.year, now.month, now.day, 10), 0, 'a')],
+    );
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle();
@@ -353,9 +353,24 @@ void main() {
         _record(today, 200, 'v2', song: 'Beta'),
         _record(today.add(const Duration(hours: 1)), 30, 'v1', song: 'Alpha'),
         _record(today.add(const Duration(hours: 2)), 30, 'v1', song: 'Alpha'),
-        _record(today.subtract(const Duration(days: 1)), 300, 'v2', song: 'Beta'),
-        _record(today.subtract(const Duration(days: 2)), 40, 'v1', song: 'Alpha'),
-        _record(today.subtract(const Duration(days: 3)), 50, 'v2', song: 'Beta'),
+        _record(
+          today.subtract(const Duration(days: 1)),
+          300,
+          'v2',
+          song: 'Beta',
+        ),
+        _record(
+          today.subtract(const Duration(days: 2)),
+          40,
+          'v1',
+          song: 'Alpha',
+        ),
+        _record(
+          today.subtract(const Duration(days: 3)),
+          50,
+          'v2',
+          song: 'Beta',
+        ),
       ],
     );
     await _openStats(tester);
@@ -386,8 +401,12 @@ void main() {
       ),
       findsOneWidget,
     );
-    final aTop = tester.getTopLeft(find.byKey(const Key('day_detail_row_v1'))).dy;
-    final bTop = tester.getTopLeft(find.byKey(const Key('day_detail_row_v2'))).dy;
+    final aTop = tester
+        .getTopLeft(find.byKey(const Key('day_detail_row_v1')))
+        .dy;
+    final bTop = tester
+        .getTopLeft(find.byKey(const Key('day_detail_row_v2')))
+        .dy;
     expect(aTop, lessThan(bTop));
 
     await _scrollToRanking(tester);
@@ -469,10 +488,7 @@ void main() {
     final twoDaysAgo = today.subtract(const Duration(days: 2));
     await _pump(
       tester,
-      records: [
-        _record(today, 300, 'a'),
-        _record(yesterday, 60, 'b'),
-      ],
+      records: [_record(today, 300, 'a'), _record(yesterday, 60, 'b')],
     );
     await _openStats(tester);
 
@@ -492,10 +508,7 @@ void main() {
     final twoDaysAgo = today.subtract(const Duration(days: 2));
     await _pump(
       tester,
-      records: [
-        _record(today, 1, 'a'),
-        _record(yesterday, 3600, 'b'),
-      ],
+      records: [_record(today, 1, 'a'), _record(yesterday, 3600, 'b')],
     );
     await _openStats(tester);
 
@@ -521,9 +534,9 @@ void main() {
     );
     // 按时间标分钟数（300s = 5 分）。
     expect(
-      tester.widget<Text>(
-        find.byKey(Key('daily_bar_value_${_dayKey(today)}')),
-      ).data,
+      tester
+          .widget<Text>(find.byKey(Key('daily_bar_value_${_dayKey(today)}')))
+          .data,
       '5',
     );
 
@@ -543,10 +556,7 @@ void main() {
     await _openStats(tester);
 
     // 近 30 天窗口合计：300 + 60 = 360s = 6:00。
-    expect(
-      find.text('每日练习时长（分钟） · 合计 6:00'),
-      findsOneWidget,
-    );
+    expect(find.text('每日练习时长（分钟） · 合计 6:00'), findsOneWidget);
 
     await _tapFilter(tester, 'filter_unit_count');
     await tester.pumpAndSettle();
@@ -571,7 +581,10 @@ void main() {
       find.byKey(Key('daily_bar_dashes_${_dayKey(today)}')),
       findsOneWidget,
     );
-    expect(find.byKey(Key('daily_bar_dashes_${_dayKey(yesterday)}')), findsNothing);
+    expect(
+      find.byKey(Key('daily_bar_dashes_${_dayKey(yesterday)}')),
+      findsNothing,
+    );
   });
 
   testWidgets('x 轴有 4 个 M/d 日期标签：首日、约 1/3、约 2/3、末日', (tester) async {
@@ -660,8 +673,12 @@ void main() {
     );
 
     // 「Beta」行在「Alpha」行上方（降序）。
-    final betaTop = tester.getTopLeft(find.byKey(const Key('day_detail_row_b'))).dy;
-    final alphaTop = tester.getTopLeft(find.byKey(const Key('day_detail_row_a'))).dy;
+    final betaTop = tester
+        .getTopLeft(find.byKey(const Key('day_detail_row_b')))
+        .dy;
+    final alphaTop = tester
+        .getTopLeft(find.byKey(const Key('day_detail_row_a')))
+        .dy;
     expect(betaTop, lessThan(alphaTop));
   });
 
@@ -793,10 +810,7 @@ void main() {
     final tenDaysAgo = today.subtract(const Duration(days: 10));
     await _pump(
       tester,
-      records: [
-        _record(today, 300, 'a'),
-        _record(tenDaysAgo, 600, 'b'),
-      ],
+      records: [_record(today, 300, 'a'), _record(tenDaysAgo, 600, 'b')],
     );
     await _openStats(tester);
 
@@ -1039,9 +1053,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('标题为单行「过去一年已练习 …」（合计只出现一次），跟随单位', (
-      tester,
-    ) async {
+    testWidgets('标题为单行「过去一年已练习 …」（合计只出现一次），跟随单位', (tester) async {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day, 10);
       await _pump(
@@ -1104,9 +1116,7 @@ void main() {
       var month = DateTime(firstDay.year, firstDay.month);
       var labels = 0;
       while (month.isBefore(today.add(const Duration(days: 1)))) {
-        if (!month
-            .add(const Duration(days: 1))
-            .isBefore(firstDay)) {
+        if (!month.add(const Duration(days: 1)).isBefore(firstDay)) {
           expect(find.text('${month.month}月'), findsWidgets);
           labels++;
         }
@@ -1173,10 +1183,7 @@ void main() {
       expect(find.text('少'), findsOneWidget);
       expect(find.text('多'), findsOneWidget);
       for (var level = 0; level <= 4; level++) {
-        expect(
-          find.byKey(Key('heatmap_legend_swatch_$level')),
-          findsOneWidget,
-        );
+        expect(find.byKey(Key('heatmap_legend_swatch_$level')), findsOneWidget);
       }
       expect(find.textContaining('按当天练习时长分档'), findsNothing);
 
@@ -1191,10 +1198,7 @@ void main() {
       expect(find.text('少'), findsOneWidget);
       expect(find.text('多'), findsOneWidget);
       for (var level = 0; level <= 4; level++) {
-        expect(
-          find.byKey(Key('heatmap_legend_swatch_$level')),
-          findsOneWidget,
-        );
+        expect(find.byKey(Key('heatmap_legend_swatch_$level')), findsOneWidget);
       }
       expect(find.textContaining('按当天练习场次分档'), findsNothing);
     });
@@ -1221,9 +1225,7 @@ void main() {
     expect(find.byType(DanceDetailPage), findsOneWidget);
   });
 
-  testWidgets('行尾进度条：填充比例 = 该行值 ÷ 列表最大值，固定宽度、主题主色', (
-    tester,
-  ) async {
+  testWidgets('行尾进度条：填充比例 = 该行值 ÷ 列表最大值，固定宽度、主题主色', (tester) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day, 10);
     await _pump(
@@ -1237,10 +1239,9 @@ void main() {
     await _openStats(tester);
     await _scrollToRanking(tester);
 
-    final primary =
-        Theme.of(
-          tester.element(find.byKey(const Key('ranking_card'))),
-        ).colorScheme.primary;
+    final primary = Theme.of(
+      tester.element(find.byKey(const Key('ranking_card'))),
+    ).colorScheme.primary;
 
     // v1 300s 是最大值，占满；v2 60s 为 60/300 = 0.2。
     expect(_rankingBar(tester, 'v1').value, 1.0);
@@ -1257,9 +1258,7 @@ void main() {
     expect(_rankingBar(tester, 'v1').color, primary);
   });
 
-  testWidgets('排行数值在进度条上方水平居中、字号大于说明字、行内只有一个数值', (
-    tester,
-  ) async {
+  testWidgets('排行数值在进度条上方水平居中、字号大于说明字、行内只有一个数值', (tester) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day, 10);
     await _pump(
@@ -1300,7 +1299,6 @@ void main() {
     expect(rowTexts, findsExactly(2));
     expect(_rankingKeyValue(tester, 'v1'), '5:00');
   });
-
 
   testWidgets('切换单位后进度条比例按新口径的最大值归一', (tester) async {
     final now = DateTime.now();
@@ -1394,24 +1392,21 @@ void main() {
     await tester.pumpAndSettle();
 
     // 首行「8月22日 合计 10:50」（合计 650s = 10:50）。
-    expect(
-      find.text('${today.month}月${today.day}日 合计 10:50'),
-      findsOneWidget,
-    );
+    expect(find.text('${today.month}月${today.day}日 合计 10:50'), findsOneWidget);
     // 分解行只取按时长降序的前 3 支：Beta 5:00、Delta 3:20、Alpha 1:40。
     for (final videoId in ['b', 'd', 'a']) {
       expect(find.byKey(Key('bar_chart_bubble_row_$videoId')), findsOneWidget);
     }
     expect(find.byKey(const Key('bar_chart_bubble_row_c')), findsNothing);
-    final bTop = tester.getTopLeft(
-      find.byKey(const Key('bar_chart_bubble_row_b')),
-    ).dy;
-    final dTop = tester.getTopLeft(
-      find.byKey(const Key('bar_chart_bubble_row_d')),
-    ).dy;
-    final aTop = tester.getTopLeft(
-      find.byKey(const Key('bar_chart_bubble_row_a')),
-    ).dy;
+    final bTop = tester
+        .getTopLeft(find.byKey(const Key('bar_chart_bubble_row_b')))
+        .dy;
+    final dTop = tester
+        .getTopLeft(find.byKey(const Key('bar_chart_bubble_row_d')))
+        .dy;
+    final aTop = tester
+        .getTopLeft(find.byKey(const Key('bar_chart_bubble_row_a')))
+        .dy;
     expect(bTop, lessThan(dTop));
     expect(dTop, lessThan(aTop));
   });
@@ -1436,18 +1431,16 @@ void main() {
 
     expect(find.text('${today.month}月${today.day}日 合计 4 次'), findsOneWidget);
     // 按场次：Beta 3 次在 Alpha 1 次之上（按时间是 Alpha 在上）。
-    final bTop = tester.getTopLeft(
-      find.byKey(const Key('bar_chart_bubble_row_b')),
-    ).dy;
-    final aTop = tester.getTopLeft(
-      find.byKey(const Key('bar_chart_bubble_row_a')),
-    ).dy;
+    final bTop = tester
+        .getTopLeft(find.byKey(const Key('bar_chart_bubble_row_b')))
+        .dy;
+    final aTop = tester
+        .getTopLeft(find.byKey(const Key('bar_chart_bubble_row_a')))
+        .dy;
     expect(bTop, lessThan(aTop));
 
     expect(
-      tester.widget<Text>(
-        find.byKey(const Key('bar_chart_bubble_row_b')),
-      ).data,
+      tester.widget<Text>(find.byKey(const Key('bar_chart_bubble_row_b'))).data,
       'Beta 3 次',
     );
   });
@@ -1484,10 +1477,7 @@ void main() {
     final yesterday = today.subtract(const Duration(days: 1));
     await _pump(
       tester,
-      records: [
-        _record(today, 300, 'a'),
-        _record(yesterday, 120, 'b'),
-      ],
+      records: [_record(today, 300, 'a'), _record(yesterday, 120, 'b')],
     );
     await _openStats(tester);
     await _tapFilter(tester, 'filter_window_7');
@@ -1520,7 +1510,6 @@ void main() {
         .data!;
     expect(bubbleText, startsWith('${yesterday.month}月${yesterday.day}日'));
   });
-
 }
 
 /// 排行行尾进度条。
@@ -1533,16 +1522,9 @@ LinearProgressIndicator _rankingBar(WidgetTester tester, String videoId) =>
     tester.widget<LinearProgressIndicator>(_rankingBarFinder(videoId));
 
 /// 仪表盘某卡面的大号数字文案（卡 key 下的首个 Text）。
-void _expectDashboardValue(
-  WidgetTester tester,
-  String key,
-  String text,
-) {
+void _expectDashboardValue(WidgetTester tester, String key, String text) {
   expect(
-    find.descendant(
-      of: find.byKey(Key(key)),
-      matching: find.text(text),
-    ),
+    find.descendant(of: find.byKey(Key(key)), matching: find.text(text)),
     findsOneWidget,
     reason: '$key 应显示 $text',
   );
@@ -1605,8 +1587,6 @@ Future<void> _scrollToTop(WidgetTester tester) async {
   }
   await tester.pumpAndSettle();
 }
-
-
 
 /// 点筛选行控件：compact 档视口更矮，筛选行可能已滚出视口甚至出懒建
 /// 缓存（可达 = 滚动可及），先滚回再点。

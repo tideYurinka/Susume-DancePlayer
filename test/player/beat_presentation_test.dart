@@ -1,4 +1,5 @@
-import 'package:dance_learning_app/core/current_beat.dart' show PracticeBeatCount;
+import 'package:dance_learning_app/core/current_beat.dart'
+    show PracticeBeatCount;
 import 'package:dance_learning_app/core/beat_grid.dart';
 import 'package:dance_learning_app/core/eight_beat_phase.dart';
 import 'package:dance_learning_app/core/playback/media_clock.dart'
@@ -202,7 +203,6 @@ void main() {
   schedulingTests();
 }
 
-
 /// 发声排程装配缝用例：fake 执行器 + 可控单调钟，驱动位置流与周期 tick，
 /// 断言「什么媒介位置产出了哪些（时刻 / 段 / 音量）」——期望字面独立
 /// 书写（段 id 按注册表资产自算：「普通」去重段表重音=0、整拍=1、半拍=2），
@@ -302,10 +302,7 @@ void schedulingTests() {
     await frame(const Duration(milliseconds: 500), atMs: 500);
     // 位置事件落地：拍 500 已排，不重复产出（一拍一声）。
     expect(commandMs(), [0, 500]);
-    expect(
-      executor.commands.last.segmentId,
-      1,
-    ); // 1|2 → 整拍段（注册表资产自算）。
+    expect(executor.commands.last.segmentId, 1); // 1|2 → 整拍段（注册表资产自算）。
   });
 
   test('前跳越过已排区：被跳过的拍不补发', () async {
@@ -372,11 +369,7 @@ void schedulingTests() {
       atMs: 1000,
       ctx: context(playing: false),
     );
-    await runTo(
-      3000,
-      const Duration(seconds: 1),
-      ctx: context(playing: false),
-    );
+    await runTo(3000, const Duration(seconds: 1), ctx: context(playing: false));
     // 位置冻结在 1s：1500..3000 的拍不因墙钟推进而产出。
     expect(commandMs(), isEmpty);
   });
@@ -384,11 +377,7 @@ void schedulingTests() {
   test('闸门矩阵：开声关、网格异常、音源不可用各只静默发声', () async {
     await presentation.attach();
     // 开声关：不应活 → 停流、无产出。
-    await frame(
-      Duration.zero,
-      atMs: 0,
-      ctx: context(soundEnabled: false),
-    );
+    await frame(Duration.zero, atMs: 0, ctx: context(soundEnabled: false));
     expect(executor.stopCount, 1);
     expect(commandMs(), isEmpty);
     // 网格异常（秒制兜底）：不产指令；发布值已另行判空。
@@ -450,7 +439,11 @@ void schedulingTests() {
       delayAnchor: const Duration(seconds: 4),
       halfBeatLines: [const Duration(milliseconds: 3750)],
     );
-    await frame(const Duration(milliseconds: 3500), atMs: 3500, ctx: leadingCtx);
+    await frame(
+      const Duration(milliseconds: 3500),
+      atMs: 3500,
+      ctx: leadingCtx,
+    );
     expect(commandMs(), contains(3500)); // 前导整拍 0|8 照排。
     await runTo(3800, const Duration(milliseconds: 3500), ctx: leadingCtx);
     expect(commandMs(), isNot(contains(3750)));
@@ -473,11 +466,7 @@ void schedulingTests() {
     await frame(const Duration(milliseconds: 500), atMs: 500);
     expect(executor.openCount, 1);
     executor.lost = true;
-    await frame(
-      const Duration(milliseconds: 500),
-      atMs: 530,
-      ctx: context(),
-    );
+    await frame(const Duration(milliseconds: 500), atMs: 530, ctx: context());
     // 失效探测到即重开。
     expect(executor.openCount, 2);
     // 重开后按水位重排：当下之后的拍照常产出。
@@ -526,10 +515,7 @@ void schedulingTests() {
     await runTo(2400, Duration.zero, ctx: ctx);
     // k=1..4 → 拍点 600/1200/1800/2400，k=4 为下一记重音。
     expect(commandMs(), [0, 600, 1200, 1800, 2400]);
-    expect(
-      executor.commands.map((c) => c.segmentId).toList(),
-      [0, 1, 1, 1, 0],
-    );
+    expect(executor.commands.map((c) => c.segmentId).toList(), [0, 1, 1, 1, 0]);
     expect(pulses, 5);
   });
 
@@ -748,11 +734,7 @@ void schedulingTests() {
 
     void expectSingleFire(List<int> beats, String label) {
       expect(beats, isNotEmpty, reason: '$label 无产出');
-      expect(
-        beats.toSet().length,
-        beats.length,
-        reason: '$label 出现重发：$beats',
-      );
+      expect(beats.toSet().length, beats.length, reason: '$label 出现重发：$beats');
       expect(
         beats,
         orderedEquals([...beats]..sort()),
@@ -854,10 +836,9 @@ void schedulingTests() {
     }
     // 重音 = 小节首拍（k % 4 == 0），选段与正式播放同一套（「普通」音源
     // 重音段 0、整拍段 1）。
-    expect(
-      executor.commands.map((c) => c.segmentId).toList(),
-      [for (var k = 0; k <= 16; k++) k % 4 == 0 ? 0 : 1],
-    );
+    expect(executor.commands.map((c) => c.segmentId).toList(), [
+      for (var k = 0; k <= 16; k++) k % 4 == 0 ? 0 : 1,
+    ]);
     expect(pulses, 17);
   });
 
@@ -930,8 +911,11 @@ void schedulingTests() {
       // 呈现时钟已把锚采纳到 3s：此后唯一的外推答 3000ms（拒绝向后的
       // 第二份时钟会答 ≥5000ms——配对值证明它已不在同步路径上）。
       expect(timebase.syncs.last.mediaTimeMs, 3000);
-      expect(executor.flushCount, greaterThan(0),
-          reason: '向后跳变由水位判定清账，纪律不再由第二份时钟承担');
+      expect(
+        executor.flushCount,
+        greaterThan(0),
+        reason: '向后跳变由水位判定清账，纪律不再由第二份时钟承担',
+      );
     });
 
     test('暂停：外推冻结在最近报位（不把暂停时长外推进位置）', () async {
@@ -952,7 +936,10 @@ void schedulingTests() {
       await withTimebase.attach();
       executor.nowMs = 1000;
       withTimebase.onFrame(
-        context(sessionActive: true, sessionBeatInterval: const Duration(milliseconds: 500)),
+        context(
+          sessionActive: true,
+          sessionBeatInterval: const Duration(milliseconds: 500),
+        ),
         Duration.zero,
       );
       await withTimebase.settled;

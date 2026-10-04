@@ -88,18 +88,14 @@ void main() {
       // 几何（备注 lane 变化）不改学习段几何：geometryChanged 恒假。
       expect(outcome.geometryChanged, isFalse);
       // 5.1s 吸最近拍点 5s（不是被拉回 4s 的八拍点），窗宽仍是一个八拍。
-      expect(notes(), const [
-        NoteSticker(startMs: 5000, endMs: 9000),
-      ]);
+      expect(notes(), const [NoteSticker(startMs: 5000, endMs: 9000)]);
       expect(container.read(annotationEditHistoryProvider).length, 1);
     });
 
     test('段级折叠：插入入队保存 diff 只带 notes 段', () {
       injectReadyGrid();
       restore();
-      editor().submit(
-        const InsertNote(at: Duration(milliseconds: 5100)),
-      );
+      editor().submit(const InsertNote(at: Duration(milliseconds: 5100)));
       final diff = sink.saved.single;
       expect(diff.notes, const [NoteSticker(startMs: 5000, endMs: 9000)]);
       expect(diff.annotations, isNull);
@@ -115,9 +111,7 @@ void main() {
         const InsertNote(at: Duration(milliseconds: 10300)),
       );
       expect(outcome.applied, isTrue);
-      expect(notes(), const [
-        NoteSticker(startMs: 10300, endMs: 14300),
-      ]);
+      expect(notes(), const [NoteSticker(startMs: 10300, endMs: 14300)]);
     });
 
     test('异常网格：吸附停用直通、窗宽秒制兜底一个八拍', () {
@@ -127,9 +121,7 @@ void main() {
         const InsertNote(at: Duration(milliseconds: 10300)),
       );
       expect(outcome.applied, isTrue);
-      expect(notes(), const [
-        NoteSticker(startMs: 10300, endMs: 14300),
-      ]);
+      expect(notes(), const [NoteSticker(startMs: 10300, endMs: 14300)]);
     });
   });
 
@@ -152,10 +144,22 @@ void main() {
 
     test('占用谓词按半开窗判定，供入口路由消费', () {
       restore(notes: seed);
-      expect(editor().isNoteLandingOccupied(const Duration(milliseconds: 12000)), isTrue);
-      expect(editor().isNoteLandingOccupied(const Duration(milliseconds: 10000)), isTrue);
-      expect(editor().isNoteLandingOccupied(const Duration(milliseconds: 18000)), isFalse);
-      expect(editor().isNoteLandingOccupied(const Duration(milliseconds: 9999)), isFalse);
+      expect(
+        editor().isNoteLandingOccupied(const Duration(milliseconds: 12000)),
+        isTrue,
+      );
+      expect(
+        editor().isNoteLandingOccupied(const Duration(milliseconds: 10000)),
+        isTrue,
+      );
+      expect(
+        editor().isNoteLandingOccupied(const Duration(milliseconds: 18000)),
+        isFalse,
+      );
+      expect(
+        editor().isNoteLandingOccupied(const Duration(milliseconds: 9999)),
+        isFalse,
+      );
     });
   });
 
@@ -196,9 +200,7 @@ void main() {
 
     test('紧贴右邻备注起点：半开区间共享端点视为不重叠、照常成立', () {
       injectReadyGrid();
-      restore(
-        notes: const [NoteSticker(startMs: 56000, endMs: 60000)],
-      );
+      restore(notes: const [NoteSticker(startMs: 56000, endMs: 60000)]);
       final outcome = editor().submit(
         const InsertNote(at: Duration(milliseconds: 55000)),
       );
@@ -297,8 +299,11 @@ void main() {
         NoteSticker(startMs: 0, endMs: 4000, geometry: left),
         NoteSticker(startMs: 10000, endMs: 14000, geometry: left),
       ]);
-      expect(container.read(annotationEditHistoryProvider).length, 1,
-          reason: '沿用几何不额外入史');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        1,
+        reason: '沿用几何不额外入史',
+      );
     });
 
     test('值拷贝：随后改动左邻的几何，已建出的新备注不跟着变', () {
@@ -341,7 +346,9 @@ void main() {
     test('落在所有既有备注之前：无左邻，回落默认落点（不抄它右边那条）', () {
       injectReadyGrid();
       restore(
-        notes: const [NoteSticker(startMs: 10000, endMs: 14000, geometry: left)],
+        notes: const [
+          NoteSticker(startMs: 10000, endMs: 14000, geometry: left),
+        ],
       );
 
       final outcome = editor().submit(

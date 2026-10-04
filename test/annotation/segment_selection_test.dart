@@ -6,10 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('恢复收紧连续性', () {
     test('不连续段序只保留含最小段序的那一段连续块', () {
-      expect(
-        contiguousBlockFromMin(const {1, 3, 4, 6}),
-        const {1},
-      );
+      expect(contiguousBlockFromMin(const {1, 3, 4, 6}), const {1});
       expect(contiguousBlockFromMin(const {0, 2, 3}), const {0});
     });
 
@@ -39,8 +36,8 @@ void main() {
 
     /// 7 段等长时间线：段 n = [10n, 10n+10)，总 70s。
     AnnotationTimeline sevenSegments() => timelineWithLines([
-          for (var i = 1; i <= 6; i++) Duration(seconds: i * 10),
-        ], totalSeconds: 70);
+      for (var i = 1; i <= 6; i++) Duration(seconds: i * 10),
+    ], totalSeconds: 70);
 
     test('空选中点一段：只选中这一段，循环范围＝这一段', () {
       final timeline = timelineWithLines([
