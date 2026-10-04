@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1105,12 +1104,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     if (!mounted) return;
     // 换视频/重开打断延迟（打断表）：撤锚并作废在途预备。
     _delayedPlay.interrupt();
-    // 「装载未完成」门：打开路径置位——启动序列（建立 + 恢复 +
-    // 随后几段域会话）走完时落定；无实体文件（不存在 / 平台路径不可用）时
-    // 不置位：没有可装载的内容，「正在装载」不该留下。
-    final filePath = widget.source.toFilePath();
-    final hasFile = File(filePath).existsSync();
-    final loadGate = ref.read(loadGateActiveProvider.notifier);
+    // 「装载未完成」门的开合归打开恢复自己持有（见
+    // `open_restore.dart`）：建立前置位、打开恢复落定即落位；无实体文件
+    // 不置位。本页只读门事实（写入口置灰、点一下弹「正在装载」），不管开合。
+    //
     // 开舞装载前置半段：开播前先把引擎写回出厂原速、步进归零，
     // 上一支舞的速率不带进下一支舞的第一遍；读回本地文档后再精调成这支舞
     // 的记忆值（`VideoSettingsPersistence._restore`）。次序（前置 → 引擎 open
@@ -1120,9 +1117,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       if (!mounted) return;
       await _engineSeek.open(widget.source, play: true);
       if (!mounted) return;
-      // 起播后才置位：本方法在 initState 同步启动，且此刻已过首个 await，
-      // 改 provider 不再触犯 build 期禁令；引擎打开失败时也不会置位。
-      if (hasFile) loadGate.begin();
       final duration = _engineSeek.engine.duration;
       if (duration != null) {
         ref.read(annotationEditorProvider).resetForVideo(duration);
@@ -1145,10 +1139,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     } on Object {
       if (!mounted) return;
       setState(() => _openFailed = true);
-    } finally {
-      // 启动序列走完（含摘要失败 / 文档不可读 / 引擎打不开的无身份收场）
-      // 即落定「装载未完成」门。
-      if (mounted) loadGate.settle();
     }
   }
 

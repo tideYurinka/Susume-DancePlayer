@@ -46,6 +46,10 @@ import 'package:dance_learning_app/player/open_restore.dart'
     show OpenLoadHost, VideoOpenRestorer, videoOpenRestorerProvider;
 import 'package:dance_learning_app/player/framing_session_state.dart'
     show framingStateProvider;
+import 'package:dance_learning_app/player/dancer_roster_controller.dart'
+    show dancerRosterControllerProvider;
+import 'package:dance_learning_app/player/load_gate.dart'
+    show loadGateActiveProvider;
 import 'package:dance_learning_app/player/preview_snap.dart'
     show previewSnapEnabledProvider;
 import 'package:dance_learning_app/player/scheme_open.dart'
@@ -57,6 +61,7 @@ import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_beat_pipeline.dart';
@@ -74,6 +79,23 @@ class ThrowingHasher implements ContentHasher {
 
   @override
   Future<String> hashFile(File file) async => throw StateError('hash failed');
+}
+
+/// 闸控摘要：把建立序列停在算指纹那一步，用来观察「装载未完成」
+/// 门的置位时刻（建立前置位）。
+class _GatedHasher implements ContentHasher {
+  final Completer<String> digest = Completer<String>();
+
+  @override
+  Future<String> hashFile(File file) => digest.future;
+}
+
+/// 盘上的实体视频副本：装载门只在真有文件可装载时置位（无实体文件不开门），
+/// 门时序用例因此需要一份真文件在盘上。
+String _createTempVideo() {
+  final dir = Directory.systemTemp.createTempSync('open_restore_gate');
+  addTearDown(() => dir.deleteSync(recursive: true));
+  return (File('${dir.path}/a.mp4')..writeAsBytesSync(const [0])).path;
 }
 
 /// 带写盘计数的按视频文档存储（打开恢复不得触发多余写盘断言用）。
@@ -285,6 +307,7 @@ Probe makeProbe({
   FakeBeatPipeline? pipeline,
   VideoDocumentStorage Function(String videoId)? storageFor,
   MemberSchemeStorage? memberSchemeStorage,
+  List<Override> extraOverrides = const [],
 }) {
   final docStorage = CountingVideoDocumentStorage(
     InMemoryVideoDocumentStorage(markers: markers, local: local),
@@ -308,6 +331,7 @@ Probe makeProbe({
         memberSchemeStorageProvider.overrideWith(
           (ref, videoId) => memberSchemeStorage,
         ),
+      ...extraOverrides,
     ],
   );
   // 容器内无 widget 监听，保持恢复目标 provider 存活（等价播放页的
@@ -995,8 +1019,13 @@ void main() {
         host.indexOf('promptNaming'),
         lessThan(host.indexOf('resolveMirror')),
       );
-      // resolve 后台进行（不阻塞 open 返回）：排空它在途链再收尾容器。
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // 打开恢复已随 open 落定（不再后台跑）：open 返回即能读到标注对象集，
+      // 没有留一个看不见的后台尾巴。
+      expect(
+        probe.container.read(annotationTimelineProvider).segmentLines.length,
+        1,
+        reason: 'open 返回即恢复落定，不留后台尾巴',
+      );
     });
 
     test('open 建立的身份按内容摘要落定：非首次导入照常传给下游会话', () async {
@@ -1016,7 +1045,126 @@ void main() {
       expect(host.namingIsNewImport, isFalse, reason: '非首次导入场景照实传给命名框');
       expect(host.signatureSession?.videoId, kVideoId);
       expect(host.signatureSession?.identified, isTrue);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+  });
+
+  group('装载门归打开恢复持有', () {
+    test('建立前置位：建立序列还在途、打开恢复未开始，门已挡住写入口', () async {
+      final hasher = _GatedHasher();
+      final probe = makeProbe(hasher: hasher, markers: markersJson());
+      final host = _RecordingOpenLoadHost();
+
+      final opening = probe.restorer.open(
+        source: Uri.file(_createTempVideo()),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        probe.container.read(loadGateActiveProvider),
+        isTrue,
+        reason: '建立序列在途：对象集来自尚未装载的文档，写入口此刻全被同一道门挡下',
+      );
+      expect(host.calls, isEmpty, reason: '建立未落定，打开恢复与后段域会话都还没开始');
+
+      hasher.digest.complete(kVideoId);
+      await opening;
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+    });
+
+    test('打开恢复落定即落位：署名解析 / 命名框 / 镜像询问都不再拖住门', () async {
+      for (final call in const [
+        'startSignature',
+        'promptNaming',
+        'resolveMirror',
+      ]) {
+        final probe = makeProbe(
+          hasher: const FixedHasher(kVideoId),
+          markers: markersJson(),
+          local: localJson(),
+        );
+        final host = _RecordingOpenLoadHost()..gated.add(call);
+
+        final opening = probe.restorer.open(
+          source: Uri.file(_createTempVideo()),
+          videoDuration: kDuration,
+          askNaming: true,
+          host: host,
+        );
+        await host.enteredOf(call);
+
+        expect(
+          probe.container.read(loadGateActiveProvider),
+          isFalse,
+          reason: '$call 还在途：门已随打开恢复落定，不再被后段交互拖住',
+        );
+        expect(
+          probe.container.read(annotationTimelineProvider).segmentLines.length,
+          1,
+          reason: '门落下的那一刻，标注对象集已就位上时间线',
+        );
+        expect(probe.container.read(learningMasteryProvider), {
+          1: LearningMastery.learning,
+        }, reason: '熟练度随对象集一同就位，不是等文档读完就算落定');
+
+        host.release(call);
+        await opening;
+        expect(probe.container.read(loadGateActiveProvider), isFalse);
+      }
+    });
+
+    test('无实体文件不置位：没有可装载的内容，门不起', () async {
+      final hasher = _GatedHasher();
+      final probe = makeProbe(hasher: hasher);
+      final host = _RecordingOpenLoadHost();
+
+      final opening = probe.restorer.open(
+        source: Uri.file('/videos/not-on-disk.mp4'),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+
+      hasher.digest.complete(kVideoId);
+      await opening;
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+    });
+
+    test('打开恢复抛异常时门仍会落下：不留一个永远挡写的门', () async {
+      final probe = makeProbe(
+        hasher: const FixedHasher(kVideoId),
+        markers: markersJson(),
+        extraOverrides: [
+          // 名册装载行一读就炸：异常落在打开恢复内部（此前各行的标注
+          // 对象集已就位），门必须照样落位，后续域会话照常启动。
+          dancerRosterControllerProvider.overrideWith(
+            (ref) => throw StateError('roster boom'),
+          ),
+        ],
+      );
+      final host = _RecordingOpenLoadHost();
+
+      await probe.restorer.open(
+        source: Uri.file(_createTempVideo()),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+
+      expect(
+        probe.container.read(loadGateActiveProvider),
+        isFalse,
+        reason: '打开恢复抛异常也必须落位，否则写入口永远被挡',
+      );
+      expect(
+        host.indexOf('startSignature'),
+        isNonNegative,
+        reason: '打开恢复失败不阻塞后续域会话',
+      );
     });
   });
 
@@ -1154,7 +1302,28 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
   OpenSession? mirrorSession;
   bool? namingIsNewImport;
 
+  /// 闸控的调用名：该段会话停在入口等 [release]，用来观察门与后段交互的
+  /// 相对时序（门落下的那一刻，后段在不在途）。
+  final Set<String> gated = <String>{};
+  final Map<String, Completer<void>> _entered = <String, Completer<void>>{};
+  final Map<String, Completer<void>> _released = <String, Completer<void>>{};
+
   int indexOf(String call) => calls.indexOf(call);
+
+  /// 该段会话进入入口的完成信号（可在会话开始前取）。
+  Future<void> enteredOf(String call) =>
+      _entered.putIfAbsent(call, Completer<void>.new).future;
+
+  /// 放行闸控的该段会话。
+  void release(String call) =>
+      _released.putIfAbsent(call, Completer<void>.new).complete();
+
+  Future<void> _enter(String call) async {
+    calls.add(call);
+    _entered.putIfAbsent(call, Completer<void>.new).complete();
+    if (!gated.contains(call)) return;
+    await _released.putIfAbsent(call, Completer<void>.new).future;
+  }
 
   @override
   bool isMounted() {
@@ -1164,7 +1333,7 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> openSettings(OpenSession session) async {
-    calls.add('openSettings');
+    await _enter('openSettings');
     settingsSession = session;
   }
 
@@ -1175,7 +1344,7 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> startSignature(OpenSession session) async {
-    calls.add('startSignature');
+    await _enter('startSignature');
     signatureSession = session;
   }
 
@@ -1186,13 +1355,13 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> promptNaming({required bool isNewImport}) async {
-    calls.add('promptNaming');
+    await _enter('promptNaming');
     namingIsNewImport = isNewImport;
   }
 
   @override
   Future<void> resolveMirror(OpenSession session) async {
-    calls.add('resolveMirror');
+    await _enter('resolveMirror');
     mirrorSession = session;
   }
 }
