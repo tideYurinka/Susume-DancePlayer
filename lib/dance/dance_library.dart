@@ -15,7 +15,9 @@
 ///   （`practice_distribution.dart`），节拍未就绪的时段在那里标注缺数据；
 /// - 封面引用 = 位置 + 缓存是否就绪：位置取公开标记文件 `meta.coverPositionMs`
 ///   （缺省/不存在 = 跟随首线 = 有效区间起点），就绪由封面缓存文件是否
-///   存在回答；页面只渲染，不自己拼路径、不自己取帧。
+///   存在回答；页面只渲染，不自己拼路径、不自己取帧；
+/// - 副本丢失 = 条目记录的视频副本路径不在盘上（存在性判定唯一来源见
+///   `video_copy_presence.dart`，装配层一次装入里逐舞问一次）。
 library;
 
 import '../annotation/learning_segment_attributes.dart';
@@ -270,6 +272,7 @@ class DanceSnapshot {
     required this.coverPosition,
     required this.coverReady,
     required this.coverAspectRatio,
+    required this.copyMissing,
     required this.urgency,
   });
 
@@ -315,6 +318,14 @@ class DanceSnapshot {
   /// 或头部读不出时为 [kCoverPlaceholderAspectRatio]（3:4 占位）。
   final double coverAspectRatio;
 
+  /// **副本丢失**：条目记录的视频副本已不在盘上（存在性判定见
+  /// `video_copy_presence.dart`，一次装入里按条目路径问一次）。
+  ///
+  /// 与 [coverReady] 同形状（在 provider 里算出、作为合成入参进快照）但互不
+  /// 牵连：丢失只挡住播放、封面取帧与 mp4 分享；标注、熟练度、统计、计划、
+  /// 分享标注方案与删除照常，卡片标记与打开入口都读这一处事实。
+  final bool copyMissing;
+
   /// 紧急度（计划文档 DDL 派生；无目标 / 已达成 = null）。
   final DanceUrgency? urgency;
 
@@ -341,6 +352,7 @@ class DanceSnapshot {
       other.coverPosition == coverPosition &&
       other.coverReady == coverReady &&
       other.coverAspectRatio == coverAspectRatio &&
+      other.copyMissing == copyMissing &&
       other.urgency == urgency;
 
   @override
@@ -357,6 +369,7 @@ class DanceSnapshot {
     coverPosition,
     coverReady,
     coverAspectRatio,
+    copyMissing,
     urgency,
   );
 }
@@ -387,6 +400,9 @@ Duration coverPositionOf(MarkersDocument markers) =>
 ///
 /// [readyAspectRatio] = 就绪封面的图片自身比例；null = 未就绪（封面框按
 /// 3:4 占位）。就绪标记由它派生，读面不再各写一份「就绪 + 比例」的取值。
+/// [copyMissing] = 视频副本不在盘上（存在性事实的唯一来源见
+/// `video_copy_presence.dart`）；缺省按副本在场——不关心这一事实的合成方
+/// 不必回答它，整库入口按条目路径逐舞问一次。
 DanceSnapshot composeDanceSnapshot({
   required VideoIndexEntry entry,
   required int importOrder,
@@ -397,6 +413,7 @@ DanceSnapshot composeDanceSnapshot({
   bool planSettledOnTime = false,
   DateTime? now,
   double? readyAspectRatio,
+  bool copyMissing = false,
 }) {
   final input = practiceDistributionInputFor(markers, const {});
   final segments = input.segments;
@@ -426,6 +443,7 @@ DanceSnapshot composeDanceSnapshot({
     coverPosition: coverPositionOf(markers),
     coverReady: readyAspectRatio != null,
     coverAspectRatio: readyAspectRatio ?? kCoverPlaceholderAspectRatio,
+    copyMissing: copyMissing,
     // 紧急度在合成舞库快照处接线：由计划文档的目标日、落档
     // 结论与完全掌握算出；无目标即无紧急度，不取时钟。
     urgency: planDueDay == null
@@ -541,11 +559,17 @@ String averagePracticeCountText(double? count) {
 /// 历史统计没有条目可挂，自然不进列表），排序在快照上做。导入次序 = 条目
 /// 在索引里的位置。读面不含桶读面：逐段练习值走练习分布读面
 /// （`dancePracticeDistributionProvider`），卡片与整库读面都不装。
+///
+/// [copyExists] = 视频副本存在性查询（输入条目记录的副本路径、输出是否
+/// 在场）：**副本丢失**事实的唯一来源由此进入读面——一次装入里每支舞问
+/// 一次，不巡检、不轮询；纯值层不碰文件系统，装配层传入注入点的实现
+/// （`video_copy_presence.dart`），测试喂假。
 DanceLibrarySnapshot composeDanceLibrarySnapshot({
   required VideoIndex index,
   required Map<String, MarkersDocument> markersByVideoId,
   required Map<String, LocalDocument> localByVideoId,
   required Map<String, DancePracticeTotals> practiceByVideoId,
+  required bool Function(String path) copyExists,
 
   /// 按舞的最近目标（值 = 目标日 + 是否已按时落档）；无目标者缺席。
   Map<String, (DateTime, bool)> planGoalByVideoId = const {},
@@ -566,6 +590,7 @@ DanceLibrarySnapshot composeDanceLibrarySnapshot({
         planSettledOnTime: planGoalByVideoId[entry.videoId]?.$2 ?? false,
         now: now,
         readyAspectRatio: coverAspectRatios[entry.videoId],
+        copyMissing: !copyExists(entry.filePath),
       ),
   ];
   return DanceLibrarySnapshot(dances: sortDanceSnapshots(dances));

@@ -5,6 +5,7 @@ import 'package:dance_learning_app/annotation/segment_line.dart';
 import 'package:dance_learning_app/dance/cover_cache.dart';
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
 import 'package:dance_learning_app/dance/dance_library_providers.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart';
 import 'package:dance_learning_app/import/import_providers.dart'
     show videoIndexStoreProvider;
 import 'package:dance_learning_app/persistence/video_index.dart';
@@ -21,6 +22,7 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/in_memory_practice_plan_storage.dart';
 import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
@@ -192,6 +194,58 @@ void main() {
     );
   });
 
+  test('副本丢失：一次装入里逐舞问一次存在性，读数带丢失事实', () async {
+    final copyPresence = FakeVideoCopyPresence(
+      missingPaths: const {'/videos/v2.mp4'},
+    );
+    final harness = _Harness(
+      index: VideoIndex(entries: [_entry('v1'), _entry('v2')]),
+      copyPresence: copyPresence,
+    );
+    addTearDown(harness.container.dispose);
+
+    final snapshot = await harness.container.read(
+      danceLibrarySnapshotProvider.future,
+    );
+    final byId = {for (final dance in snapshot.dances) dance.videoId: dance};
+
+    expect(byId['v1']!.copyMissing, isFalse);
+    expect(byId['v2']!.copyMissing, isTrue);
+    // 无巡检、无轮询：这一次装入里每支舞按条目路径问一次，问完即止。
+    expect(copyPresence.consulted, ['/videos/v1.mp4', '/videos/v2.mp4']);
+  });
+
+  test('恢复不带媒体的整机备份：条目与文档都在、副本不在 ⇒ 以丢失呈现', () async {
+    // 恢复把条目与两份文档写了回来，媒体目录是空的（备份未带媒体）：
+    // 存在性判定走生产实现，读面如实带出丢失事实。
+    final mediaDir = await Directory.systemTemp.createTemp('restored_no_media');
+    addTearDown(() => mediaDir.delete(recursive: true));
+    final harness = _Harness(
+      index: VideoIndex(
+        entries: [_entry('v1', filePath: '${mediaDir.path}/v1.mp4')],
+      ),
+      documents: {
+        'v1': _documents(
+          markers: MarkersDocument(
+            rangeEndMs: 120000,
+            segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
+          ),
+          local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
+        ),
+      },
+      copyPresence: const FileVideoCopyPresence(),
+    );
+    addTearDown(harness.container.dispose);
+
+    final snapshot = await harness.container.read(
+      danceLibrarySnapshotProvider.future,
+    );
+
+    expect(snapshot.dances.single.copyMissing, isTrue);
+    // 丢的是视频副本，不是标注：文档读面照常（两段里第 0 段「掌握」= 50）。
+    expect(snapshot.dances.single.masteryPercent, 50.0);
+  });
+
   test('写后失效：管理写落盘后 invalidate，两个读面一起重算', () async {
     final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
     addTearDown(harness.container.dispose);
@@ -277,6 +331,7 @@ class _Harness {
     List<PracticeSessionRecord> records = const [],
     Directory? coverDirectory,
     Map<String, dynamic>? planRawJson,
+    VideoCopyPresence? copyPresence,
   }) : statsStorage = InMemoryPracticeStatsStorage() {
     if (records.isNotEmpty) {
       statsStorage.rawJson = PracticeStatsDocument(sessions: records).toJson();
@@ -296,6 +351,11 @@ class _Harness {
         practiceStatsStoreProvider.overrideWithValue(store),
         coverCacheProvider.overrideWith((ref) => coverCache),
         practicePlanStorageProvider.overrideWithValue(planStorage),
+        // 缺省 = 副本都在场（既有用例的条目路径都是假的）；丢失用例显式喂假
+        // 或换生产实现。
+        videoCopyPresenceProvider.overrideWithValue(
+          copyPresence ?? FakeVideoCopyPresence(),
+        ),
       ],
     );
   }
@@ -309,10 +369,10 @@ class _Harness {
   late final ProviderContainer container;
 }
 
-VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
+VideoIndexEntry _entry(String videoId, {String? filePath}) => VideoIndexEntry(
   videoId: videoId,
   displayName: '$videoId.mp4',
-  filePath: '/videos/$videoId.mp4',
+  filePath: filePath ?? '/videos/$videoId.mp4',
   sizeBytes: 1,
   fastKey: 'k-$videoId',
   mirrored: false,

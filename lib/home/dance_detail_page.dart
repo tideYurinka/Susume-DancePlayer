@@ -14,7 +14,8 @@ import '../persistence/member_scheme_store.dart'
     show MemberSchemeRecord, memberSchemeStoreProvider, memberSchemesProvider;
 import '../persistence/song_signature.dart' show songFallbackName;
 import 'dance_detail_plan_section.dart' show DancePlanSection;
-import '../player/player_page.dart';
+import 'dance_delete_dialog.dart';
+import 'dance_open.dart';
 import '../player/scheme_open.dart'
     show AutoSchemeOpen, MemberSchemeOpen, MySchemeOpen, SchemeOpen;
 import '../player/song_naming.dart';
@@ -53,16 +54,12 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
   /// 只在首次点击时记录——重复点击不覆盖，撤销始终回到最初点击之前。
   DanceMasteryValues? _markAllMasteredSnapshot;
 
-  /// 打开/续播：与卡片主体同一次打开；[scheme] = 这次打开带的方案参数
-  /// （页尾「打开续播」不带参数，方案区的每一行带自己那一份）。回到本页
-  /// 重算读面（本次练习的统计已落盘）。
+  /// 打开/续播：与卡片主体同一次打开（[openDance]）；[scheme] = 这次打开带
+  /// 的方案参数（页尾主钮不带参数，方案区的每一行带自己那一份）。副本丢失的
+  /// 舞由同一条入口送进找回面，本页不自己判存在性。回到本页重算读面（本次练习
+  /// 的统计已落盘）。
   Future<void> _openPlayer(DanceSnapshot dance, SchemeOpen scheme) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            PlayerPage(source: File(dance.entry.filePath).uri, scheme: scheme),
-      ),
-    );
+    await openDance(context, dance, scheme: scheme);
     if (!mounted) return;
     invalidateDanceLibraryFrom(ref);
   }
@@ -127,20 +124,19 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
 
   /// 源视频 mp4 直发：把源视频副本作为普通 mp4 经
   /// 平台分享通道递出**原文件**（零复制），不装配 `.susume` 包。失败如实
-  /// 告知，不静默。入口在 ⋯ 菜单里按源视频副本是否存在置灰（置灰原因见
-  /// 菜单项文案）。
+  /// 告知，不静默。入口在 ⋯ 菜单里按**副本丢失**事实置灰（读面带出，本页不
+  /// 自己看文件；置灰原因见菜单项文案）。
   Future<void> _shareVideoMp4(DanceSnapshot dance) async {
     try {
-      await ref.read(shareChannelProvider).shareFile(_sourceVideoFile(dance));
+      await ref
+          .read(shareChannelProvider)
+          .shareFile(File(dance.entry.filePath));
     } on Object {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('分享失败')));
     }
   }
-
-  /// 源视频副本：mp4 直发的递出对象，与 ⋯ 菜单的存在性门同一处构造。
-  File _sourceVideoFile(DanceSnapshot dance) => File(dance.entry.filePath);
 
   /// 改名：同款三字段编辑（版本舞者与版本注记可选），保存后经舞库管理写
   /// 落盘（署名真值先、索引署名缓存后），并作废读面——卡片与详情随即显示
@@ -239,25 +235,9 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
   /// 经舞库删除动作落盘——索引写失败 = 删除不成立，留在本页并提示；成功后
   /// 返回舞库（首页读面重算，卡片消失）。
   Future<void> _confirmDelete(DanceSnapshot dance) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const Key('dance_delete_dialog'),
-        content: const Text('将连视频副本、公开标记文件、本地私密文件、组员方案与该舞练习素材一并删除；练舞统计保留'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            key: const Key('dance_delete_confirm'),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
+    // 二次确认与找回面共用一处（默认不删）。
+    if (!await confirmDanceDeletion(context)) return;
+    if (!mounted) return;
     try {
       await deleteDanceFrom(ref, dance.videoId);
     } on Object {
@@ -299,9 +279,10 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
                 }
               },
               itemBuilder: (_) {
-                // 存在性门：源视频副本不在时置灰并说明原因。在菜单展开时
-                // 判定（本机文件存在性检查，代价可忽略）。
-                final sourceExists = _sourceVideoFile(snapshot).existsSync();
+                // 副本丢失 = 读面带出的那一处事实（本页不自己看文件）：源文件
+                // 不在＝mp4 直发与换封面（要取帧）都不可用；分享标注方案、改名
+                // 与删除照常——丢的是视频副本，不是标注。
+                final copyMissing = snapshot.copyMissing;
                 return [
                   PopupMenuItem<String>(
                     key: const Key('dance_detail_share'),
@@ -311,13 +292,13 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
                   PopupMenuItem<String>(
                     key: const Key('dance_detail_share_mp4'),
                     value: 'share_mp4',
-                    enabled: sourceExists,
+                    enabled: !copyMissing,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text('分享视频（mp4）'),
-                        if (!sourceExists)
+                        if (copyMissing)
                           const Text(
                             '源视频副本不在',
                             key: Key('dance_detail_share_mp4_missing'),
@@ -334,7 +315,20 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
                   PopupMenuItem<String>(
                     key: const Key('dance_detail_change_cover'),
                     value: 'change_cover',
-                    child: const Text('换封面'),
+                    enabled: !copyMissing,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('换封面'),
+                        if (copyMissing)
+                          const Text(
+                            '视频副本丢失',
+                            key: Key('dance_detail_change_cover_missing'),
+                            style: TextStyle(fontSize: 12),
+                          ),
+                      ],
+                    ),
                   ),
                   PopupMenuItem<String>(
                     key: const Key('dance_detail_delete'),
@@ -425,6 +419,34 @@ class _DanceDetailBodyState extends ConsumerState<_DanceDetailBody> {
       children: [
         _CoverBanner(dance: dance),
         const SizedBox(height: 16),
+        // 副本丢失状态：与卡片同一处事实（读面带出）。丢的是视频副本，不是
+        // 标注——下面这些读数与各写入照常，只是播不了。
+        if (dance.copyMissing) ...[
+          Card(
+            key: const Key('dance_detail_copy_missing'),
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.videocam_off_outlined,
+                    color: theme.colorScheme.error,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '视频副本丢失：视频副本不在本机，暂时播不了。'
+                      '标注、熟练度、统计与计划都还在。',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         Card(
           margin: EdgeInsets.zero,
           child: Padding(
@@ -478,11 +500,13 @@ class _DanceDetailBodyState extends ConsumerState<_DanceDetailBody> {
           ),
         ),
         const SizedBox(height: 16),
+        // 主钮走同一处打开入口：副本丢失时那句「继续播放」是假承诺，改说
+        // 「找回这支舞」——点进去的是找回面（方案区各行同理）。
         FilledButton.icon(
           key: const Key('dance_detail_open'),
           onPressed: () => widget.onOpenScheme(const AutoSchemeOpen()),
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('继续播放'),
+          icon: Icon(dance.copyMissing ? Icons.search : Icons.play_arrow),
+          label: Text(dance.copyMissing ? '找回这支舞' : '继续播放'),
         ),
         const SizedBox(height: 16),
         // 方案区：一排入口，不是单选器——「我的标注」与各组员方案并列成行，

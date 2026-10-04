@@ -106,6 +106,7 @@ void main() {
         markersByVideoId: const {},
         localByVideoId: const {},
         practiceByVideoId: const {},
+        copyExists: (_) => true,
         planGoalByVideoId: goals,
         now: now,
       );

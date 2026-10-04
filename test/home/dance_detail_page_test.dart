@@ -35,6 +35,7 @@ import 'package:dance_learning_app/core/local_day.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_key.dart';
 import 'package:dance_learning_app/stats/practice_stats_format.dart';
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,6 +60,7 @@ import 'package:dance_learning_app/share_channel/share_channel.dart';
 import '../helpers/fake_share_channel.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fake_system_volume.dart';
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
 import '../helpers/in_memory_member_scheme_storage.dart';
@@ -974,9 +976,133 @@ void main() {
     expect(Directory('${tempDir.path}/out').existsSync(), isFalse);
   });
 
+  testWidgets('副本丢失：详情页出状态，主钮与方案行进的是找回面而不是播放页', (tester) async {
+    final memberStorage = await _schemesStorage([
+      MemberSchemeRecord(
+        schemeId: 's1',
+        memberName: '小如',
+        importedAt: DateTime(2026, 9, 10),
+      ),
+    ]);
+    final harness = _Harness(
+      index: VideoIndex(entries: [_entry('v1')]),
+      memberStorage: memberStorage,
+      copyPresence: FakeVideoCopyPresence(
+        missingPaths: const {'/videos/v1.mp4'},
+      ),
+    );
+    await harness.pump(tester, videoId: 'v1');
+
+    // 状态与卡片同源：详情页出丢失状态，主钮不再说「继续播放」。
+    expect(find.byKey(const Key('dance_detail_copy_missing')), findsOneWidget);
+    expect(find.text('继续播放'), findsNothing);
+    expect(find.text('找回这支舞'), findsOneWidget);
+
+    // 主钮 → 找回面，不进播放页。
+    await tester.tap(find.byKey(const Key('dance_detail_open')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dance_recovery_page')), findsOneWidget);
+    expect(find.byType(PlayerPage), findsNothing);
+    await tester.tap(find.byKey(const Key('dance_recovery_later')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dance_detail_copy_missing')), findsOneWidget);
+
+    // 方案行走同一条路：进找回面，不进播放页。
+    await _scrollToKey(tester, 'dance_scheme_open_s1');
+    await tester.tap(find.byKey(const Key('dance_scheme_open_s1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dance_recovery_page')), findsOneWidget);
+    expect(find.byType(PlayerPage), findsNothing);
+  });
+
+  testWidgets('副本丢失：mp4 分享与换封面置灰；标注方案分享改不带源视频，改名删除照常', (tester) async {
+    final tempDir = Directory.systemTemp.createTempSync('detail_missing_test');
+    addTearDown(() => tempDir.deleteSync(recursive: true));
+    final harness = _Harness(
+      index: VideoIndex(entries: [_entry('v1')]),
+      copyPresence: FakeVideoCopyPresence(
+        missingPaths: const {'/videos/v1.mp4'},
+      ),
+    );
+    await harness._pump(
+      tester,
+      MaterialApp(home: DanceDetailPage(videoId: 'v1')),
+      extraOverrides: [
+        materialsBaseDirectoryProvider.overrideWithValue(() async => tempDir),
+        materialManifestStoreProvider.overrideWith(
+          (ref) => MaterialManifestStore(MemoryManifestStorage()),
+        ),
+        shareChannelProvider.overrideWithValue(FakeShareChannel()),
+        susumeShareDirectoryProvider.overrideWith(
+          (ref) async => Directory('${tempDir.path}/out'),
+        ),
+        outboundSchemeIdStoreProvider.overrideWithValue(
+          OutboundSchemeIdFileStore(File('${tempDir.path}/scheme_ids.json')),
+        ),
+      ],
+    );
+
+    await _openMoreMenu(tester);
+    // 不可用：分享 mp4、换封面（换封面要源文件取帧）。
+    expect(
+      tester
+          .widget<PopupMenuItem<String>>(
+            find.byKey(const Key('dance_detail_share_mp4')),
+          )
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<PopupMenuItem<String>>(
+            find.byKey(const Key('dance_detail_change_cover')),
+          )
+          .enabled,
+      isFalse,
+    );
+    expect(
+      find.byKey(const Key('dance_detail_change_cover_missing')),
+      findsOneWidget,
+    );
+    // 可用：分享标注方案、改名、删除。
+    for (final key in const [
+      'dance_detail_share',
+      'dance_detail_rename',
+      'dance_detail_delete',
+    ]) {
+      expect(
+        tester.widget<PopupMenuItem<String>>(find.byKey(Key(key))).enabled,
+        isTrue,
+        reason: '$key 在丢失期间照常可用',
+      );
+    }
+
+    // 标注方案照常分享：包体不带源视频（副本不在），勾选框置灰。
+    await tester.tap(find.byKey(const Key('dance_detail_share')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('share_sheet')), findsOneWidget);
+    final sourceVideo = tester.widget<CheckboxListTile>(
+      find.byKey(const Key('share_sheet_source_video')),
+    );
+    expect(sourceVideo.value, isFalse);
+    expect(sourceVideo.onChanged, isNull);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('share_sheet_send')))
+          .onPressed,
+      isNotNull,
+      reason: '丢的是视频副本，不是标注方案：分享照常可发',
+    );
+  });
+
   testWidgets('源视频副本不在：「分享视频（mp4）」置灰并说明原因', (tester) async {
     final channel = FakeShareChannel();
-    final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
+    final harness = _Harness(
+      index: VideoIndex(entries: [_entry('v1')]),
+      copyPresence: FakeVideoCopyPresence(
+        missingPaths: const {'/videos/v1.mp4'},
+      ),
+    );
     await harness._pump(
       tester,
       MaterialApp(home: DanceDetailPage(videoId: 'v1')),
@@ -1646,11 +1772,13 @@ class _Harness {
     InMemoryMemberSchemeStorage? memberStorage,
     InMemoryFourBeatBucketStorage? bucketStorage,
     InMemoryCoverCache? coverCache,
+    VideoCopyPresence? copyPresence,
   }) : indexStorage = InMemoryVideoIndexStorage(initial: index),
        statsStorage = InMemoryPracticeStatsStorage(),
        memberStorage = memberStorage ?? InMemoryMemberSchemeStorage(),
        bucketStorage = bucketStorage ?? InMemoryFourBeatBucketStorage(),
        coverCache = coverCache ?? InMemoryCoverCache(),
+       copyPresence = copyPresence ?? FakeVideoCopyPresence(),
        engine = FakePlaybackEngine() {
     if (records.isNotEmpty) {
       statsStorage.rawJson = PracticeStatsDocument(sessions: records).toJson();
@@ -1666,6 +1794,9 @@ class _Harness {
 
   /// 封面缓存替身：`ready` 集合即封面是否就绪，决定横幅出真图还是占位图。
   final InMemoryCoverCache coverCache;
+
+  /// 副本存在性替身（缺省 = 副本都在场；副本丢失用例喂假）。
+  final VideoCopyPresence copyPresence;
   final FakePlaybackEngine engine;
 
   /// 封面生成替身：分享「用这一帧」按预览线时刻调用的断言与缓存侧收口。
@@ -1709,6 +1840,7 @@ class _Harness {
             factory ?? (id) => documents[id] ?? InMemoryVideoDocumentStorage(),
           ),
           coverCacheProvider.overrideWith((ref) => coverCache),
+          videoCopyPresenceProvider.overrideWithValue(copyPresence),
           coverGeneratorProvider.overrideWith((ref) async => coverGenerator),
           practicePlanStorageProvider.overrideWithValue(
             InMemoryPracticePlanStorage(),
