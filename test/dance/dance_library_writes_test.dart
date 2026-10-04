@@ -100,7 +100,7 @@ void main() {
     expect(markers.localMirrorEnabled, isFalse);
   });
 
-  test('版本舞者与版本注记可选：留空存空串；歌曲名空回退文件名', () async {
+  test('版本舞者与版本注记可选：留空存空串；歌曲名净化为空回退文件名回落名（去扩展名）', () async {
     final documents = InMemoryVideoDocumentStorage();
     final indexStorage = InMemoryVideoIndexStorage(
       initial: VideoIndex(entries: [_entry('v1')]),
@@ -114,11 +114,12 @@ void main() {
 
     expect(
       MarkersDocument.fromJson(documents.markersSnapshot).signature,
-      const SongSignature(song: 'v1.mp4'),
+      const SongSignature(song: 'v1'),
+      reason: '净化回落的兜底名 = 显示名 v1.mp4 的文件名回落名',
     );
     expect(
       indexStorage.current.entries.single.signatureCache,
-      const SongSignature(song: 'v1.mp4'),
+      const SongSignature(song: 'v1'),
     );
   });
 

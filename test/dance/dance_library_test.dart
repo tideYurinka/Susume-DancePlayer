@@ -71,16 +71,18 @@ void main() {
       expect(snapshot.lastPracticedAt, isNull);
     });
 
-    test('既无署名真值也无缓存：标题回退显示名', () {
+    test('既无署名真值也无缓存：标题回退「文件名回落名」（去扩展名）', () {
       final snapshot = composeDanceSnapshot(
-        entry: _entry(displayName: 'a.mp4'),
+        entry: _entry(displayName: 'a.b.mp4'),
         importOrder: 0,
         markers: const MarkersDocument.empty(),
         local: const LocalDocument.empty(),
         practice: const DancePracticeTotals(),
       );
 
-      expect(snapshot.title, 'a.mp4');
+      // 只验这一处确实过纯件（去最后一个点及其之后），规则本身在
+      // `song_signature_test.dart` 验过。
+      expect(snapshot.title, 'a.b');
     });
   });
 

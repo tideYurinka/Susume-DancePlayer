@@ -175,7 +175,8 @@ void main() {
       find.byKey(const Key('plan_agenda_due_v1')),
     );
     expect(
-      dueTile.title is Text && (dueTile.title as Text).data == 'v1.mp4',
+      // 未署名舞名 = 「文件名回落名」（去扩展名）。
+      dueTile.title is Text && (dueTile.title as Text).data == 'v1',
       isTrue,
     );
     expect((dueTile.subtitle! as Text).data, contains('约舞'));

@@ -154,7 +154,8 @@ void main() {
 
       final titleFinder = find.byKey(const Key('control_layer_title'));
       expect(titleFinder, findsOneWidget);
-      expect(find.text('dance-with-very-long-name.mp4'), findsNWidgets(2));
+      // 未署名回落「文件名回落名」= 去扩展名（滚动仍启用，两份文本）。
+      expect(find.text('dance-with-very-long-name'), findsNWidgets(2));
       final titleRect = tester.getRect(titleFinder);
       final firstToolRect = tester.getRect(find.byKey(const Key('tool_undo')));
       expect(titleRect.right, lessThanOrEqualTo(firstToolRect.left));

@@ -100,7 +100,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
     await tester.pump();
-    await tester.tap(find.byKey(const Key('naming_skip')));
+    await tester.tap(find.byKey(const Key('naming_cancel')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

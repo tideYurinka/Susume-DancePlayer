@@ -306,9 +306,9 @@ void main() {
       ],
     );
 
-    // 署名优先：有署名取署名显示串，没有则回退显示名。
+    // 署名优先：有署名取署名显示串，没有则回退「文件名回落名」（去扩展名）。
     expect(find.text('「如」真值名'), findsOneWidget);
-    expect(find.text('旧片.mp4'), findsOneWidget);
+    expect(find.text('旧片'), findsOneWidget);
     // 最近打开的排在上面。
     expect(
       tester.getTopLeft(find.byKey(const Key('issue_dance_new'))).dy,
@@ -423,11 +423,11 @@ void main() {
     final decoded =
         jsonDecode(utf8.decode(entries[kIssueDancesEntry]!)) as List;
     expect(decoded, [
-      {'title': 'b.mp4', 'videoId': 'v2'},
+      {'title': 'b', 'videoId': 'v2'},
     ]);
     expect(
       utf8.decode(entries['issue.txt']!),
-      contains('b.mp4'),
+      contains('- b（v2）'),
       reason: 'issue.txt 末节列出附带的数据',
     );
   });

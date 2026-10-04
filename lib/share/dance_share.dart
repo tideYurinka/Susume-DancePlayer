@@ -29,7 +29,8 @@ bool susumeSizeNearWechatLimit(int estimateBytes) =>
     estimateBytes >= kSusumeSizeWarnBytes;
 
 /// 装配一支舞的分享包到 [outputDir]：包名 `<歌名>.susume`（未署名回落
-/// 视频文件名，规则单处在 [susumePackageFileName]）。返回落盘文件。
+/// 「文件名回落名」——去扩展名的视频文件名，规则单处在 [susumePackageFileName]）。
+/// 返回落盘文件。
 Future<File> assembleDancePackage({
   required Directory outputDir,
   required SusumeManifest manifest,

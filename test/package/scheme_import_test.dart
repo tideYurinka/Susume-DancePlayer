@@ -213,7 +213,8 @@ void main() {
       expect(imported.landing, SchemeImportLanding.writtenAsMine);
       expect(imported.createdDance, isFalse);
       expect(imported.memberName, '小如');
-      expect(imported.danceTitle, 'hash-v1.mp4');
+      // 未署名舞的标题回退「文件名回落名」（去扩展名），与舞库卡片同源。
+      expect(imported.danceTitle, 'hash-v1');
 
       // 整份写入：markers 逐字段等于包里的公开标注。
       expect(documents['hash-v1']!.markersSnapshot, markers);
@@ -236,7 +237,9 @@ void main() {
   group('已有这支舞：留成组员方案', () {
     test('按方案标识落一条组员方案，值全含、不建新舞', () async {
       final indexStore = InMemoryVideoIndexStorage(
-        initial: VideoIndex(entries: [_entry('hash-v1')]),
+        initial: VideoIndex(
+          entries: [_entry('hash-v1', displayName: 'hash-v1.b.mp4')],
+        ),
       );
       final packageFile = await writePackage(manifest);
 
@@ -249,7 +252,8 @@ void main() {
       expect(imported.landing, SchemeImportLanding.keptAsMemberScheme);
       expect(imported.createdDance, isFalse);
       expect(imported.memberName, '如改');
-      expect(imported.danceTitle, 'hash-v1.mp4');
+      // 只去最后一个点及其之后 = 这一处确实过纯件（规则本身在纯件接缝验过）。
+      expect(imported.danceTitle, 'hash-v1.b');
 
       final doc = await MemberSchemeStore(schemeStorages['hash-v1']!).read();
       expect(doc.schemes.length, 1);
@@ -549,12 +553,13 @@ void main() {
   });
 }
 
-VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
-  videoId: videoId,
-  displayName: '$videoId.mp4',
-  filePath: '/videos/$videoId.mp4',
-  sizeBytes: 1,
-  fastKey: 'k-$videoId',
-  mirrored: false,
-  lastOpenedAt: DateTime(2026, 9, 1),
-);
+VideoIndexEntry _entry(String videoId, {String? displayName}) =>
+    VideoIndexEntry(
+      videoId: videoId,
+      displayName: displayName ?? '$videoId.mp4',
+      filePath: '/videos/$videoId.mp4',
+      sizeBytes: 1,
+      fastKey: 'k-$videoId',
+      mirrored: false,
+      lastOpenedAt: DateTime(2026, 9, 1),
+    );

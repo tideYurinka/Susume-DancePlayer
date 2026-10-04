@@ -18,3 +18,5 @@ app.*.map.json
 **/ios/Flutter/.last_build_id
 # Android 侧 Gradle 报告与中间产物（key.properties / keystore 见 android/.gitignore）
 /android/build/
+# AGP 每次构建都会重写的目录身份标记（内容是随机 UUID）
+/android/**/.uuid

@@ -70,11 +70,14 @@ void main() {
 
   /// 落一条目标在 3 天后、提前 1 天提醒的 DDL（提前与自动两条来源都落在
   /// 将来；相对虚拟今天）。
-  Future<void> seedDdl(ProviderContainer container) async {
+  Future<void> seedDdl(
+    ProviderContainer container, {
+    String videoId = 'v1',
+  }) async {
     await container
         .read(practicePlanStoreProvider)
         .setDdl(
-          videoId: 'v1',
+          videoId: videoId,
           ddl: DanceDdl(
             date: testToday.add(const Duration(days: 3)),
             leadDays: 1,
@@ -102,13 +105,18 @@ void main() {
     expect(snapshotReads, 0, reason: '同步只读一份索引，不重建舞库读面');
   });
 
-  test('未署名：标题与卡片同口径回退文件名', () async {
-    final container = build(VideoIndex(entries: [_entry('v1')]));
+  test('未署名：标题与卡片同口径回退「文件名回落名」（去扩展名）', () async {
+    final container = build(
+      VideoIndex(entries: [_entry('v1'), _entry('v1.b')]),
+    );
     await seedDdl(container);
+    await seedDdl(container, videoId: 'v1.b');
 
     await container.read(planPushSyncProvider)();
 
-    expect(port.scheduled['ddl-lead:v1']!.title, '临近目标：v1.mp4');
+    expect(port.scheduled['ddl-lead:v1']!.title, '临近目标：v1');
+    // 只去最后一个点及其之后 = 这一处确实过纯件（规则本身在纯件接缝验过）。
+    expect(port.scheduled['ddl-lead:v1.b']!.title, '临近目标：v1.b');
   });
 
   test('改名成功即补同步：已排通知取消并按新舞名重排', () async {

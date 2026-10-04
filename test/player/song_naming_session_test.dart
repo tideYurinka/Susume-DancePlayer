@@ -49,7 +49,8 @@ void main() {
     );
     session = SongNamingSession(
       signatureController: signature,
-      fallbackFileName: () => 'dance.mp4',
+      // 读面交来的已是「文件名回落名」（去扩展名）：域不自行去扩展名。
+      fallbackName: () => 'dance',
       presentNaming: presenter.call,
     );
   }
@@ -72,17 +73,18 @@ void main() {
   });
 
   group('首次导入判定与呈现接缝', () {
-    test('新导入且未署名：经接缝弹导入命名框（三字段空、不可点框外收起）', () async {
+    test('新导入且未署名：经接缝弹导入命名框（场景=导入、三字段空、不可点框外收起）', () async {
       await openAs();
 
       await session.promptImportIfNeeded(isNewImport: true);
 
       expect(presenter.calls, hasLength(1));
       final call = presenter.calls.single;
+      expect(call.scene, SongNamingScene.import);
       expect(call.initial.song, isEmpty);
       expect(call.initial.dancer, isEmpty);
       expect(call.initial.remark, isEmpty);
-      expect(call.fallbackFileName, 'dance.mp4');
+      expect(call.fallbackName, 'dance');
       expect(call.barrierDismissible, isFalse);
     });
 
@@ -127,7 +129,7 @@ void main() {
       expect(session.titleText, '「如」My Love - 9人版');
     });
 
-    test('导入跳过：按文件名署名（双写 index + markers）', () async {
+    test('导入退路钮：按文件名回落名署名（双写 index + markers）', () async {
       await openAs();
       presenter.result = const SongNamingResult(
         confirmed: false,
@@ -136,12 +138,12 @@ void main() {
 
       await session.promptImportIfNeeded(isNewImport: true);
 
-      const applied = SongSignature(song: 'dance.mp4');
+      const applied = SongSignature(song: 'dance');
       expect(MarkersDocument.fromJson(docs.markersSnapshot).signature, applied);
       expect(index.current.entries.single.signatureCache, applied);
     });
 
-    test('改名：接缝收到带出现值的初值且可点框外收起；保存后提交', () async {
+    test('改名：接缝收到场景=改名与带出现值的初值且可点框外收起；保存后提交', () async {
       const current = SongSignature(
         dancer: '如',
         song: 'My Love',
@@ -156,6 +158,7 @@ void main() {
       await session.rename();
 
       final call = presenter.calls.single;
+      expect(call.scene, SongNamingScene.rename);
       expect(call.initial.song, 'My Love');
       expect(call.initial.dancer, '如');
       expect(call.initial.remark, '9人版');
@@ -175,7 +178,7 @@ void main() {
 
       await session.rename();
 
-      expect(presenter.calls.single.initial.song, 'dance.mp4');
+      expect(presenter.calls.single.initial.song, 'dance');
       expect(presenter.calls.single.initial.dancer, isEmpty);
       expect(
         MarkersDocument.fromJson(docs.markersSnapshot).signature,
@@ -183,7 +186,7 @@ void main() {
       );
     });
 
-    test('改名取消：点框外交回 null 与「跳过」都不提交', () async {
+    test('改名取消：点框外交回 null 与「取消」都不提交', () async {
       const current = SongSignature(song: 'My Love');
       await openAs(signatureCache: current);
 
@@ -200,21 +203,22 @@ void main() {
     });
   });
 
-  test('顶栏显示串：未署名回退文件名', () async {
+  test('顶栏显示串：未署名回退文件名回落名', () async {
     await openAs();
-    expect(session.titleText, 'dance.mp4');
+    expect(session.titleText, 'dance');
 
     await openAs(signatureCache: const SongSignature(song: 'My Love'));
     expect(session.titleText, 'My Love');
   });
 }
 
-/// 记录型呈现接缝：记下域交来的初值与对话框行为，按 [result] 交回结论。
+/// 记录型呈现接缝：记下域交来的场景、初值与对话框行为，按 [result] 交回结论。
 class _RecordingPresenter {
   final List<
     ({
+      SongNamingScene scene,
       SongNamingInitial initial,
-      String fallbackFileName,
+      String fallbackName,
       bool barrierDismissible,
     })
   >
@@ -223,13 +227,15 @@ class _RecordingPresenter {
   SongNamingResult? result;
 
   Future<SongNamingResult?> call({
+    required SongNamingScene scene,
     required SongNamingInitial initial,
-    required String fallbackFileName,
+    required String fallbackName,
     required bool barrierDismissible,
   }) async {
     calls.add((
+      scene: scene,
       initial: initial,
-      fallbackFileName: fallbackFileName,
+      fallbackName: fallbackName,
       barrierDismissible: barrierDismissible,
     ));
     return result;

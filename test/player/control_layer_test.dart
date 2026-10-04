@@ -186,7 +186,7 @@ import '../helpers/in_memory_private_json_storage.dart';
 import 'package:dance_learning_app/player/mirror.dart' show MirrorController;
 import 'package:dance_learning_app/player/practice_mirror.dart';
 import 'package:dance_learning_app/player/song_naming.dart'
-    show SongNamingDialog;
+    show SongNamingDialog, SongNamingScene;
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
 
@@ -323,6 +323,7 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
                 showDialog<void>(
                   context: context,
                   builder: (_) => SongNamingDialog(
+                    scene: SongNamingScene.rename,
                     initialSong: widget.title,
                     fallbackText: widget.title,
                   ),
@@ -860,7 +861,7 @@ void main() {
   }
 
   group('唤出 / 收起', () {
-    testWidgets('单击唤出控制层：顶部栏含返回箭头与视频文件名标题；单击空白收起', (tester) async {
+    testWidgets('单击唤出控制层：顶部栏含返回箭头与去扩展名的标题；单击空白收起', (tester) async {
       final engine = FakePlaybackEngine();
       await pumpPlayer(tester, engine: engine);
 
@@ -869,9 +870,9 @@ void main() {
       await singleTapShow(tester);
 
       expect(controlLayer(), findsOneWidget);
-      // 顶部栏：返回箭头 + 文件名标题。
+      // 顶部栏：返回箭头 + 未署名回落的去扩展名名（「文件名回落名」）。
       expect(find.byKey(const Key('control_layer_back')), findsOneWidget);
-      expect(find.text('a.mp4'), findsOneWidget);
+      expect(find.text('a'), findsOneWidget);
       // 底部工具条右侧标注工具可见（不可用态）。
       expect(slotText(const Key('control_segment'), '分段'), findsOneWidget);
       expect(slotText(const Key('control_auto_range'), '自动分段'), findsOneWidget);

@@ -11,6 +11,9 @@ import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_providers.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_store.dart';
 import 'package:dance_learning_app/persistence/practice_stats.dart';
+import 'package:dance_learning_app/persistence/practice_stats_recorder.dart';
+import 'package:dance_learning_app/player/practice_accounting_providers.dart'
+    show practiceStatsRecorderProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart';
@@ -26,8 +29,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/device_viewport.dart';
 import '../helpers/fake_brightness.dart';
 import '../helpers/fake_playback_engine.dart';
+import '../helpers/fake_practice_facts.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
@@ -41,11 +46,17 @@ import '../helpers/in_memory_video_index_storage.dart';
 /// 即时刷新）。域侧判定、提交与署名迁移的断言语义在
 /// `test/player/song_naming_session_test.dart` 以模块接口重写。
 /// 直接泵对话框（不经播放页——各方向播放器形态在别处覆盖）。
-Future<void> pumpDialogAt(WidgetTester tester, Size physicalSize) async {
+Future<void> pumpDialogAt(
+  WidgetTester tester,
+  Size physicalSize, {
+  SongNamingScene scene = SongNamingScene.rename,
+}) async {
   tester.view.physicalSize = physicalSize;
   await tester.pumpWidget(
-    const MaterialApp(
-      home: Scaffold(body: SongNamingDialog(initialSong: 'dance.mp4')),
+    MaterialApp(
+      home: Scaffold(
+        body: SongNamingDialog(initialSong: 'dance.mp4', scene: scene),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -92,6 +103,7 @@ void main() {
     Map<String, dynamic> markers = const {},
     bool markersPresent = false,
     List<dynamic> extraOverrides = const [],
+    FakePlaybackEngine? engine,
   }) async {
     final index = InMemoryVideoIndexStorage(
       initial: VideoIndex(entries: entries),
@@ -113,7 +125,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          playbackEngineProvider.overrideWithValue(FakePlaybackEngine()),
+          playbackEngineProvider.overrideWithValue(
+            engine ?? FakePlaybackEngine(),
+          ),
           systemUiControllerProvider.overrideWithValue(FakeSystemUi()),
           screenBrightnessControllerProvider.overrideWithValue(
             FakeScreenBrightnessController(),
@@ -152,6 +166,7 @@ void main() {
     String initialSong = '',
     String initialDancer = '',
     String initialRemark = '',
+    SongNamingScene scene = SongNamingScene.rename,
   }) async {
     addTearDown(tester.view.reset);
     tester.view.physicalSize = physicalSize;
@@ -164,6 +179,7 @@ void main() {
             initialDancer: initialDancer,
             initialRemark: initialRemark,
             fallbackText: 'dance.mp4',
+            scene: scene,
           ),
         ),
       ),
@@ -178,6 +194,7 @@ void main() {
     String initialSong = '',
     String initialDancer = '',
     String initialRemark = '',
+    SongNamingScene scene = SongNamingScene.rename,
   }) async {
     addTearDown(tester.view.reset);
     tester.view.physicalSize = physicalSize;
@@ -196,6 +213,7 @@ void main() {
                     initialDancer: initialDancer,
                     initialRemark: initialRemark,
                     fallbackText: 'dance.mp4',
+                    scene: scene,
                   ),
                 );
                 results.add(result);
@@ -218,7 +236,7 @@ void main() {
       null;
 
   group('导入命名框', () {
-    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退文件名', (tester) async {
+    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退去扩展名名', (tester) async {
       await pumpPlayer(tester, askNaming: true, entries: [unsignedEntry()]);
 
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
@@ -229,10 +247,10 @@ void main() {
       // 空歌名 → 保存置灰。
       expect(saveEnabled(tester), isFalse);
 
-      // 预览首行：空歌名显示文件名回退串。
+      // 预览首行：空歌名显示文件名回退串（「文件名回落名」= 去扩展名）。
       String previewText() =>
           tester.widget<Text>(find.byKey(const Key('naming_preview'))).data!;
-      expect(previewText(), 'dance.mp4');
+      expect(previewText(), 'dance');
 
       // 输入三字段：预览实时更新（歌名仍空 → 整串回退文件名，不含舞者/注记）。
       await tester.enterText(find.byKey(const Key('naming_dancer_field')), '如');
@@ -242,7 +260,7 @@ void main() {
         '9人版',
       );
       await tester.pump();
-      expect(previewText(), 'dance.mp4');
+      expect(previewText(), 'dance');
 
       // 歌名填入 → 保存可用，预览按真实歌名。
       await tester.enterText(
@@ -259,10 +277,89 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('song_naming_dialog')), findsNothing);
     });
+
+    testWidgets('点退路钮（跳过）：公开标记文件真值与索引署名缓存双写去扩展名名', (tester) async {
+      final (index, docs) = await pumpPlayer(
+        tester,
+        askNaming: true,
+        entries: [unsignedEntry()],
+      );
+
+      // 输入框里的半成品不落盘：退路钮 = 按文件名命名。
+      await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('naming_skip')));
+      await tester.pumpAndSettle();
+
+      const applied = SongSignature(song: 'dance');
+      expect(
+        MarkersDocument.fromJson(docs.markersSnapshot).signature,
+        applied,
+        reason: '公开标记文件真值 = 去扩展名的文件名',
+      );
+      expect(
+        index.current.entries.single.signatureCache,
+        applied,
+        reason: '索引署名缓存 = 去扩展名的文件名',
+      );
+    });
+  });
+
+  group('退路钮分场景：文案、测试键与标题', () {
+    testWidgets('导入场景：标题「命名」，退路钮「跳过（按文件名命名）」+ naming_skip', (tester) async {
+      await pumpDialog(
+        tester,
+        physicalSize: const Size(1080, 1920),
+        scene: SongNamingScene.import,
+      );
+
+      expect(find.text('命名'), findsOneWidget);
+      expect(find.text('重命名'), findsNothing);
+      // 退路钮文案说出后果（不靠位置猜）：按文件名命名。
+      expect(find.text('跳过（按文件名命名）'), findsOneWidget);
+      expect(find.byKey(const Key('naming_skip')), findsOneWidget);
+      expect(find.byKey(const Key('naming_cancel')), findsNothing);
+      expect(find.byKey(const Key('naming_save')), findsOneWidget);
+    });
+
+    testWidgets('改名场景：标题「重命名」，退路钮「取消」+ naming_cancel', (tester) async {
+      await pumpDialog(
+        tester,
+        physicalSize: const Size(1080, 1920),
+        initialSong: 'My Love',
+        scene: SongNamingScene.rename,
+      );
+
+      expect(find.text('重命名'), findsOneWidget);
+      expect(find.text('命名'), findsNothing);
+      expect(find.text('取消'), findsOneWidget);
+      expect(find.text('跳过'), findsNothing);
+      expect(find.text('跳过（按文件名命名）'), findsNothing);
+      expect(find.byKey(const Key('naming_cancel')), findsOneWidget);
+      expect(find.byKey(const Key('naming_skip')), findsNothing);
+      expect(find.byKey(const Key('naming_save')), findsOneWidget);
+    });
+
+    testWidgets('导入场景退路钮出口：confirmed:false 与输入框现值（语义仍由域按场景收口）', (tester) async {
+      final results = await pumpDialogReturning(
+        tester,
+        physicalSize: const Size(1080, 1920),
+        scene: SongNamingScene.import,
+      );
+
+      await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('naming_skip')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('song_naming_dialog')), findsNothing);
+      expect(results.single!.confirmed, isFalse);
+      expect(results.single!.signature.song, '改一半');
+    });
   });
 
   group('命名框出口与保存门', () {
-    testWidgets('「跳过」经 Navigator.pop 返回 confirmed:false 与输入框现值', (
+    testWidgets('「取消」经 Navigator.pop 返回 confirmed:false 与输入框现值', (
       tester,
     ) async {
       final results = await pumpDialogReturning(
@@ -274,7 +371,7 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
       await tester.pump();
-      await tester.tap(find.byKey(const Key('naming_skip')));
+      await tester.tap(find.byKey(const Key('naming_cancel')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('song_naming_dialog')), findsNothing);
@@ -296,13 +393,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
 
-      // 纯空白同样不算填了歌名（门 = trim 非空）；「跳过」始终是可走的出路。
+      // 纯空白同样不算填了歌名（门 = trim 非空）；「取消」始终是可走的出路。
       await tester.enterText(find.byKey(const Key('naming_song_field')), '   ');
       await tester.pump();
       expect(saveEnabled(tester), isFalse);
       expect(
         tester
-            .widget<TextButton>(find.byKey(const Key('naming_skip')))
+            .widget<TextButton>(find.byKey(const Key('naming_cancel')))
             .onPressed,
         isNotNull,
       );
@@ -398,7 +495,7 @@ void main() {
       expect(tester.takeException(), isNull);
       // 完整表单仍在：顶部栏动作 + 预览 + 三字段。
       expect(find.text('重命名'), findsOneWidget);
-      expect(find.byKey(const Key('naming_skip')), findsOneWidget);
+      expect(find.byKey(const Key('naming_cancel')), findsOneWidget);
       expect(find.byKey(const Key('naming_save')), findsOneWidget);
       expect(find.byKey(const Key('naming_preview')), findsOneWidget);
       expect(find.byKey(const Key('naming_dancer_field')), findsOneWidget);
@@ -451,15 +548,15 @@ void main() {
       expect(inset.padding.resolve(TextDirection.ltr).bottom, 200);
     });
 
-    testWidgets('顶部栏：跳过/保存与标题「重命名」同一行，竖屏分居两端', (tester) async {
+    testWidgets('顶部栏：取消/保存与标题「重命名」同一行，竖屏分居两端', (tester) async {
       await pumpDialogAt(tester, const Size(1080, 2340));
 
       final title = tester.getCenter(find.text('重命名'));
-      final skip = tester.getCenter(find.byKey(const Key('naming_skip')));
+      final cancel = tester.getCenter(find.byKey(const Key('naming_cancel')));
       final save = tester.getCenter(find.byKey(const Key('naming_save')));
-      expect(title.dy, closeTo(skip.dy, 1));
+      expect(title.dy, closeTo(cancel.dy, 1));
       expect(title.dy, closeTo(save.dy, 1));
-      expect(skip.dx, lessThan(title.dx));
+      expect(cancel.dx, lessThan(title.dx));
       expect(save.dx, greaterThan(title.dx));
     });
   });
@@ -613,17 +710,17 @@ void main() {
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
     }
 
-    testWidgets('横屏顶部栏：跳过/保存右上并排，与标题同一行', (tester) async {
+    testWidgets('横屏顶部栏：取消/保存右上并排，与标题同一行', (tester) async {
       await pumpDialogAt(tester, const Size(2340, 1080));
 
       final title = tester.getCenter(find.text('重命名'));
-      final skip = tester.getCenter(find.byKey(const Key('naming_skip')));
+      final cancel = tester.getCenter(find.byKey(const Key('naming_cancel')));
       final save = tester.getCenter(find.byKey(const Key('naming_save')));
-      expect(title.dy, closeTo(skip.dy, 1));
+      expect(title.dy, closeTo(cancel.dy, 1));
       expect(title.dy, closeTo(save.dy, 1));
-      // 并排右上：跳过在保存左侧，两者都在标题右侧。
-      expect(skip.dx, lessThan(save.dx));
-      expect(skip.dx, greaterThan(title.dx));
+      // 并排右上：取消在保存左侧，两者都在标题右侧。
+      expect(cancel.dx, lessThan(save.dx));
+      expect(cancel.dx, greaterThan(title.dx));
     });
 
     testWidgets('预览行在表单首行（位于舞者名字段之上）', (tester) async {
@@ -666,7 +763,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('横屏键盘弹起：浮层单行（字段名｜输入｜切字段钮｜保存），隐藏标题栏与跳过', (tester) async {
+    testWidgets('横屏键盘弹起：浮层单行（字段名｜输入｜切字段钮｜保存），隐藏标题栏与退路钮', (tester) async {
       await pumpLandscapeDialog(tester);
 
       await focusAndRaiseKeyboard(tester, const Key('naming_song_field'));
@@ -677,10 +774,10 @@ void main() {
       expect(find.byKey(const Key('naming_switch_dancer')), findsOneWidget);
       expect(find.byKey(const Key('naming_switch_remark')), findsNothing);
       expect(find.byKey(const Key('naming_song_field')), findsOneWidget);
-      // 浮层优先：标题栏、预览与「跳过」隐藏；「保存」落在行尾。
+      // 浮层优先：标题栏、预览与退路钮隐藏；「保存」落在行尾。
       expect(find.text('重命名'), findsNothing);
-      expect(find.byKey(const Key('naming_skip')), findsNothing);
-      expect(find.text('跳过'), findsNothing);
+      expect(find.byKey(const Key('naming_cancel')), findsNothing);
+      expect(find.text('取消'), findsNothing);
       expect(find.byKey(const Key('naming_save')), findsOneWidget);
       expect(find.byKey(const Key('naming_preview')), findsNothing);
     });
@@ -695,7 +792,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(const Key('naming_overlay_row')), findsNothing);
       expect(find.text('重命名'), findsOneWidget);
-      expect(find.byKey(const Key('naming_skip')), findsOneWidget);
+      expect(find.byKey(const Key('naming_cancel')), findsOneWidget);
       expect(find.byKey(const Key('naming_save')), findsOneWidget);
       expect(find.byKey(const Key('naming_preview')), findsOneWidget);
       expect(find.byKey(const Key('naming_dancer_field')), findsOneWidget);
@@ -843,11 +940,11 @@ void main() {
       return (stats, buckets);
     }
 
-    testWidgets('顶栏显示署名显示串；未署名回退文件名', (tester) async {
+    testWidgets('顶栏显示署名显示串；未署名回退去扩展名的文件名', (tester) async {
       await pumpPlayer(tester, askNaming: false, entries: [unsignedEntry()]);
       await singleTapShowControlLayer(tester);
       expect(find.byKey(const Key('control_layer_title')), findsOneWidget);
-      expect(find.text('dance.mp4'), findsOneWidget);
+      expect(find.text('dance'), findsOneWidget);
     });
 
     testWidgets('顶栏标题本身即改名入口，标题区内不另设第二枚钮', (tester) async {
@@ -895,6 +992,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
+      // 改名场景的文案：标题「重命名」、退路钮「取消」+ naming_cancel。
+      expect(find.text('重命名'), findsOneWidget);
+      expect(find.byKey(const Key('naming_cancel')), findsOneWidget);
+      expect(find.text('取消'), findsOneWidget);
+      expect(find.byKey(const Key('naming_skip')), findsNothing);
       // 改名场景带出现值（非导入的空初值）。
       expect(fieldText(tester, 'naming_song_field'), 'My Love');
       expect(fieldText(tester, 'naming_dancer_field'), '如');
@@ -925,16 +1027,17 @@ void main() {
       );
     });
 
-    testWidgets('未署名视频（标题回退文件名）同样可点 = 补命名：初值为文件名', (tester) async {
+    testWidgets('未署名视频（标题回退去扩展名名）同样可点 = 补命名：初值为去扩展名名', (tester) async {
       await pumpPlayer(tester, askNaming: false, entries: [unsignedEntry()]);
       await singleTapShowControlLayer(tester);
-      expect(find.text('dance.mp4'), findsOneWidget);
+      expect(find.text('dance'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('control_layer_rename')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
-      expect(fieldText(tester, 'naming_song_field'), 'dance.mp4');
+      expect(find.byKey(const Key('naming_cancel')), findsOneWidget);
+      expect(fieldText(tester, 'naming_song_field'), 'dance');
       expect(fieldText(tester, 'naming_dancer_field'), isEmpty);
       expect(fieldText(tester, 'naming_remark_field'), isEmpty);
 
@@ -945,6 +1048,88 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('补命名'), findsOneWidget);
+    });
+  });
+
+  group('练舞统计回落名', () {
+    testWidgets('未署名播放入账的舞名取去扩展名名（与顶栏/命名框同一读面）', (tester) async {
+      final engine = FakePlaybackEngine();
+      final facts = FakePracticeFactsSource(engine);
+      final store = PracticeStatsStore(InMemoryPracticeStatsStorage());
+      var now = DateTime.parse('2026-09-05T20:00:00');
+      final recorder = PracticeStatsRecorder(
+        facts: facts.stream,
+        store: store,
+        clock: () => now,
+      );
+      addTearDown(recorder.dispose);
+
+      await pumpPlayer(
+        tester,
+        askNaming: false,
+        entries: [unsignedEntry()],
+        engine: engine,
+        extraOverrides: [
+          practiceStatsRecorderProvider.overrideWithValue(recorder),
+        ],
+      );
+
+      // 播放一分钟再停：暂停即结算落盘。
+      now = now.add(const Duration(minutes: 1));
+      await engine.pause();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        (await store.records()).single.signature,
+        const SongSignature(song: 'dance'),
+        reason: '统计记账的回落名 = 去扩展名的文件名',
+      );
+    });
+  });
+
+  group('窄屏竖屏：长退路钮文案', () {
+    /// 单行渲染所需宽度：文本实际渲染宽度 ≥ 它 = 没被挤到换行或裁切。
+    double intrinsicWidth(WidgetTester tester, String text) {
+      final style = tester.widget<Text>(find.text(text)).style;
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout();
+      return painter.width;
+    }
+
+    testWidgets('320dp 窄屏竖屏：导入场景长文案不溢出，标题「命名」仍看得全', (tester) async {
+      useNamedViewport(tester, ViewportTier.small);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            resizeToAvoidBottomInset: false,
+            body: SongNamingDialog(
+              initialSong: '',
+              fallbackText: 'dance',
+              scene: SongNamingScene.import,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull, reason: '长文案不得把顶栏挤溢出');
+      expect(find.text('跳过（按文件名命名）'), findsOneWidget);
+      expect(
+        tester.getSize(find.text('命名')).width,
+        greaterThanOrEqualTo(intrinsicWidth(tester, '命名')),
+        reason: '标题仍看得全（没被长文案挤到换行/裁切）',
+      );
+      // 对话框不出视口，保存仍可走。
+      expect(
+        tester.getRect(find.byKey(const Key('song_naming_dialog'))).width,
+        lessThanOrEqualTo(ViewportTier.small.logicalSize.width),
+      );
+      expect(find.byKey(const Key('naming_save')), findsOneWidget);
+      expect(find.byKey(const Key('naming_skip')), findsOneWidget);
     });
   });
 }

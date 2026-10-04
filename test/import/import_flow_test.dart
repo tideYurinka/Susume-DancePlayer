@@ -347,9 +347,56 @@ void main() {
         isFalse,
         reason: '命名框未关：镜像询问尚未开始',
       );
+      // 命名框落盘前等索引条目（后台哈希）落盘：署名提交的索引缓存双写要求
+      // 条目在场（缺条目时按既有规则留给下次打开经 markers 回写补齐）。
+      await waitForIndexEntries(tester, indexFile, 1);
       // 关掉命名框（跳过 = 按文件名署名）→ 镜像询问开始。
       await tester.tap(find.byKey(const Key('naming_skip')));
       await tester.pump();
+
+      // 首次导入的落盘名 = 「文件名回落名」（去扩展名）：公开标记文件真值与
+      // 索引署名缓存双写都是 `dance` 而不是 `dance.mp4`。
+      const expectedSong = 'dance';
+      await pollUntil(
+        () {
+          if (!indexFile.existsSync()) return false;
+          try {
+            final entries = readIndexEntries(indexFile);
+            if (entries.isEmpty) return false;
+            final cache = entries.single['signatureCache'];
+            return cache is Map<String, dynamic> &&
+                cache['song'] == expectedSong;
+          } on FormatException {
+            return false; // 写入瞬时快照，重试。
+          }
+        },
+        onTick: () => tester.pump(),
+        maxTries: ioPollTries,
+        reason: '索引署名缓存应为去扩展名的文件名',
+      );
+      final signatureVideoId =
+          readIndexEntries(indexFile).single['videoId'] as String;
+      final signatureMarkersFile = File(
+        p.join(tempDir.path, 'markers_$signatureVideoId.json'),
+      );
+      await pollUntil(
+        () {
+          if (!signatureMarkersFile.existsSync()) return false;
+          try {
+            final doc = jsonDecode(
+              signatureMarkersFile.readAsStringSync(),
+            ) as Map<String, dynamic>;
+            final meta = doc['meta'] as Map<String, dynamic>?;
+            final signature = meta?['signature'] as Map<String, dynamic>?;
+            return signature?['song'] == expectedSong;
+          } on FormatException {
+            return false; // 写入瞬时快照，重试。
+          }
+        },
+        onTick: () => tester.pump(),
+        maxTries: ioPollTries,
+        reason: '公开标记文件署名真值应为去扩展名的文件名',
+      );
       await pollUntil(
         () => tester.any(find.text('需要镜像吗？')),
         onTick: () => tester.pump(),

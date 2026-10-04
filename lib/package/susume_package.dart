@@ -22,6 +22,7 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 
 import '../core/stored_zip.dart';
+import '../persistence/song_signature.dart' show songFallbackName;
 
 /// 包格式版本。判据 = 严格相等，不符即 [SusumePackageError.versionMismatch]。
 const int kSusumePackageFormatVersion = 1;
@@ -193,18 +194,22 @@ class SusumePackageException implements Exception {
   String toString() => 'SusumePackageException($kind): $message';
 }
 
-/// 包文件名 `<歌名>.susume`；未署名时回落视频文件名（去扩展名）。
-/// 歌名/回落名中的路径分隔与文件系统非法字符替换为 `_`。
+/// 包文件名 `<歌名>.susume`；未署名时回落「文件名回落名」——即
+/// [songFallbackName] 去扩展名的文件名，规则单处出在纯件里，本层不另写
+/// 一份。歌名/回落名中的路径分隔与文件系统非法字符替换为 `_`。
+///
+/// **两处边界入参的行为随「规则回到一处」变了**（票 #12 说的「对外行为不变」
+/// 只对常规文件名成立；spec 的规则表 `.mp4 → .mp4`、`dance. → dance.` 压过它，
+/// 这里如实记下）：`videoFileName = '.mp4'` 现在得 `.mp4.susume`（旧口径把
+/// 开头那个点也当扩展名起点，得 `.susume`）；`videoFileName = 'dance.'` 现在得
+/// `dance..susume`（旧口径去掉末尾那个点，得 `dance.susume`）。这是「规则单一
+/// 出处」的代价：两个点都由 [songFallbackName] 判，本层不再自带一套截法。
 String susumePackageFileName({
   String? songName,
   required String videoFileName,
 }) {
   final n = (songName?.trim() ?? '');
-  var base = n.isNotEmpty
-      ? n
-      : (videoFileName.contains('.')
-            ? videoFileName.substring(0, videoFileName.lastIndexOf('.'))
-            : videoFileName);
+  var base = n.isNotEmpty ? n : songFallbackName(videoFileName);
   base = base.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_');
   return '$base.susume';
 }

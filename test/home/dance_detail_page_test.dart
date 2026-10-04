@@ -120,6 +120,14 @@ void main() {
     expect(_value('dance_detail_mastered', '—'), findsOneWidget);
   });
 
+  testWidgets('未署名舞详情：标题与卡片同读「文件名回落名」（去扩展名）', (tester) async {
+    final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
+    await harness.pump(tester, videoId: 'v1');
+
+    // 卡片标题与舞页标题同读舞库快照的 `title`：两处都是 `v1`，不带 `.mp4`。
+    expect(find.widgetWithText(AppBar, 'v1'), findsOneWidget);
+  });
+
   testWidgets('全段最高档：总览出完全掌握勾', (tester) async {
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1')]),
@@ -261,11 +269,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dance_detail_rename')), findsOneWidget);
 
-    // 改名可达：这一按真的按到 → 命名弹窗出现。
+    // 改名可达：这一按真的按到 → 命名弹窗出现（改名场景：「取消」）。
     await tester.tap(find.byKey(const Key('dance_detail_rename')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('naming_skip')));
+    await tester.tap(find.byKey(const Key('naming_cancel')));
     await tester.pumpAndSettle();
 
     // 删除可达：菜单重开后点到删除 → 确认弹窗出现。
@@ -494,7 +502,51 @@ void main() {
     );
   });
 
-  testWidgets('改名跳过：署名保持原样', (tester) async {
+  testWidgets('未署名舞改名：初值与框内回退文本都取文件名回落名（去扩展名）', (tester) async {
+    final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
+    await harness.pump(tester, videoId: 'v1');
+
+    await _openMoreMenu(tester);
+    await tester.tap(find.byKey(const Key('dance_detail_rename')));
+    await tester.pumpAndSettle();
+
+    final dialog = find.byKey(const Key('song_naming_dialog'));
+    // 改名场景的文案：标题「重命名」、退路钮「取消」+ naming_cancel。
+    expect(
+      find.descendant(of: dialog, matching: find.text('重命名')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: dialog,
+        matching: find.byKey(const Key('naming_cancel')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('取消')),
+      findsOneWidget,
+    );
+    // 未署名：初值 = 显示名 v1.mp4 的文件名回落名。
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('naming_song_field')))
+          .controller!
+          .text,
+      'v1',
+      reason: '未署名舞的改名初值取去扩展名名，不是 v1.mp4',
+    );
+    // 清空歌名（不保存）：预览回退串同口径。
+    await tester.enterText(find.byKey(const Key('naming_song_field')), '');
+    await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('naming_preview'))).data,
+      'v1',
+      reason: '该框的回退文本同取文件名回落名',
+    );
+  });
+
+  testWidgets('改名取消（含点框外收起）：署名保持原样', (tester) async {
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
@@ -506,20 +558,34 @@ void main() {
     );
     await harness.pump(tester, videoId: 'v1');
 
+    void expectUnchanged() {
+      expect(find.widgetWithText(AppBar, '旧名'), findsOneWidget);
+      expect(
+        MarkersDocument.fromJson(harness.documents['v1']!.markersSnapshot)
+            .signature,
+        const SongSignature(song: '旧名'),
+      );
+    }
+
+    // 「取消」：输入框里的半成品不落盘。
     await _openMoreMenu(tester);
     await tester.tap(find.byKey(const Key('dance_detail_rename')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
     await tester.pump();
-    await tester.tap(find.byKey(const Key('naming_skip')));
+    await tester.tap(find.byKey(const Key('naming_cancel')));
     await tester.pumpAndSettle();
+    expectUnchanged();
 
-    expect(find.widgetWithText(AppBar, '旧名'), findsOneWidget);
-    expect(
-      MarkersDocument.fromJson(harness.documents['v1']!.markersSnapshot)
-          .signature,
-      const SongSignature(song: '旧名'),
-    );
+    // 点框外收起（barrierDismissible → 交回 null）：同样一点不动。
+    await _openMoreMenu(tester);
+    await tester.tap(find.byKey(const Key('dance_detail_rename')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
+    await tester.tapAt(const Offset(20, 300));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('song_naming_dialog')), findsNothing);
+    expectUnchanged();
   });
 
   testWidgets('署名真值写失败：提示「改名失败」，详情仍是旧名', (tester) async {

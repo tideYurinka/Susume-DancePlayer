@@ -110,6 +110,7 @@ import 'note_editor.dart';
 import 'open_session.dart';
 import '../persistence/prep_beats_store.dart'
     show delayedLoopWaitProvider, prepBeatsProvider;
+import '../persistence/song_signature.dart' show songFallbackName;
 import '../core/beat_grid.dart';
 import '../beat_track_state/beat_track_state.dart'
     show beatGridProvider, beatPhaseProvider;
@@ -858,7 +859,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     _statsSession = PracticeStatsSession(
       recorder: ref.read(practiceStatsRecorderProvider),
       signatureController: _signature,
-      fallbackName: () => _videoTitle,
+      fallbackName: () => _fallbackSongName,
       statsStore: ref.read(practiceStatsStoreProvider),
       bucketStore: ref.read(fourBeatBucketStoreProvider),
       onVideoIdChanged: (videoId) =>
@@ -870,7 +871,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // （单向：统计域 → 署名域，命名域不经宿主回调绕行跨域写-through）。
     _naming = SongNamingSession(
       signatureController: _signature,
-      fallbackFileName: () => _videoTitle,
+      fallbackName: () => _fallbackSongName,
       presentNaming: _presentNaming,
     );
 
@@ -1218,19 +1219,25 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   // （beginRangeDrag→moveTo→end）在轨道带内收口；复位亦统一走模块，播放页
   // 没有手写复位编排与散点写路径。控制层直接经标注编辑模块提交。
 
-  /// 视频文件名字（顶部栏标题回退）：取打开 source 路径末段；无法取得时用占位。
-  String get _videoTitle {
+  /// 播放页的「文件名回落名」读面：本页凡把视频文件名当**名字**用的地方
+  /// （未署名顶栏标题、命名框回退文本与改名初值、练舞统计记账回落名）都取
+  /// 它——打开 source 路径末段经 [songFallbackName] 去扩展名（无法取得路径末
+  /// 段时用占位「视频」）。把文件名当**文件**用的地方（快速键、私有副本取
+  /// 唯一名）不读这里，仍吃原始文件名。
+  String get _fallbackSongName {
     final segments = widget.source.pathSegments;
     final last = segments.isEmpty ? '' : segments.last;
-    return last.isEmpty ? '视频' : last;
+    return songFallbackName(last.isEmpty ? '视频' : last);
   }
 
   /// 命名对话框呈现（「域出编排与提交、页面出对话框」接线）：
-  /// 命名会话域交来初值、回退文本与是否可点框外收起，本页负责按构建上下文
-  /// 弹出 [SongNamingDialog] 并交回用户结论；页面已卸载时交回 null（不提交）。
+  /// 命名会话域交来场景、初值、回退名（「文件名回落名」）与是否可点框外收起，
+  /// 本页负责按构建上下文弹出 [SongNamingDialog]（场景原样透传，不反推）并交回
+  /// 用户结论；页面已卸载时交回 null（不提交）。
   Future<SongNamingResult?> _presentNaming({
+    required SongNamingScene scene,
     required SongNamingInitial initial,
-    required String fallbackFileName,
+    required String fallbackName,
     required bool barrierDismissible,
   }) async {
     if (!mounted) return null;
@@ -1238,10 +1245,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       context: context,
       barrierDismissible: barrierDismissible,
       builder: (_) => SongNamingDialog(
+        scene: scene,
         initialSong: initial.song,
         initialDancer: initial.dancer,
         initialRemark: initial.remark,
-        fallbackText: fallbackFileName,
+        fallbackText: fallbackName,
       ),
     );
     if (!mounted) return null;

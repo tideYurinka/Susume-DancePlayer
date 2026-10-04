@@ -272,7 +272,8 @@ void main() {
     final harness = _Harness(index: VideoIndex(entries: [_entry('v1')]));
     await harness.pump(tester);
 
-    expect(_inCard('v1', 'v1.mp4'), findsOneWidget);
+    // 未署名卡片标题 = 「文件名回落名」（去扩展名）。
+    expect(_inCard('v1', 'v1'), findsOneWidget);
     expect(find.byKey(const Key('dance_card_percent_v1')), findsNothing);
     expect(find.byKey(const Key('dance_card_mastered_v1')), findsNothing);
     expect(find.textContaining('%'), findsNothing);
@@ -534,7 +535,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dance_library_empty')), findsNothing);
-    expect(_inCard('v1', 'v1.mp4'), findsOneWidget);
+    // 未署名卡片标题 = 「文件名回落名」（去扩展名）。
+    expect(_inCard('v1', 'v1'), findsOneWidget);
   });
 
   testWidgets('导入后立刻回首页：索引落盘前不出现、落盘后自然出现', (tester) async {
@@ -561,7 +563,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dance_library_empty')), findsNothing);
-    expect(_inCard('v1', 'v1.mp4'), findsOneWidget);
+    // 未署名卡片标题 = 「文件名回落名」（去扩展名）。
+    expect(_inCard('v1', 'v1'), findsOneWidget);
   });
 
   testWidgets('读面未就绪：加载态与错误态都保留常驻导入入口', (tester) async {

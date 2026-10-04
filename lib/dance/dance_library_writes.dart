@@ -37,7 +37,8 @@ class DanceLibraryWrites {
   /// （后），两条都写、收在这一处动作里。
   ///
   /// [input] 是编辑框的原始输入，按既有净化口径去空白/控制字符并把空歌名
-  /// 回退到条目的显示名。返回 true = 署名真值已落盘（改名成立）。真值写
+  /// 回退到条目的显示名的**文件名回落名**（去扩展名，与未署名读面同口径）。
+  /// 返回 true = 署名真值已落盘（改名成立）。真值写
   /// 失败 → 索引缓存不动、返回 false（零副作用）；真值成功而索引写失败 →
   /// 改名仍成立（下次打开以真值回写缓存），索引保持原样、不留半写状态。
   /// 首建（markers 不存在/损坏）以索引署名缓存 + 镜像过渡值立底，不把用户
@@ -46,7 +47,10 @@ class DanceLibraryWrites {
     required VideoIndexEntry entry,
     required SongSignature input,
   }) async {
-    final signature = sanitizeSignature(input, fallbackSong: entry.displayName);
+    final signature = sanitizeSignature(
+      input,
+      fallbackSong: songFallbackName(entry.displayName),
+    );
     final storage = storageFor(entry.videoId);
     final coordinator = VideoDocumentCoordinator(storage);
     try {
