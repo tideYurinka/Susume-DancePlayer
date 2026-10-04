@@ -212,6 +212,21 @@ class TrackRowTable {
   /// 本谓词表达「行集含该行」，不各自用行矩形存在性迂回表达）。
   bool hasRow(TrackRowId id) => rows.any((row) => row.id == id);
 
+  /// 去掉若干行（吃一组行身份、返回新表）：留下的行保持原次序、原行高与
+  /// 原行间间隙，其余查询（[totalHeight] / [hasRow] / [rectOf] / [rowAt] /
+  /// [prefixLabels]）按新表派生；行集里没有的身份是空操作，全部去掉即空表。
+  ///
+  /// **本表对档位与空否保持无知**：哪一档去掉哪些行由构造点回答，表只回答
+  /// 「去掉这些行之后长什么样」。具名行集 [normal] / [compare] 不受影响——
+  /// 它们仍是该态的全行集。
+  TrackRowTable withoutRows(Set<TrackRowId> ids) => TrackRowTable(
+    rows: [
+      for (final row in rows)
+        if (!ids.contains(row.id)) row,
+    ],
+    gap: gap,
+  );
+
   /// 轨道片头标签集：**行 → 短标签**的有序映射，与 [rows] 同序
   /// （自上而下）。条数恒等于该态行集的条数——片头标签列与行集只有这一处
   /// 对应关系，渲染层不另立第二份清单。

@@ -63,9 +63,13 @@ import '../helpers/in_memory_video_document_storage.dart';
 void main() {
   /// 真机竖屏基准（compact 档 1264×2736 @3.5 = 361.1×781.7dp）。
   const screen = Size(361.1, 781.7);
-  const trackBandHeight = 208.0;
 
-  /// 真机竖屏编辑态骨架（源 16:9）未取景的落位：画面区 265.7、带 203.12。
+  /// 紧凑档真机基准下两轨皆空：空备注轨与空局部镜像轨不占行，整带高 =
+  /// 剪裁后逐行行高之和 + 行间间隙 = 48 + 24 + 30 + 10 × 2 = 122（全行集
+  /// 208）；画面区因此比常驻空轨时高 86dp。
+  const trackBandHeight = 122.0;
+
+  /// 真机竖屏编辑态骨架（源 16:9）未取景的落位：画面区 351.7、带 203.12。
   final unframedSkeleton = editorSkeletonFor(
     screen: screen,
     trackBandHeight: trackBandHeight,

@@ -52,6 +52,8 @@ import 'annotation_editor.dart'
         effectiveAnnotationTimelineProvider,
         exitPracticeClipReview,
         localMirrorEnabledProvider,
+        localMirrorFragmentsProvider,
+        noteStickersProvider,
         practiceClipActivationProvider,
         practiceClipById,
         practiceClipsProvider,
@@ -125,7 +127,7 @@ import 'settings_persistence.dart';
 import 'song_naming.dart';
 import 'song_naming_session.dart';
 import '../stats/song_signature.dart';
-import 'track_row_table.dart' show TrackRowTable;
+import 'track_row_table.dart' show TrackRowId, TrackRowTable;
 import 'track_band_session.dart';
 import 'speed_bubble.dart';
 import 'speed_control.dart';
@@ -186,6 +188,37 @@ const List<NoticeSpec> kNoticeSpecs = [
   transitionNoticeSpec,
   _documentReadOnlyNoticeSpec,
 ];
+
+/// 本帧交付轨道带的实际行集（档位 × 两轨当前空否的**唯一剪裁点**）。
+///
+/// 常规档（平板）一律给该态全行集——空轨常驻，告诉用户这支舞还有备注轨、
+/// 镜像轨这类东西可用。紧凑档下当前**一条片段都没有**的备注轨与局部镜像轨
+/// 不占行（行背景、片头标签、命中一并离场），省下的行留给画面；落下第一条
+/// 片段那一刻该行出现，删掉最后一条那一刻收走。
+///
+/// - 「当前空否」只读片段清单：备注轨 = 备注清单为空、镜像轨 = 局部镜像片段
+///   清单为空；**不看「局部镜像」开关**（轨道的有无只跟着片段数走）。
+/// - 装载未完成时按全行集渲染：此刻清单尚未读回，未知不当已知，也避免与
+///   用户动作无关的「先矮后高」跳变。
+/// - 对比态行集里本就没有局部镜像轨：去掉一个不在行集内的身份是空操作，
+///   故本处不必分模式。
+///
+/// 行缺席不需要任何注销或清理：命中按行身份分派（行不在行集内时该轨内容
+/// 不是命中对象，取矩形按既有口径报错），滞留的拖动族声明不可达、行重现时
+/// 按同一门禁目标重新登记即覆盖；选中读面已按现势条数校验越界。
+TrackRowTable _rowTableForTier({
+  required TrackRowTable full,
+  required Size screen,
+  required bool loading,
+  required bool notesEmpty,
+  required bool mirrorEmpty,
+}) {
+  if (loading || !editorIsCompact(screen)) return full;
+  return full.withoutRows({
+    if (notesEmpty) TrackRowId.note,
+    if (mirrorEmpty) TrackRowId.localMirror,
+  });
+}
 
 /// 全屏播放器页。
 ///
@@ -1464,8 +1497,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         ? null
         : practiceClipById(ref.watch(practiceClipsProvider), reviewingClipId);
     // 模式 → 轨道行集：只在宿主这一处映射，骨架（整带高）与控制层（行集）
-    // 消费同一份取值。
-    final rowTable = session.mode == PlayerSessionMode.compareEditing
+    // 消费同一份取值。具名行集是该态的**全行集**，紧凑档下再由本处按
+    // 「两轨当前空否」剪裁（见 [_rowTableForTier]）。
+    final fullRowTable = session.mode == PlayerSessionMode.compareEditing
         ? TrackRowTable.compare
         : TrackRowTable.normal;
     // 竖屏编辑骨架：方向判定与骨架分配都收成具名纯件
@@ -1476,6 +1510,24 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 落位按选区内容宽高比：取景态内画面显示
     // 整帧，故取景态的骨架仍按源画面宽高比。
     final media = MediaQuery.of(context);
+    final screen = Size(
+      media.size.width,
+      media.size.height - media.padding.top - media.padding.bottom,
+    );
+    // 档位判定与骨架分配读同一份屏尺寸：档位只看尺寸、不吃字号档，视口
+    // 一变（小窗/分屏/转屏）即随这次布局重算。
+    final rowTable = _rowTableForTier(
+      full: fullRowTable,
+      screen: screen,
+      loading: ref.watch(loadGateActiveProvider),
+      // 只订阅「空否」这一个派生位：行集只随它与档位变，逐条编辑不重建整页。
+      notesEmpty: ref.watch(
+        noteStickersProvider.select((notes) => notes.isEmpty),
+      ),
+      mirrorEmpty: ref.watch(
+        localMirrorFragmentsProvider.select((fragments) => fragments.isEmpty),
+      ),
+    );
     final sourceAspectRatio = _engineSeek.engine.videoAspectRatio;
     final framingSelection = framingActive
         ? null
@@ -1487,10 +1539,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         ? framingSelection.contentAspectRatio(sourceAspectRatio)
         : null;
     final skeleton = editorSkeletonFor(
-      screen: Size(
-        media.size.width,
-        media.size.height - media.padding.top - media.padding.bottom,
-      ),
+      screen: screen,
       trackBandHeight: rowTable.totalHeight,
       videoAspectRatio: sourceAspectRatio,
       framingAspectRatio: framingAspectRatio,

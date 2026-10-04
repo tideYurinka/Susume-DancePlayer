@@ -306,7 +306,8 @@ void main() {
       );
       expect(
         tester.getSize(find.byKey(const Key('track_band'))).height,
-        TrackBand.height, // 行表整带高读取面 ≈ 屏高 33%。
+        // 整带高 = 本用例传进去的那份行集的派生值（≈ 屏高 33%）。
+        TrackRowTable.normal.totalHeight,
       );
     });
   });
@@ -386,7 +387,7 @@ void main() {
       expect(find.byKey(const Key('track_beat')), findsOneWidget);
       expect(find.byKey(const Key('track_handle_strip_row')), findsOneWidget);
       // 36 + 30 + 48 + 24 + 30 + 10 × 4（worked example）。
-      expect(TrackBand.height, 208);
+      expect(TrackRowTable.normal.totalHeight, 208);
       expect(tester.getSize(find.byKey(const Key('track_band'))).height, 208);
     });
   });

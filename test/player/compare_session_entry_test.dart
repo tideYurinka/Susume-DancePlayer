@@ -763,6 +763,12 @@ void main() {
       addTearDown(tester.view.reset);
     }
 
+    /// 平板视口（820 × 1180 dp，最短边 ≥ 600 → 常规档）：空轨仍常驻、
+    /// 按全行集声明断言的用例钉在这一档。
+    void setTableView(WidgetTester tester) {
+      useNamedViewport(tester, ViewportTier.tablet);
+    }
+
     Future<void> pumpPlayer(WidgetTester tester) async {
       final source = Uri.file('/videos/a.mp4');
       await tester.pumpWidget(
@@ -835,9 +841,37 @@ void main() {
       systemUi = FakeSystemUi();
     });
 
-    testWidgets('对比-控制层轨道带换对比行集：备注轨在最顶、练习视频轨在其下常驻空行，'
+    testWidgets('紧凑档对比-控制层：空备注轨不占行，练习视频轨在其下常驻；'
         '无局部镜像轨与手柄带行', (tester) async {
       setWideView(tester);
+      await pumpPlayer(tester);
+      await enterCompareEditing(tester);
+
+      final bandTop = tester.getTopLeft(find.byKey(const Key('track_band'))).dy;
+      // 紧凑档下一条备注都没有：备注轨整行（行背景 + 片头标签）不占地方。
+      expect(find.byKey(const Key('track_notes')), findsNothing);
+      expect(find.byKey(const Key('track_prefix_label_note')), findsNothing);
+      // 练习视频轨顶到带顶、48dp 常驻空行。
+      final practiceTop = tester
+          .getTopLeft(find.byKey(const Key('track_practice')))
+          .dy;
+      expect(practiceTop, bandTop);
+      expect(
+        tester.getSize(find.byKey(const Key('track_practice'))).height,
+        48,
+      );
+      expect(
+        find.byKey(const ValueKey('track_prefix_label_practiceVideo')),
+        findsOneWidget,
+      );
+      // 无局部镜像轨、无轨道手柄带行。
+      expect(find.byKey(const Key('track_mirror')), findsNothing);
+      expect(find.byKey(const Key('track_handle_strip_row')), findsNothing);
+    });
+
+    testWidgets('常规档（平板）对比-控制层：空备注轨仍常驻在最顶，练习视频轨在其下',
+        (tester) async {
+      setTableView(tester);
       await pumpPlayer(tester);
       await enterCompareEditing(tester);
 
@@ -846,26 +880,26 @@ void main() {
       final practiceTop = tester
           .getTopLeft(find.byKey(const Key('track_practice')))
           .dy;
-      // 备注轨最顶，练习视频轨在其下、48dp 空行。
+      // 常规档空轨常驻：备注轨最顶，练习视频轨在其下、48dp 空行。
       expect(notesTop, bandTop);
       expect(practiceTop, greaterThan(notesTop));
       expect(
         tester.getSize(find.byKey(const Key('track_practice'))).height,
         48,
       );
-      // 无局部镜像轨、无轨道手柄带行。
+      // 行集本身的差异与档位无关：无局部镜像轨、无轨道手柄带行。
       expect(find.byKey(const Key('track_mirror')), findsNothing);
       expect(find.byKey(const Key('track_handle_strip_row')), findsNothing);
     });
 
-    testWidgets('跨面一致性：对比-控制层实际渲染的行键 == 对比行集声明逐位相等',
+    testWidgets('跨面一致性：常规档对比-控制层实际渲染的行键 == 对比全行集声明逐位相等',
         (tester) async {
-      setWideView(tester);
+      setTableView(tester);
       await pumpPlayer(tester);
       await enterCompareEditing(tester);
 
       // 声明 = 实际渲染：次序即声明次序（构造点映射 compareEditing →
-      // compare 行集，渲染行不可能漏项或乱序）。
+      // compare 全行集；常规档不剪裁，渲染行不可能漏项或乱序）。
       final declared = [
         for (final row in TrackRowTable.compare.rows) row.key,
       ];
@@ -885,7 +919,7 @@ void main() {
     });
 
     testWidgets('退出对比态回编辑面：轨道带恢复 normal 行集（局部镜像轨回来）', (tester) async {
-      setWideView(tester);
+      setTableView(tester);
       await pumpPlayer(tester);
       await enterCompareEditing(tester);
       await tester.tap(find.byKey(const Key('tool_compare')));

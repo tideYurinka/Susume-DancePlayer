@@ -275,8 +275,8 @@ class TrackBandInput {
 ///
 /// **行集驱动**：本带渲染哪些行、什么次序、各行多高与行间间隙，全部由
 /// 输入值对象的 [TrackBandInput.rowTable]（行集）给出；整带高由行集派生
-/// （[TrackRowTable.totalHeight]），读取面 [TrackBand.height] 是缺省行集
-/// `normal` 下的同一派生（非缺省行集的带高在 build 内直接读行集）。本控件
+/// （[TrackRowTable.totalHeight]），本控件不另立读取面——带高随视口档与
+/// 两轨现势片段数变，只有构造点传给它的那一份行集说得准。本控件
 /// 对「当前处于哪种模式」保持无知——「某态下有哪些行」由构造点传哪份行集
 /// 表达，换行集不改本控件。
 ///
@@ -304,12 +304,6 @@ class TrackBand extends ConsumerStatefulWidget {
 
   /// 本带挂载所需的全部外部事实（见 [TrackBandInput]）。
   final TrackBandInput input;
-
-  /// 带高读取面：缺省行集 `normal` 派生的整带高
-  /// （Σ行高 + 间隙 × (行数 − 1)），数值逐位沿用今天（四行 + 3 × 轨间隔）。
-  /// 非缺省行集的带高由 [TrackBandInput.rowTable] 派生（build 内直接读
-  /// totalHeight）。
-  static double get height => TrackRowTable.normal.totalHeight;
 
   @override
   ConsumerState<TrackBand> createState() => _TrackBandState();

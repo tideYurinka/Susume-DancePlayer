@@ -4895,9 +4895,11 @@ Finder slotText(Key slot, String text) =>
       expect(rotateButton(), findsOneWidget, reason: '转回竖屏转屏钮在场');
     });
 
-    testWidgets('横屏编辑面：本无提示行，视频仍居中', (tester) async {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
-      tester.view.devicePixelRatio = 2.0; // 逻辑 960×540（横屏）
+    testWidgets('横屏编辑面：本无提示行，视频仍居中（常规档，空轨常驻）', (tester) async {
+      // 常规档横屏（960×700dp，最短边 700 ≥ 600）：紧凑档下空轨不占行，
+      // 「整带高逐位不变」这一条只在常规档成立。
+      tester.view.physicalSize = const Size(1920, 1400); // 合成档 960.0×700.0dp（dpr 2），非设备基准。
+      tester.view.devicePixelRatio = 2.0; // 逻辑 960×700（横屏）
       addTearDown(tester.view.reset);
       const ar = 16 / 9;
       final engine = FakePlaybackEngine(videoAspectRatio: ar);
@@ -4908,7 +4910,7 @@ Finder slotText(Key slot, String text) =>
       final video = tester.getRect(videoPlaceholder());
       expect(
         video.top,
-        closeTo((540 - 960 / ar) / 2, 0.5),
+        closeTo((700 - 960 / ar) / 2, 0.5),
         reason: '横屏行仍是整屏居中 contain（逐位不变）',
       );
       expect(tester.getRect(trackBand()).height, normalTrackBandHeight);
@@ -6955,6 +6957,14 @@ Finder slotText(Key slot, String text) =>
       useNamedViewport(tester, ViewportTier.compact, landscape: true);
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
+      // 紧凑档下空的备注轨不占行：先落一条备注（2s，远在 x=400 左侧）让该行在场，
+      // 本用例要测的是该行空白处的横滑。
+      final editor = ProviderScope.containerOf(
+        tester.element(find.byType(PlayerPage)),
+        listen: false,
+      ).read(annotationEditorProvider);
+      editor.submit(const InsertNote(at: Duration(seconds: 2)));
+      await tester.pump();
       await singleTapShow(tester);
 
       // 视频可见区横滑：全程无溢出、无浮层。
@@ -7009,6 +7019,15 @@ Finder slotText(Key slot, String text) =>
       addTearDown(tester.view.reset);
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
+      // 紧凑档下空轨不占行：两轨各落一条片段（2s，远在 x=400 左侧）让它们在场，
+      // 本用例要测的是行内空白处的横滑。
+      final editor = ProviderScope.containerOf(
+        tester.element(find.byType(PlayerPage)),
+        listen: false,
+      ).read(annotationEditorProvider);
+      editor.submit(const InsertNote(at: Duration(seconds: 2)));
+      editor.submit(const AddLocalMirrorFragment(at: Duration(seconds: 2)));
+      await tester.pump();
       await singleTapShow(tester);
       expect(engine.isPlaying, isTrue);
       engine.seekCalls.clear();

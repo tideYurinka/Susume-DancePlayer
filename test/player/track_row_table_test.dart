@@ -246,6 +246,118 @@ void main() {
     });
   });
 
+  group('去掉若干行（剪裁出新表）', () {
+    test('紧凑档剪掉备注轨与局部镜像轨：余行次序不变，整带高按剪裁后逐行重算', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      expect(trimmed.rows.map((r) => r.id), const [
+        TrackRowId.learning,
+        TrackRowId.beat,
+        TrackRowId.handleStrip,
+      ]);
+      expect(trimmed.gap, kTrackRowGap);
+      // 48 + 24 + 30 + 10 × 2 = 122（worked example）。
+      expect(trimmed.totalHeight, 122);
+      // 行顶按新行序重排：学习段轨 0、节拍轨 58、手柄带行 92。
+      expect(
+        trimmed.rectOf(TrackRowId.learning),
+        const TrackRowRect(top: 0, height: 48),
+      );
+      expect(
+        trimmed.rectOf(TrackRowId.beat),
+        const TrackRowRect(top: 58, height: 24),
+      );
+      expect(
+        trimmed.rectOf(TrackRowId.handleStrip),
+        const TrackRowRect(top: 92, height: 30),
+      );
+    });
+
+    test('成员谓词与片头标签集随剪裁收缩；被剪掉的行取标签为空、取矩形仍报错', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      expect(trimmed.hasRow(TrackRowId.note), isFalse);
+      expect(trimmed.hasRow(TrackRowId.localMirror), isFalse);
+      expect(trimmed.hasRow(TrackRowId.learning), isTrue);
+      expect(trimmed.hasRow(TrackRowId.beat), isTrue);
+      expect(trimmed.hasRow(TrackRowId.handleStrip), isTrue);
+      expect(trimmed.prefixLabels, const ['分段', '节拍', '控制']);
+      expect(trimmed.prefixLabelOf(TrackRowId.note), isNull);
+      expect(trimmed.prefixLabelOf(TrackRowId.localMirror), isNull);
+      expect(trimmed.prefixLabelOf(TrackRowId.handleStrip), '控制');
+      // 不在行集内取矩形仍按既有口径显式报错，不静默返回空矩形。
+      expect(() => trimmed.rectOf(TrackRowId.note), throwsArgumentError);
+      expect(() => trimmed.rectOf(TrackRowId.localMirror), throwsArgumentError);
+    });
+
+    test('坐标 → 行按剪裁后的行序与行高派生（原备注轨那一段现属下一行）', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      // 原备注轨行中（18）现落学习段轨；区间含两端、间隙返回空。
+      expect(trimmed.rowAt(18), TrackRowId.learning);
+      expect(trimmed.rowAt(0), TrackRowId.learning);
+      expect(trimmed.rowAt(48), TrackRowId.learning);
+      expect(trimmed.rowAt(53), isNull); // 行间隙
+      expect(trimmed.rowAt(58), TrackRowId.beat);
+      expect(trimmed.rowAt(122), TrackRowId.handleStrip); // 整带底边
+      expect(trimmed.rowAt(122.5), isNull);
+    });
+
+    test('行集里没有的身份是空操作：对比行集剪局部镜像轨不改变任何行', () {
+      final trimmed = TrackRowTable.compare.withoutRows(const {
+        TrackRowId.localMirror,
+      });
+      expect(
+        trimmed.rows.map((r) => r.id),
+        TrackRowTable.compare.rows.map((r) => r.id),
+      );
+      expect(
+        trimmed.rows.map((r) => r.key),
+        TrackRowTable.compare.rows.map((r) => r.key),
+      );
+      expect(trimmed.gap, TrackRowTable.compare.gap);
+      expect(trimmed.totalHeight, TrackRowTable.compare.totalHeight);
+    });
+
+    test('对比行集剪掉空备注轨：练习视频轨升到最顶，整带高 140', () {
+      final trimmed = TrackRowTable.compare.withoutRows(const {TrackRowId.note});
+      expect(trimmed.rows.map((r) => r.id), const [
+        TrackRowId.practiceVideo,
+        TrackRowId.learning,
+        TrackRowId.beat,
+      ]);
+      // 48 + 48 + 24 + 10 × 2 = 140（worked example）。
+      expect(trimmed.totalHeight, 140);
+      expect(
+        trimmed.rectOf(TrackRowId.practiceVideo),
+        const TrackRowRect(top: 0, height: 48),
+      );
+      expect(trimmed.hasRow(TrackRowId.note), isFalse);
+    });
+
+    test('剪掉全部行：整带高 0，任何坐标查询返回空', () {
+      final trimmed = TrackRowTable.normal.withoutRows(
+        TrackRowTable.normal.rows.map((r) => r.id).toSet(),
+      );
+      expect(trimmed.rows, isEmpty);
+      expect(trimmed.totalHeight, 0);
+      expect(trimmed.rowAt(0), isNull);
+      expect(trimmed.rowAt(18), isNull);
+    });
+
+    test('剪裁不改动原表（具名行集仍是该态的全行集）', () {
+      TrackRowTable.normal.withoutRows(const {TrackRowId.note});
+      expect(TrackRowTable.normal.rows, hasLength(5));
+      expect(TrackRowTable.normal.totalHeight, 208);
+    });
+  });
+
   group('退化', () {
     test('单行集：整带高等于该行行高，无间隙参与', () {
       const single = TrackRowTable(

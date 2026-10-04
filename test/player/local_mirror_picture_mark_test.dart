@@ -314,7 +314,11 @@ void main() {
 
       final skeleton = editorSkeletonFor(
         screen: screen,
-        trackBandHeight: TrackRowTable.normal.totalHeight,
+        // 紧凑档下轨道行集按两轨现势片段数剪裁：本布景只有一条局部镜像
+        // 片段、没有备注，故空备注轨不占行。
+        trackBandHeight: TrackRowTable.normal
+            .withoutRows(const {TrackRowId.note})
+            .totalHeight,
         videoAspectRatio: engine.videoAspectRatio,
       );
       expect(skeleton.sticksToBottom, isTrue, reason: '本布景走画面带上移分支');

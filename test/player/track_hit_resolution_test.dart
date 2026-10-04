@@ -218,6 +218,47 @@ void main() {
       expect(hits.isNoteRow(36), isFalse);
       expect(hits.isNoteRow(35.999), isTrue);
     });
+
+    test('剪掉空轨后的行表：被剪掉的行不再是命中行，其原位归给下一行', () {
+      // 紧凑档剪掉空备注轨与空局部镜像轨后的行序：学习段 0–48、
+      // 节拍 58–82、手柄带 92–122。
+      final hits = hitsOf(
+        rowTable: TrackRowTable.normal.withoutRows(const {
+          TrackRowId.note,
+          TrackRowId.localMirror,
+        }),
+      );
+      expect(hits.isNoteRow(noteRowY), isFalse);
+      expect(hits.isMirrorRow(noteRowY), isFalse);
+      expect(hits.rowAt(noteRowY), TrackRowId.learning);
+      expect(hits.isLearningRow(noteRowY), isTrue);
+      expect(hits.isMirrorRow(mirrorRowY), isFalse);
+      expect(hits.rowAt(mirrorRowY), TrackRowId.beat);
+      expect(hits.rowAt(0), TrackRowId.learning);
+      expect(hits.rowAt(48), TrackRowId.learning);
+      expect(hits.rowAt(58), TrackRowId.beat);
+      expect(hits.rowAt(122), TrackRowId.handleStrip);
+      expect(hits.rowAt(122.5), isNull);
+    });
+
+    test('行缺席即内容不在命中对象里：同一落点剪裁前是备注片段、剪裁后为空', () {
+      const fragment = NoteSticker(startMs: 20000, endMs: 25000, text: '注意手');
+      final local = Offset(xAt(20000), noteRowY);
+      expect(
+        hitsOf(notes: const [fragment]).editTargetAt(local),
+        TrackEditTarget.noteFragment,
+      );
+      expect(
+        hitsOf(
+          notes: const [fragment],
+          rowTable: TrackRowTable.normal.withoutRows(const {
+            TrackRowId.note,
+            TrackRowId.localMirror,
+          }),
+        ).editTargetAt(local),
+        isNull,
+      );
+    });
   });
 
   group('学习段命中次序解析', () {
