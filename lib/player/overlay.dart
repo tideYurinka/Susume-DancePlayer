@@ -19,9 +19,4 @@ part 'overlay_placement.dart';
 part 'overlay_sizing.dart';
 
 /// 浮层四角（角工具的渲染次序 = 本枚举序）。
-enum OverlayCorner {
-  topLeft,
-  topRight,
-  bottomLeft,
-  bottomRight,
-}
+enum OverlayCorner { topLeft, topRight, bottomLeft, bottomRight }

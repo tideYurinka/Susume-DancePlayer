@@ -94,11 +94,15 @@ void main() {
     });
 
     test('窗口外与未来的记录不入柱', () {
-      final bars = dailyPracticeBars([
-        _session(DateTime(2026, 9, 6, 10), 300), // 窗口前一天
-        _session(DateTime(2026, 9, 14, 10), 300), // 明天
-        _session(DateTime(2026, 9, 13, 10), 60),
-      ], now: now, window: PracticeStatsWindow.last7);
+      final bars = dailyPracticeBars(
+        [
+          _session(DateTime(2026, 9, 6, 10), 300), // 窗口前一天
+          _session(DateTime(2026, 9, 14, 10), 300), // 明天
+          _session(DateTime(2026, 9, 13, 10), 60),
+        ],
+        now: now,
+        window: PracticeStatsWindow.last7,
+      );
       expect(bars.last.total, const Duration(seconds: 60));
       expect(
         bars.fold(Duration.zero, (sum, bar) => sum + bar.total),
@@ -109,10 +113,14 @@ void main() {
 
   group('每日合计', () {
     test('空日为零且保留在窗口内', () {
-      final bars = dailyPracticeBars([
-        _session(DateTime(2026, 9, 9, 10), 120),
-        _session(DateTime(2026, 9, 13, 10), 60),
-      ], now: now, window: PracticeStatsWindow.last7);
+      final bars = dailyPracticeBars(
+        [
+          _session(DateTime(2026, 9, 9, 10), 120),
+          _session(DateTime(2026, 9, 13, 10), 60),
+        ],
+        now: now,
+        window: PracticeStatsWindow.last7,
+      );
       expect(bars[0].total, Duration.zero); // 09-07
       expect(bars[1].total, Duration.zero); // 09-08
       expect(bars[2].total, const Duration(seconds: 120)); // 09-09
@@ -120,19 +128,27 @@ void main() {
     });
 
     test('柱高 = 当天全部舞墙钟秒之和（同舞多条、多舞合并）', () {
-      final bars = dailyPracticeBars([
-        _session(DateTime(2026, 9, 13, 10), 100, videoId: 'a'),
-        _session(DateTime(2026, 9, 13, 11), 200, videoId: 'a'),
-        _session(DateTime(2026, 9, 13, 12), 50, videoId: 'b'),
-      ], now: now, window: PracticeStatsWindow.last7);
+      final bars = dailyPracticeBars(
+        [
+          _session(DateTime(2026, 9, 13, 10), 100, videoId: 'a'),
+          _session(DateTime(2026, 9, 13, 11), 200, videoId: 'a'),
+          _session(DateTime(2026, 9, 13, 12), 50, videoId: 'b'),
+        ],
+        now: now,
+        window: PracticeStatsWindow.last7,
+      );
       expect(bars.last.total, const Duration(seconds: 350));
     });
 
     test('跨月归日：月末与月初各归自己的柱', () {
-      final bars = dailyPracticeBars([
-        _session(DateTime(2026, 2, 28, 23), 100),
-        _session(DateTime(2026, 3, 1, 0), 200),
-      ], now: DateTime(2026, 3, 2, 9), window: PracticeStatsWindow.last7);
+      final bars = dailyPracticeBars(
+        [
+          _session(DateTime(2026, 2, 28, 23), 100),
+          _session(DateTime(2026, 3, 1, 0), 200),
+        ],
+        now: DateTime(2026, 3, 2, 9),
+        window: PracticeStatsWindow.last7,
+      );
       expect(bars[4].day, DateTime(2026, 2, 28));
       expect(bars[4].total, const Duration(seconds: 100));
       expect(bars[5].day, DateTime(2026, 3, 1));
@@ -260,11 +276,15 @@ void main() {
     });
 
     test('柱同时携带时长与场次两个口径', () {
-      final bars = dailyPracticeBars([
-        _session(DateTime(2026, 9, 13, 10), 100, videoId: 'a'),
-        _session(DateTime(2026, 9, 13, 11), 200, videoId: 'b'),
-        _session(DateTime(2026, 9, 13, 12), 0, videoId: 'c'),
-      ], now: now, window: PracticeStatsWindow.last7);
+      final bars = dailyPracticeBars(
+        [
+          _session(DateTime(2026, 9, 13, 10), 100, videoId: 'a'),
+          _session(DateTime(2026, 9, 13, 11), 200, videoId: 'b'),
+          _session(DateTime(2026, 9, 13, 12), 0, videoId: 'c'),
+        ],
+        now: now,
+        window: PracticeStatsWindow.last7,
+      );
       expect(bars.last.total, const Duration(seconds: 300));
       expect(bars.last.sessions, 2);
       expect(bars.first.sessions, 0);

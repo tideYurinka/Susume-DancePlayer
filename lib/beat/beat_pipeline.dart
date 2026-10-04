@@ -69,8 +69,7 @@ Future<List<({double t, int beatNumber})>> _dbnDecodeInIsolate(
   Float32List beatAct,
   Float32List downbeatAct,
   int fps,
-) =>
-    Isolate.run(() => dbnDecode(beatAct, downbeatAct, fps: fps));
+) => Isolate.run(() => dbnDecode(beatAct, downbeatAct, fps: fps));
 
 /// DBN 解码产物 → 节拍规整 → 落盘拍点（阶段 4 与 [BeatPoint] 构造之间）。
 ///
@@ -83,8 +82,7 @@ List<BeatPoint> regularizeDecodedBeats(
   List<({double t, int beatNumber})> decoded,
 ) {
   final recognized = [
-    for (final beat in decoded)
-      Duration(milliseconds: (beat.t * 1000).round()),
+    for (final beat in decoded) Duration(milliseconds: (beat.t * 1000).round()),
   ];
   final regularized = regularizeBeatTimes(recognized).times;
   return [
@@ -157,11 +155,7 @@ class OnnxBeatAnalysisPipeline implements BeatAnalysisPipeline {
       if (bytes.isEmpty) {
         throw const BeatAnalysisException('无有效音轨（解码输出为空）');
       }
-      final pcm = Float32List.view(
-        bytes.buffer,
-        0,
-        bytes.lengthInBytes ~/ 4,
-      );
+      final pcm = Float32List.view(bytes.buffer, 0, bytes.lengthInBytes ~/ 4);
       checkCancelled();
       // 节拍分析解码顺带测量歌曲响度（整轨 RMS，一次调用）。
       request.onPcmRms?.call(pcmRms(pcm));

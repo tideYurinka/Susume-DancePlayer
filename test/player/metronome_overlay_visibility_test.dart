@@ -101,14 +101,8 @@ void main() {
     testWidgets('readOnly + 选中态：无选中框与角工具，内容照常绘制', (tester) async {
       await pumpOverlay(tester, readOnly: true, selected: true);
 
-      expect(
-        find.byKey(const Key('metronome_overlay_selected')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const Key('metronome_overlay_close')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('metronome_overlay_selected')), findsNothing);
+      expect(find.byKey(const Key('metronome_overlay_close')), findsNothing);
       expect(find.byKey(const Key('metronome_overlay_lock')), findsNothing);
     });
 
@@ -143,29 +137,25 @@ void main() {
       await tester.pump();
 
       expect(surfaceTaps, 1);
-      expect(
-        find.byKey(const Key('metronome_overlay_selected')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('metronome_overlay_selected')), findsNothing);
     });
 
-    testWidgets('展开（进入只读）即失焦：退出选中态，收起后选中框不未点选回归',
-        (tester) async {
+    testWidgets('展开（进入只读）即失焦：退出选中态，收起后选中框不未点选回归', (tester) async {
       final controller = MetronomeOverlayController()..select();
       Widget buildOverlay({required bool readOnly}) => MaterialApp(
-            home: Scaffold(
-              body: Stack(
-                children: [
-                  const SizedBox.expand(),
-                  MetronomeOverlay(
-                    controller: controller,
-                    readOnly: readOnly,
-                    child: const SizedBox.expand(),
-                  ),
-                ],
+        home: Scaffold(
+          body: Stack(
+            children: [
+              const SizedBox.expand(),
+              MetronomeOverlay(
+                controller: controller,
+                readOnly: readOnly,
+                child: const SizedBox.expand(),
               ),
-            ),
-          );
+            ],
+          ),
+        ),
+      );
 
       await tester.pumpWidget(buildOverlay(readOnly: false));
       await tester.pump();
@@ -178,18 +168,12 @@ void main() {
       await tester.pumpWidget(buildOverlay(readOnly: true));
       await tester.pump();
       expect(controller.selected, isFalse);
-      expect(
-        find.byKey(const Key('metronome_overlay_selected')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('metronome_overlay_selected')), findsNothing);
 
       // 收起控制层（只读解除）：选中框不得未点选而回归。
       await tester.pumpWidget(buildOverlay(readOnly: false));
       await tester.pump();
-      expect(
-        find.byKey(const Key('metronome_overlay_selected')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('metronome_overlay_selected')), findsNothing);
 
       // 点选后选中态照常恢复（收起后恢复完整交互）。
       controller.select();

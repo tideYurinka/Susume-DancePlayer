@@ -28,7 +28,8 @@ import 'package:dance_learning_app/player/note_sticker_overlay.dart';
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/settings_persistence.dart'
     show videoDocumentCoordinatorProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player/track_row_table.dart';
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kLocalMirrorEnabledColor;
@@ -135,9 +136,7 @@ void main() {
   group('出现与消失（位置即真值）', () {
     testWidgets('生效于区间内出现；离开区间（含终点）立刻消失', (tester) async {
       setViewport(tester, logical: const Size(800, 600));
-      final engine = FakePlaybackEngine(
-        videoAspectRatio: 1,
-      );
+      final engine = FakePlaybackEngine(videoAspectRatio: 1);
       final container = await pumpPlayer(tester, engine: engine);
       final fragment = await seedFragment(tester, container);
 
@@ -252,13 +251,13 @@ void main() {
 
       final border =
           (tester
-                      .widget<DecoratedBox>(
-                        find.byKey(kLocalMirrorPictureMarkBorderKey),
-                      )
-                      .decoration
-                  as BoxDecoration)
-              .border!
-          as Border;
+                          .widget<DecoratedBox>(
+                            find.byKey(kLocalMirrorPictureMarkBorderKey),
+                          )
+                          .decoration
+                      as BoxDecoration)
+                  .border!
+              as Border;
       expect(border.top.width, kLocalMirrorPictureMarkBorderWidth);
       expect(border.top.color, kLocalMirrorEnabledColor);
       expect(
@@ -314,17 +313,18 @@ void main() {
 
       final skeleton = editorSkeletonFor(
         screen: screen,
-        trackBandHeight: TrackRowTable.normal.totalHeight,
+        // 紧凑档下轨道行集按两轨现势片段数剪裁：本布景只有一条局部镜像
+        // 片段、没有备注，故空备注轨不占行。
+        trackBandHeight: TrackRowTable.normal.withoutRows(const {
+          TrackRowId.note,
+        }).totalHeight,
         videoAspectRatio: engine.videoAspectRatio,
       );
       expect(skeleton.sticksToBottom, isTrue, reason: '本布景走画面带上移分支');
-      final expected =
-          videoContentRectInBox(
-            box: Size(screen.width, skeleton.pictureBandHeight),
-            aspectRatio: engine.videoAspectRatio,
-          ).shift(
-            Offset(0, skeleton.bandTopIn(systemTopInset: 0)),
-          );
+      final expected = videoContentRectInBox(
+        box: Size(screen.width, skeleton.pictureBandHeight),
+        aspectRatio: engine.videoAspectRatio,
+      ).shift(Offset(0, skeleton.bandTopIn(systemTopInset: 0)));
       final rect = tester.getRect(mark());
       expect(rect.left, closeTo(expected.left, 0.001));
       expect(rect.top, closeTo(expected.top, 0.001));
@@ -360,7 +360,11 @@ void main() {
       expect(rect.left, closeTo(0, 0.001));
       expect(rect.top, closeTo((600 - 399 * 9 / 16) / 2, 0.001));
       expect(rect.width, closeTo((800 - 2) / 2, 0.001), reason: '横屏左半区满宽');
-      expect(rect.height, closeTo(399 * 9 / 16, 0.001), reason: '贴画面内容矩形、信箱黑边除外');
+      expect(
+        rect.height,
+        closeTo(399 * 9 / 16, 0.001),
+        reason: '贴画面内容矩形、信箱黑边除外',
+      );
       expect(rect.right, lessThanOrEqualTo(400), reason: '不越入练习半区');
     });
 
@@ -413,11 +417,18 @@ void main() {
       turnBeatAnimationOn(tester);
       await tester.pump();
       expect(find.byType(MetronomeOverlay), findsOneWidget);
-      final beatStack = sharedStackOf(tester, mark(), find.byType(MetronomeOverlay));
+      final beatStack = sharedStackOf(
+        tester,
+        mark(),
+        find.byType(MetronomeOverlay),
+      );
       expect(
         paintIndexOf(beatStack, tester.element(mark())),
         lessThan(
-          paintIndexOf(beatStack, tester.element(find.byType(MetronomeOverlay))),
+          paintIndexOf(
+            beatStack,
+            tester.element(find.byType(MetronomeOverlay)),
+          ),
         ),
         reason: '标识绘制在节拍动画浮层之前',
       );

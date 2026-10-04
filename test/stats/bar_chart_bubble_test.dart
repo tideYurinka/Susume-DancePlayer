@@ -14,16 +14,15 @@ const bubbleHeight = 48.0;
   double height = bubbleHeight,
   int targetIndex = 1,
   int barCount = 7,
-}) =>
-    barChartBubblePosition(
-      fingerY: fingerY,
-      bubbleWidth: width,
-      bubbleHeight: height,
-      plotWidth: plotWidth,
-      plotHeight: plotHeight,
-      targetIndex: targetIndex,
-      barCount: barCount,
-    );
+}) => barChartBubblePosition(
+  fingerY: fingerY,
+  bubbleWidth: width,
+  bubbleHeight: height,
+  plotWidth: plotWidth,
+  plotHeight: plotHeight,
+  targetIndex: targetIndex,
+  barCount: barCount,
+);
 
 void main() {
   group('横向避让：气泡矩形与目标柱矩形不相交', () {
@@ -62,11 +61,7 @@ void main() {
     });
 
     test('气泡放不下（左右都不够宽）→ 仍钳在绘图区内、无负值', () {
-      final r = position(
-        targetIndex: 3,
-        barCount: 7,
-        width: plotWidth - 4,
-      );
+      final r = position(targetIndex: 3, barCount: 7, width: plotWidth - 4);
       expect(r.left, inInclusiveRange(0, plotWidth - (plotWidth - 4)));
     });
 

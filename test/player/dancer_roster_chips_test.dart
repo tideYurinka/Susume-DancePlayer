@@ -77,9 +77,7 @@ void main() {
         .read(annotationEditorProvider)
         .restoreDocument(
           AnnotationRestoreDocument(
-            timeline: AnnotationTimeline.wholeVideo(
-              const Duration(minutes: 1),
-            ),
+            timeline: AnnotationTimeline.wholeVideo(const Duration(minutes: 1)),
             notes: const [
               NoteSticker(startMs: 10000, endMs: 14000, text: '注意手'),
             ],
@@ -230,20 +228,14 @@ void main() {
       for (final name in ['果', '鸟', '海']) {
         expect(
           shanRect.left,
-          lessThan(
-            tester.getRect(
-              find.byKey(Key('roster_chip_$name')),
-            ).left,
-          ),
+          lessThan(tester.getRect(find.byKey(Key('roster_chip_$name'))).left),
           reason: '山被提到第一位',
         );
       }
 
       // 点前三名（山现在第一名）：顺序不再变。
       final shanBefore = tester.getRect(stripFinder);
-      final guoBefore = tester.getRect(
-        find.byKey(const Key('roster_chip_果')),
-      );
+      final guoBefore = tester.getRect(find.byKey(const Key('roster_chip_果')));
       await tester.tap(find.byKey(const Key('roster_chip_果')));
       await tester.pump();
       await pumpStrip(tester);
@@ -283,8 +275,7 @@ void main() {
       expect(container.read(noteStickersProvider).single.text, '注@果 意手');
     });
 
-    testWidgets('名册态点词条 = 弹这位舞者的选色浮层：24 色、选色直写并落盘',
-        (tester) async {
+    testWidgets('名册态点词条 = 弹这位舞者的选色浮层：24 色、选色直写并落盘', (tester) async {
       await seedRoster();
       await container
           .read(dancerRosterControllerProvider)
@@ -312,9 +303,11 @@ void main() {
       expect(find.byKey(const Key('roster_color_sheet')), findsOneWidget);
       expect(
         find.byWidgetPredicate(
-          (w) => w.key is ValueKey<String> &&
-              (w.key as ValueKey<String>).value
-                  .startsWith('roster_palette_color_'),
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key as ValueKey<String>).value.startsWith(
+                'roster_palette_color_',
+              ),
         ),
         findsNWidgets(kRosterPalette.length),
         reason: '色板 24 色',
@@ -326,11 +319,14 @@ void main() {
 
       expect(find.byKey(const Key('roster_color_sheet')), findsNothing);
       final controller = container.read(dancerRosterControllerProvider);
-      expect(controller.roster.firstWhere((e) => e.name == '鸟').color,
-          kRosterPalette[5]);
       expect(
-        (storage.markersSnapshot['roster']['dancers']
-                .firstWhere((e) => (e as Map)['name'] == '鸟') as Map)['color'],
+        controller.roster.firstWhere((e) => e.name == '鸟').color,
+        kRosterPalette[5],
+      );
+      expect(
+        (storage.markersSnapshot['roster']['dancers'].firstWhere(
+          (e) => (e as Map)['name'] == '鸟',
+        ) as Map)['color'],
         kRosterPalette[5],
         reason: '改色直写落盘、只触碰名册段',
       );
@@ -367,10 +363,7 @@ void main() {
         find.byKey(const Key('roster_palette_delete_dialog')),
         findsOneWidget,
       );
-      expect(
-        find.text('删除后这位舞者将从名册移除；已写的点名会因此失去颜色'),
-        findsOneWidget,
-      );
+      expect(find.text('删除后这位舞者将从名册移除；已写的点名会因此失去颜色'), findsOneWidget);
       await tester.tap(find.byKey(const Key('roster_palette_delete_cancel')));
       await tester.pumpAndSettle();
       expect(
@@ -394,18 +387,14 @@ void main() {
             .where((e) => e.name == '山'),
         isEmpty,
       );
-      expect(
-        [
-          for (final e in storage.markersSnapshot['roster']['dancers'])
-            (e as Map)['name'],
-        ],
-        isNot(contains('山')),
-      );
+      expect([
+        for (final e in storage.markersSnapshot['roster']['dancers'])
+          (e as Map)['name'],
+      ], isNot(contains('山')));
     });
   });
 
-  testWidgets('名册写入仍为直写：不入撤销史、不受锁定分段影响、不改备注、不产生备注保存入队',
-      (tester) async {
+  testWidgets('名册写入仍为直写：不入撤销史、不受锁定分段影响、不改备注、不产生备注保存入队', (tester) async {
     await seedRoster();
     await pumpNoteEditor(
       tester,
@@ -429,10 +418,16 @@ void main() {
       kRosterPalette[3],
       reason: '锁定分段不挡名册直写',
     );
-    expect(container.read(annotationEditHistoryProvider).length, 0,
-        reason: '名册直写不入撤销史');
-    expect(container.read(noteStickersProvider).single.text, '注意手',
-        reason: '名册操作不改备注');
+    expect(
+      container.read(annotationEditHistoryProvider).length,
+      0,
+      reason: '名册直写不入撤销史',
+    );
+    expect(
+      container.read(noteStickersProvider).single.text,
+      '注意手',
+      reason: '名册操作不改备注',
+    );
     expect(sink.saved, isEmpty, reason: '名册不产生备注保存入队');
   });
 }

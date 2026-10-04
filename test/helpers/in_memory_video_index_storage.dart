@@ -10,7 +10,7 @@ import 'package:dance_learning_app/persistence/video_index.dart';
 /// `load`/`update`，在 fake 时钟下可直接驱动。
 class InMemoryVideoIndexStorage implements VideoIndexStorage {
   InMemoryVideoIndexStorage({VideoIndex initial = VideoIndex.empty})
-      : _index = initial;
+    : _index = initial;
 
   VideoIndex _index;
 

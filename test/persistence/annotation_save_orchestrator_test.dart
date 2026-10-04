@@ -64,8 +64,7 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _inner.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _inner.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _inner.loadLocalOrNull();
 
   @override
   Future<void> saveLocal(Map<String, dynamic> json) async {
@@ -78,7 +77,8 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateMarkers(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     var wrote = false;
     await _inner.mutateMarkers((json, {required bool present}) async {
@@ -91,7 +91,8 @@ class CountingVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateLocal(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     var wrote = false;
     await _inner.mutateLocal((json, {required bool present}) async {
@@ -117,32 +118,31 @@ AnnotationSectionDiff diff({
   List<int>? eightBeatAnchors,
   List<int>? activatedSegments,
   bool withAnnotations = true,
-}) =>
-    AnnotationSectionDiff(
-      corrections: corrections ??
-          (beatShiftSeconds == null && eightBeatAnchors == null
-              ? null
-              : MarkerCorrectionsValue(
-                  shiftSeconds: beatShiftSeconds ?? 0,
-                  eightBeatAnchors: eightBeatAnchors ?? const [],
-                )),
-      annotations: !withAnnotations
+}) => AnnotationSectionDiff(
+  corrections:
+      corrections ??
+      (beatShiftSeconds == null && eightBeatAnchors == null
           ? null
-          : MarkerAnnotationsValue(
-              rangeStart: Duration(milliseconds: rangeStartMs ?? 0),
-              rangeEnd: Duration(milliseconds: rangeEndMs ?? 0),
-              segmentLines: segmentLines ?? const [],
-              halfBeatLines: halfBeatLines ?? const [],
-              emphasizedSegments:
-                  (emphasizedSegments ?? const []).toSet(),
-            ),
-      session: mastery == null && activatedSegments == null
-          ? null
-          : LocalSessionValue(
-              mastery: mastery ?? const {},
-              activatedSegments: activatedSegments ?? const [],
-            ),
-    );
+          : MarkerCorrectionsValue(
+              shiftSeconds: beatShiftSeconds ?? 0,
+              eightBeatAnchors: eightBeatAnchors ?? const [],
+            )),
+  annotations: !withAnnotations
+      ? null
+      : MarkerAnnotationsValue(
+          rangeStart: Duration(milliseconds: rangeStartMs ?? 0),
+          rangeEnd: Duration(milliseconds: rangeEndMs ?? 0),
+          segmentLines: segmentLines ?? const [],
+          halfBeatLines: halfBeatLines ?? const [],
+          emphasizedSegments: (emphasizedSegments ?? const []).toSet(),
+        ),
+  session: mastery == null && activatedSegments == null
+      ? null
+      : LocalSessionValue(
+          mastery: mastery ?? const {},
+          activatedSegments: activatedSegments ?? const [],
+        ),
+);
 
 void main() {
   late InMemoryVideoDocumentStorage inner;
@@ -164,15 +164,17 @@ void main() {
 
   group('入队与落盘（三条段臂）', () {
     test('单次编辑到期后段级落盘（markers 两条臂 + local 一条臂）', () async {
-      orchestrator.save(diff(
-        segmentLines: const [
-          SegmentLine(position: Duration(milliseconds: 4200), flagged: true),
-        ],
-        rangeStartMs: 1000,
-        rangeEndMs: 50000,
-        emphasizedSegments: const [0, 2],
-        mastery: const {1: LearningMastery.mastered},
-      ));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 4200), flagged: true),
+          ],
+          rangeStartMs: 1000,
+          rangeEndMs: 50000,
+          emphasizedSegments: const [0, 2],
+          mastery: const {1: LearningMastery.mastered},
+        ),
+      );
 
       scheduler.tick();
       await pumpEventQueue();
@@ -184,17 +186,18 @@ void main() {
       expect(markers.rangeStartMs, 1000);
       expect(markers.rangeEndMs, 50000);
       expect(markers.emphasizedSegments, const [0, 2]);
-      expect(
-        LocalDocument.fromJson(inner.localSnapshot).mastery,
-        const {1: LearningMastery.mastered},
-      );
+      expect(LocalDocument.fromJson(inner.localSnapshot).mastery, const {
+        1: LearningMastery.mastered,
+      });
     });
 
     test('只变更的文件写、未变更的文件不写（段级 diff）', () async {
-      orchestrator.save(diff(
-        withAnnotations: false,
-        mastery: const {0: LearningMastery.learning},
-      ));
+      orchestrator.save(
+        diff(
+          withAnnotations: false,
+          mastery: const {0: LearningMastery.learning},
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -217,15 +220,10 @@ void main() {
           BeatPoint(t: 1.0, down: false),
         ],
       );
-      await inner.saveMarkers(
-        MarkersDocument(beat: beat).toJson(),
-      );
+      await inner.saveMarkers(MarkersDocument(beat: beat).toJson());
       storage.markersWrites = 0;
 
-      orchestrator.save(diff(
-        withAnnotations: false,
-        beatShiftSeconds: 0.25,
-      ));
+      orchestrator.save(diff(withAnnotations: false, beatShiftSeconds: 0.25));
       scheduler.tick();
       await pumpEventQueue();
 
@@ -250,11 +248,13 @@ void main() {
       await inner.saveMarkers(MarkersDocument(beat: beat).toJson());
       storage.markersWrites = 0;
 
-      orchestrator.save(diff(
-        withAnnotations: false,
-        beatShiftSeconds: 0.25,
-        eightBeatAnchors: const [28, 40],
-      ));
+      orchestrator.save(
+        diff(
+          withAnnotations: false,
+          beatShiftSeconds: 0.25,
+          eightBeatAnchors: const [28, 40],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -266,10 +266,9 @@ void main() {
     });
 
     test('无 beat 段（未分析）时 corrections 段静默跳过、锚点不落盘', () async {
-      orchestrator.save(diff(
-        withAnnotations: false,
-        eightBeatAnchors: const [28],
-      ));
+      orchestrator.save(
+        diff(withAnnotations: false, eightBeatAnchors: const [28]),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -279,41 +278,59 @@ void main() {
 
   group('burst 合并（latest-wins）', () {
     test('同段快速连续编辑合并为一次写，落盘为最后状态', () async {
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 2000)),
-      ]));
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 3000), flagged: true),
-      ]));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 2000)),
+          ],
+        ),
+      );
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 3000), flagged: true),
+          ],
+        ),
+      );
 
       scheduler.tick();
       await pumpEventQueue();
 
       expect(storage.markersWrites, 1);
-      expect(MarkersDocument.fromJson(inner.markersSnapshot).segmentLines,
-          const [
-        SegmentLine(position: Duration(milliseconds: 3000), flagged: true),
-      ]);
+      expect(
+        MarkersDocument.fromJson(inner.markersSnapshot).segmentLines,
+        const [
+          SegmentLine(position: Duration(milliseconds: 3000), flagged: true),
+        ],
+      );
     });
 
     test('同段 latest-wins、异段并集：跨段各取最新共写一次', () async {
       // annotations + session 异段并集。
-      orchestrator.save(diff(
-        segmentLines: const [
-          SegmentLine(position: Duration(milliseconds: 1000)),
-        ],
-        mastery: const {0: LearningMastery.learning},
-      ));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+          mastery: const {0: LearningMastery.learning},
+        ),
+      );
       // corrections + annotations 异段并集（annotations latest-wins）。
-      orchestrator.save(diff(
-        beatShiftSeconds: 0.5,
-        segmentLines: const [
-          SegmentLine(position: Duration(milliseconds: 1500)),
-        ],
-      ));
+      orchestrator.save(
+        diff(
+          beatShiftSeconds: 0.5,
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1500)),
+          ],
+        ),
+      );
 
       scheduler.tick();
       await pumpEventQueue();
@@ -324,10 +341,9 @@ void main() {
       expect(markers.segmentLines, const [
         SegmentLine(position: Duration(milliseconds: 1500)),
       ]);
-      expect(
-        LocalDocument.fromJson(inner.localSnapshot).mastery,
-        const {0: LearningMastery.learning},
-      );
+      expect(LocalDocument.fromJson(inner.localSnapshot).mastery, const {
+        0: LearningMastery.learning,
+      });
     });
 
     test('session 段绝对终值整段落盘：激活学习段随段值写入', () async {
@@ -373,29 +389,38 @@ void main() {
     });
 
     test('burst 期间文件保持旧内容（到期前不落盘）', () async {
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       expect(inner.markersSnapshot, isEmpty);
 
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 2000)),
-      ]));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 2000)),
+          ],
+        ),
+      );
       expect(inner.markersSnapshot, isEmpty);
     });
   });
 
   group('强制 flush', () {
     test('到期前 flush 立即落盘并取消挂起回调', () async {
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
 
       await orchestrator.flush();
-      expect(
-        inner.markersSnapshot['annotations']['segmentLines'],
-        isNotEmpty,
-      );
+      expect(inner.markersSnapshot['annotations']['segmentLines'], isNotEmpty);
       expect(scheduler.pendingTask, isNull);
     });
 
@@ -408,29 +433,43 @@ void main() {
 
   group('写失败兜底', () {
     test('flush 遇写失败静默不抛，后续保存照常', () async {
-      orchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
 
       final failing = _FailingStorage(inner, failMarkersWrites: 1);
       final failingOrchestrator = AnnotationSaveOrchestrator(
         coordinator: VideoDocumentCoordinator(failing),
         scheduler: scheduler,
       );
-      failingOrchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      failingOrchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
 
       await expectLater(failingOrchestrator.flush(), completes);
       expect(inner.markersSnapshot, isEmpty);
       // 同一编排器后续保存不受失败影响（异常耗尽后落盘成功）。
-      failingOrchestrator.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 2000)),
-      ]));
+      failingOrchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 2000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
-      expect(MarkersDocument.fromJson(inner.markersSnapshot).segmentLines,
-          const [SegmentLine(position: Duration(milliseconds: 2000))]);
+      expect(
+        MarkersDocument.fromJson(inner.markersSnapshot).segmentLines,
+        const [SegmentLine(position: Duration(milliseconds: 2000))],
+      );
     });
 
     test('markers 写失败不拖累同批 session 段落盘', () async {
@@ -439,19 +478,20 @@ void main() {
         coordinator: VideoDocumentCoordinator(failing),
         scheduler: scheduler,
       );
-      failingOrchestrator.save(diff(
-        segmentLines: const [
-          SegmentLine(position: Duration(milliseconds: 1000)),
-        ],
-        mastery: const {0: LearningMastery.mastered},
-      ));
+      failingOrchestrator.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+          mastery: const {0: LearningMastery.mastered},
+        ),
+      );
 
       await expectLater(failingOrchestrator.flush(), completes);
       expect(inner.markersSnapshot, isEmpty);
-      expect(
-        LocalDocument.fromJson(inner.localSnapshot).mastery,
-        const {0: LearningMastery.mastered},
-      );
+      expect(LocalDocument.fromJson(inner.localSnapshot).mastery, const {
+        0: LearningMastery.mastered,
+      });
     });
   });
 
@@ -466,9 +506,13 @@ void main() {
         ),
       );
 
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -483,11 +527,12 @@ void main() {
 
     test('markers 已存在（有真实内容）时首建初值不覆盖现值', () async {
       await coordinator.patchMarkers(
-        (doc) => doc.withMirrored(false).withSignature(
-              const SongSignature(song: 'Old'),
-            ).withSegmentLines(const [
-          SegmentLine(position: Duration(milliseconds: 500)),
-        ]),
+        (doc) => doc
+            .withMirrored(false)
+            .withSignature(const SongSignature(song: 'Old'))
+            .withSegmentLines(const [
+              SegmentLine(position: Duration(milliseconds: 500)),
+            ]),
       );
 
       final orchestratorWithSeed = AnnotationSaveOrchestrator(
@@ -498,9 +543,13 @@ void main() {
           mirrored: true,
         ),
       );
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -516,9 +565,13 @@ void main() {
         scheduler: scheduler,
         seed: () async => const AnnotationSaveSeed(localMirrorEnabled: false),
       );
-      seeded.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      seeded.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
       expect(
@@ -543,7 +596,8 @@ void main() {
       );
     });
 
-    test('首建初值只取一次（首个 markers 写时取，后续写不重复取）', () async {      var seedCalls = 0;
+    test('首建初值只取一次（首个 markers 写时取，后续写不重复取）', () async {
+      var seedCalls = 0;
       final orchestratorWithSeed = AnnotationSaveOrchestrator(
         coordinator: coordinator,
         scheduler: scheduler,
@@ -553,23 +607,28 @@ void main() {
         },
       );
 
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
       expect(seedCalls, 1);
 
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 2000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 2000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
       expect(seedCalls, 1);
-      expect(
-        MarkersDocument.fromJson(inner.markersSnapshot).mirrored,
-        true,
-      );
+      expect(MarkersDocument.fromJson(inner.markersSnapshot).mirrored, true);
     });
 
     test('markers 文件存在但全字段为 v1 缺省值时按「存在」对待，不补种初值', () async {
@@ -587,9 +646,13 @@ void main() {
         ),
       );
 
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -609,9 +672,13 @@ void main() {
         ),
       );
 
-      orchestratorWithSeed.save(diff(segmentLines: const [
-        SegmentLine(position: Duration(milliseconds: 1000)),
-      ]));
+      orchestratorWithSeed.save(
+        diff(
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 1000)),
+          ],
+        ),
+      );
       scheduler.tick();
       await pumpEventQueue();
 
@@ -632,9 +699,7 @@ void main() {
 
     /// 预置一份带 beat / corrections 的 markers 文件。
     Future<void> seedMarkersWithBeatAndCorrections() async {
-      await coordinator.patchMarkers(
-        (doc) => doc.withMirrored(true),
-      );
+      await coordinator.patchMarkers((doc) => doc.withMirrored(true));
       await inner.saveMarkers(
         MarkersDocument.fromJson(inner.markersSnapshot)
             .withBeat(
@@ -700,7 +765,7 @@ void main() {
 /// 前 [failMarkersWrites] 次 markers 写抛异常的假 store（写失败兜底用）。
 class _FailingStorage implements VideoDocumentStorage {
   _FailingStorage(this._inner, {required int failMarkersWrites})
-      : _remainingFailures = failMarkersWrites;
+    : _remainingFailures = failMarkersWrites;
 
   final InMemoryVideoDocumentStorage _inner;
   int _remainingFailures;
@@ -716,7 +781,8 @@ class _FailingStorage implements VideoDocumentStorage {
   Future<void> saveMarkers(Map<String, dynamic> json) async {
     if (_remainingFailures > 0) {
       _remainingFailures--;
-      throw FileSystemException('disk full');    }
+      throw FileSystemException('disk full');
+    }
     await _inner.saveMarkers(json);
   }
 
@@ -724,31 +790,29 @@ class _FailingStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _inner.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _inner.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _inner.loadLocalOrNull();
 
   @override
-  Future<void> saveLocal(Map<String, dynamic> json) =>
-      _inner.saveLocal(json);
+  Future<void> saveLocal(Map<String, dynamic> json) => _inner.saveLocal(json);
 
   @override
   Future<void> delete() => _inner.delete();
 
   @override
   Future<void> mutateMarkers(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
-  ) =>
-      _inner.mutateMarkers((json, {required bool present}) async {
-        if (_remainingFailures > 0) {
-          _remainingFailures--;
-          throw FileSystemException('disk full');
-        }
-        await apply(json, present: present);
-      });
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
+  ) => _inner.mutateMarkers((json, {required bool present}) async {
+    if (_remainingFailures > 0) {
+      _remainingFailures--;
+      throw FileSystemException('disk full');
+    }
+    await apply(json, present: present);
+  });
 
   @override
   Future<void> mutateLocal(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
-  ) =>
-      _inner.mutateLocal(apply);
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
+  ) => _inner.mutateLocal(apply);
 }

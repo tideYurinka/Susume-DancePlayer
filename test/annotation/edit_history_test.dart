@@ -2,10 +2,8 @@ import 'package:dance_learning_app/annotation/edit_history.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  EditHistory<int> record3(EditHistory<int> h) => h
-      .record(0, 1)
-      .record(1, 2)
-      .record(2, 3);
+  EditHistory<int> record3(EditHistory<int> h) =>
+      h.record(0, 1).record(1, 2).record(2, 3);
 
   group('EditHistory 纯函数（撤销/重做命令历史）', () {
     test('空历史：不可撤销不可重做，undo/redo 返回 null 且不改变历史', () {

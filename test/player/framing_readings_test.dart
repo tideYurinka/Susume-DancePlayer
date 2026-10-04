@@ -26,6 +26,8 @@ import 'package:dance_learning_app/player/beat_analysis.dart'
 import 'package:dance_learning_app/player/compare_framing_view.dart'
     show compareFramingPictureRect;
 import 'package:dance_learning_app/player/editor_skeleton.dart';
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player/framing_selection_view.dart'
     show FramingSelectionView;
 import 'package:dance_learning_app/player/framing_session_state.dart'
@@ -51,7 +53,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/android_camera_platform.dart';
-import '../helpers/beat_test_seam.dart' show hangingBeatPipeline, turnBeatAnimationOn;
+import '../helpers/beat_test_seam.dart'
+    show hangingBeatPipeline, turnBeatAnimationOn;
 import '../helpers/device_viewport.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -63,9 +66,16 @@ import '../helpers/in_memory_video_document_storage.dart';
 void main() {
   /// 真机竖屏基准（compact 档 1264×2736 @3.5 = 361.1×781.7dp）。
   const screen = Size(361.1, 781.7);
-  const trackBandHeight = 208.0;
 
-  /// 真机竖屏编辑态骨架（源 16:9）未取景的落位：画面区 265.7、带 203.12。
+  /// 紧凑档真机基准下两轨皆空：空备注轨与空局部镜像轨不占行，整带高 =
+  /// 剪裁后逐行行高之和 + 行间间隙（全行集见 [TrackRowTable.normal]）；
+  /// 画面区因此比常驻空轨时更高。
+  final trackBandHeight = TrackRowTable.normal.withoutRows(const {
+    TrackRowId.note,
+    TrackRowId.localMirror,
+  }).totalHeight;
+
+  /// 真机竖屏编辑态骨架（源 16:9）未取景的落位：画面区 351.7、带 203.12。
   final unframedSkeleton = editorSkeletonFor(
     screen: screen,
     trackBandHeight: trackBandHeight,
@@ -196,7 +206,8 @@ void main() {
 
       await applyFraming(tester, container, wideSelection);
       final framed = tester.getRect(find.byType(FramingSelectionView));
-      final expectedHeight = screen.width / wideSelection.contentAspectRatio(16 / 9);
+      final expectedHeight =
+          screen.width / wideSelection.contentAspectRatio(16 / 9);
       expect(framed.height, closeTo(expectedHeight, 0.05));
       expect(framed.height, lessThan(unframedSkeleton.pictureBandHeight));
       expect(
@@ -225,16 +236,20 @@ void main() {
       required NoteGeometry geometry,
     }) async {
       final container = await pumpPlayer(tester);
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(notes: [
-          NoteSticker(
-            startMs: 0,
-            endMs: 30000,
-            text: noteText,
-            geometry: geometry,
-          ),
-        ]),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              notes: [
+                NoteSticker(
+                  startMs: 0,
+                  endMs: 30000,
+                  text: noteText,
+                  geometry: geometry,
+                ),
+              ],
+            ),
+          );
       await tester.pumpAndSettle();
       return container;
     }
@@ -304,8 +319,14 @@ void main() {
         aspectRatio: 16 / 9,
         selection: null,
       )!;
-      expect(unframed.center.dx, closeTo(picture.left + 0.3 * picture.width, 0.5));
-      expect(unframed.center.dy, closeTo(picture.top + 0.4 * picture.height, 0.5));
+      expect(
+        unframed.center.dx,
+        closeTo(picture.left + 0.3 * picture.width, 0.5),
+      );
+      expect(
+        unframed.center.dy,
+        closeTo(picture.top + 0.4 * picture.height, 0.5),
+      );
     });
   });
 
@@ -340,7 +361,9 @@ void main() {
           ? contentRect.width
           : contentRect.height;
       final markSize = tester.getSize(mark);
-      final capped = radius < kScrubCancelZoneSize ? radius : kScrubCancelZoneSize;
+      final capped = radius < kScrubCancelZoneSize
+          ? radius
+          : kScrubCancelZoneSize;
       expect(markSize.width, closeTo(capped, 0.5));
       expect(markSize.height, closeTo(capped, 0.5));
       await gesture.up();
@@ -437,16 +460,20 @@ void main() {
   group('对比源侧半区同口径', () {
     Future<ProviderContainer> pumpCompareWithNote(WidgetTester tester) async {
       final container = await pumpPlayer(tester);
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(notes: const [
-          NoteSticker(
-            startMs: 0,
-            endMs: 30000,
-            text: '注意手',
-            geometry: NoteGeometry(centerX: 0.5, centerY: 0.5),
-          ),
-        ]),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              notes: const [
+                NoteSticker(
+                  startMs: 0,
+                  endMs: 30000,
+                  text: '注意手',
+                  geometry: NoteGeometry(centerX: 0.5, centerY: 0.5),
+                ),
+              ],
+            ),
+          );
       container
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareWatching);

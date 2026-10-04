@@ -147,10 +147,7 @@ void main() {
       [for (var i = 0; i < 9; i++) ms(i * 500)],
       {0, 4},
     );
-    final realNoDownbeat = FakeRealBeatGrid(
-      [ms(100), ms(600), ms(1100)],
-      {},
-    );
+    final realNoDownbeat = FakeRealBeatGrid([ms(100), ms(600), ms(1100)], {});
 
     test('实现各自表态：占位/秒制兜底/真实', () {
       expect(placeholder.nature, BeatGridNature.placeholder);

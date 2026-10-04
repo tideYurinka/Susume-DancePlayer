@@ -994,11 +994,7 @@ void main() {
       )!;
       h.pinchActive = true;
       handle.moveToPoint(const Offset(120, 44));
-      expect(
-        h.moves,
-        [const Offset(120, 44)],
-        reason: '冻结与否是逐族声明的既有差异：本族自己回答',
-      );
+      expect(h.moves, [const Offset(120, 44)], reason: '冻结与否是逐族声明的既有差异：本族自己回答');
     });
 
     test('横向入口转派自家帧：moveTo 把带内局部 x 包成落点（纵坐标留空）', () {

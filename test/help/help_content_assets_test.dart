@@ -129,7 +129,8 @@ void main() {
       expect(
         issues,
         isEmpty,
-        reason: '${file.path} 写坏的地方：\n${issues.map((i) => i.message).join('\n')}',
+        reason:
+            '${file.path} 写坏的地方：\n${issues.map((i) => i.message).join('\n')}',
       );
     }
   });
@@ -147,7 +148,8 @@ void main() {
       expect(
         issues,
         isEmpty,
-        reason: '${markdownFile.path} 的链接写坏：\n'
+        reason:
+            '${markdownFile.path} 的链接写坏：\n'
             '${issues.map((i) => i.message).join('\n')}',
       );
     }
@@ -160,11 +162,7 @@ void main() {
       isFalse,
       reason: '随包文案里还留着作者批注；批注会写坏 YAML 并让引导静默全空',
     );
-    expect(
-      source.contains('#'),
-      isFalse,
-      reason: '随包文案里不该有注释：验收要求是文件内不再有任何批注',
-    );
+    expect(source.contains('#'), isFalse, reason: '随包文案里不该有注释：验收要求是文件内不再有任何批注');
   });
 
   test('onboarding.yaml 可解析，且每个引导单元 id 与步 id 都有文案', () {

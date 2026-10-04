@@ -108,8 +108,9 @@ class FragmentBubbleHost extends StatefulWidget {
 
 class _FragmentBubbleHostState extends State<FragmentBubbleHost> {
   /// 锚的全局矩形 + 文本；null = 无锚（根浮层子树收起浮条）。
-  final ValueNotifier<({Rect rect, String text})?> _anchor =
-      ValueNotifier(null);
+  final ValueNotifier<({Rect rect, String text})?> _anchor = ValueNotifier(
+    null,
+  );
 
   final OverlayPortalController _portal = OverlayPortalController();
 
@@ -209,9 +210,7 @@ class FragmentActionBubble extends StatelessWidget {
           ).width,
         );
         final contentWidth =
-            kNoteBubbleHorizontalPadding * 2 +
-            kNoteBubbleEditGap +
-            actionWidth;
+            kNoteBubbleHorizontalPadding * 2 + kNoteBubbleEditGap + actionWidth;
         final maxBubbleWidth = (screenSize.width - kNoteBubbleEdgeMargin * 2)
             .clamp(0.0, double.infinity)
             .toDouble();

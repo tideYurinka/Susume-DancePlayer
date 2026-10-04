@@ -129,10 +129,12 @@ List<Onset> detectBandOnsets(
           start--;
         }
         lastAt = start;
-        onsets.add(Onset(
-          ms: math.max(0, start - groupDelay) * 1000 / sampleRate,
-          strength: env[i],
-        ));
+        onsets.add(
+          Onset(
+            ms: math.max(0, start - groupDelay) * 1000 / sampleRate,
+            strength: env[i],
+          ),
+        );
         armed = false;
       }
     } else {
@@ -169,11 +171,14 @@ List<Onset> detectBandOnsets(
   // 起音瞬态是宽带的（两频段都抬升），归属比较取起音后 8–30ms 的稳态段：
   // 真所属频段包络满幅、串扰频段回到泄漏底。
   bool ownsSteadyState(Onset o, Float32List own, Float32List other) {
-    final from =
-        ((o.ms + 8) * sampleRate / 1000).round().clamp(0, own.length - 1);
-    final to = ((o.ms + 30) * sampleRate / 1000)
-        .round()
-        .clamp(from + 1, own.length);
+    final from = ((o.ms + 8) * sampleRate / 1000).round().clamp(
+      0,
+      own.length - 1,
+    );
+    final to = ((o.ms + 30) * sampleRate / 1000).round().clamp(
+      from + 1,
+      own.length,
+    );
     var ownMax = 0.0;
     var otherMax = 0.0;
     for (var i = from; i < to; i++) {
@@ -309,8 +314,7 @@ DualPhaseReport analyzePhaseRecording(
   double toleranceMs = 100,
 }) {
   final beatMs = 60000 / bpm;
-  final expected = List.generate(
-      beats, (i) => startOffsetMs + i * beatMs);
+  final expected = List.generate(beats, (i) => startOffsetMs + i * beatMs);
   final separated = detectSeparatedOnsets(
     samples,
     sampleRate,
@@ -352,7 +356,8 @@ class SchedulingTraceStats {
   final double maxLeadMs;
 
   @override
-  String toString() => '指令$count条 提前量中位数='
+  String toString() =>
+      '指令$count条 提前量中位数='
       '${medianLeadMs.toStringAsFixed(1)}ms '
       '[${minLeadMs.toStringAsFixed(1)}, ${maxLeadMs.toStringAsFixed(1)}]';
 }
@@ -372,8 +377,8 @@ enum SchedulingVerdict {
   noTrace,
 }
 
-final double _kLookaheadMs =
-    kMetronomeLookaheadWindow.inMilliseconds.toDouble();
+final double _kLookaheadMs = kMetronomeLookaheadWindow.inMilliseconds
+    .toDouble();
 
 SchedulingVerdict classifyScheduling(SchedulingTraceStats stats) {
   if (stats.count == 0) return SchedulingVerdict.noTrace;

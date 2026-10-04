@@ -41,12 +41,13 @@ List<BeatTick> beatTrackTicks(
   required BeatPhase phase,
 }) {
   final firstDownbeat = grid.firstDownbeatIndex;
-  final eightBarTimes = Set<Duration>.of(
-    phase.pointsInWindow(start, end),
-  );
+  final eightBarTimes = Set<Duration>.of(phase.pointsInWindow(start, end));
   return [
     for (final time in grid.beatsInWindow(start, end))
-      BeatTick(time: time, tier: _tierOf(grid, time, firstDownbeat, eightBarTimes)),
+      BeatTick(
+        time: time,
+        tier: _tierOf(grid, time, firstDownbeat, eightBarTimes),
+      ),
   ];
 }
 
@@ -168,7 +169,8 @@ List<BeatEightCountLabel> beatEightCountLabels({
   // 足够）→ 可放。
   var minGapPx = double.infinity;
   for (var i = 1; i < candidates.length; i++) {
-    final gapPx = (candidates[i].time - candidates[i - 1].time).inMicroseconds /
+    final gapPx =
+        (candidates[i].time - candidates[i - 1].time).inMicroseconds /
         microsecondsPerPixel;
     if (gapPx < minGapPx) minGapPx = gapPx;
   }
@@ -200,11 +202,7 @@ double? segmentEightBeatCount({
   required BeatPhase phase,
 }) {
   if (!grid.hasRealBeats || end <= start) return null;
-  final intervals = eightBeatIntervals(
-    phase,
-    start,
-    end,
-  );
+  final intervals = eightBeatIntervals(phase, start, end);
   if (intervals.isEmpty) return null;
   if (intervals.first.start != start || intervals.last.end != end) return null;
   var total = 0.0;

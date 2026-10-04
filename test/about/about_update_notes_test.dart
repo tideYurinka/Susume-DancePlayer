@@ -21,11 +21,7 @@ void main() {
     expect(uri.scheme, 'https');
     expect(uri.host, 'susume.yurinka.top', reason: '官网下载页的固定地址');
     expect(uri.path, '/download/', reason: '落点是下载页');
-    expect(
-      uri.fragment,
-      isNotEmpty,
-      reason: '地址带更新说明锚点，浏览器落在锚点上即展开那一块',
-    );
+    expect(uri.fragment, isNotEmpty, reason: '地址带更新说明锚点，浏览器落在锚点上即展开那一块');
   });
 
   testWidgets('点「更新说明」把下载页的更新说明锚点交系统浏览器打开', (tester) async {

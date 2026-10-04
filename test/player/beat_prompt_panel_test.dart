@@ -119,10 +119,7 @@ void main() {
     await tester.tap(find.byKey(const Key('beat_entry')));
     await tester.pumpAndSettle();
     if (animationOn && !container.read(beatPromptEnabledProvider)) {
-      await tapPanel(
-        tester,
-        find.byKey(const Key('beat_panel_prompt_switch')),
-      );
+      await tapPanel(tester, find.byKey(const Key('beat_panel_prompt_switch')));
       await tester.pumpAndSettle();
     }
     return container;
@@ -444,7 +441,10 @@ void main() {
     testWidgets('横屏窄高：最占高（两组都开）内容一次全显、无纵向滚动', (tester) async {
       // 真机横屏窄高主场景（如 2736×1264 横屏逻辑高 ≈ 300–400）——短高视口
       // 下最占高态也不依赖纵向滚动兜底（目标内容高 ≤~170）。
-      tester.view.physicalSize = const Size(2600, 800); // 合成档 1300.0×400.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        2600,
+        800,
+      ); // 合成档 1300.0×400.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0; // 逻辑 1300×400
       addTearDown(tester.view.reset);
       await openPanel(tester);
@@ -537,7 +537,10 @@ void main() {
     testWidgets('中心锚点：屏内放得下时气泡水平中心对齐入口锚点', (tester) async {
       // 宽屏（1600）避开钳位/兜底缩放；入口离左缘足够远（紧凑后
       // 气泡 760 宽居中需左缘 ≥8），验证纯中心对齐语义。
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -568,8 +571,7 @@ void main() {
       expect(BeatPromptBubbleContent.columnSeparatorXs(), [166.0, 387.0]);
     });
 
-    testWidgets('分隔线画笔 shouldRepaint 按内容比较：同内容重建不重绘',
-        (tester) async {
+    testWidgets('分隔线画笔 shouldRepaint 按内容比较：同内容重建不重绘', (tester) async {
       await openPanel(tester);
 
       CustomPainter vsep() => tester
@@ -592,16 +594,15 @@ void main() {
         isFalse,
         reason: '每次重建都是新画笔实例（旧实现比较 List 身份故恒重绘）',
       );
-      expect(
-        after.shouldRepaint(before),
-        isFalse,
-        reason: '分隔线内容相同 → 不重绘',
-      );
+      expect(after.shouldRepaint(before), isFalse, reason: '分隔线内容相同 → 不重绘');
     });
 
     testWidgets('读数变化列宽恒定：音量读数变化只变读数内容，'
         '列宽与气泡总宽纹丝不动', (tester) async {
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       // 入口离左缘足够远，避开钳位平移干扰宽度观感。
@@ -642,7 +643,10 @@ void main() {
       // 行内横向溢出（溢出会抛 RenderFlex overflow，测试即失败）。
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      tester.view.physicalSize = const Size(2600, 800); // 合成档 1300.0×400.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        2600,
+        800,
+      ); // 合成档 1300.0×400.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0; // 逻辑 1300×400 窄高横屏。
       addTearDown(tester.view.reset);
       await openPanel(tester);
@@ -734,7 +738,9 @@ void main() {
 
       // 组名总开关（命中盒撑到下限；视觉开关件仍居中紧凑）。
       expect(
-        tester.getSize(find.byKey(const Key('beat_panel_prompt_switch'))).height,
+        tester
+            .getSize(find.byKey(const Key('beat_panel_prompt_switch')))
+            .height,
         greaterThanOrEqualTo(kHitTargetMinSize),
         reason: '组名 Switch 行盒 = 命中盒，≥48（紧凑档 → 命中下限）',
       );
@@ -761,13 +767,19 @@ void main() {
       );
       // 音源行（Dropdown dense）维持 24 量级、不被撑高。
       expect(
-        tester.getSize(find.byKey(const Key('beat_panel_sound_source_row'))).height,
+        tester
+            .getSize(find.byKey(const Key('beat_panel_sound_source_row')))
+            .height,
         lessThanOrEqualTo(28),
       );
     });
 
     testWidgets('整泡高度：第三列菜单列钉住整泡高（声音展开不再变高）；列宽与总宽恒定', (tester) async {
-      useNamedViewport(tester, ViewportTier.compact, landscape: true); // compact 横屏逻辑 781.7×361.1dp。
+      useNamedViewport(
+        tester,
+        ViewportTier.compact,
+        landscape: true,
+      ); // compact 横屏逻辑 781.7×361.1dp。
       await openPanel(tester);
 
       double w(Key k) => tester.getSize(find.byKey(k)).width;
@@ -795,7 +807,11 @@ void main() {
     });
 
     testWidgets('compact 档横屏（782 量级）：气泡一次完整放下零缩放、总宽 ≤766', (tester) async {
-      useNamedViewport(tester, ViewportTier.compact, landscape: true); // compact 横屏逻辑 781.7×361.1dp。
+      useNamedViewport(
+        tester,
+        ViewportTier.compact,
+        landscape: true,
+      ); // compact 横屏逻辑 781.7×361.1dp。
       await openPanel(tester);
       await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
       await tester.pumpAndSettle();
@@ -810,8 +826,11 @@ void main() {
       // 实测内容宽 = 自然宽（beat_prompt_panel 键在壳 Padding 内侧）；
       // 未被兜底等比缩小（缩放会等比缩实测宽）。
       final panel = tester.getRect(find.byKey(const Key('beat_prompt_panel')));
-      expect(panel.width, closeTo(BeatPromptBubbleContent.contentWidth, 0.5),
-          reason: '横屏 782 一次放下、scale = 1（无兜底缩小）');
+      expect(
+        panel.width,
+        closeTo(BeatPromptBubbleContent.contentWidth, 0.5),
+        reason: '横屏 782 一次放下、scale = 1（无兜底缩小）',
+      );
       expect(panel.right, lessThanOrEqualTo(782));
     });
 
@@ -825,7 +844,10 @@ void main() {
 
       // 最展开态全内容在场（溢出会抛 RenderFlex overflow 使测试失败）。
       expect(find.byKey(const Key('beat_panel_prompt_switch')), findsOneWidget);
-      expect(find.byKey(const Key('beat_panel_half_beat_switch')), findsOneWidget);
+      expect(
+        find.byKey(const Key('beat_panel_half_beat_switch')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('beat_panel_volume_row')), findsOneWidget);
       // 第三列节拍矫正菜单列两入口 + 两行使用提示齐（大字号下不换行
       // 不溢出，超宽以省略号收尾）。
@@ -837,7 +859,10 @@ void main() {
         find.byKey(const Key('beat_correction_eight_beat_button')),
         findsOneWidget,
       );
-      expect(find.byKey(const Key('beat_correction_align_hint')), findsOneWidget);
+      expect(
+        find.byKey(const Key('beat_correction_align_hint')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key('beat_correction_eight_beat_hint')),
         findsOneWidget,
@@ -1016,10 +1041,10 @@ void main() {
       final separators = find.byKey(const Key('beat_stacked_separator'));
       expect(separators, findsNWidgets(2));
       final separatorSize = tester.getSize(separators.first);
-      expect(separatorSize.width, closeTo(
-        BeatPromptBubbleContent.stackedContentWidth,
-        0.5,
-      ));
+      expect(
+        separatorSize.width,
+        closeTo(BeatPromptBubbleContent.stackedContentWidth, 0.5),
+      );
       expect(separatorSize.height, BeatPromptBubbleContent.colGap);
 
       // 三段内部形态不变：总开关、音源/半拍/音量、菜单列两入口。
@@ -1184,7 +1209,9 @@ void main() {
       await restored
           .read(beatAnimationStyleDefaultProvider.notifier)
           .restoreDone;
-      await restored.read(metronomeSoundTypeDefaultProvider.notifier).restoreDone;
+      await restored
+          .read(metronomeSoundTypeDefaultProvider.notifier)
+          .restoreDone;
       await restored
           .read(metronomeHalfBeatEnabledDefaultProvider.notifier)
           .restoreDone;
@@ -1270,10 +1297,11 @@ void main() {
   group('面板读写生效值并写进这支舞的记忆', () {
     /// 读面板上某枚 Switch 的当前读数（UI 实显值，即生效值）。键挂在透明
     /// 命中盒上，Switch 是其子件。
-    bool switchValue(WidgetTester tester, Key key) =>
-        tester.widget<Switch>(
+    bool switchValue(WidgetTester tester, Key key) => tester
+        .widget<Switch>(
           find.descendant(of: find.byKey(key), matching: find.byType(Switch)),
-        ).value;
+        )
+        .value;
 
     /// 读面板形态分段的选中项（UI 实显值，即生效值）。
     Set<BeatAnimationStyle> selectedStyle(WidgetTester tester) => tester
@@ -1283,15 +1311,13 @@ void main() {
         .selected;
 
     /// 读面板音源下拉的当前值（UI 实显值，即生效值）。
-    MetronomeSoundType soundSourceValue(WidgetTester tester) =>
-        tester
-            .widget<DropdownButton<MetronomeSoundType>>(
-              find.byKey(const Key('beat_panel_sound_source_select')),
-            )
-            .value!;
+    MetronomeSoundType soundSourceValue(WidgetTester tester) => tester
+        .widget<DropdownButton<MetronomeSoundType>>(
+          find.byKey(const Key('beat_panel_sound_source_select')),
+        )
+        .value!;
 
-    testWidgets('无记忆舞的面板读数来自生效值：形态/半拍回落设备级「新舞默认」当前值',
-        (tester) async {
+    testWidgets('无记忆舞的面板读数来自生效值：形态/半拍回落设备级「新舞默认」当前值', (tester) async {
       final container = await pumpHost(tester);
       addTearDown(container.dispose);
       // 设备级默认 = 用户上次选择：摆锤 + 半拍关（无记忆舞按它生效）。
@@ -1324,8 +1350,7 @@ void main() {
       );
     });
 
-    testWidgets('有记忆舞的面板读数来自记忆，设备级那一层不再影响这一支舞',
-        (tester) async {
+    testWidgets('有记忆舞的面板读数来自记忆，设备级那一层不再影响这一支舞', (tester) async {
       final container = await pumpHost(tester);
       addTearDown(container.dispose);
       container
@@ -1352,10 +1377,7 @@ void main() {
         isTrue,
       );
       expect(selectedStyle(tester), {BeatAnimationStyle.pendulum});
-      expect(
-        switchValue(tester, const Key('beat_panel_sound_switch')),
-        isTrue,
-      );
+      expect(switchValue(tester, const Key('beat_panel_sound_switch')), isTrue);
       expect(
         switchValue(tester, const Key('beat_panel_half_beat_switch')),
         isFalse,
@@ -1411,10 +1433,7 @@ void main() {
       expect(container.read(metronomeHalfBeatEnabledDefaultProvider), isFalse);
 
       // 总开关再扳回关：记忆跟着翻回关（下次打开这支舞仍是关）。
-      await tapPanel(
-        tester,
-        find.byKey(const Key('beat_panel_prompt_switch')),
-      );
+      await tapPanel(tester, find.byKey(const Key('beat_panel_prompt_switch')));
       await tester.pumpAndSettle();
       expect(container.read(beatPromptMemoryProvider)?.animation, isFalse);
     });

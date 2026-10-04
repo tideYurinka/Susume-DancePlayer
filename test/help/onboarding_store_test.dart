@@ -18,7 +18,8 @@ class _FailingPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) async => throw StateError('无平台通道');
 }
 
@@ -41,7 +42,8 @@ class _CountingPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) => _inner.mutate(mutate);
 }
 
@@ -214,7 +216,10 @@ void main() {
     final flags = snapshot['onboarding'] as Map;
     expect(flags['badgeCompare'], isTrue, reason: '不迁移、不改写已撤单元的旧键');
     expect(flags['firstRun'], isFalse);
-    expect(flags.keys.toSet(), {...onboardingFlagFields.values, 'badgeCompare'});
+    expect(flags.keys.toSet(), {
+      ...onboardingFlagFields.values,
+      'badgeCompare',
+    });
     expect(snapshot['mirrorDefault'], isTrue, reason: '重置只动引导状态位');
   });
 }

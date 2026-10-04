@@ -21,7 +21,8 @@ class BeatDbnNative {
     Pointer<Int32> bndOfState,
     Pointer<Uint16> btOut,
     Pointer<Double> finalScores,
-  ) _viterbi;
+  )
+  _viterbi;
 
   static BeatDbnNative? _instance;
 

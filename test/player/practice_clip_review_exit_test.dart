@@ -14,8 +14,10 @@ import 'package:dance_learning_app/core/private_json.dart'
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/material_manifest.dart'
-    show MaterialManifestStore, materialManifestStorageProvider,
-    materialRecordingFileResolverProvider;
+    show
+        MaterialManifestStore,
+        materialManifestStorageProvider,
+        materialRecordingFileResolverProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
@@ -30,7 +32,8 @@ import 'package:dance_learning_app/player/compare_recording.dart'
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/practice_clip_playback.dart'
     show practiceClipEngineProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player/track_band.dart';
 import 'package:dance_learning_app/player/track_row_table.dart';
 import 'package:dance_learning_app/player_session/player_session.dart'
@@ -43,6 +46,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/android_camera_platform.dart';
 import '../helpers/beat_test_seam.dart';
+import '../helpers/compare_framing_harness.dart' show tapFramingEntry;
 import '../helpers/track_band_session_harness.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -201,7 +205,10 @@ void main() {
     late File materialOutputFile;
 
     Future<ProviderContainer> pumpPlayer(WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
       final source = Uri.file('/videos/a.mp4');
@@ -277,7 +284,9 @@ void main() {
 
     setUp(() async {
       engine = FakePlaybackEngine(duration: const Duration(seconds: 60));
-      practiceEngine = FakePlaybackEngine(duration: const Duration(seconds: 20));
+      practiceEngine = FakePlaybackEngine(
+        duration: const Duration(seconds: 20),
+      );
       camera = FakeCameraCaptureService();
       systemUi = FakeSystemUi();
       manifestStorage = MemoryManifestStorage();
@@ -370,9 +379,10 @@ void main() {
       await collapseToCompareWatching(tester);
 
       await singleTapShow(tester);
-      // 「取景」槽已退役：进取景调节态经顶栏
-      // 「取景调整」入口（对比-控制层分派到分屏路径）。
-      await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+      // 「取景」槽已退役：进取景调节态经生效顶栏
+      // 「取景调整」入口（对比-控制层分派到分屏路径）；本视口是紧凑档
+      // 横屏，这枚入口由「更多」钮的向上弹出菜单承载。
+      await tapFramingEntry(tester);
       await tester.pumpAndSettle();
       expect(
         container.read(playerSessionProvider).mode,

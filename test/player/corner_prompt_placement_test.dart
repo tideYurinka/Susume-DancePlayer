@@ -5,7 +5,8 @@ import 'package:dance_learning_app/annotation/annotation_timeline.dart'
 import 'package:dance_learning_app/annotation/note_sticker.dart'
     show NoteSticker;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
-import 'package:dance_learning_app/core/beat_grid.dart' show placeholderBeatGrid;
+import 'package:dance_learning_app/core/beat_grid.dart'
+    show placeholderBeatGrid;
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/core/video_identity.dart' show ContentHasher;
@@ -27,6 +28,10 @@ import 'package:dance_learning_app/player/notice.dart'
 import 'package:dance_learning_app/player/note_editor.dart'
     show NoteTextEditorPanel, noteTextEditorTargetProvider;
 import 'package:dance_learning_app/player/player_page.dart';
+import 'package:dance_learning_app/player/editor_skeleton.dart'
+    show kEditorToolbarHeight;
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player/practice_clip_playback.dart'
     show practiceClipEngineProvider;
 import 'package:dance_learning_app/player/resume_position.dart'
@@ -72,6 +77,16 @@ void main() {
   /// 号机竖屏基准屏与横屏基准屏（padding 为 0，逻辑尺寸即实数）。
   const portrait = Size(361.1, 781.7);
   const landscape = Size(781.7, 361.1);
+
+  /// 编辑态紧凑档两轨皆空时的整带高（备注轨与局部镜像轨不占行）。
+  final compactEmptyBandHeight = TrackRowTable.normal.withoutRows(const {
+    TrackRowId.note,
+    TrackRowId.localMirror,
+  }).totalHeight;
+
+  /// 横屏紧凑档（两轨皆空）的占用区上缘 = 屏高 − 底栏 52 − 整带高。
+  final landscapeCompactChromeTop =
+      landscape.height - kEditorToolbarHeight - compactEmptyBandHeight;
 
   /// 单击唤出控制层（等自定义双击识别器判定孤立单击）。
   Future<void> singleTapShow(WidgetTester tester) async {
@@ -138,12 +153,15 @@ void main() {
   }
 
   /// 竖屏编辑态的卡角基准（号机 361.1 × 781.7dp）：贴画面左缘 +24、底边抬到
-  /// 占用区上缘（画面区下缘 317.7 = 顶栏 52 + 画面区 265.7）之上 24dp——
-  /// 横向源与竖向源同一条落位。
+  /// 占用区上缘之上 24dp——横向源与竖向源同一条落位。
+  ///
+  /// 占用区上缘 = 画面区下缘 403.7 = 顶栏 52 + 画面区 351.7：紧凑档下两轨
+  /// 皆空（本组用例不落备注、不落镜像片段），空备注轨与空局部镜像轨不占行，
+  /// 整带高 122 而非全行集 208，画面区因此比常驻空轨时高 86dp。
   Rect expectPortraitEditingCorner(WidgetTester tester, Finder card) {
     final rect = tester.getRect(card);
     expect(rect.left, closeTo(24, 0.01), reason: '左 = 画面左缘 + 24');
-    expect(rect.bottom, closeTo(317.7 - 24, 0.05), reason: '底 = 占用区上缘 − 24');
+    expect(rect.bottom, closeTo(403.7 - 24, 0.05), reason: '底 = 占用区上缘 − 24');
     return rect;
   }
 
@@ -187,7 +205,9 @@ void main() {
                 ),
               ),
             ),
-            contentHasherProvider.overrideWithValue(const _FixedHasher('seeded')),
+            contentHasherProvider.overrideWithValue(
+              const _FixedHasher('seeded'),
+            ),
             videoDocumentStorageFactoryProvider.overrideWithValue(
               (videoId) => InMemoryVideoDocumentStorage(),
             ),
@@ -227,11 +247,7 @@ void main() {
         closeTo(492.4 - 24, 0.05),
         reason: '底 = 画面底边 − 24（基准不再是屏幕左下角）',
       );
-      expect(
-        781.7 - rect.bottom,
-        greaterThan(300),
-        reason: '卡离屏幕底 300dp 以上',
-      );
+      expect(781.7 - rect.bottom, greaterThan(300), reason: '卡离屏幕底 300dp 以上');
       // 收窄后卡只占画面窄窄一条：画面 361.1 × 203.1dp。
       expect(
         rect.width / 361.1,
@@ -261,7 +277,7 @@ void main() {
       await tester.pump(const Duration(seconds: 4));
       expect(find.byKey(const Key('loop_prompt')), findsOneWidget);
 
-      // 画面带底 317.7 = 画面区下缘：卡底抬到占用区上缘之上 24dp。
+      // 画面带底 403.7 = 画面区下缘：卡底抬到占用区上缘之上 24dp。
       final rect = expectPortraitEditingCorner(
         tester,
         find.byKey(const Key('loop_prompt')),
@@ -337,8 +353,7 @@ void main() {
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
     });
 
-    testWidgets('编辑态层序与命中顺序：控制层 → 两张提示卡 → 备注文本编辑器 → 屏幕中央提示',
-        (tester) async {
+    testWidgets('编辑态层序与命中顺序：控制层 → 两张提示卡 → 备注文本编辑器 → 屏幕中央提示', (tester) async {
       final engine = FakePlaybackEngine(
         duration: const Duration(seconds: 30),
         videoAspectRatio: 16 / 9,
@@ -355,12 +370,18 @@ void main() {
       await singleTapShow(tester);
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
 
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(
-          timeline: AnnotationTimeline.wholeVideo(const Duration(seconds: 30)),
-          notes: [const NoteSticker(startMs: 10000, endMs: 14000, text: '')],
-        ),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              timeline: AnnotationTimeline.wholeVideo(
+                const Duration(seconds: 30),
+              ),
+              notes: [
+                const NoteSticker(startMs: 10000, endMs: 14000, text: ''),
+              ],
+            ),
+          );
       container.read(noteTextEditorTargetProvider.notifier).open(10000);
       await tester.pump();
       expect(find.byKey(const Key('note_text_editor')), findsOneWidget);
@@ -376,7 +397,9 @@ void main() {
       expect(find.byKey(const Key('resume_prompt_card')), findsOneWidget);
 
       // 屏幕中央短暂提示在场（整页最后绘制的那条）。
-      container.read(noticeTriggerProvider(NoticeId.layoutLock).notifier).show();
+      container
+          .read(noticeTriggerProvider(NoticeId.layoutLock).notifier)
+          .show();
       await tester.pump();
       expect(find.text('已锁定分段'), findsOneWidget);
 
@@ -387,18 +410,25 @@ void main() {
         find.byType(ControlLayer),
         find.byKey(const Key('loop_prompt')),
       );
-      int layerIndex(Finder layer) => paintIndexOf(stack, tester.element(layer));
+      int layerIndex(Finder layer) =>
+          paintIndexOf(stack, tester.element(layer));
 
       final controlIndex = layerIndex(find.byType(ControlLayer));
       final loopIndex = layerIndex(find.byKey(const Key('loop_prompt')));
-      final resumeIndex = layerIndex(find.byKey(const Key('resume_prompt_card')));
+      final resumeIndex = layerIndex(
+        find.byKey(const Key('resume_prompt_card')),
+      );
       final editorIndex = layerIndex(find.byType(NoteTextEditorPanel));
       final noticeIndex = layerIndex(find.text('已锁定分段'));
       expect(loopIndex, greaterThan(controlIndex), reason: '循环提示卡在控制层之上');
       expect(resumeIndex, greaterThan(controlIndex), reason: '续播小卡在控制层之上');
       expect(editorIndex, greaterThan(loopIndex), reason: '备注文本编辑器面在两张卡之上');
       expect(editorIndex, greaterThan(resumeIndex), reason: '备注文本编辑器面在两张卡之上');
-      expect(noticeIndex, greaterThan(editorIndex), reason: '屏幕中央提示在备注文本编辑器面之上');
+      expect(
+        noticeIndex,
+        greaterThan(editorIndex),
+        reason: '屏幕中央提示在备注文本编辑器面之上',
+      );
 
       final card = tester.getRect(find.byKey(const Key('loop_prompt')));
 
@@ -428,7 +458,14 @@ void main() {
 
       // 命中顺序之三：编辑器收起后卡自身矩形接管点按（卡矩形内的一处空白点按
       // 只算对卡的操作），卡外的空白落点照常由控制层空白手势面接管。
-      await tapAtAndSettle(tester, Offset(card.left + 8, card.center.dy));
+      // 编辑器「归一国空即删」：收起后备注清单清空，紧凑档下空备注轨不再
+      // 占行，整带变矮、占用区上缘下移，卡的锚随之落定到新位置——故点按前
+      // 重新读一次卡矩形。
+      final restingCard = tester.getRect(find.byKey(const Key('loop_prompt')));
+      await tapAtAndSettle(
+        tester,
+        Offset(restingCard.left + 8, restingCard.center.dy),
+      );
       expect(
         find.byKey(const Key('control_layer')),
         findsOneWidget,
@@ -436,7 +473,10 @@ void main() {
       );
       expect(find.byKey(const Key('loop_prompt')), findsOneWidget);
 
-      await tapAtAndSettle(tester, Offset(card.left + 8, card.top - 40));
+      await tapAtAndSettle(
+        tester,
+        Offset(restingCard.left + 8, restingCard.top - 40),
+      );
       expect(
         find.byKey(const Key('control_layer')),
         findsNothing,
@@ -444,7 +484,7 @@ void main() {
       );
     });
 
-    testWidgets('横屏编辑态：本次不画卡，尾点倒计时照常（八拍后自动循环）', (tester) async {
+    testWidgets('横屏编辑态（紧凑档两轨皆空）：中带让出两条空轨后放得下卡，尾点倒计时照常', (tester) async {
       final engine = FakePlaybackEngine(
         duration: const Duration(seconds: 3),
         videoAspectRatio: 16 / 9,
@@ -453,10 +493,22 @@ void main() {
       await singleTapShow(tester);
       await tester.pump(const Duration(seconds: 4));
       expect(engine.isPlaying, isFalse, reason: '前置：播放到尾停在尾点');
+      // 紧凑档下两轨皆空：空备注轨与空局部镜像轨不占行，整带高取
+      // [compactEmptyBandHeight]，中带多出的部分正是全行集与它的差——
+      // 原先放不下的卡此刻放得下。
+      final card = tester.getRect(find.byKey(const Key('loop_prompt')));
       expect(
-        find.byKey(const Key('loop_prompt')),
-        findsNothing,
-        reason: '中带只剩 49.1dp：放不下就不画',
+        card.bottom,
+        closeTo(landscapeCompactChromeTop - 24, 0.05),
+        reason: '底 = 占用区上缘 − 24',
+      );
+      expect(card.top, greaterThanOrEqualTo(52), reason: '不压顶栏');
+      expect(
+        card.bottom,
+        lessThanOrEqualTo(
+          tester.getRect(find.byKey(const Key('track_band'))).top,
+        ),
+        reason: '不压轨道带',
       );
 
       await tester.pump(placeholderBeatGrid.beatsDuration(8));
@@ -568,7 +620,9 @@ void main() {
       expect(find.byKey(const Key('resume_prompt_card')), findsOneWidget);
 
       final loop = tester.getRect(find.byKey(const Key('loop_prompt')));
-      final resume = tester.getRect(find.byKey(const Key('resume_prompt_card')));
+      final resume = tester.getRect(
+        find.byKey(const Key('resume_prompt_card')),
+      );
       expect(resume.left, loop.left);
       expect(resume.bottom, loop.bottom);
       expect(loop.left, closeTo(24, 0.01));

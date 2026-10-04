@@ -63,6 +63,7 @@ class EventEditorPage extends StatefulWidget {
     required this.day,
     required this.dances,
     required this.initial,
+    this.today,
   });
 
   /// 事件日（新建的默认日期）。
@@ -73,12 +74,15 @@ class EventEditorPage extends StatefulWidget {
 
   final PlanEvent? initial;
 
+  /// 滚轮年列基准日（装配层传设备时钟读面）；默认今天。
+  final DateTime? today;
+
   @override
   State<EventEditorPage> createState() => EventEditorPageState();
 }
 
 class EventEditorPageState extends State<EventEditorPage> {
-  late final DateTime _today = localDay(DateTime.now());
+  late final DateTime _today = localDay(widget.today ?? DateTime.now());
   late DateTime _date = planDateWheelClampDay(
     widget.initial?.date ?? widget.day,
     today: _today,
@@ -216,6 +220,7 @@ class TeamCheckEditorPage extends StatefulWidget {
     required this.day,
     required this.dances,
     required this.initial,
+    this.today,
   });
 
   /// 事件日（新建的默认日期）。
@@ -226,12 +231,15 @@ class TeamCheckEditorPage extends StatefulWidget {
 
   final PlanEvent? initial;
 
+  /// 滚轮年列基准日（装配层传设备时钟读面）；默认今天。
+  final DateTime? today;
+
   @override
   State<TeamCheckEditorPage> createState() => TeamCheckEditorPageState();
 }
 
 class TeamCheckEditorPageState extends State<TeamCheckEditorPage> {
-  late final DateTime _today = localDay(DateTime.now());
+  late final DateTime _today = localDay(widget.today ?? DateTime.now());
   late DateTime _date = planDateWheelClampDay(
     widget.initial?.date ?? widget.day,
     today: _today,

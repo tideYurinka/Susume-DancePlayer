@@ -109,8 +109,7 @@ import '../help/content_registry.dart'
         practiceRangeUnitId,
         segmentLineAnchorKeyBase;
 import '../help/guide_anchor.dart' show GuideAnchor, GuideBadgeTrigger;
-import '../help/guide_state.dart'
-    show GuideSessionState, guideSessionProvider;
+import '../help/guide_state.dart' show GuideSessionState, guideSessionProvider;
 import 'annotation_editor.dart'
     show
         AnnotationGestureTarget,
@@ -275,8 +274,8 @@ class TrackBandInput {
 ///
 /// **行集驱动**：本带渲染哪些行、什么次序、各行多高与行间间隙，全部由
 /// 输入值对象的 [TrackBandInput.rowTable]（行集）给出；整带高由行集派生
-/// （[TrackRowTable.totalHeight]），读取面 [TrackBand.height] 是缺省行集
-/// `normal` 下的同一派生（非缺省行集的带高在 build 内直接读行集）。本控件
+/// （[TrackRowTable.totalHeight]），本控件不另立读取面——带高随视口档与
+/// 两轨现势片段数变，只有构造点传给它的那一份行集说得准。本控件
 /// 对「当前处于哪种模式」保持无知——「某态下有哪些行」由构造点传哪份行集
 /// 表达，换行集不改本控件。
 ///
@@ -305,12 +304,6 @@ class TrackBand extends ConsumerStatefulWidget {
   /// 本带挂载所需的全部外部事实（见 [TrackBandInput]）。
   final TrackBandInput input;
 
-  /// 带高读取面：缺省行集 `normal` 派生的整带高
-  /// （Σ行高 + 间隙 × (行数 − 1)），数值逐位沿用今天（四行 + 3 × 轨间隔）。
-  /// 非缺省行集的带高由 [TrackBandInput.rowTable] 派生（build 内直接读
-  /// totalHeight）。
-  static double get height => TrackRowTable.normal.totalHeight;
-
   @override
   ConsumerState<TrackBand> createState() => _TrackBandState();
 }
@@ -325,9 +318,8 @@ enum _VideoRangeDrag { start, end }
 
 /// 非空锚点 key 时给 [child] 包一层锚点包装器（null 原样返回）——菜单类四
 /// 条角标只在实物就是刚落成的那一个时才包，其余时刻被包内容逐位不变。
-Widget _guideAnchored(String? anchorKey, Widget child) => anchorKey == null
-    ? child
-    : GuideAnchor(anchorKey: anchorKey, child: child);
+Widget _guideAnchored(String? anchorKey, Widget child) =>
+    anchorKey == null ? child : GuideAnchor(anchorKey: anchorKey, child: child);
 
 /// 拖动态 → 选中端标映射：start/end 拖动态各自对应同端标选中；
 /// none 不参与（选中态不含「无」）。
@@ -455,48 +447,48 @@ class _TrackBandState extends ConsumerState<TrackBand>
 
   late final TrackBandDragSession _dragDomain = TrackBandDragSession(
     families: _dragFamilies
-        // 镜像整体移 / 端点拖：两族声明条目已
-        // **随族**搬到局部镜像轨域——该域在自己的按族登记处把声明登记进本
-        // 拖动域的共享注册表，本处不再拼表。
-        // 备注整体移 / 端点拖两族的声明条目随备注轨域走：
-        // 由 `track_note_row.dart` 在自己的登记点经本注册入口
-        // 登记，带内不再有该族的声明条目与包装。
-        // 半拍线移动一族的声明条目随半拍线覆盖层（`track_beat_ticks.dart`）
-        // 走：节拍刻度域在自己的按族登记处登记，带内不再有该族的条目。
-        // 预览线拖动（第九族）：**没有模块事务**
-        // ——seek 不是编辑命令，`beginSession` 因此留空（请求即落点）；准入 =
-        // 本次起手的带内局部 x 落在预览线命中列内（接管只从轨道手柄带的控制柄
-        // 起手路径发起，起手方在那一域——它只问本域「这一族接不接」）；换算与
-        // 落点消费是两条声明钩子。
-        ..register(
-          AnnotationGestureTarget.previewLineDrag,
-          TrackBandDragDeclaration(
-            // 装载未完成门只挡写盘入口；本族是 seek，起从不读这道门
-            // （如实入表，不顺手统一）。
-            respectLoadGate: false,
-            toTime: (localX, _) => _previewLineSeekTarget(localX),
-            admit: (_, localX) => _previewLineColumnAt(localX),
-            onBegin: (_) => _selectionDomain.clear(),
-            onFrame: _consumePreviewLineSeek,
-            onEnd: _endPreviewLineDragVisuals,
-          ),
-        )
-        // 学习段圈选（第十族）：**自家帧族**——它改的是选中集合而不是
-        // 时间落点，逐帧与提交、取消两条收口都由族自己的帧解释。命中解析留在
-        // 带侧（目标身份承载解析出的段序），故这里只建帧。
-        ..register(
-          AnnotationGestureTarget.learningTrackTap,
-          TrackBandDragDeclaration(
-            // 混区 burst 让位：本族与练习片段截取族同样有此判定，如实入表。
-            yieldOnMixedBurst: true,
-            // 双指半途加入本族**回滚取消**（不是其余族的「冻结」）：这条既有
-            // 差异由族自己的帧回答，域不代它冻结。
-            freezeOnPinch: false,
-            beginFrame: _beginLearningSpanFrame,
-            onBegin: (_) =>
-                unawaited(ref.read(selectionHapticProvider).selectionImpact()),
-          ),
+      // 镜像整体移 / 端点拖：两族声明条目已
+      // **随族**搬到局部镜像轨域——该域在自己的按族登记处把声明登记进本
+      // 拖动域的共享注册表，本处不再拼表。
+      // 备注整体移 / 端点拖两族的声明条目随备注轨域走：
+      // 由 `track_note_row.dart` 在自己的登记点经本注册入口
+      // 登记，带内不再有该族的声明条目与包装。
+      // 半拍线移动一族的声明条目随半拍线覆盖层（`track_beat_ticks.dart`）
+      // 走：节拍刻度域在自己的按族登记处登记，带内不再有该族的条目。
+      // 预览线拖动（第九族）：**没有模块事务**
+      // ——seek 不是编辑命令，`beginSession` 因此留空（请求即落点）；准入 =
+      // 本次起手的带内局部 x 落在预览线命中列内（接管只从轨道手柄带的控制柄
+      // 起手路径发起，起手方在那一域——它只问本域「这一族接不接」）；换算与
+      // 落点消费是两条声明钩子。
+      ..register(
+        AnnotationGestureTarget.previewLineDrag,
+        TrackBandDragDeclaration(
+          // 装载未完成门只挡写盘入口；本族是 seek，起从不读这道门
+          // （如实入表，不顺手统一）。
+          respectLoadGate: false,
+          toTime: (localX, _) => _previewLineSeekTarget(localX),
+          admit: (_, localX) => _previewLineColumnAt(localX),
+          onBegin: (_) => _selectionDomain.clear(),
+          onFrame: _consumePreviewLineSeek,
+          onEnd: _endPreviewLineDragVisuals,
         ),
+      )
+      // 学习段圈选（第十族）：**自家帧族**——它改的是选中集合而不是
+      // 时间落点，逐帧与提交、取消两条收口都由族自己的帧解释。命中解析留在
+      // 带侧（目标身份承载解析出的段序），故这里只建帧。
+      ..register(
+        AnnotationGestureTarget.learningTrackTap,
+        TrackBandDragDeclaration(
+          // 混区 burst 让位：本族与练习片段截取族同样有此判定，如实入表。
+          yieldOnMixedBurst: true,
+          // 双指半途加入本族**回滚取消**（不是其余族的「冻结」）：这条既有
+          // 差异由族自己的帧回答，域不代它冻结。
+          freezeOnPinch: false,
+          beginFrame: _beginLearningSpanFrame,
+          onBegin: (_) =>
+              unawaited(ref.read(selectionHapticProvider).selectionImpact()),
+        ),
+      ),
     isPinchActive: () => _trackPinchActive,
     isMixedBurstActive: () => _mixedPinchBurst,
     loadGateActive: () => _loadGateActive,
@@ -537,7 +529,8 @@ class _TrackBandState extends ConsumerState<TrackBand>
   void _syncPracticeRangeExpand() {
     if (_practiceRangeExpandScheduled) return;
     if (ref
-        .read(guideSessionProvider).sideEffects
+        .read(guideSessionProvider)
+        .sideEffects
         .contains(practiceRangeUnitId)) {
       return;
     }
@@ -766,12 +759,12 @@ class _TrackBandState extends ConsumerState<TrackBand>
         _syncPracticeRangeExpand();
       },
     );
-    ref.listenManual(
-      guideSessionProvider.select((session) => session.seen),
-      (_, _) {
-        _syncPracticeRangeExpand();
-      },
-    );
+    ref.listenManual(guideSessionProvider.select((session) => session.seen), (
+      _,
+      _,
+    ) {
+      _syncPracticeRangeExpand();
+    });
     // 窗口（本带写入或控制层空白捏合写入）变化 → 重建渲染。
     _session.windowChanges.addListener(_onWindowChanged);
     // 临时衔接段激活（含异线替换）→ 弹短提示；取消/清除不提示。
@@ -1186,7 +1179,8 @@ class _TrackBandState extends ConsumerState<TrackBand>
   /// 一行」（如对比行集不含轨道手柄带行），行缺席是合法状态，对应渲染件
   /// 与覆盖层整体不渲染。存在性由行集声明本身回答（不累加行高、不手算），
   /// 几何仍全部出自行表。
-  TrackRowRect? _rectIfPresent(TrackRowId id) => widget.input.rowTable.hasRow(id)
+  TrackRowRect? _rectIfPresent(TrackRowId id) =>
+      widget.input.rowTable.hasRow(id)
       ? widget.input.rowTable.rectOf(id)
       : null;
 
@@ -1321,7 +1315,9 @@ class _TrackBandState extends ConsumerState<TrackBand>
     final guideArtifactIndexes = ref.watch(
       guideSessionProvider.select((session) => session.artifactIndexes),
     );
-    final selectedLearningSegments = ref.watch(selectedLearningSegmentsProvider);
+    final selectedLearningSegments = ref.watch(
+      selectedLearningSegmentsProvider,
+    );
     // 分段线选中来自 10 的密封点选状态（与学习段选中互斥）。
     final mastery = ref.watch(learningMasteryProvider);
     final emphasizedSegments = ref.watch(learningEmphasisProvider);
@@ -1403,6 +1399,7 @@ class _TrackBandState extends ConsumerState<TrackBand>
             if (mirrorRowInput == null) return false;
             return _mirrorRowContentAt(globalPosition);
           }
+
           mirrorRowInput = !mappable || mirrorRect == null
               ? null
               : TrackMirrorRowInput(
@@ -1426,10 +1423,7 @@ class _TrackBandState extends ConsumerState<TrackBand>
                   beginSession: (target) => target is MirrorEdgeDragTarget
                       ? ref
                             .read(annotationEditorProvider)
-                            .beginLocalMirrorEdgeDrag(
-                              target.index,
-                              target.edge,
-                            )
+                            .beginLocalMirrorEdgeDrag(target.index, target.edge)
                       : ref
                             .read(annotationEditorProvider)
                             .beginLocalMirrorMoveDrag(target.index),
@@ -1438,7 +1432,9 @@ class _TrackBandState extends ConsumerState<TrackBand>
                   // 几何，锁定期照常选中、不弹锁提示；被守卫时不落穿空白。
                   onTapFragment: (index) {
                     if (!_mirrorRowTapAllowed) return;
-                    _selectionDomain.select(LocalMirrorFragmentSelection(index));
+                    _selectionDomain.select(
+                      LocalMirrorFragmentSelection(index),
+                    );
                   },
                   onTapBlank: (position) {
                     if (!_mirrorRowTapAllowed) return;
@@ -1616,11 +1612,7 @@ class _TrackBandState extends ConsumerState<TrackBand>
                             ),
                           ),
                         if (mappable && learningRowInput != null) ...[
-                          for (
-                            var i = 0;
-                            i < timeline.segmentLines.length;
-                            i++
-                          )
+                          for (var i = 0; i < timeline.segmentLines.length; i++)
                             _buildSegmentLineMarker(
                               index: i,
                               axis: axis,
@@ -1868,7 +1860,10 @@ class _TrackBandState extends ConsumerState<TrackBand>
     // 线身（角标锚点包在这一层：上报矩形恰是那条线，不含命中列与发光层）。
     // 同一条线可同时承载两条角标的锚点（分段与「标记分段线」共用线身
     // ——各自只在本会话记着该序号时才包，逐层嵌套、被包内容逐位不变）。
-    Widget line = ColoredBox(key: ValueKey('segment_line_$index'), color: color);
+    Widget line = ColoredBox(
+      key: ValueKey('segment_line_$index'),
+      color: color,
+    );
     for (final key in guideAnchorKeys) {
       line = _guideAnchored(key, line);
     }
@@ -2093,9 +2088,7 @@ class _TrackBandState extends ConsumerState<TrackBand>
       direction,
     );
     if (target == null) return;
-    final session = ref
-        .read(annotationEditorProvider)
-        .beginRangeDrag(boundary);
+    final session = ref.read(annotationEditorProvider).beginRangeDrag(boundary);
     session.moveTo(target);
     session.end();
   }
@@ -2250,9 +2243,8 @@ class _TrackBandState extends ConsumerState<TrackBand>
   /// 学习段圈选的落点解析组装（带内局部落点 → 适配层）：落点段序与「是否已
   /// 钳在首/末段」——逐帧与贴边滚屏都要问它（起手准入问 [spanOrderAt]）。
   ({int? order, bool atSpanEdge}) _learningSpanHitAt(Offset local) =>
-      _hitResolution(width: _bandBox()?.size.width ?? 0).learningHitResolve(
-        local,
-      );
+      _hitResolution(width: _bandBox()?.size.width ?? 0)
+          .learningHitResolve(local);
 
   /// 长按圈选识别器的落点准入（学习段轨域问本带）：
   /// 落点解析出可圈的学习段才准入——判定区因此与学习轨整行一致（分段线与
@@ -2282,9 +2274,8 @@ class _TrackBandState extends ConsumerState<TrackBand>
   int? _nearestSegmentLineIndexAt(Offset globalPosition) {
     final band = _bandLocalAt(globalPosition);
     if (band == null) return null;
-    return _hitResolution(
-      width: band.width,
-    ).nearestSegmentLineIndex(band.local.dx);
+    return _hitResolution(width: band.width)
+        .nearestSegmentLineIndex(band.local.dx);
   }
 
   /// 点按下位置是否落在编辑内容上（内容命中检查）：目标族与判定次序
@@ -2447,7 +2438,5 @@ const transitionNoticeSpec = NoticeSpec(
 
 /// 临时衔接段提示内容（语义档（随系统字号）：提示文案随系统字号缩放，读不到
 /// 它会丢失信息）。
-Widget _transitionNoticeContent(BuildContext _) => const Text(
-  '衔接练习：前 1 八拍 ↔ 后 1 八拍循环',
-  style: kNoticeTextStyle,
-);
+Widget _transitionNoticeContent(BuildContext _) =>
+    const Text('衔接练习：前 1 八拍 ↔ 后 1 八拍循环', style: kNoticeTextStyle);

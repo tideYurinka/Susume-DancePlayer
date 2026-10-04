@@ -43,11 +43,11 @@ class FakePracticeFactsSource {
   }
 
   void emit(bool enginePlaying) => _controller.add(
-        PracticeAccountingFacts(
-          enginePlaying: enginePlaying,
-          clipReviewInFlight: clipReviewInFlight,
-          recordingPreparing: recordingPreparing,
-          delayedPlayPreparing: delayedPlayPreparing,
-        ),
-      );
+    PracticeAccountingFacts(
+      enginePlaying: enginePlaying,
+      clipReviewInFlight: clipReviewInFlight,
+      recordingPreparing: recordingPreparing,
+      delayedPlayPreparing: delayedPlayPreparing,
+    ),
+  );
 }

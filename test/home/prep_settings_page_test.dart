@@ -15,9 +15,7 @@ void main() {
 
   Future<ProviderContainer> pumpPage(WidgetTester tester) async {
     final container = ProviderContainer(
-      overrides: [
-        privateJsonStorageProvider.overrideWithValue(storage),
-      ],
+      overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(
@@ -70,8 +68,10 @@ void main() {
     );
     final container = await pumpPage(tester);
 
-    expect(container.read(prepBeatsProvider),
-        const PrepBeats(delayedPlay: 2, recording: 4, loopLead: 8));
+    expect(
+      container.read(prepBeatsProvider),
+      const PrepBeats(delayedPlay: 2, recording: 4, loopLead: 8),
+    );
     container.listen(delayedLoopProvider, (_, _) {});
     await container.read(prepBeatsProvider.notifier).restoreDone;
     expect(container.read(delayedLoopProvider), DelayedLoopBeats.eight);

@@ -31,18 +31,19 @@ void main() {
     materializedCalls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      switch (call.method) {
-        case 'takePendingInbound':
-          return pendingIndex < pendingReplies.length
-              ? pendingReplies[pendingIndex++]
-              : null;
-        case 'materializeInbound':
-          materializedCalls
-              .add(Map<String, Object?>.from(call.arguments as Map));
-          return true;
-      }
-      return null;
-    });
+          switch (call.method) {
+            case 'takePendingInbound':
+              return pendingIndex < pendingReplies.length
+                  ? pendingReplies[pendingIndex++]
+                  : null;
+            case 'materializeInbound':
+              materializedCalls.add(
+                Map<String, Object?>.from(call.arguments as Map),
+              );
+              return true;
+          }
+          return null;
+        });
   });
 
   tearDown(() async {
@@ -51,8 +52,7 @@ void main() {
     if (baseDir.existsSync()) baseDir.deleteSync(recursive: true);
   });
 
-  test('冷启动：拉取返回原生留存的入站分享，再拉返回 null（容量 1、取走即清）',
-      () async {
+  test('冷启动：拉取返回原生留存的入站分享，再拉返回 null（容量 1、取走即清）', () async {
     final share = await service.takePendingInbound();
     expect(share?.contentUri, 'content://com.tencent.mm/xxx/歌.susume');
     expect(await service.takePendingInbound(), isNull);
@@ -62,20 +62,19 @@ void main() {
     // 槽为空（推送前已被消费/无留存）的常态。
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'takePendingInbound') return null;
-      return null;
-    });
+          if (call.method == 'takePendingInbound') return null;
+          return null;
+        });
     final received = <InboundShare>[];
     final sub = service.inboundShares.listen(received.add);
-    await TestDefaultBinaryMessengerBinding
-        .instance.defaultBinaryMessenger
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
-      'susume/share_channel',
-      codec.encodeMethodCall(
-        const MethodCall('onInboundShare', 'content://a/b.susume'),
-      ),
-      (_) {},
-    );
+          'susume/share_channel',
+          codec.encodeMethodCall(
+            const MethodCall('onInboundShare', 'content://a/b.susume'),
+          ),
+          (_) {},
+        );
     await Future<void>.delayed(Duration.zero);
     expect(received.single.contentUri, 'content://a/b.susume');
     await sub.cancel();
@@ -85,29 +84,29 @@ void main() {
     final takenCalls = <String?>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      switch (call.method) {
-        case 'takePendingInbound':
-          // 推送后回拉：槽里仍是同一条（原生推送不清槽），被取走即清。
-          takenCalls.add(call.method);
-          return 'content://a/b.susume';
-        case 'materializeInbound':
-          materializedCalls
-              .add(Map<String, Object?>.from(call.arguments as Map));
-          return true;
-      }
-      return null;
-    });
+          switch (call.method) {
+            case 'takePendingInbound':
+              // 推送后回拉：槽里仍是同一条（原生推送不清槽），被取走即清。
+              takenCalls.add(call.method);
+              return 'content://a/b.susume';
+            case 'materializeInbound':
+              materializedCalls.add(
+                Map<String, Object?>.from(call.arguments as Map),
+              );
+              return true;
+          }
+          return null;
+        });
     final received = <InboundShare>[];
     final sub = service.inboundShares.listen(received.add);
-    await TestDefaultBinaryMessengerBinding
-        .instance.defaultBinaryMessenger
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
-      'susume/share_channel',
-      codec.encodeMethodCall(
-        const MethodCall('onInboundShare', 'content://a/b.susume'),
-      ),
-      (_) {},
-    );
+          'susume/share_channel',
+          codec.encodeMethodCall(
+            const MethodCall('onInboundShare', 'content://a/b.susume'),
+          ),
+          (_) {},
+        );
     await Future<void>.delayed(Duration.zero);
     expect(takenCalls, hasLength(1), reason: '推送后立即回拉原生留存槽');
     expect(received, hasLength(1), reason: '槽里同一条不补发——推送已消费');

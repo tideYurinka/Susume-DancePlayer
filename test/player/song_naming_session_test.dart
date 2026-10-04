@@ -108,16 +108,21 @@ void main() {
       await openAs();
       presenter.result = const SongNamingResult(
         confirmed: true,
-        signature: SongSignature(dancer: ' 如\n', song: 'My Love', remark: '9人版\x7f'),
+        signature: SongSignature(
+          dancer: ' 如\n',
+          song: 'My Love',
+          remark: '9人版\x7f',
+        ),
       );
 
       await session.promptImportIfNeeded(isNewImport: true);
 
-      const applied = SongSignature(dancer: '如', song: 'My Love', remark: '9人版');
-      expect(
-        MarkersDocument.fromJson(docs.markersSnapshot).signature,
-        applied,
+      const applied = SongSignature(
+        dancer: '如',
+        song: 'My Love',
+        remark: '9人版',
       );
+      expect(MarkersDocument.fromJson(docs.markersSnapshot).signature, applied);
       expect(index.current.entries.single.signatureCache, applied);
       expect(session.titleText, '「如」My Love - 9人版');
     });
@@ -137,7 +142,11 @@ void main() {
     });
 
     test('改名：接缝收到带出现值的初值且可点框外收起；保存后提交', () async {
-      const current = SongSignature(dancer: '如', song: 'My Love', remark: '9人版');
+      const current = SongSignature(
+        dancer: '如',
+        song: 'My Love',
+        remark: '9人版',
+      );
       await openAs(signatureCache: current);
       presenter.result = const SongNamingResult(
         confirmed: true,

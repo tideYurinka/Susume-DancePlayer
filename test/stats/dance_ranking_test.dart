@@ -224,13 +224,16 @@ void main() {
   });
 }
 
-PracticeSessionRecord _session(DateTime start, double seconds, String videoId) =>
-    PracticeSessionRecord(
-      start: start,
-      videoId: videoId,
-      signature: SongSignature(song: videoId),
-      wallSeconds: seconds,
-    );
+PracticeSessionRecord _session(
+  DateTime start,
+  double seconds,
+  String videoId,
+) => PracticeSessionRecord(
+  start: start,
+  videoId: videoId,
+  signature: SongSignature(song: videoId),
+  wallSeconds: seconds,
+);
 
 /// 一支现存舞的快照（排行只列现存舞；时长与场次都来自窗口内记录）。
 DanceSnapshot _dance(String videoId) => composeDanceSnapshot(

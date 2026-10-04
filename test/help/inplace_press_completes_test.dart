@@ -247,9 +247,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      (storage.snapshot['onboarding'] as Map)['badgeSegmentFlag'],
-      isNull,
-    );
+    expect((storage.snapshot['onboarding'] as Map)['badgeSegmentFlag'], isNull);
   });
 }

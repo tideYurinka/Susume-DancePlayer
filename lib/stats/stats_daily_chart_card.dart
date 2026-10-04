@@ -90,8 +90,7 @@ class DailyBarChartCard extends StatelessWidget {
   /// `textScaler < 1` 不收缩）——字号放大时行高变大，不与图表重叠。
   double _xLabelHeightFor(TextStyle style, TextScaler textScaler) {
     final fontSize = style.fontSize!;
-    return math.max(fontSize, textScaler.scale(fontSize)) *
-        _xLabelLineHeight;
+    return math.max(fontSize, textScaler.scale(fontSize)) * _xLabelLineHeight;
   }
 
   @override
@@ -225,10 +224,7 @@ class DailyBarChartCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             SizedBox(
-              height: _xLabelHeightFor(
-                theme.textTheme.bodySmall!,
-                textScaler,
-              ),
+              height: _xLabelHeightFor(theme.textTheme.bodySmall!, textScaler),
               child: Row(children: _xLabels(theme)),
             ),
           ],
@@ -300,9 +296,12 @@ class DailyBarChartCard extends StatelessWidget {
     // 量测与渲染同源（规则 2）：量测侧吃与渲染相同的 TextScaler。
     final textScaler = MediaQuery.textScalerOf(context);
     final textDirection = Directionality.of(context);
-    double textWidth(String text) =>
-        measureTextExtent(text, style,
-            direction: textDirection, scaler: textScaler).width;
+    double textWidth(String text) => measureTextExtent(
+      text,
+      style,
+      direction: textDirection,
+      scaler: textScaler,
+    ).width;
 
     const horizontalPadding = 10.0;
     const verticalPadding = 4.0;
@@ -380,8 +379,7 @@ class DailyBarChartCard extends StatelessWidget {
             child: InkWell(
               key: Key('daily_bar_$dayKey'),
               // 点按坐标里的手指 y 带给气泡做纵向跟手。
-              onTapUp: (details) =>
-                  onDayTap(bar.day, details.localPosition.dy),
+              onTapUp: (details) => onDayTap(bar.day, details.localPosition.dy),
               // 整列都是触控目标：柱体作为命中区内容（含空日）。
               child: Align(
                 alignment: Alignment.bottomCenter,

@@ -98,8 +98,12 @@ void main() {
       expect(find.byKey(const Key('beat_track_placeholder')), findsOneWidget);
       expect(find.text('节拍分析中……'), findsOneWidget);
       expect(find.byKey(const Key('beat_track_shimmer')), findsOneWidget);
-      expect(tester.getSemantics(find.byKey(const Key('beat_track_placeholder'))).label,
-          contains('节拍分析中'));
+      expect(
+        tester
+            .getSemantics(find.byKey(const Key('beat_track_placeholder')))
+            .label,
+        contains('节拍分析中'),
+      );
 
       // 不画任何均匀占位刻度：占位态整行是横幅，行内既无刻度几何也无数字
       // ——整族刻度键在行内一个都不出现（含 0 拍点）。
@@ -137,10 +141,7 @@ void main() {
       final failed = find.byKey(const Key('beat_track_failed'));
       expect(failed, findsOneWidget);
       expect(find.text('节拍识别失败'), findsOneWidget);
-      expect(
-        tester.getSemantics(failed).label,
-        contains('节拍识别失败'),
-      );
+      expect(tester.getSemantics(failed).label, contains('节拍识别失败'));
       expect(find.byKey(const Key('beat_tick_0')), findsNothing);
 
       final background = tester
@@ -157,8 +158,7 @@ void main() {
   });
 
   group('三级刻度排布', () {
-    testWidgets('宽按层级：八拍大线 1.5px、中/小线 1px；透明度 0.95/0.62/0.34',
-        (tester) async {
+    testWidgets('宽按层级：八拍大线 1.5px、中/小线 1px；透明度 0.95/0.62/0.34', (tester) async {
       await pumpRow(tester, track: readyBeat());
 
       expect(tickWidth(tester, const Key('beat_tick_0')), 1.5);

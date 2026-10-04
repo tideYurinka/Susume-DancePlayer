@@ -43,14 +43,13 @@ void main() {
     List<LocalMirrorFragment> fragments, {
     int? rangeStartMs,
     int? rangeEndMs,
-  }) =>
-      AnnotationSectionDiff(
-        annotations: MarkerAnnotationsValue(
-          rangeStart: Duration(milliseconds: rangeStartMs ?? 0),
-          rangeEnd: Duration(milliseconds: rangeEndMs ?? 0),
-          localMirrorFragments: fragments,
-        ),
-      );
+  }) => AnnotationSectionDiff(
+    annotations: MarkerAnnotationsValue(
+      rangeStart: Duration(milliseconds: rangeStartMs ?? 0),
+      rangeEnd: Duration(milliseconds: rangeEndMs ?? 0),
+      localMirrorFragments: fragments,
+    ),
+  );
 
   late InMemoryVideoDocumentStorage inner;
   late ManualSaveScheduler scheduler;
@@ -85,9 +84,9 @@ void main() {
     orchestrator.save(const AnnotationSectionDiff());
     expect(scheduler.pendingTask, isNull);
 
-    orchestrator.save(diff(const [
-      LocalMirrorFragment(startMs: 1000, endMs: 2000),
-    ]));
+    orchestrator.save(
+      diff(const [LocalMirrorFragment(startMs: 1000, endMs: 2000)]),
+    );
     orchestrator.save(diff(fragments));
     scheduler.tick();
     await pumpEventQueue();
@@ -110,7 +109,9 @@ void main() {
       scheduler: scheduler,
     );
 
-    realOrchestrator.save(diff(fragments, rangeStartMs: 100, rangeEndMs: 60000));
+    realOrchestrator.save(
+      diff(fragments, rangeStartMs: 100, rangeEndMs: 60000),
+    );
     await realOrchestrator.flush();
 
     final json = await File(p.join(tempDir.path, 'markers_abc.json'))

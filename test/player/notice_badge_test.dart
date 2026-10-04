@@ -37,11 +37,7 @@ void main() {
     expect(material.color, kNoticeBackground);
     expect(material.elevation, kNoticeElevation);
     expect(material.borderRadius, BorderRadius.circular(kNoticeRadius));
-    expect(
-      material.shape,
-      isNull,
-      reason: '圆角胶囊走 borderRadius，不与 shape 同时生效',
-    );
+    expect(material.shape, isNull, reason: '圆角胶囊走 borderRadius，不与 shape 同时生效');
 
     final padding = tester.widget<Padding>(
       find.descendant(
@@ -60,11 +56,7 @@ void main() {
 
   testWidgets('内容槽原样渲染 child（文本/含按钮 Row 均可）', (tester) async {
     const badgeKey = Key('double_speed_badge');
-    await pumpBadge(
-      tester,
-      badgeKey: badgeKey,
-      child: const Text('2 倍速'),
-    );
+    await pumpBadge(tester, badgeKey: badgeKey, child: const Text('2 倍速'));
 
     // key 落在 Material（NoticeBadge 根）上，供测试定位。
     expect(find.byKey(badgeKey), findsOneWidget);

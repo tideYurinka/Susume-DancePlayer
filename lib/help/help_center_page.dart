@@ -78,10 +78,7 @@ class HelpCenterPage extends ConsumerWidget {
 
 /// 帮助中心目录主体：新手引导入口卡 + 教程分组 + 使用手册分组。
 class _HelpDirectory extends StatelessWidget {
-  const _HelpDirectory({
-    required this.manualChapters,
-    required this.tutorials,
-  });
+  const _HelpDirectory({required this.manualChapters, required this.tutorials});
 
   final List<HelpDocumentContent> manualChapters;
   final List<HelpDocumentContent> tutorials;
@@ -132,9 +129,8 @@ class _GuideEntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    void openGuideUnits() => Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const GuideUnitsPage()),
-    );
+    void openGuideUnits() => Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const GuideUnitsPage()));
 
     return Card(
       key: helpEntryKey('guide'),
@@ -227,10 +223,7 @@ class _HelpGroupBox extends StatelessWidget {
               key: helpEntryKey(documents[i].id),
               title: documents[i].displayTitle,
               description: documents[i].listDescription ?? '',
-              icon: helpEntryIcon(
-                documents[i].id,
-                fallbackIcon: fallbackIcon,
-              ),
+              icon: helpEntryIcon(documents[i].id, fallbackIcon: fallbackIcon),
               onTap: () => _openDocument(context, documents[i]),
             ),
           ],

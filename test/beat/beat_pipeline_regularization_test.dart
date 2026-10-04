@@ -67,11 +67,7 @@ void main() {
 
       expectPipelineInvariants(timesMs, out);
       expect(ms.contains(4000), isTrue, reason: '跳变前末拍保留');
-      expect(
-        ms.contains(4620),
-        isTrue,
-        reason: '跳变后首拍 = 识别拍点，不被重排抹平',
-      );
+      expect(ms.contains(4620), isTrue, reason: '跳变后首拍 = 识别拍点，不被重排抹平');
     });
 
     test('落盘往返：beat 段 JSON 往返后仍是同一规整网格、满足硬不变量', () {
@@ -99,10 +95,7 @@ void main() {
       expect([for (final p in single) (p.t * 1000).round()], [1500]);
 
       final flat = regularizeDecodedBeats(decoded([1000, 1000, 2000]));
-      expect(
-        [for (final p in flat) (p.t * 1000).round()],
-        [1000, 1000, 2000],
-      );
+      expect([for (final p in flat) (p.t * 1000).round()], [1000, 1000, 2000]);
       expect([for (final p in flat) p.down], [true, false, false]);
     });
   });

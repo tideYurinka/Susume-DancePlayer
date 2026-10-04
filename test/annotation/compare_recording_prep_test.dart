@@ -101,11 +101,7 @@ void main() {
       );
       expect(prep.beatLed, isFalse, reason: '一个拍点都数不出来 → 不假装有节拍前导');
       expect(prep.beatTimesMs, isEmpty);
-      expect(
-        prep.leadDurationMs,
-        0,
-        reason: '「有网格但没有可数的拍」不落秒制兜底的整块静默：到点即起录',
-      );
+      expect(prep.leadDurationMs, 0, reason: '「有网格但没有可数的拍」不落秒制兜底的整块静默：到点即起录');
       expect(prep.leadStartMs, 5000);
     });
 

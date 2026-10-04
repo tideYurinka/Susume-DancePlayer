@@ -5,16 +5,15 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/player/control_layer.dart';
 import 'package:dance_learning_app/player/notice.dart'
-    show
-        NoticeId,
-        noticeTriggerProvider;
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player/note_editor.dart';
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,9 +42,7 @@ void main() {
       ProviderScope(
         overrides: [
           playbackEngineProvider.overrideWithValue(engine),
-          beatAnalysisPipelineProvider.overrideWithValue(
-            hangingBeatPipeline,
-          ),
+          beatAnalysisPipelineProvider.overrideWithValue(hangingBeatPipeline),
           // 固定摘要 + 内存文档存储：装载门即刻落定，编辑器入口不被挡。
           contentHasherProvider.overrideWithValue(const FixedHasher('vid-a')),
           videoDocumentStorageFactoryProvider.overrideWithValue(
@@ -123,37 +120,44 @@ void main() {
   /// 九个中央提示的触发方式与可见文案。
   final cases = <String, void Function(WidgetTester tester)>{
     '已锁定分段': (tester) =>
-        containerOf(tester).read(noticeTriggerProvider(NoticeId.layoutLock).notifier).show(),
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.layoutLock).notifier)
+            .show(),
     '备注已锁定': (tester) =>
-        containerOf(tester).read(noticeTriggerProvider(NoticeId.noteContentLock).notifier).show(),
-    '节拍分析中…': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.beatAnalyzing).notifier)
-        .show(),
-    '无节拍数据': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.beatNoData).notifier)
-        .show(),
-    '节拍提示已关闭 · 编辑态顶栏可重新打开': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.beatOverlayClose).notifier)
-        .show(),
-    '已启用步进倍速': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.stepEnabled).notifier)
-        .show(),
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.noteContentLock).notifier)
+            .show(),
+    '节拍分析中…': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.beatAnalyzing).notifier)
+            .show(),
+    '无节拍数据': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.beatNoData).notifier)
+            .show(),
+    '节拍提示已关闭 · 编辑态顶栏可重新打开': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.beatOverlayClose).notifier)
+            .show(),
+    '已启用步进倍速': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.stepEnabled).notifier)
+            .show(),
     // 局部镜像无片段已走新路：触发面只报身份。
-    '请添加局部镜像片段': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.localMirrorEmpty).notifier)
-        .show(),
+    '请添加局部镜像片段': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.localMirrorEmpty).notifier)
+            .show(),
     '太靠近结尾，无法起录': (tester) => containerOf(tester)
         .read(noticeTriggerProvider(NoticeId.compareRecordRejected).notifier)
         .show(),
-    '正在装载': (tester) => containerOf(tester)
-        .read(noticeTriggerProvider(NoticeId.loadGate).notifier)
-        .show(),
+    '正在装载': (tester) =>
+        containerOf(tester)
+            .read(noticeTriggerProvider(NoticeId.loadGate).notifier)
+            .show(),
   };
 
-  void runCase(
-    String label,
-    void Function(WidgetTester tester) trigger,
-  ) {
+  void runCase(String label, void Function(WidgetTester tester) trigger) {
     testWidgets('「$label」触发后可见（宿主唯一渲染）', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
@@ -171,8 +175,7 @@ void main() {
     runCase(entry.key, entry.value);
   }
 
-  testWidgets('宿主绘制于控制层与备注文本编辑器面之后（栈序收在宿主一处）',
-      (tester) async {
+  testWidgets('宿主绘制于控制层与备注文本编辑器面之后（栈序收在宿主一处）', (tester) async {
     final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
     await pumpPlayer(tester, engine: engine);
     await openControlLayer(tester);
@@ -188,8 +191,7 @@ void main() {
     expectAboveControlLayerAndNoteEditor(tester, noticeFinder, '宿主');
   });
 
-  testWidgets('「正在装载」提示由定位 key load_gate_prompt 定位（key 钉住）',
-      (tester) async {
+  testWidgets('「正在装载」提示由定位 key load_gate_prompt 定位（key 钉住）', (tester) async {
     final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
     await pumpPlayer(tester, engine: engine);
     await openControlLayer(tester);
@@ -222,7 +224,9 @@ void main() {
     await openControlLayer(tester);
     expect(find.byType(ControlLayer), findsOneWidget);
 
-    containerOf(tester).read(noticeTriggerProvider(NoticeId.layoutLock).notifier).show();
+    containerOf(tester)
+        .read(noticeTriggerProvider(NoticeId.layoutLock).notifier)
+        .show();
     await tester.pump();
     expect(find.text('已锁定分段'), findsOneWidget);
 

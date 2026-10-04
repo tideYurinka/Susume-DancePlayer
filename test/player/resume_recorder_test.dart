@@ -1,6 +1,7 @@
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/song_signature.dart';
-import 'package:dance_learning_app/player/resume_position.dart' show ResumeRecorder;
+import 'package:dance_learning_app/player/resume_position.dart'
+    show ResumeRecorder;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/in_memory_video_index_storage.dart';

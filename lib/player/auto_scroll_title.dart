@@ -15,11 +15,7 @@ const double kTitleScrollFadeWidth = 16;
 /// （文字末尾接下一圈开头），左右边缘淡出；未溢出时静止单份显示。
 /// 文本/可用宽度变化即时重算（经 LayoutBuilder + 文本量测）。
 class AutoScrollTitle extends StatefulWidget {
-  const AutoScrollTitle({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const AutoScrollTitle({super.key, required this.text, required this.style});
 
   final String text;
   final TextStyle style;
@@ -103,12 +99,7 @@ class _AutoScrollTitleState extends State<AutoScrollTitle>
                   Colors.white,
                   Colors.transparent,
                 ],
-                stops: [
-                  0,
-                  fade / bounds.width,
-                  1 - fade / bounds.width,
-                  1,
-                ],
+                stops: [0, fade / bounds.width, 1 - fade / bounds.width, 1],
               ).createShader(Offset.zero & bounds.size);
             },
             child: SizedBox(

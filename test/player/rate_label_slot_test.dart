@@ -8,7 +8,8 @@ import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/rate_label_slot.dart';
 import 'package:dance_learning_app/player/speed_control.dart';
 import 'package:dance_learning_app/player/speed_step.dart' show formatRate;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,9 +125,7 @@ void main() {
           ),
         ),
       );
-      return tester.renderObject<RenderBox>(
-        find.byType(RateTextSlot),
-      ).size;
+      return tester.renderObject<RenderBox>(find.byType(RateTextSlot)).size;
     }
 
     testWidgets('1.3×：槽宽随缩放放大且容纳缩放后的读数文本', (tester) async {
@@ -173,9 +172,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      return ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-      );
+      return ProviderScope.containerOf(tester.element(find.byType(PlayerPage)));
     }
 
     /// 单击唤出控制层：等双击判定窗口过（识别器回调孤立单指单击）后渲染。
@@ -192,7 +189,8 @@ void main() {
       RenderBox capsuleBox() => tester.renderObject<RenderBox>(
         find.byKey(const Key('speed_entry_button')),
       );
-      Rect globalRect(RenderBox box) => box.localToGlobal(Offset.zero) & box.size;
+      Rect globalRect(RenderBox box) =>
+          box.localToGlobal(Offset.zero) & box.size;
 
       final beforeSize = capsuleBox().size;
       final beforeRect = globalRect(capsuleBox());
@@ -219,7 +217,8 @@ void main() {
       RenderBox toolBox() => tester.renderObject<RenderBox>(
         find.byKey(const Key('tool_speed_settings')),
       );
-      Rect globalRect(RenderBox box) => box.localToGlobal(Offset.zero) & box.size;
+      Rect globalRect(RenderBox box) =>
+          box.localToGlobal(Offset.zero) & box.size;
 
       final beforeSize = toolBox().size;
       final beforeRect = globalRect(toolBox());

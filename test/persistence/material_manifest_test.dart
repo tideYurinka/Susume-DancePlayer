@@ -30,8 +30,8 @@ void main() {
         sizeBytes: 42,
       );
 
-  Map<String, dynamic> readJson() => jsonDecode(file.readAsStringSync())
-      as Map<String, dynamic>;
+  Map<String, dynamic> readJson() =>
+      jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
 
   group('素材清单文档（段化机制第五份接入）', () {
     test('单段编解码 round trip：version + materials 段 + 条目字段', () async {
@@ -40,8 +40,7 @@ void main() {
 
       final json = readJson();
       expect(json['version'], 3);
-      final entry = (json['materials'] as List).single
-          as Map<String, dynamic>;
+      final entry = (json['materials'] as List).single as Map<String, dynamic>;
       expect(entry['id'], 'm1');
       expect(entry['videoId'], 'vid1');
       expect(entry['createdAtMs'], 1700000000000);
@@ -50,7 +49,8 @@ void main() {
       expect(entry['fileName'], 'rec_1.mp4');
       expect(entry['sizeBytes'], 42);
 
-      final doc = await MaterialManifestStore(MaterialManifestFileStore(file)).read();
+      final doc = await MaterialManifestStore(MaterialManifestFileStore(file))
+          .read();
       expect(doc.materials, [record()]);
     });
 
@@ -86,8 +86,9 @@ void main() {
 
       final mutated = readJson();
       mutated['futureDocKey'] = 'keep-doc';
-      ((mutated['materials'] as List).single as Map<String, dynamic>)
-          ['futureEntryKey'] = 'keep-entry';
+      ((mutated['materials'] as List).single
+              as Map<String, dynamic>)['futureEntryKey'] =
+          'keep-entry';
       file.writeAsStringSync(jsonEncode(mutated));
 
       final reopened = MaterialManifestStore(MaterialManifestFileStore(file));
@@ -121,10 +122,10 @@ void main() {
       await reopened.append(record(id: 'm2'));
       final written = readJson();
       expect(written['version'], 3);
-      expect(
-        (written['materials'] as List).map((e) => (e as Map)['id']),
-        ['m1', 'm2'],
-      );
+      expect((written['materials'] as List).map((e) => (e as Map)['id']), [
+        'm1',
+        'm2',
+      ]);
       expect(written['futureDocKey'], 'keep-doc');
     });
 
@@ -133,13 +134,11 @@ void main() {
       await store.append(record());
       final mutated = readJson();
       final entries = mutated['materials'] as List;
-      entries.add({
-        'videoId': 'vid1',
-        'fileName': 'broken.mp4',
-      }); // 缺 id。
+      entries.add({'videoId': 'vid1', 'fileName': 'broken.mp4'}); // 缺 id。
       file.writeAsStringSync(jsonEncode(mutated));
 
-      final doc = await MaterialManifestStore(MaterialManifestFileStore(file)).read();
+      final doc = await MaterialManifestStore(MaterialManifestFileStore(file))
+          .read();
       expect(doc.materials, [record()]);
     });
 
@@ -150,10 +149,7 @@ void main() {
 
       final reopened = MaterialManifestStore(MaterialManifestFileStore(file));
       final doc = await reopened.read();
-      expect(
-        doc.materials.map((m) => m.id),
-        unorderedEquals(['m1', 'm2']),
-      );
+      expect(doc.materials.map((m) => m.id), unorderedEquals(['m1', 'm2']));
     });
 
     test('删除素材条目：remove 只删指定 id、其余条目保留并落盘', () async {

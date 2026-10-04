@@ -79,33 +79,37 @@ void main() {
         child: MaterialApp(home: Scaffold(body: const SizedBox())),
       ),
     );
-    tester.state<NavigatorState>(find.byType(Navigator)).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          body: DanceShareSheet(
-            dance: composeDanceSnapshot(
-              entry: VideoIndexEntry(
-                videoId: 'v1',
-                displayName: 'dance_v1.mp4',
-                filePath: '${tempDir.path}/source.mp4',
-                sizeBytes: 64,
-                fastKey: 'k',
-                mirrored: false,
-                lastOpenedAt: DateTime(2026, 9, 1),
+    tester
+        .state<NavigatorState>(find.byType(Navigator))
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              body: DanceShareSheet(
+                dance: composeDanceSnapshot(
+                  entry: VideoIndexEntry(
+                    videoId: 'v1',
+                    displayName: 'dance_v1.mp4',
+                    filePath: '${tempDir.path}/source.mp4',
+                    sizeBytes: 64,
+                    fastKey: 'k',
+                    mirrored: false,
+                    lastOpenedAt: DateTime(2026, 9, 1),
+                  ),
+                  importOrder: 0,
+                  markers: MarkersDocument(
+                    rangeEndMs: 24000,
+                    segmentLines: const [
+                      SegmentLine(position: Duration(seconds: 8)),
+                    ],
+                    signature: const SongSignature(song: '海草舞'),
+                  ),
+                  local: const LocalDocument(),
+                  practice: const DancePracticeTotals(),
+                ),
               ),
-              importOrder: 0,
-              markers: MarkersDocument(
-                rangeEndMs: 24000,
-                segmentLines: const [SegmentLine(position: Duration(seconds: 8))],
-                signature: const SongSignature(song: '海草舞'),
-              ),
-              local: const LocalDocument(),
-              practice: const DancePracticeTotals(),
             ),
           ),
-        ),
-      ),
-    );
+        );
     await tester.pumpAndSettle();
 
     expect(
@@ -122,7 +126,11 @@ void main() {
     final screenHeight =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
     final send = tester.getRect(find.byKey(const Key('share_sheet_send')));
-    expect(send.bottom, lessThanOrEqualTo(screenHeight), reason: '「分享」按钮不越下缘（始终可达）');
+    expect(
+      send.bottom,
+      lessThanOrEqualTo(screenHeight),
+      reason: '「分享」按钮不越下缘（始终可达）',
+    );
     expect(send.top, greaterThanOrEqualTo(0), reason: '「分享」按钮不越上缘');
   });
 }

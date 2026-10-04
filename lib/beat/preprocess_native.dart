@@ -24,7 +24,8 @@ class BeatPreprocessNative {
     int hi,
     int sampleStart,
     Pointer<Float> out,
-  ) _filtRange;
+  )
+  _filtRange;
 
   static BeatPreprocessNative? _instance;
 

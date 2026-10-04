@@ -1,5 +1,7 @@
 import 'package:fake_async/fake_async.dart';
+
 import '../../helpers/video_surface.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -91,8 +93,11 @@ void main() {
         engine.seek(const Duration(seconds: 30));
         async.flushMicrotasks();
 
-        expect(echoed.last, const Duration(seconds: 30),
-            reason: '补发事件携带 seek 目标，不携带 seek 之前的旧位置');
+        expect(
+          echoed.last,
+          const Duration(seconds: 30),
+          reason: '补发事件携带 seek 目标，不携带 seek 之前的旧位置',
+        );
       });
     });
 
@@ -183,7 +188,10 @@ void main() {
     });
 
     testWidgets('宽高比未知时占位填满可用区域', (tester) async {
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 800×400dp（dpr 2.0），非设备档。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 800×400dp（dpr 2.0），非设备档。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
 

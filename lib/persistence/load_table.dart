@@ -145,8 +145,7 @@ class LoadTable {
     LoadRow(
       id: LoadRowId.editorPublicMarkers,
       source: LoadSource.publicMarkers,
-      segment:
-          '时间线 / 分段线 / 半拍线 / 首尾 / 重点 / 局部镜像片段 / 备注 / 取景选区',
+      segment: '时间线 / 分段线 / 半拍线 / 首尾 / 重点 / 局部镜像片段 / 备注 / 取景选区',
     ),
     LoadRow(
       id: LoadRowId.editorLocalPrivate,

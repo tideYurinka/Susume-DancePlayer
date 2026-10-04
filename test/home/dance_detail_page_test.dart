@@ -29,7 +29,8 @@ import 'package:dance_learning_app/player/level_control.dart'
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/scheme_open.dart'
     show AutoSchemeOpen, MemberSchemeOpen, MySchemeOpen;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/core/local_day.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_key.dart';
 import 'package:dance_learning_app/stats/practice_stats_format.dart';
@@ -178,7 +179,10 @@ void main() {
     expect(find.byKey(const Key('dance_segment_order_0')), findsNothing);
     expect(find.byKey(const Key('dance_segment_order_1')), findsNothing);
     expect(find.byKey(const Key('dance_segment_mastery_0')), findsNothing);
-    expect(find.byKey(const Key('dance_segment_practice_duration_0')), findsNothing);
+    expect(
+      find.byKey(const Key('dance_segment_practice_duration_0')),
+      findsNothing,
+    );
     expect(find.byKey(const Key('dance_segment_no_beat_0')), findsNothing);
   });
 
@@ -1142,7 +1146,10 @@ void main() {
     expect(_chipSelected(tester, 'practice_metric_count'), isTrue);
 
     await _scrollToKey(tester, 'practice_distribution_chart');
-    expect(find.byKey(const Key('practice_distribution_chart')), findsOneWidget);
+    expect(
+      find.byKey(const Key('practice_distribution_chart')),
+      findsOneWidget,
+    );
     expect(find.text('0:01'), findsOneWidget);
     expect(find.textContaining('八拍'), findsNothing);
     expect(find.textContaining('第 '), findsNothing);
@@ -1180,37 +1187,25 @@ void main() {
 
     // 累计：桶 0 收全期两笔（8s + 1s）。
     await _scrollToKey(tester, 'practice_distribution_card');
-    expect(
-      _distributionBucketDuration(tester, 0),
-      const Duration(seconds: 9),
-    );
+    expect(_distributionBucketDuration(tester, 0), const Duration(seconds: 9));
 
     await _scrollToKey(tester, 'practice_range_today');
     await tester.tap(find.byKey(const Key('practice_range_today')));
     await tester.pumpAndSettle();
     // 今日：曲线随范围重算，桶 0 只取今日那笔。
-    expect(
-      _distributionBucketDuration(tester, 0),
-      const Duration(seconds: 1),
-    );
+    expect(_distributionBucketDuration(tester, 0), const Duration(seconds: 1));
 
     // 近 7 天：10 天前那笔落在窗口外 ⇒ 与今日同值。
     await _scrollToKey(tester, 'practice_range_last7Days');
     await tester.tap(find.byKey(const Key('practice_range_last7Days')));
     await tester.pumpAndSettle();
-    expect(
-      _distributionBucketDuration(tester, 0),
-      const Duration(seconds: 1),
-    );
+    expect(_distributionBucketDuration(tester, 0), const Duration(seconds: 1));
 
     // 切回累计：回到两笔之和。
     await _scrollToKey(tester, 'practice_range_cumulative');
     await tester.tap(find.byKey(const Key('practice_range_cumulative')));
     await tester.pumpAndSettle();
-    expect(
-      _distributionBucketDuration(tester, 0),
-      const Duration(seconds: 9),
-    );
+    expect(_distributionBucketDuration(tester, 0), const Duration(seconds: 9));
   });
 
   testWidgets('段级气泡读数跟随范围口径：换范围后气泡数值跟着变', (tester) async {
@@ -1314,7 +1309,10 @@ void main() {
     expect(image.fit, BoxFit.cover);
     expect(image.alignment, Alignment.center);
     expect(find.byKey(const Key('dance_detail_cover_image')), findsOneWidget);
-    expect(find.byKey(const Key('dance_detail_cover_placeholder')), findsNothing);
+    expect(
+      find.byKey(const Key('dance_detail_cover_placeholder')),
+      findsNothing,
+    );
   });
 
   testWidgets('详情顶部封面横幅：封面未就绪显示占位图，详情其余区块照常', (tester) async {

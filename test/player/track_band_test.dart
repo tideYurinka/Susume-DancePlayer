@@ -124,7 +124,6 @@ void expectOnlyLinePreviewSeeks(
   }
 }
 
-
 void main() {
   // Scaffold body 给满宽约束 → 轨道带全宽、节拍刻度按 0..total 满宽铺开。
   Future<void> pumpBand(
@@ -157,20 +156,18 @@ void main() {
         // 分段线落点解析在模块内消费就绪网格——缺省注入与
         // 占位网格同值的就绪态（拖动吸附期望值与旧占位格一致）。
         if (readyBeat)
-          beatTrackStateProvider.overrideWithBuild(
-            (ref, _) {
-              final seconds =
-                  (engine.duration ?? const Duration(seconds: 30))
-                      .inMilliseconds /
-                  1000;
-              return beatAnchors.isEmpty
-                  ? uniformReadyBeatState(seconds: seconds)
-                  : uniformDownbeatBeatState(
-                      seconds: seconds,
-                      anchors: beatAnchors,
-                    );
-            },
-          ),
+          beatTrackStateProvider.overrideWithBuild((ref, _) {
+            final seconds =
+                (engine.duration ?? const Duration(seconds: 30))
+                    .inMilliseconds /
+                1000;
+            return beatAnchors.isEmpty
+                ? uniformReadyBeatState(seconds: seconds)
+                : uniformDownbeatBeatState(
+                    seconds: seconds,
+                    anchors: beatAnchors,
+                  );
+          }),
         if (timeline != null)
           annotationTimelineProvider.overrideWithBuild((ref, _) => timeline),
         if (notes.isNotEmpty)
@@ -306,7 +303,8 @@ void main() {
       );
       expect(
         tester.getSize(find.byKey(const Key('track_band'))).height,
-        TrackBand.height, // 行表整带高读取面 ≈ 屏高 33%。
+        // 整带高 = 本用例传进去的那份行集的派生值（≈ 屏高 33%）。
+        TrackRowTable.normal.totalHeight,
       );
     });
   });
@@ -385,9 +383,13 @@ void main() {
       expect(find.byKey(const Key('track_learning')), findsOneWidget);
       expect(find.byKey(const Key('track_beat')), findsOneWidget);
       expect(find.byKey(const Key('track_handle_strip_row')), findsOneWidget);
-      // 36 + 30 + 48 + 24 + 30 + 10 × 4（worked example）。
-      expect(TrackBand.height, 208);
-      expect(tester.getSize(find.byKey(const Key('track_band'))).height, 208);
+      // 36 + 30 + 48 + 24 + 30 + 10 × 4（worked example）：表自身的整带高
+      // 与渲染出来的带宽同值。
+      expect(TrackRowTable.normal.totalHeight, 208);
+      expect(
+        tester.getSize(find.byKey(const Key('track_band'))).height,
+        TrackRowTable.normal.totalHeight,
+      );
     });
   });
 
@@ -422,7 +424,10 @@ void main() {
       expect(practiceY, lessThan(learningY));
       expect(learningY, lessThan(beatY));
       // 整带高 = 48+36+48+24 + 10×3（worked example）。
-      expect(tester.getSize(find.byKey(const Key('track_band'))).height, 186);
+      expect(
+        tester.getSize(find.byKey(const Key('track_band'))).height,
+        TrackRowTable.compare.totalHeight,
+      );
     });
 
     testWidgets('跨面一致性：渲染行 == 对比行集声明逐位相等', (tester) async {
@@ -679,7 +684,9 @@ void main() {
         find.descendant(
           of: find.byKey(const Key('track_beat')),
           matching: find.byWidgetPredicate(
-            (w) => w.key is ValueKey && (w.key as ValueKey).value.toString().startsWith('beat_tick_'),
+            (w) =>
+                w.key is ValueKey &&
+                (w.key as ValueKey).value.toString().startsWith('beat_tick_'),
           ),
         ),
         findsNothing,
@@ -690,15 +697,18 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
 
-      final before = tester.getTopLeft(find.byKey(const Key('beat_track_shimmer')));
+      final before = tester.getTopLeft(
+        find.byKey(const Key('beat_track_shimmer')),
+      );
       await tester.pump(const Duration(milliseconds: 300));
-      final after = tester.getTopLeft(find.byKey(const Key('beat_track_shimmer')));
+      final after = tester.getTopLeft(
+        find.byKey(const Key('beat_track_shimmer')),
+      );
 
       expect(after.dx, greaterThan(before.dx));
     });
 
-    testWidgets('占位态光带流动只做平移：帧间槽位不动（不触发整行重新布局）',
-        (tester) async {
+    testWidgets('占位态光带流动只做平移：帧间槽位不动（不触发整行重新布局）', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
 
@@ -727,7 +737,9 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
 
-      final handle = tester.getSemantics(find.byKey(const Key('beat_track_placeholder')));
+      final handle = tester.getSemantics(
+        find.byKey(const Key('beat_track_placeholder')),
+      );
       expect(handle.label, contains('节拍分析中'));
       expect(find.textContaining('%'), findsNothing);
       expect(find.textContaining('％'), findsNothing);
@@ -737,13 +749,19 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
 
-      await tester.tap(find.byKey(const Key('track_beat')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('track_beat')),
+        warnIfMissed: false,
+      );
       await tester.pump(const Duration(milliseconds: 100));
 
       final container = ProviderScope.containerOf(
         tester.element(find.byKey(const Key('track_beat'))),
       );
-      expect(container.read(beatTrackStateProvider).phase, BeatTrackPhase.placeholder);
+      expect(
+        container.read(beatTrackStateProvider).phase,
+        BeatTrackPhase.placeholder,
+      );
       // 无弹层/无选中反馈出现。
       expect(find.byType(Dialog), findsNothing);
       expect(find.byType(Tooltip), findsNothing);
@@ -772,8 +790,10 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
       ProviderScope.containerOf(
-        tester.element(find.byKey(const Key('track_beat'))),
-      ).read(beatTrackStateProvider.notifier).replace(const BeatTrackState.error());
+            tester.element(find.byKey(const Key('track_beat'))),
+          )
+          .read(beatTrackStateProvider.notifier)
+          .replace(const BeatTrackState.error());
       await tester.pump(const Duration(milliseconds: 100));
 
       final failed = find.byKey(const Key('beat_track_failed'));
@@ -793,11 +813,15 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
       ProviderScope.containerOf(
-        tester.element(find.byKey(const Key('track_beat'))),
-      ).read(beatTrackStateProvider.notifier).replace(const BeatTrackState.error());
+            tester.element(find.byKey(const Key('track_beat'))),
+          )
+          .read(beatTrackStateProvider.notifier)
+          .replace(const BeatTrackState.error());
       await tester.pump(const Duration(milliseconds: 100));
 
-      final handle = tester.getSemantics(find.byKey(const Key('beat_track_failed')));
+      final handle = tester.getSemantics(
+        find.byKey(const Key('beat_track_failed')),
+      );
       expect(handle.label, contains('节拍识别失败'));
       expect(find.textContaining('%'), findsNothing);
     });
@@ -806,11 +830,16 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpBand(tester, engine: engine, readyBeat: false);
       ProviderScope.containerOf(
-        tester.element(find.byKey(const Key('track_beat'))),
-      ).read(beatTrackStateProvider.notifier).replace(const BeatTrackState.error());
+            tester.element(find.byKey(const Key('track_beat'))),
+          )
+          .read(beatTrackStateProvider.notifier)
+          .replace(const BeatTrackState.error());
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.byKey(const Key('track_beat')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('track_beat')),
+        warnIfMissed: false,
+      );
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(
@@ -1685,7 +1714,8 @@ void main() {
         expect(
           found.keys,
           hasLength(1),
-          reason: '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）应恰好'
+          reason:
+              '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）应恰好'
               '渲染一级说明，实得 ${found.keys}',
         );
         final variant = found.keys.single;
@@ -1700,7 +1730,8 @@ void main() {
           inner >= kLearningCaptionFontSize * 5
               ? LearningCaptionFit.full
               : LearningCaptionFit.digits,
-          reason: '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）'
+          reason:
+              '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）'
               '选中的层级与实测门槛不符',
         );
         // ① 判定侧前提：按渲染实际样式量出的宽必须放得下。
@@ -1729,7 +1760,8 @@ void main() {
           expect(
             ink.left,
             greaterThanOrEqualTo(-0.01),
-            reason: '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）'
+            reason:
+                '段内可用宽 ${inner.toStringAsFixed(2)}px（total=${ms}ms）'
                 '字形盒越出左缘',
           );
           expect(
@@ -1786,8 +1818,7 @@ void main() {
       expect(shadow.offset, Offset.zero, reason: '无偏移');
     });
 
-    testWidgets('说明文案用唯一样式渲染：切断环境样式且两侧吃同一缩放值',
-        (tester) async {
+    testWidgets('说明文案用唯一样式渲染：切断环境样式且两侧吃同一缩放值', (tester) async {
       // 本几何放得下全句（段内可用宽足够大）。
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -1813,15 +1844,10 @@ void main() {
         MediaQuery.textScalerOf(tester.element(finder)),
         reason: '两侧同源：渲染缩放 = 环境缩放，量测侧取同一值',
       );
-      expect(
-        text.textScaler!.scale(10),
-        13.0,
-        reason: '语义档随系统字号：1.3× 下真的放大',
-      );
+      expect(text.textScaler!.scale(10), 13.0, reason: '语义档随系统字号：1.3× 下真的放大');
     });
 
-    testWidgets('两档边界：装饰片头文字固定排版、不随系统字号',
-        (tester) async {
+    testWidgets('两档边界：装饰片头文字固定排版、不随系统字号', (tester) async {
       // 装饰档：片头标签列（"学习/节拍/…"）不承载语义，保持固定排版。
       // 独立真值 = 自身在 1.0× 下的渲染宽；1.3× 下逐位不变，与同屏随字号
       // 的段说明（语义档）构成两档分界。
@@ -2338,8 +2364,12 @@ void main() {
     );
 
     /// 点控制柄落焦（触摸路径照常选中），再发方向键。
-    Future<void> nudge(WidgetTester tester, Key handleKey, int times,
-        {required bool right}) async {
+    Future<void> nudge(
+      WidgetTester tester,
+      Key handleKey,
+      int times, {
+      required bool right,
+    }) async {
       await tester.tap(find.byKey(handleKey));
       await tester.pump();
       for (var i = 0; i < times; i++) {
@@ -2371,9 +2401,7 @@ void main() {
       expect(lineX(tester, 'segment_line_0'), closeTo(bandX(4), 1));
     });
 
-    testWidgets('分段线：八拍锚点重定相后仍按相位取相邻八拍点（唯一相位源）', (
-      tester,
-    ) async {
+    testWidgets('分段线：八拍锚点重定相后仍按相位取相邻八拍点（唯一相位源）', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
         tester,
@@ -2417,9 +2445,9 @@ void main() {
         engine: engine,
         timeline: timelineWithLines([const Duration(seconds: 8)]),
       );
-      ProviderScope.containerOf(
-        tester.element(find.byType(TrackBand)),
-      ).read(layoutLockedProvider.notifier).toggle();
+      ProviderScope.containerOf(tester.element(find.byType(TrackBand)))
+          .read(layoutLockedProvider.notifier)
+          .toggle();
       await tester.pump();
 
       await nudge(tester, const Key('segment_line_0_handle'), 1, right: true);
@@ -2788,7 +2816,8 @@ void main() {
         listen: false,
       );
       container.read(selectedLearningSegmentsProvider.notifier).state = const {
-        0, 1,
+        0,
+        1,
       };
       await pumpSettle(tester);
 
@@ -2827,8 +2856,10 @@ void main() {
         findsNothing,
       );
       // 熟练度填充不受影响。
-      expect(learningSegmentBoxDecoration(tester, 0).color,
-          kMasteryUnlearnedColor);
+      expect(
+        learningSegmentBoxDecoration(tester, 0).color,
+        kMasteryUnlearnedColor,
+      );
     });
   });
 
@@ -2863,8 +2894,11 @@ void main() {
         radius.bottomLeft,
         radius.bottomRight,
       ]) {
-        expect(corner, const Radius.circular(kSegmentBoxBorderRadius),
-            reason: '段 $i 圆角完整');
+        expect(
+          corner,
+          const Radius.circular(kSegmentBoxBorderRadius),
+          reason: '段 $i 圆角完整',
+        );
       }
     }
 
@@ -2916,7 +2950,9 @@ void main() {
       expectFullRoundedFrame(tester, 0);
 
       // 字形贴端 3dp、距底 3dp，在盒内。
-      final box = tester.getRect(find.byKey(const Key('learning_segment_0_box')));
+      final box = tester.getRect(
+        find.byKey(const Key('learning_segment_0_box')),
+      );
       final glyphStart = tester.getRect(
         find.byKey(loopKey(0, '_loop_glyph_start')),
       );
@@ -2924,10 +2960,16 @@ void main() {
         find.byKey(loopKey(0, '_loop_glyph_end')),
       );
       expect(glyphStart.left, closeTo(box.left + kSegmentLoopGlyphInset, 0.5));
-      expect(glyphStart.bottom, closeTo(box.bottom - kSegmentLoopGlyphInset, 0.5));
+      expect(
+        glyphStart.bottom,
+        closeTo(box.bottom - kSegmentLoopGlyphInset, 0.5),
+      );
       expect(glyphStart.longestSide, kSegmentLoopGlyphSize);
       expect(glyphEnd.right, closeTo(box.right - kSegmentLoopGlyphInset, 0.5));
-      expect(glyphEnd.bottom, closeTo(box.bottom - kSegmentLoopGlyphInset, 0.5));
+      expect(
+        glyphEnd.bottom,
+        closeTo(box.bottom - kSegmentLoopGlyphInset, 0.5),
+      );
       expect(glyphEnd.longestSide, kSegmentLoopGlyphSize);
       // 字形用激活色，不新增颜色。
       final icons = tester.widgetList<Icon>(
@@ -2968,7 +3010,9 @@ void main() {
         listen: false,
       );
       container.read(selectedLearningSegmentsProvider.notifier).state = const {
-        0, 1, 2,
+        0,
+        1,
+        2,
       };
       await pumpSettle(tester);
 
@@ -2999,8 +3043,9 @@ void main() {
         ),
       );
       // 前提确认：该段盒宽确实放不下两端字形（判据派生式）。
-      final boxWidth =
-          tester.getSize(find.byKey(const Key('learning_segment_1_box'))).width;
+      final boxWidth = tester
+          .getSize(find.byKey(const Key('learning_segment_1_box')))
+          .width;
       expect(
         boxWidth,
         lessThan((kSegmentLoopGlyphSize + kSegmentLoopGlyphInset) * 2),
@@ -3041,9 +3086,7 @@ void main() {
       final label = tester.getRect(
         find.byKey(const Key('learning_segment_0_eight_count_full')),
       );
-      final glyph = tester.getRect(
-        find.byKey(loopKey(0, '_loop_glyph_start')),
-      );
+      final glyph = tester.getRect(find.byKey(loopKey(0, '_loop_glyph_start')));
       expect(star.overlaps(glyph), isFalse, reason: '星标不压字形');
       expect(label.overlaps(glyph), isFalse, reason: '居中数字不压字形');
       expect(star.overlaps(label), isFalse, reason: '星标不压居中数字（既有不变量）');
@@ -3095,9 +3138,7 @@ void main() {
 
     Key loopKey(int i, String suffix) => Key('learning_segment_$i$suffix');
 
-    testWidgets('对比行集的学习段轨：选中段同用青色整框 + 发光 + 两端字形，无白圈', (
-      tester,
-    ) async {
+    testWidgets('对比行集的学习段轨：选中段同用青色整框 + 发光 + 两端字形，无白圈', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
         tester,
@@ -3119,14 +3160,8 @@ void main() {
       expect(border.top.color, kCyanAccentColor);
       expect(border.top.width, kSegmentSelectedBorderWidth);
       expect(learningSegmentGlowDecoration(tester, 0).boxShadow, isNotEmpty);
-      expect(
-        find.byKey(loopKey(0, '_loop_glyph_start')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(loopKey(0, '_loop_glyph_end')),
-        findsOneWidget,
-      );
+      expect(find.byKey(loopKey(0, '_loop_glyph_start')), findsOneWidget);
+      expect(find.byKey(loopKey(0, '_loop_glyph_end')), findsOneWidget);
       // 内嵌白圈不因行集切换而回来。
       expect(
         find.byKey(const Key('learning_segment_0_selected_ring')),
@@ -3206,7 +3241,10 @@ void main() {
       await pumpSettle(tester);
 
       expect(container.read(annotationSelectionProvider).asSegmentLineIndex, 1);
-      expect(container.read(selectedLearningSegmentRepresentativeProvider), isNull);
+      expect(
+        container.read(selectedLearningSegmentRepresentativeProvider),
+        isNull,
+      );
     });
 
     testWidgets('区间内点按长段 → 选中该长段、不收起', (tester) async {
@@ -3399,9 +3437,7 @@ void main() {
       expectSegmentGlow(tester, 1, true);
     });
 
-    testWidgets('带内空白精细调整 seek：学习段选中与循环都留着（六处不清）', (
-      tester,
-    ) async {
+    testWidgets('带内空白精细调整 seek：学习段选中与循环都留着（六处不清）', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
         tester,
@@ -3477,8 +3513,11 @@ void main() {
       expect(container.read(selectedLearningSegmentsProvider), const {1});
       expectSegmentGlow(tester, 1, true);
       expectSegmentGlow(tester, 0, false);
-      expect(engine.position, const Duration(seconds: 25),
-          reason: '按下不 seek，播放位置不动');
+      expect(
+        engine.position,
+        const Duration(seconds: 25),
+        reason: '按下不 seek，播放位置不动',
+      );
       expect(engine.callLog, isEmpty, reason: '按下不打断播放');
 
       await gesture.up();
@@ -3571,13 +3610,15 @@ void main() {
       await second.moveBy(const Offset(-80, 40));
       await pumpSettle(tester);
 
-      expect(container.read(selectedLearningSegmentsProvider), const {0},
-          reason: '缩放起手接管 → 整片回滚到按下前');
+      expect(container.read(selectedLearningSegmentsProvider), const {
+        0,
+      }, reason: '缩放起手接管 → 整片回滚到按下前');
       await first.up();
       await second.up();
       await pumpSettle(tester);
-      expect(container.read(selectedLearningSegmentsProvider), const {0},
-          reason: '回滚不因松手再翻转');
+      expect(container.read(selectedLearningSegmentsProvider), const {
+        0,
+      }, reason: '回滚不因松手再翻转');
     });
 
     testWidgets('横向快滑起手接管按下会话：净结果不变——只选中这一段，'
@@ -3633,9 +3674,10 @@ void main() {
         '按下别的段不记入', (tester) async {
       final container = await pumpThreeSegments(tester);
       expect(
-        container.read(guideSessionProvider).criterionLatches.contains(
-          HandsOnCriterion.editorIntroActivate,
-        ),
+        container
+            .read(guideSessionProvider)
+            .criterionLatches
+            .contains(HandsOnCriterion.editorIntroActivate),
         isFalse,
       );
 
@@ -3644,11 +3686,13 @@ void main() {
       );
       await pumpSettle(tester);
       expect(
-        container.read(guideSessionProvider).criterionLatches.contains(
-          HandsOnCriterion.editorIntroActivate,
-        ),
+        container
+            .read(guideSessionProvider)
+            .criterionLatches
+            .contains(HandsOnCriterion.editorIntroActivate),
         isFalse,
-          reason: '落点不是第一段');
+        reason: '落点不是第一段',
+      );
       await gesture.cancel();
 
       final gesture0 = await tester.startGesture(
@@ -3656,11 +3700,13 @@ void main() {
       );
       await pumpSettle(tester);
       expect(
-        container.read(guideSessionProvider).criterionLatches.contains(
-          HandsOnCriterion.editorIntroActivate,
-        ),
+        container
+            .read(guideSessionProvider)
+            .criterionLatches
+            .contains(HandsOnCriterion.editorIntroActivate),
         isTrue,
-          reason: '按下第一段即记入，不等抬手');
+        reason: '按下第一段即记入，不等抬手',
+      );
       await gesture0.cancel();
     });
   });
@@ -3701,9 +3747,7 @@ void main() {
       return gesture;
     }
 
-    testWidgets('长按成立：清空原选中、落点段立为起点，松手前即有视觉反馈', (
-      tester,
-    ) async {
+    testWidgets('长按成立：清空原选中、落点段立为起点，松手前即有视觉反馈', (tester) async {
       final container = await pumpThreeSegments(tester);
       container
           .read(annotationSelectionDomainProvider)
@@ -3922,7 +3966,10 @@ void main() {
       expect(haptic.impactCalls, 0);
 
       // 点空白（学习轨外的节拍轨行）：不震。
-      await tester.tap(find.byKey(const Key('track_beat')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('track_beat')),
+        warnIfMissed: false,
+      );
       await pumpSettle(tester);
       expect(haptic.impactCalls, 0);
       // 快滑＝清空后只选中这一段（既有语义），全程无震动。
@@ -3930,7 +3977,10 @@ void main() {
     });
 
     testWidgets('组员方案只读：长按不进圈选也不震', (tester) async {
-      final (container, haptic) = await pumpHapticBand(tester, memberReadonly: true);
+      final (container, haptic) = await pumpHapticBand(
+        tester,
+        memberReadonly: true,
+      );
 
       final gesture = await holdSegment(tester, 1);
       await pumpSettle(tester);
@@ -4096,7 +4146,9 @@ void main() {
         listen: false,
       );
       final first = tester.getRect(find.byKey(const Key('learning_segment_0')));
-      final bandLeft = tester.getTopLeft(find.byKey(const Key('track_band'))).dx;
+      final bandLeft = tester
+          .getTopLeft(find.byKey(const Key('track_band')))
+          .dx;
 
       // 有效区间外（10s 之前）的带内空白：没有可圈的学习段。
       final before = await holdAt(
@@ -4167,17 +4219,15 @@ void main() {
     /// 长按段 0 后把手指拖到右缘（保持按住），返回该手势。
     Future<TestGesture> dragToRightEdge(WidgetTester tester, int index) async {
       final gesture = await holdSegment(tester, index);
-      final startX = tester.getCenter(
-        find.byKey(Key('learning_segment_$index')),
-      ).dx;
+      final startX = tester
+          .getCenter(find.byKey(Key('learning_segment_$index')))
+          .dx;
       await gesture.moveBy(Offset(rightEdgeGlobalX(tester) - startX, 0));
       await tester.pump();
       return gesture;
     }
 
-    testWidgets('手指停在右缘：窗口持续右滚、圈选终点跟着延伸，滚动期间不 seek', (
-      tester,
-    ) async {
+    testWidgets('手指停在右缘：窗口持续右滚、圈选终点跟着延伸，滚动期间不 seek', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       final container = await pumpThreeSegments(tester, engine: engine);
 
@@ -4240,18 +4290,13 @@ void main() {
       await tester.pump();
       await pumpFrames(tester, 30);
       expect(tickIndexes(tester).first, firstTickAtEdge);
-      expect(
-        container.read(selectedLearningSegmentsProvider),
-        selectionAtEdge,
-      );
+      expect(container.read(selectedLearningSegmentsProvider), selectionAtEdge);
 
       await gesture.up();
       await pumpSettle(tester);
     });
 
-    testWidgets('滚到片尾/末段即停：窗口钳在界内、圈到末段为止，不越界', (
-      tester,
-    ) async {
+    testWidgets('滚到片尾/末段即停：窗口钳在界内、圈到末段为止，不越界', (tester) async {
       final container = await pumpThreeSegments(tester);
 
       final gesture = await dragToRightEdge(tester, 1);
@@ -4266,9 +4311,7 @@ void main() {
       expect(container.read(selectedLearningSegmentsProvider), {1, 2});
     });
 
-    testWidgets('圈到末段即停：窗口停在末段前（不等到片尾钳制）就不再滚', (
-      tester,
-    ) async {
+    testWidgets('圈到末段即停：窗口停在末段前（不等到片尾钳制）就不再滚', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       final container = await pumpThreeSegments(tester, engine: engine);
       await engine.seek(const Duration(seconds: 12));
@@ -4397,7 +4440,8 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(400, 2.0),
-        reason: '缩放以焦点(=预览条)为锚；窗口起点 > 0 后让位收回'
+        reason:
+            '缩放以焦点(=预览条)为锚；窗口起点 > 0 后让位收回'
             '，90s 仍在窗内 50% → 400',
       );
 
@@ -4417,9 +4461,7 @@ void main() {
       );
     });
 
-    testWidgets('微调 scrub 落点越出可视窗口 → 位置 tick 跟随平移', (
-      tester,
-    ) async {
+    testWidgets('微调 scrub 落点越出可视窗口 → 位置 tick 跟随平移', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpBand(tester, engine: engine);
       await engine.seek(const Duration(seconds: 90));
@@ -4562,9 +4604,7 @@ void main() {
       await pumpSettle(tester);
     });
 
-    testWidgets('拖动序列逐帧推进：预览线随目标时间走（不贴手指）、松手收敛到累计落点', (
-      tester,
-    ) async {
+    testWidgets('拖动序列逐帧推进：预览线随目标时间走（不贴手指）、松手收敛到累计落点', (tester) async {
       final collapses = ValueNotifier<int>(0);
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpBand(
@@ -4590,7 +4630,11 @@ void main() {
 
       // 松手收敛到最终落点：累计 30 + 12 × 10 = 150px → 7.5s。
       final finalTarget = const Duration(milliseconds: 7500);
-      expect(engine.seekCalls.length, lessThanOrEqualTo(13), reason: '每帧至多一次 seek');
+      expect(
+        engine.seekCalls.length,
+        lessThanOrEqualTo(13),
+        reason: '每帧至多一次 seek',
+      );
       expect(engine.seekCalls.last, finalTarget);
       expect(engine.position, finalTarget, reason: '松手落点与目标一致');
       expect(
@@ -4679,7 +4723,9 @@ void main() {
       // 起平移为时间平滑累积——每帧按侵入深度速度平移窗口再换算目标 →
       // seek 目标越过原可视窗口右端、窗口最左刻度右移。
       final px = tester.getCenter(previewLine()).dx;
-      final g = await tester.startGesture(Offset(px, trackRowCenterY(tester, 'track_handle_strip_row')));
+      final g = await tester.startGesture(
+        Offset(px, trackRowCenterY(tester, 'track_handle_strip_row')),
+      );
       await tester.pump();
       for (var i = 0; i < 40; i++) {
         await g.moveBy(const Offset(12, 0));
@@ -4715,8 +4761,11 @@ void main() {
       // 缩放后预览条所在时间不变；窗口起点离开 0 后片头让位收回、整带宽
       // 归内容，锚时间 90s 仍在窗口 [89s,91s] 中点 → 带宽中点。
       final after = tester.getCenter(find.byKey(const Key('preview_line'))).dx;
-      expect(after, closeTo(400, 2.0),
-          reason: '窗口 [89s,91s] 起点 > 0：让位收回，90s 在满带宽中点');
+      expect(
+        after,
+        closeTo(400, 2.0),
+        reason: '窗口 [89s,91s] 起点 > 0：让位收回，90s 在满带宽中点',
+      );
       // 节拍刻度随新密度重排：只剩 90s 拍（锚定时间仍在窗口内）。
       final zoomed = tickIndexes(tester);
       expect(zoomed, contains(180)); // 90s 拍
@@ -4760,7 +4809,8 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(400, 2.0),
-        reason: '缩放以焦点为锚：锚 90s 保持窗内比例；窗口起点 > 0 后让位'
+        reason:
+            '缩放以焦点为锚：锚 90s 保持窗内比例；窗口起点 > 0 后让位'
             '收回，90s 仍在窗口中点 → 带宽中点',
       );
       expect(engine.position, const Duration(seconds: 90));
@@ -4810,7 +4860,8 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(480, 6),
-        reason: '焦点（双指中点）右移 → 窗口平移、锚时间内容跟手；'
+        reason:
+            '焦点（双指中点）右移 → 窗口平移、锚时间内容跟手；'
             '窗口 [78s,98s] 起点 > 0 后让位收回，90s 在窗内 60%'
             ' → 0.6 × 800 = 480',
       );
@@ -4858,7 +4909,8 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(400, 2.0),
-        reason: '锚 = 预览线：90s 保持窗内比例不动；放大后窗口起点 > 0，'
+        reason:
+            '锚 = 预览线：90s 保持窗内比例不动；放大后窗口起点 > 0，'
             '让位收回满带宽摊开，90s 仍在窗内 50% → 400',
       );
     });
@@ -4886,16 +4938,23 @@ void main() {
       await g1.up();
       await g2.up();
       await tester.pump();
-      expect(find.byKey(const Key('preview_line')), findsNothing,
-          reason: '前置：预览线已被平移出可视窗口');
+      expect(
+        find.byKey(const Key('preview_line')),
+        findsNothing,
+        reason: '前置：预览线已被平移出可视窗口',
+      );
 
       await pinchOutward(tester, Offset(200, y));
 
       final ticks = tickIndexes(tester);
       expect(ticks.length, lessThan(361), reason: '放大仍生效');
-      expect(ticks, contains(90),
-          reason: '锚 = 手指焦点（≈46s）：焦点附近内容留在窗口内铺开；'
-              '若误以窗外预览线为锚，窗口会贴到 [75s,90s] 附近而看不到 45s');
+      expect(
+        ticks,
+        contains(90),
+        reason:
+            '锚 = 手指焦点（≈46s）：焦点附近内容留在窗口内铺开；'
+            '若误以窗外预览线为锚，窗口会贴到 [75s,90s] 附近而看不到 45s',
+      );
       expect(engine.position, const Duration(seconds: 90));
     });
 
@@ -4914,7 +4973,8 @@ void main() {
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(400, 2.0),
-        reason: '前置：预览线在窗口内（放大后窗口起点 > 0，让位收回 '
+        reason:
+            '前置：预览线在窗口内（放大后窗口起点 > 0，让位收回 '
             '，90s 仍在窗内 50% → 400）',
       );
       final g1 = await tester.startGesture(Offset(300, y));
@@ -4929,14 +4989,15 @@ void main() {
       await g2.up();
       await tester.pump();
 
-      expect(find.byKey(const Key('preview_line')), findsNothing,
-          reason: '双指平移把预览线推出可视窗口');
+      expect(
+        find.byKey(const Key('preview_line')),
+        findsNothing,
+        reason: '双指平移把预览线推出可视窗口',
+      );
       final ticks = tickIndexes(tester);
       expect(ticks.length, lessThan(361), reason: '仍处放大态');
-      expect(ticks, contains(80),
-          reason: '窗口停在预览线左侧（30s 附近，看更早内容），没有被拉回预览线');
-      expect(engine.position, const Duration(seconds: 90),
-          reason: '平移不改变播放位置');
+      expect(ticks, contains(80), reason: '窗口停在预览线左侧（30s 附近，看更早内容），没有被拉回预览线');
+      expect(engine.position, const Duration(seconds: 90), reason: '平移不改变播放位置');
     });
   });
 
@@ -4980,9 +5041,7 @@ void main() {
       expect(collapses.value, 1);
     });
 
-    testWidgets('空白区单指双击 → onDoubleTap（收起 + 切播放），不触发单击收起', (
-      tester,
-    ) async {
+    testWidgets('空白区单指双击 → onDoubleTap（收起 + 切播放），不触发单击收起', (tester) async {
       final collapses = ValueNotifier<int>(0);
       var doubleTaps = 0;
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
@@ -6197,13 +6256,13 @@ void main() {
       expect(overlay, findsNothing);
     });
 
-    testWidgets('激活报身份触发短暂提示（渲染归演出层宿主）',
-        (tester) async {
+    testWidgets('激活报身份触发短暂提示（渲染归演出层宿主）', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       final container = await pumpWithLines(tester, engine);
 
-      final trigger =
-          container.read(noticeTriggerProvider(NoticeId.transition).notifier);
+      final trigger = container.read(
+        noticeTriggerProvider(NoticeId.transition).notifier,
+      );
       expect(trigger.state, 0);
       await tester.tapAt(learningRowLine1(tester));
       await pumpSettle(tester);
@@ -6246,9 +6305,7 @@ void main() {
       }
     }
 
-    testWidgets('激活时两端字形同在、几何与学习段一致、发光不在', (
-      tester,
-    ) async {
+    testWidgets('激活时两端字形同在、几何与学习段一致、发光不在', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpWithLines(tester, engine);
 
@@ -6268,8 +6325,14 @@ void main() {
         );
       }
       // 旧括号帽键不再存在：端标志只由 repeat 字形承担。
-      expect(find.byKey(const Key('transition_segment_loop_start')), findsNothing);
-      expect(find.byKey(const Key('transition_segment_loop_end')), findsNothing);
+      expect(
+        find.byKey(const Key('transition_segment_loop_start')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('transition_segment_loop_end')),
+        findsNothing,
+      );
 
       // 几何与学习段同一份实现：字形贴端 3dp、距底 3dp、10dp。
       final overlay = tester.getRect(
@@ -6314,10 +6377,11 @@ void main() {
       // 发光专属真实激活：临时段 overlay 只是描边装饰，没有 boxShadow。
       final decoration =
           tester
-              .widget<DecoratedBox>(
-                find.byKey(const Key('transition_segment_overlay')),
-              )
-              .decoration as BoxDecoration;
+                  .widget<DecoratedBox>(
+                    find.byKey(const Key('transition_segment_overlay')),
+                  )
+                  .decoration
+              as BoxDecoration;
       expect(decoration.boxShadow, isNull);
     });
 
@@ -6334,10 +6398,7 @@ void main() {
       await tester.tapAt(learningRowLine1(tester));
       await pumpSettle(tester);
       expectNoTransitionLoopMarks(tester);
-      expect(
-        find.byKey(const Key('transition_segment_overlay')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('transition_segment_overlay')), findsNothing);
     });
 
     testWidgets('几何变化（拖线）后两端标志一并消失', (tester) async {
@@ -6438,9 +6499,7 @@ void main() {
       double fingerX,
     ) async {
       final total = engine.duration ?? const Duration(minutes: 3);
-      await engine.seek(
-        bandTimeAt(100, total: total, width: 800),
-      );
+      await engine.seek(bandTimeAt(100, total: total, width: 800));
       await pumpSettle(tester);
       final y = trackRowCenterY(tester, 'track_handle_strip_row');
       final g = await tester.startGesture(Offset(100, y));
@@ -6527,9 +6586,7 @@ void main() {
       await tester.pump();
       expect(haptics, 1);
       // 拖到 120s 线（x = bandX(120)）附近（距线 8px）→ 切换吸附目标。
-      await g.moveBy(
-        Offset(bandX(120, total: 180) - bandX(60, total: 180), 0),
-      );
+      await g.moveBy(Offset(bandX(120, total: 180) - bandX(60, total: 180), 0));
       await tester.pump();
       await g.up();
       await pumpSettle(tester);
@@ -6637,9 +6694,7 @@ void main() {
       double startX,
     ) async {
       final total = engine.duration ?? const Duration(minutes: 3);
-      await engine.seek(
-        bandTimeAt(startX, total: total, width: 800),
-      );
+      await engine.seek(bandTimeAt(startX, total: total, width: 800));
       await pumpSettle(tester);
       final y = trackRowCenterY(tester, 'track_handle_strip_row');
       return tester.startGesture(Offset(startX, y));
@@ -6795,11 +6850,7 @@ void main() {
     /// 会话内在场断言（须在松手前读取：松手续播后预览线随播放推进）：
     /// 拖动预览只入队、不写显示位（writeDisplay: false），预览线停在起手位置。
     void expectPreviewLineUnmoved(WidgetTester tester, double beforeX) =>
-        expect(
-          previewLineX(tester),
-          beforeX,
-          reason: '拖线预览不改播放头显示值',
-        );
+        expect(previewLineX(tester), beforeX, reason: '拖线预览不改播放头显示值');
 
     testWidgets('在播拖分段线：按下即暂停，画面逐帧预览线位置，松手回预览线位置续播', (tester) async {
       final collapses = ValueNotifier<int>(0);
@@ -6969,7 +7020,14 @@ void main() {
       final fingerX = handleCenter.dx + 160;
       expect(
         engine.seekCalls.last.inMilliseconds,
-        closeTo(bandTimeAt(fingerX, total: total, width: 800).inMilliseconds.toDouble(), 200),
+        closeTo(
+          bandTimeAt(
+            fingerX,
+            total: total,
+            width: 800,
+          ).inMilliseconds.toDouble(),
+          200,
+        ),
         reason: 'seek 目标 = 手指位置帧级换算',
       );
       // 预览线跟随拖动目标移动到手指处。
@@ -7020,7 +7078,14 @@ void main() {
       final fingerX = handleCenter.dx + 60 + 80 + 60;
       expect(
         engine.seekCalls.last.inMilliseconds,
-        closeTo(bandTimeAt(fingerX, total: total, width: 800).inMilliseconds.toDouble(), 200),
+        closeTo(
+          bandTimeAt(
+            fingerX,
+            total: total,
+            width: 800,
+          ).inMilliseconds.toDouble(),
+          200,
+        ),
         reason: '抬回单指后仍是列内预览线拖动（绝对跟手），未误入微调',
       );
     });
@@ -7057,7 +7122,8 @@ void main() {
       expect(
         tester.getSize(find.byKey(const Key('segment_line_0_handle'))).width,
         closeTo(28, 0.5),
-        reason: '外侧槽向空余扩展但被邻线分界截到 28dp（线心 ± 24 目标半宽 '
+        reason:
+            '外侧槽向空余扩展但被邻线分界截到 28dp（线心 ± 24 目标半宽 '
             '与两侧中点相交）→ 条取 min(32, 槽宽)（24 时代槽宽 '
             '28 已够 24，故旧值不变）',
       );
@@ -7079,8 +7145,9 @@ void main() {
         ),
       );
       await pumpSettle(tester);
-      final rowTop =
-          tester.getTopLeft(find.byKey(const Key('track_handle_strip_row'))).dy;
+      final rowTop = tester
+          .getTopLeft(find.byKey(const Key('track_handle_strip_row')))
+          .dy;
       final bar = find.byKey(const Key('segment_line_0_handle'));
       final size = tester.getSize(bar);
       expect(size.width, closeTo(32, 0.1), reason: '条宽 24 → 32');
@@ -7170,7 +7237,14 @@ void main() {
       final fingerX = markerCenter.dx + 80;
       expect(
         engine.seekCalls.last.inMilliseconds,
-        closeTo(bandTimeAt(fingerX, total: total, width: 800).inMilliseconds.toDouble(), 200),
+        closeTo(
+          bandTimeAt(
+            fingerX,
+            total: total,
+            width: 800,
+          ).inMilliseconds.toDouble(),
+          200,
+        ),
       );
     });
   });
@@ -7484,7 +7558,6 @@ void main() {
   });
 
   group('贴边平移参数修订：判定带宽 = 带宽 ÷ 4、出缘归一 700px/s', () {
-
     // Widget seam：放大后拖到边沿区，窗口随时间渐进平移。
     // 带内空白横滑改走精细调整，贴边平移经预览线命中列接管
     // 路径（手柄带）触发——预览线先 seek 到起手 x 再从列内起手。
@@ -7509,7 +7582,14 @@ void main() {
         start: Duration(seconds: 60),
         end: Duration(seconds: 90),
       );
-      await engine.seek(bandTimeAt(100, total: const Duration(minutes: 3), width: 800, window: zoomWindow));
+      await engine.seek(
+        bandTimeAt(
+          100,
+          total: const Duration(minutes: 3),
+          width: 800,
+          window: zoomWindow,
+        ),
+      );
       await pumpSettle(tester);
       final y = trackRowCenterY(tester, 'track_handle_strip_row');
       final g = await tester.startGesture(Offset(100, y));
@@ -7554,7 +7634,14 @@ void main() {
           start: Duration(seconds: 60),
           end: Duration(seconds: 90),
         );
-        await engine.seek(bandTimeAt(100, total: const Duration(minutes: 3), width: 800, window: zoomWindow));
+        await engine.seek(
+          bandTimeAt(
+            100,
+            total: const Duration(minutes: 3),
+            width: 800,
+            window: zoomWindow,
+          ),
+        );
         await pumpSettle(tester);
         final y = trackRowCenterY(tester, 'track_handle_strip_row');
         final g = await tester.startGesture(Offset(100, y));
@@ -7594,7 +7681,12 @@ void main() {
         await pumpSettle(tester);
         // 预览线 seek 到 x=100，从其命中列起手，再移到 startX。
         await engine.seek(
-          bandTimeAt(100, total: const Duration(minutes: 3), width: w, window: zoomWindow),
+          bandTimeAt(
+            100,
+            total: const Duration(minutes: 3),
+            width: w,
+            window: zoomWindow,
+          ),
         );
         await pumpSettle(tester);
         final y = trackRowCenterY(tester, 'track_handle_strip_row');
@@ -7636,7 +7728,12 @@ void main() {
       session.updateWindow(zoomWindow);
       await pumpSettle(tester);
       await engine.seek(
-        bandTimeAt(100, total: const Duration(minutes: 3), width: 800, window: zoomWindow),
+        bandTimeAt(
+          100,
+          total: const Duration(minutes: 3),
+          width: 800,
+          window: zoomWindow,
+        ),
       );
       await pumpSettle(tester);
       final y = trackRowCenterY(tester, 'track_handle_strip_row');
@@ -7723,7 +7820,12 @@ void main() {
       session.updateWindow(zoomWindow);
       await pumpSettle(tester);
       await engine.seek(
-        bandTimeAt(100, total: const Duration(minutes: 3), width: 800, window: zoomWindow),
+        bandTimeAt(
+          100,
+          total: const Duration(minutes: 3),
+          width: 800,
+          window: zoomWindow,
+        ),
       );
       await pumpSettle(tester);
       final y = trackRowCenterY(tester, 'track_handle_strip_row');
@@ -7882,9 +7984,7 @@ void main() {
       expect(find.text('锁定分段·关'), findsNothing);
     });
 
-    testWidgets('锁定后手柄拖动分段线：弹一次「已锁定分段」、线不动、无预览 seek', (
-      tester,
-    ) async {
+    testWidgets('锁定后手柄拖动分段线：弹一次「已锁定分段」、线不动、无预览 seek', (tester) async {
       const total = Duration(seconds: 30);
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
@@ -7913,8 +8013,11 @@ void main() {
         tester.getCenter(find.byKey(const Key('segment_line_0'))).dx,
         closeTo(bandX(5), 1),
       );
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), 1,
-          reason: '首次位移成立弹一次「已锁定分段」');
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        1,
+        reason: '首次位移成立弹一次「已锁定分段」',
+      );
       // 不进入拖线预览会话（无预览 seek；拖线放行时的对照见其它用例）。
       expect(engine.seekCalls, isEmpty);
     });
@@ -7958,16 +8061,17 @@ void main() {
         tester.getCenter(find.byKey(const Key('segment_line_0_handle'))),
       );
       await tester.pump();
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), 0,
-          reason: '起手（未越过拖动阈值）静默');
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        0,
+        reason: '起手（未越过拖动阈值）静默',
+      );
       await gesture.up();
       await pumpSettle(tester);
       expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), 0);
     });
 
-    testWidgets('锁定后拖视频首尾边界：弹一次「已锁定分段」、边界不动、无预览 seek', (
-      tester,
-    ) async {
+    testWidgets('锁定后拖视频首尾边界：弹一次「已锁定分段」、边界不动、无预览 seek', (tester) async {
       const total = Duration(seconds: 100);
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
@@ -8000,8 +8104,11 @@ void main() {
         container.read(annotationTimelineProvider).rangeStart,
         const Duration(seconds: 10),
       );
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), 1,
-          reason: '首次位移成立弹一次「已锁定分段」');
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        1,
+        reason: '首次位移成立弹一次「已锁定分段」',
+      );
       expect(engine.seekCalls, isEmpty);
     });
 
@@ -8684,11 +8791,7 @@ void main() {
         );
         final available = block.width - 2 * kNoteInlineTextHorizontalPadding;
         expect(available, greaterThan(0), reason: '可用宽为正，排除"宽度非正"早退');
-        expect(
-          available,
-          lessThan(naturalWidth('…')),
-          reason: '窄于省略号自身宽度',
-        );
+        expect(available, lessThan(naturalWidth('…')), reason: '窄于省略号自身宽度');
         expect(
           find.byKey(const ValueKey('note_fragment_0_text')),
           findsNothing,
@@ -8825,8 +8928,7 @@ void main() {
         expect(spans.last.text, '走位偏左');
       });
 
-      testWidgets('语义档：量测与渲染吃同一个系统字号缩放值',
-          (tester) async {
+      testWidgets('语义档：量测与渲染吃同一个系统字号缩放值', (tester) async {
         // 90s 窗、10s 片段 → 块宽足够放全句 6 字（60px）；1.3× 下整句宽
         // 78px 仍放得下，渲染宽必须按 1.3× 计。
         const win = TimelineWindow(
@@ -8851,8 +8953,11 @@ void main() {
 
         expect(tester.takeException(), isNull);
         final paragraph = inlineParagraph(tester);
-        expect(paragraph.textScaler.scale(10), 13.0,
-            reason: '语义档随系统字号：1.3× 下真的放大');
+        expect(
+          paragraph.textScaler.scale(10),
+          13.0,
+          reason: '语义档随系统字号：1.3× 下真的放大',
+        );
         // 两侧同源：渲染吃环境缩放值（量测侧 [_fitNoteInlineText] 取同一值，
         // 「判定放得下」即「渲染放得下」）。
         final textWidget = tester
@@ -8870,10 +8975,7 @@ void main() {
           ),
         );
         // 全显档：可见墨迹 = 整句 1.3× 自然宽（判定按缩放后实测重算）。
-        expect(
-          inkWidth(paragraph),
-          closeTo(naturalWidth('这里注意手腕') * 1.3, 2.6),
-        );
+        expect(inkWidth(paragraph), closeTo(naturalWidth('这里注意手腕') * 1.3, 2.6));
       });
     });
 
@@ -8901,8 +9003,11 @@ void main() {
       final bandRect = tester.getRect(find.byKey(const Key('track_band')));
       // 窗口起点 > 0 时让位宽 = 片头可见右缘（此处已滑出 → 0），
       // 期望口径与渲染同读一份几何。
-      final geometry =
-          bandGeometryOf(total: total, window: win, width: bandRect.width);
+      final geometry = bandGeometryOf(
+        total: total,
+        window: win,
+        width: bandRect.width,
+      );
       final contentLeft = geometry.contentLeft;
       final contentWidth = geometry.contentWidth;
       const windowMs = IntervalSpan(startMs: 60000, endMs: 90000);
@@ -8957,8 +9062,11 @@ void main() {
 
       final bandRect = tester.getRect(find.byKey(const Key('track_band')));
       // 内容区宽随让位收回而变，期望口径与渲染同读一份几何。
-      final geometry =
-          bandGeometryOf(total: total, window: win, width: bandRect.width);
+      final geometry = bandGeometryOf(
+        total: total,
+        window: win,
+        width: bandRect.width,
+      );
       final expected = intervalBlockRect(
         span: const IntervalSpan(startMs: 65000, endMs: 65200),
         window: const IntervalSpan(startMs: 60000, endMs: 90000),
@@ -9013,9 +9121,10 @@ void main() {
     /// pump 后直写片段列表会话值（provider 由 widget 树内读取，免改
     /// pumpBand harness 的 override 集）。
     Future<void> giveClips(WidgetTester tester, List<PracticeClip> clips) {
-      ProviderScope.containerOf(
-        tester.element(find.byType(TrackBand)),
-      ).read(practiceClipsProvider.notifier).state = clips;
+      ProviderScope.containerOf(tester.element(find.byType(TrackBand)))
+              .read(practiceClipsProvider.notifier)
+              .state =
+          clips;
       return tester.pumpAndSettle();
     }
 
@@ -9084,9 +9193,9 @@ void main() {
     );
 
     Future<void> giveClips(WidgetTester tester, List<PracticeClip> clips) {
-      ProviderScope.containerOf(
-        tester.element(find.byType(TrackBand)),
-      ).read(practiceClipsProvider.notifier).restore(clips);
+      ProviderScope.containerOf(tester.element(find.byType(TrackBand)))
+          .read(practiceClipsProvider.notifier)
+          .restore(clips);
       return tester.pumpAndSettle();
     }
 
@@ -9114,8 +9223,7 @@ void main() {
       int deltaMs,
     ) async {
       final width = tester.getSize(find.byKey(const Key('track_band'))).width;
-      final dx =
-          deltaMs * width / 180000 + (deltaMs > 0 ? 18.0 : -18.0);
+      final dx = deltaMs * width / 180000 + (deltaMs > 0 ? 18.0 : -18.0);
       await dragEdge(tester, edgeKey, dx);
     }
 
@@ -9171,8 +9279,7 @@ void main() {
       expect(block.left, closeTo(bandX(68, total: 180), 0.5));
     });
 
-    testWidgets('钳在素材时长内：拖越素材尾到头停住（无净变化、不入史）',
-        (tester) async {
+    testWidgets('钳在素材时长内：拖越素材尾到头停住（无净变化、不入史）', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(tester, engine: engine, rowTable: TrackRowTable.compare);
       await giveClips(tester, [clip]);
@@ -9182,11 +9289,7 @@ void main() {
       final before = container.read(practiceClipsProvider).single;
 
       // 请求远越素材尾（90s + 45s）→ 钳素材全长 = 现值，无净变化。
-      await dragEdgeByMs(
-        tester,
-        const Key('practice_clip_c1_edge_end'),
-        45000,
-      );
+      await dragEdgeByMs(tester, const Key('practice_clip_c1_edge_end'), 45000);
 
       expect(container.read(practiceClipsProvider).single, before);
       expect(container.read(annotationEditHistoryProvider).length, 0);
@@ -9242,8 +9345,7 @@ void main() {
       expect(container.read(selectedHalfBeatLineIndexProvider), isNull);
     });
 
-    testWidgets('分段线只读：控制柄拖动不启动（线不动、无 seek、不弹提示）',
-        (tester) async {
+    testWidgets('分段线只读：控制柄拖动不启动（线不动、无 seek、不弹提示）', (tester) async {
       // 缺省行集（非对比行集）+ 对比会话：起手拦截由目标声明表回答，不靠
       // 「对比行集恰好不含此行」的巧合（去掉声明里的 compareReadonly 即放行）。
       const total = Duration(seconds: 30);
@@ -9283,8 +9385,7 @@ void main() {
       expect(engine.seekCalls, isEmpty);
     });
 
-    testWidgets('首尾端标只读：控制柄拖动不启动（边界不动、无 seek）',
-        (tester) async {
+    testWidgets('首尾端标只读：控制柄拖动不启动（边界不动、无 seek）', (tester) async {
       const total = Duration(seconds: 100);
       final engine = FakePlaybackEngine(duration: total);
       await pumpBand(
@@ -9334,8 +9435,7 @@ void main() {
       expect(find.byKey(const Key('note_expand_bubble')), findsNothing);
     });
 
-    testWidgets('备注轨不吞指针：空白单击照常落穿带级空白仲裁（收起）',
-        (tester) async {
+    testWidgets('备注轨不吞指针：空白单击照常落穿带级空白仲裁（收起）', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       var collapses = 0;
       await pumpCompareBand(
@@ -9352,8 +9452,7 @@ void main() {
       expect(collapses, 1, reason: '备注轨只读但空白语义与带内其它位置一致');
     });
 
-    testWidgets('分段线全带可见但只读：选中/拖动入口结构性不可达',
-        (tester) async {
+    testWidgets('分段线全带可见但只读：选中/拖动入口结构性不可达', (tester) async {
       final engine = FakePlaybackEngine(duration: total);
       final container = await pumpCompareBand(
         tester,
@@ -9363,8 +9462,11 @@ void main() {
           segmentLines: const [SegmentLine(position: Duration(seconds: 30))],
         ),
       );
-      expect(find.byKey(const Key('segment_line_0')), findsOneWidget,
-          reason: '分段线全带可见');
+      expect(
+        find.byKey(const Key('segment_line_0')),
+        findsOneWidget,
+        reason: '分段线全带可见',
+      );
       // 控制柄行缺席 → 拖动/选中入口结构性不可达（已断言不渲染）；
       // 模块门禁兜底：无任何路径能把分段线拖动会话建立起来。
       expect(find.byKey(const Key('segment_line_0_handle')), findsNothing);
@@ -9376,11 +9478,7 @@ void main() {
     /// 备注/镜像轨行级点按层在场时，scale 识别器到首次 move 越过 slop 才
     /// 赢得 arena（起手帧不产生 update 帧）——首段 move 起手、次段 move 出
     /// 首个 update 帧：累计目标 = [px]。
-    Future<void> fineDrag(
-      WidgetTester tester,
-      TestGesture g,
-      int px,
-    ) async {
+    Future<void> fineDrag(WidgetTester tester, TestGesture g, int px) async {
       await g.moveBy(Offset(px.toDouble(), 0));
       await tester.pump();
       await g.moveBy(Offset(px.toDouble(), 0));
@@ -9405,7 +9503,11 @@ void main() {
 
       expect(engine.isPlaying, isFalse, reason: '起手即定格（原在播先暂停）');
       expect(engine.callLog.first, 'pause');
-      expect(engine.seekCalls.last, seekDeltaFor(30.toDouble(), 1), reason: '目标按累计位移走');
+      expect(
+        engine.seekCalls.last,
+        seekDeltaFor(30.toDouble(), 1),
+        reason: '目标按累计位移走',
+      );
       expect(
         tester.getCenter(previewLine()).dx,
         closeTo(bandX(1.5, total: 180), 2),
@@ -9428,7 +9530,11 @@ void main() {
       await fineDrag(tester, g, 30);
       await pumpSettle(tester);
 
-      expect(engine.seekCalls.last, seekDeltaFor(30.toDouble(), 1), reason: '目标按累计位移走');
+      expect(
+        engine.seekCalls.last,
+        seekDeltaFor(30.toDouble(), 1),
+        reason: '目标按累计位移走',
+      );
       await g.up();
       await pumpSettle(tester);
     });
@@ -9500,11 +9606,7 @@ void main() {
 
     testWidgets('对比行集下备注轨空白横滑同样成立', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
-      await pumpBand(
-        tester,
-        engine: engine,
-        rowTable: TrackRowTable.compare,
-      );
+      await pumpBand(tester, engine: engine, rowTable: TrackRowTable.compare);
       final y = trackRowCenterY(tester, 'track_notes');
       await engine.play();
       await tester.pump();
@@ -9573,10 +9675,9 @@ void main() {
         TrackRowId.note,
       ];
       const expectedBottomUpLabels = ['控制', '节拍', '分段', '镜像', '备注'];
-      expect(
-        [for (final id in bottomUp) tester.widget<Text>(prefixLabel(id)).data],
-        expectedBottomUpLabels,
-      );
+      expect([
+        for (final id in bottomUp) tester.widget<Text>(prefixLabel(id)).data,
+      ], expectedBottomUpLabels);
       // 行集声明与本态读序一致（条数与文案的单一来源）。
       expect(
         TrackRowTable.normal.prefixLabels.reversed.toList(),
@@ -9624,10 +9725,9 @@ void main() {
         TrackRowId.note,
       ];
       const expectedBottomUpLabels = ['节拍', '分段', '练习', '备注'];
-      expect(
-        [for (final id in bottomUp) tester.widget<Text>(prefixLabel(id)).data],
-        expectedBottomUpLabels,
-      );
+      expect([
+        for (final id in bottomUp) tester.widget<Text>(prefixLabel(id)).data,
+      ], expectedBottomUpLabels);
       expect(
         TrackRowTable.compare.prefixLabels.reversed.toList(),
         expectedBottomUpLabels,
@@ -9655,11 +9755,7 @@ void main() {
       );
       final bandRect = tester.getRect(find.byKey(const Key('track_band')));
       TrackBandGeometry geometry(TimelineWindow? window) =>
-          bandGeometryOf(
-            total: total,
-            window: window,
-            width: bandRect.width,
-          );
+          bandGeometryOf(total: total, window: window, width: bandRect.width);
       double prefixRightOnBand() =>
           tester.getRect(prefix()).right - bandRect.left;
 
@@ -9738,9 +9834,7 @@ void main() {
           videoDuration: total,
           segmentLines: const [SegmentLine(position: Duration(seconds: 30))],
         ),
-        notes: const [
-          NoteSticker(startMs: 0, endMs: 5000, text: '开头备注'),
-        ],
+        notes: const [NoteSticker(startMs: 0, endMs: 5000, text: '开头备注')],
       );
       final container = ProviderScope.containerOf(
         tester.element(find.byType(TrackBand)),
@@ -9775,10 +9869,7 @@ void main() {
       engine.seekCalls.clear();
       engine.callLog.clear();
       final g = await tester.startGesture(
-        Offset(
-          prefixRect.center.dx,
-          trackRowCenterY(tester, 'track_learning'),
-        ),
+        Offset(prefixRect.center.dx, trackRowCenterY(tester, 'track_learning')),
       );
       await tester.pump();
       await fineDrag(tester, g, 30);
@@ -9850,8 +9941,11 @@ void main() {
       // 原片头位置起手 = 内容命中：单击选中窗口起点处的备注片段。
       await tester.tapAt(gutter);
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
-      expect(container.read(selectedNoteFragmentIndexProvider), 0,
-          reason: '零点之左已归内容：点中窗口起点备注');
+      expect(
+        container.read(selectedNoteFragmentIndexProvider),
+        0,
+        reason: '零点之左已归内容：点中窗口起点备注',
+      );
     });
   });
 

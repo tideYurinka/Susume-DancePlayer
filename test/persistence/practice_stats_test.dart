@@ -278,11 +278,11 @@ void main() {
 
   group('接入文档编解码机制', () {
     PracticeSessionRecord record() => PracticeSessionRecord(
-          start: at('2026-09-05T20:12:03'),
-          videoId: 'hash1',
-          signature: sig,
-          wallSeconds: 372.4,
-        );
+      start: at('2026-09-05T20:12:03'),
+      videoId: 'hash1',
+      signature: sig,
+      wallSeconds: 372.4,
+    );
 
     test('版本链地板 = 本版 = 2；换代前 v1 低于地板 → 空态；当前版本正常读', () {
       expect(PracticeStatsDocument.versionPolicy.floor, 2);
@@ -300,7 +300,10 @@ void main() {
       final json = PracticeStatsDocument(sessions: [record()]).toJson();
       final noVersion = {...json}..remove('version');
       expect(PracticeStatsDocument.fromJson(noVersion).sessions, hasLength(1));
-      expect(PracticeStatsDocument.versionPolicy.isWritable(noVersion), isFalse);
+      expect(
+        PracticeStatsDocument.versionPolicy.isWritable(noVersion),
+        isFalse,
+      );
 
       final higher = {...json, 'version': 3};
       expect(PracticeStatsDocument.fromJson(higher).sessions, hasLength(1));
@@ -315,18 +318,22 @@ void main() {
           MigrationStep(2, (json) => {...json, 'v2Shape': true}),
         ],
       );
-      final codec = ListDocumentCodec<PracticeStatsDocument,
-          PracticeSessionRecord, PracticeSessionRecordField>(
-        policy: policy,
-        listKey: 'sessions',
-        elementCodec: PracticeSessionRecord.codec,
-        empty: () => const PracticeStatsDocument.empty(),
-        build: (elements) => PracticeStatsDocument(sessions: elements),
-        listOf: (doc) => doc.sessions,
-        extraOf: (doc) => doc.extra,
-        withExtra: (doc, extra) =>
-            PracticeStatsDocument(sessions: doc.sessions, extra: extra),
-      );
+      final codec =
+          ListDocumentCodec<
+            PracticeStatsDocument,
+            PracticeSessionRecord,
+            PracticeSessionRecordField
+          >(
+            policy: policy,
+            listKey: 'sessions',
+            elementCodec: PracticeSessionRecord.codec,
+            empty: () => const PracticeStatsDocument.empty(),
+            build: (elements) => PracticeStatsDocument(sessions: elements),
+            listOf: (doc) => doc.sessions,
+            extraOf: (doc) => doc.extra,
+            withExtra: (doc, extra) =>
+                PracticeStatsDocument(sessions: doc.sessions, extra: extra),
+          );
       final onDisk = <String, Object?>{
         'version': 1,
         'sessions': [record().toJson()],
@@ -385,8 +392,11 @@ void main() {
       expect(restored, base);
 
       final tamper = <PracticeSessionRecordField, Object?>{
-        PracticeSessionRecordField.start:
-            DateTime(2020, 1, 1).toIso8601String(),
+        PracticeSessionRecordField.start: DateTime(
+          2020,
+          1,
+          1,
+        ).toIso8601String(),
         PracticeSessionRecordField.videoId: 'zzz',
         PracticeSessionRecordField.signatureDancer: '另',
         PracticeSessionRecordField.signatureSong: '别的歌',

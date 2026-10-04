@@ -67,7 +67,9 @@ void main() {
 
   /// 无 downbeat 的就绪网格（拍点在、八拍相位无法派生 → 无合法落点）。
   void injectReadyGridWithoutDownbeats() {
-    container.read(beatTrackStateProvider.notifier).replace(
+    container
+        .read(beatTrackStateProvider.notifier)
+        .replace(
           BeatTrackState.ready(
             marker_doc.BeatGrid(
               model: 'fake.onnx',
@@ -141,12 +143,13 @@ void main() {
     test('区间外/触界请求不再抛 ArgumentError、不半写不入史', () {
       final timelineBefore = container.read(annotationTimelineProvider);
 
-      expect(editor().submit(AddSegmentLine(at: Duration.zero)), isA<EditNoop>());
+      expect(
+        editor().submit(AddSegmentLine(at: Duration.zero)),
+        isA<EditNoop>(),
+      );
       expect(editor().submit(AddSegmentLine(at: total)), isA<EditNoop>());
       expect(
-        editor().submit(
-          AddSegmentLine(at: total + const Duration(seconds: 1)),
-        ),
+        editor().submit(AddSegmentLine(at: total + const Duration(seconds: 1))),
         isA<EditNoop>(),
       );
       expect(container.read(annotationTimelineProvider), timelineBefore);
@@ -192,9 +195,7 @@ void main() {
     test('节拍对齐整体平移照常（不平移到八拍点）', () {
       injectReadyGrid();
       editor().submit(AddSegmentLine(at: eight));
-      container
-          .read(beatAlignPreviewOffsetProvider.notifier)
-          .set(0.3);
+      container.read(beatAlignPreviewOffsetProvider.notifier).set(0.3);
 
       final outcome = editor().submitBeatShift(0.3);
 

@@ -54,9 +54,7 @@ void main() {
         .read(annotationEditorProvider)
         .restoreDocument(
           AnnotationRestoreDocument(
-            timeline: AnnotationTimeline.wholeVideo(
-              const Duration(minutes: 1),
-            ),
+            timeline: AnnotationTimeline.wholeVideo(const Duration(minutes: 1)),
             notes: const [
               NoteSticker(startMs: 10000, endMs: 14000, text: '注意手'),
             ],
@@ -96,11 +94,7 @@ void main() {
     expect(finder, findsWidgets, reason: '「$text」在场');
     for (final widget in finder.evaluate()) {
       final paragraph = widget.renderObject! as RenderParagraph;
-      expect(
-        paragraph.debugHasOverflowShader,
-        isFalse,
-        reason: '「$text」未被裁',
-      );
+      expect(paragraph.debugHasOverflowShader, isFalse, reason: '「$text」未被裁');
     }
   }
 
@@ -114,13 +108,17 @@ void main() {
       await pumpNoteEditor(tester);
       await openColorSheet(tester);
       for (var i = 0; i < kRosterPalette.length; i++) {
-        final rect = tester.getRect(
-          find.byKey(Key('roster_palette_color_$i')),
+        final rect = tester.getRect(find.byKey(Key('roster_palette_color_$i')));
+        expect(
+          rect.width,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '色板第 $i 格命中宽',
         );
-        expect(rect.width, greaterThanOrEqualTo(kHitTargetMinSize),
-            reason: '色板第 $i 格命中宽');
-        expect(rect.height, greaterThanOrEqualTo(kHitTargetMinSize),
-            reason: '色板第 $i 格命中高');
+        expect(
+          rect.height,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '色板第 $i 格命中高',
+        );
       }
     });
 
@@ -182,9 +180,7 @@ void main() {
         lessThanOrEqualTo(kRosterStripMaxWidth),
       );
       final chip = tester.getRect(
-        find.byKey(const Key(
-          'roster_chip_这是一个特别特别特别长的舞者名字为了验证省略号行为是否生效',
-        )),
+        find.byKey(const Key('roster_chip_这是一个特别特别特别长的舞者名字为了验证省略号行为是否生效')),
       );
       expect(chip.width, lessThanOrEqualTo(kRosterStripMaxWidth));
     });
@@ -233,8 +229,16 @@ void main() {
         const Key('note_editor_done'),
       ]) {
         final rect = tester.getRect(find.byKey(key));
-        expect(rect.width, greaterThanOrEqualTo(kHitTargetMinSize), reason: '$key 命中宽');
-        expect(rect.height, greaterThanOrEqualTo(kHitTargetMinSize), reason: '$key 命中高');
+        expect(
+          rect.width,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '$key 命中宽',
+        );
+        expect(
+          rect.height,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '$key 命中高',
+        );
       }
     });
 
@@ -247,8 +251,16 @@ void main() {
         const Key('note_editor_done'),
       ]) {
         final rect = tester.getRect(find.byKey(key));
-        expect(rect.width, greaterThanOrEqualTo(kHitTargetMinSize), reason: '$key 命中宽');
-        expect(rect.height, greaterThanOrEqualTo(kHitTargetMinSize), reason: '$key 命中高');
+        expect(
+          rect.width,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '$key 命中宽',
+        );
+        expect(
+          rect.height,
+          greaterThanOrEqualTo(kHitTargetMinSize),
+          reason: '$key 命中高',
+        );
       }
     });
   });

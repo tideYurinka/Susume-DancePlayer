@@ -54,16 +54,12 @@ class FakeRealTestGrid implements BeatGrid {
 
 /// 弱起真实网格：首拍 0.1s 非强拍，首个强拍在序号 3（1.6s）；此后每 4 拍一强拍。
 /// 拍点 0.1s/0.6s/…/4.1s（共 9 拍，末拍 4.1s）。
-FakeRealTestGrid pickupGrid() => FakeRealTestGrid(
-      [for (var i = 0; i < 9; i++) ms(100 + i * 500)],
-      {3, 7},
-    );
+FakeRealTestGrid pickupGrid() =>
+    FakeRealTestGrid([for (var i = 0; i < 9; i++) ms(100 + i * 500)], {3, 7});
 
 /// 非弱起真实网格：首拍 0s 即强拍，每 4 拍一强拍（0s/2s/4s）。
-FakeRealTestGrid groundedGrid() => FakeRealTestGrid(
-      [for (var i = 0; i < 9; i++) ms(i * 500)],
-      {0, 4, 8},
-    );
+FakeRealTestGrid groundedGrid() =>
+    FakeRealTestGrid([for (var i = 0; i < 9; i++) ms(i * 500)], {0, 4, 8});
 
 void main() {
   group('首尾线强制对齐 snapRangeBoundary（无条件吸最近真实拍点）', () {

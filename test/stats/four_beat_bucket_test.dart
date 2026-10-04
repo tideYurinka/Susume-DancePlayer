@@ -388,7 +388,10 @@ void main() {
       // 敏感性配对：段内档一旦混进统计网格，段内桶键即偏移（桶键按整曲
       // 档应为 1，按段内 ×2 派生是 2）——本组上方的字面断言因此承重。
       expect(fourBeatBucketIndex(wholeSong, const Duration(seconds: 3)), 1);
-      expect(fourBeatBucketIndex(segmentCarrying, const Duration(seconds: 3)), 2);
+      expect(
+        fourBeatBucketIndex(segmentCarrying, const Duration(seconds: 3)),
+        2,
+      );
     });
   });
 }

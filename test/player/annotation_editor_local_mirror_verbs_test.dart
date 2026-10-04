@@ -21,7 +21,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         localMirrorFragmentsProvider,
         transitionSegmentProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -103,7 +104,9 @@ void main() {
 
       // 创建：一次提交 → EditApplied + 片段 lane 就位 + 入史 1 步。
       final create = editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
       expect(create.applied, isTrue);
       expect(fragments(), const [
@@ -112,7 +115,9 @@ void main() {
       expect(container.read(annotationEditHistoryProvider).length, 1);
 
       // 整体移（保留原宽）：起点按端点同级真实拍吸附（14s 恰为真实拍）。
-      editor().submit(const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 14)));
+      editor().submit(
+        const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 14)),
+      );
       expect(fragments().single.startMs, 14000);
       expect(fragments().single.endMs, 18000);
       expect(container.read(annotationEditHistoryProvider).length, 2);
@@ -127,7 +132,9 @@ void main() {
     test('段级折叠：片段 verb 入队保存 diff 只带 annotations 段', () {
       injectReadyGrid();
       final create = editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
       expect(create.applied, isTrue);
       final diff = sink.saved.single;
@@ -146,10 +153,14 @@ void main() {
     test('就绪网格：6.3s → 吸最近八拍点 8s、右延 4s', () {
       injectReadyGrid();
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
-      expect(fragments().single,
-          const LocalMirrorFragment(startMs: 8000, endMs: 12000));
+      expect(
+        fragments().single,
+        const LocalMirrorFragment(startMs: 8000, endMs: 12000),
+      );
     });
 
     test('带锚点：起点落在重定相后的八拍点上、默认宽仍 4s', () {
@@ -158,39 +169,55 @@ void main() {
       // 八拍点、其后每 4s 一个（18s…）；锚前相位不变（…10s）。
       editor().submit(AddEightBeatAnchor(at: Duration(seconds: 14)));
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 14, milliseconds: 500)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 14, milliseconds: 500),
+        ),
       );
       // 自动相位下 14.5s 吸 16s；重定相后吸 14s（不再落锚点之前的相位）。
-      expect(fragments().single,
-          const LocalMirrorFragment(startMs: 14000, endMs: 18000));
+      expect(
+        fragments().single,
+        const LocalMirrorFragment(startMs: 14000, endMs: 18000),
+      );
     });
 
     test('无锚点：落点与自动相位逐位一致（14.5s → 16s，零变化）', () {
       injectReadyGrid();
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 14, milliseconds: 500)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 14, milliseconds: 500),
+        ),
       );
-      expect(fragments().single,
-          const LocalMirrorFragment(startMs: 16000, endMs: 20000));
+      expect(
+        fragments().single,
+        const LocalMirrorFragment(startMs: 16000, endMs: 20000),
+      );
     });
 
     test('占位均匀网格：同级派生长度（宽 4s）', () {
       // 未注入 = 占位占位网格（120bpm 均匀，拍 0.5s）→ 默认宽 4s。
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
       // 占位均匀同级派生八拍点 = 4s 步（0/4/8…）→ 8s，宽 4s。
-      expect(fragments().single,
-          const LocalMirrorFragment(startMs: 8000, endMs: 12000));
+      expect(
+        fragments().single,
+        const LocalMirrorFragment(startMs: 8000, endMs: 12000),
+      );
     });
 
     test('异常网格：起点自由（不吸附）、秒制兜底宽 4s', () {
       injectErrorGrid();
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
-      expect(fragments().single,
-          const LocalMirrorFragment(startMs: 6300, endMs: 10300));
+      expect(
+        fragments().single,
+        const LocalMirrorFragment(startMs: 6300, endMs: 10300),
+      );
     });
   });
 
@@ -209,21 +236,25 @@ void main() {
 
     test('就绪网格：端点吸真实拍点（2.7s → 2.5s）', () {
       seedOne(ready: true);
-      editor().submit(const DragLocalMirrorFragmentEdge(
-        index: 0,
-        edge: IntervalEdge.end,
-        to: Duration(seconds: 2, milliseconds: 700),
-      ));
+      editor().submit(
+        const DragLocalMirrorFragmentEdge(
+          index: 0,
+          edge: IntervalEdge.end,
+          to: Duration(seconds: 2, milliseconds: 700),
+        ),
+      );
       expect(fragments().single.endMs, 2500);
     });
 
     test('占位均匀网格：端点吸均匀同级派生点（2.7s → 2.5s）', () {
       seedOne(ready: false);
-      editor().submit(const DragLocalMirrorFragmentEdge(
-        index: 0,
-        edge: IntervalEdge.end,
-        to: Duration(seconds: 2, milliseconds: 700),
-      ));
+      editor().submit(
+        const DragLocalMirrorFragmentEdge(
+          index: 0,
+          edge: IntervalEdge.end,
+          to: Duration(seconds: 2, milliseconds: 700),
+        ),
+      );
       expect(fragments().single.endMs, 2500);
     });
 
@@ -233,15 +264,17 @@ void main() {
         AnnotationRestoreDocument(
           timeline: AnnotationTimeline.wholeVideo(total),
           localMirrorFragments: const [
-            LocalMirrorFragment(startMs: 1000, endMs:3000),
+            LocalMirrorFragment(startMs: 1000, endMs: 3000),
           ],
         ),
       );
-      editor().submit(const DragLocalMirrorFragmentEdge(
-        index: 0,
-        edge: IntervalEdge.end,
-        to: Duration(seconds: 2, milliseconds: 700),
-      ));
+      editor().submit(
+        const DragLocalMirrorFragmentEdge(
+          index: 0,
+          edge: IntervalEdge.end,
+          to: Duration(seconds: 2, milliseconds: 700),
+        ),
+      );
       expect(fragments().single.endMs, 2700);
     });
   });
@@ -259,9 +292,7 @@ void main() {
       );
       // 起于 8s 处创建默认右延 4s → [8000,12000) 与 9s 既有片段中部重叠，
       // 应截断到 9000。
-      editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 8)),
-      );
+      editor().submit(const AddLocalMirrorFragment(at: Duration(seconds: 8)));
       expect(fragments(), const [
         LocalMirrorFragment(startMs: 8000, endMs: 9000),
         LocalMirrorFragment(startMs: 9000, endMs: 13000),
@@ -281,10 +312,9 @@ void main() {
         ),
       );
       // 把 0 号片段向右拖：吸附后进入 1 号片段的间隙之前被钳住（不能重叠）。
-      final outcome = editor().submit(const MoveLocalMirrorFragment(
-        index: 0,
-        to: Duration(seconds: 18),
-      ));
+      final outcome = editor().submit(
+        const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 18)),
+      );
       expect(outcome.applied, isTrue);
       expect(fragments().first.startMs, 16000); // 保留原宽、钳在 1 号起点前
       expect(fragments().first.endMs, 20000);
@@ -303,11 +333,13 @@ void main() {
         ),
       );
       // 拖 0 号右端到 6s（越过 1 号起点 5s）→ 互斥钳到 5000（紧贴不重叠）。
-      final outcome = editor().submit(const DragLocalMirrorFragmentEdge(
-        index: 0,
-        edge: IntervalEdge.end,
-        to: Duration(seconds: 6),
-      ));
+      final outcome = editor().submit(
+        const DragLocalMirrorFragmentEdge(
+          index: 0,
+          edge: IntervalEdge.end,
+          to: Duration(seconds: 6),
+        ),
+      );
       expect(outcome.applied, isTrue);
       expect(fragments().first.endMs, 5000);
       expectSortedNonOverlapping();
@@ -327,10 +359,9 @@ void main() {
       );
       // 1 号与 0/2 号均紧贴（gap = 0），无可平移区间 → moveFragmentClamped
       // 走 hi<=lo 钳空返回 null → EditNoop、状态未动。
-      final outcome = editor().submit(const MoveLocalMirrorFragment(
-        index: 1,
-        to: Duration(seconds: 2),
-      ));
+      final outcome = editor().submit(
+        const MoveLocalMirrorFragment(index: 1, to: Duration(seconds: 2)),
+      );
       expect(outcome, isA<EditNoop>());
       expect(fragments(), const [
         LocalMirrorFragment(startMs: 1000, endMs: 3000),
@@ -353,11 +384,15 @@ void main() {
         ),
       );
       // 先整体移一次建立一条可撤销历史。
-      editor().submit(const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 4)));
+      editor().submit(
+        const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 4)),
+      );
 
       void lock() => container.read(layoutLockedProvider.notifier).toggle();
       lock();
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
+      );
       for (final verb in <AnnotationEdit>[
         const AddLocalMirrorFragment(at: Duration(seconds: 20)),
         const RemoveLocalMirrorFragment(index: 0),
@@ -368,15 +403,24 @@ void main() {
           to: Duration(seconds: 10),
         ),
       ]) {
-        expect(editor().submit(verb), isNot(isA<EditLocked>()),
-            reason: '${verb.runtimeType} 不受锁定分段');
+        expect(
+          editor().submit(verb),
+          isNot(isA<EditLocked>()),
+          reason: '${verb.runtimeType} 不受锁定分段',
+        );
       }
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
 
       // 豁免：锁定期内 undo/redo 照常回放（片段 lane 随快照回放）。
       editor().undo();
       editor().redo();
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
       lock(); // 解锁
     });
   });
@@ -390,7 +434,9 @@ void main() {
       expect(container.read(selectedLearningSegmentsProvider), isNotEmpty);
 
       editor().submit(const AddLocalMirrorFragment(at: Duration(seconds: 4)));
-      editor().submit(const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 6)));
+      editor().submit(
+        const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 6)),
+      );
       expect(container.read(selectedLearningSegmentsProvider), isNotEmpty);
       expect(timeline().segmentLines.length, 2);
     });
@@ -403,7 +449,9 @@ void main() {
       expect(container.read(transitionSegmentProvider), isNotNull);
 
       editor().submit(const AddLocalMirrorFragment(at: Duration(seconds: 4)));
-      editor().submit(const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 6)));
+      editor().submit(
+        const MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 6)),
+      );
       expect(container.read(transitionSegmentProvider), isNotNull);
       expect(timeline().segmentLines.length, 2);
     });

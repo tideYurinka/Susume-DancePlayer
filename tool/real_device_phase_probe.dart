@@ -17,6 +17,7 @@ import 'dart:io';
 
 import 'package:dance_learning_app/player/beat_audio_native.dart'
     show decodeWavMono;
+
 import 'phase_probe.dart';
 
 Never _fail(String msg) {
@@ -49,15 +50,19 @@ void main(List<String> args) {
     toleranceMs: toleranceMs,
   );
 
-  stdout.writeln('# 真机相位差探针读数（$recording，$bpm bpm × $beats 拍，'
-      '容差 ${toleranceMs.toStringAsFixed(0)}ms，'
-      '回录 ${wav.sampleRate}Hz）');
+  stdout.writeln(
+    '# 真机相位差探针读数（$recording，$bpm bpm × $beats 拍，'
+    '容差 ${toleranceMs.toStringAsFixed(0)}ms，'
+    '回录 ${wav.sampleRate}Hz）',
+  );
   stdout.writeln('拍声−网格拍点：${report.beat}');
   stdout.writeln('音乐−网格拍点：${report.music}');
-  stdout.writeln('拍声−音乐（公共参照）：'
-      '${report.beatRelativeToMusicMs.toStringAsFixed(1)}ms '
-      '（正 = 拍声比音乐晚；音乐组随拍声组一起错 → 排程错；'
-      '只有拍声组错 → 输出/引擎管线延迟）');
+  stdout.writeln(
+    '拍声−音乐（公共参照）：'
+    '${report.beatRelativeToMusicMs.toStringAsFixed(1)}ms '
+    '（正 = 拍声比音乐晚；音乐组随拍声组一起错 → 排程错；'
+    '只有拍声组错 → 输出/引擎管线延迟）',
+  );
 
   if (tracePath != null) {
     final lines = File(tracePath).readAsLinesSync();
@@ -69,10 +74,12 @@ void main(List<String> args) {
   }
 
   final ok = report.beat.matchedCount >= 4 && report.music.matchedCount >= 4;
-  stdout.writeln(ok
-      ? 'GREEN: 拍声/音乐读数齐备（配对 ≥4 拍），读数可留档'
-      : 'RED: 配对不足（拍声 ${report.beat.matchedCount}/音乐 '
-          '${report.music.matchedCount}，各需 ≥4）——检查回录起止对齐与'
-          ' --bpm/--beats/--start-offset-ms');
+  stdout.writeln(
+    ok
+        ? 'GREEN: 拍声/音乐读数齐备（配对 ≥4 拍），读数可留档'
+        : 'RED: 配对不足（拍声 ${report.beat.matchedCount}/音乐 '
+              '${report.music.matchedCount}，各需 ≥4）——检查回录起止对齐与'
+              ' --bpm/--beats/--start-offset-ms',
+  );
   exit(ok ? 0 : 1);
 }

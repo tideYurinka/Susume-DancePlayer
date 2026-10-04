@@ -485,10 +485,7 @@ void main() {
       await model().setRate(0.5);
       await model().beginTransientRate(kLongPressDoubleSpeedRate);
 
-      await expectLater(
-        model().setRate(1.5),
-        throwsA(isA<AssertionError>()),
-      );
+      await expectLater(model().setRate(1.5), throwsA(isA<AssertionError>()));
       expect(engine.rate, kLongPressDoubleSpeedRate);
       expect(state().manualRate, 0.5);
       expect(state().transientActive, isTrue);
@@ -551,11 +548,7 @@ void main() {
 
       await model().endTransientRate();
 
-      expect(
-        engine.rate,
-        1.0,
-        reason: '录制期收尾上锁：松手不得写回 1.5（录制强制的 1.0× 不能被穿透）',
-      );
+      expect(engine.rate, 1.0, reason: '录制期收尾上锁：松手不得写回 1.5（录制强制的 1.0× 不能被穿透）');
       expect(state().transientActive, isFalse, reason: '瞬态态照常收尾');
       await model().endTransientRate(); // 幂等：无第二次写入。
       expect(engine.rate, 1.0);

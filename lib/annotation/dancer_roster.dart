@@ -50,10 +50,7 @@ class DancerRosterEntry {
         build: _build,
         extraOf: _extraOf,
         withExtra: _withExtra,
-        required: {
-          DancerRosterEntryField.name,
-          DancerRosterEntryField.color,
-        },
+        required: {DancerRosterEntryField.name, DancerRosterEntryField.color},
       );
 
   /// 写出（元素层保底区先展开，已登记字段后写）。

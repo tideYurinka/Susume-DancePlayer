@@ -20,31 +20,31 @@ import 'video_document_store.dart';
 /// 已建实例，保证「一文件一实例、单条串行写链」跨消费方成立。
 final videoDocumentStorageFactoryProvider =
     Provider<VideoDocumentStorage Function(String videoId)>((ref) {
-  final indexFile = ref.watch(importIndexFileProvider);
-  final instances = <String, VideoDocumentStorage>{};
-  Future<File> documentFile(String name) async =>
-      File(p.join((await indexFile).parent.path, name));
-  return (videoId) => instances.putIfAbsent(
+      final indexFile = ref.watch(importIndexFileProvider);
+      final instances = <String, VideoDocumentStorage>{};
+      Future<File> documentFile(String name) async =>
+          File(p.join((await indexFile).parent.path, name));
+      return (videoId) => instances.putIfAbsent(
         videoId,
         () => AtomicVideoDocumentStorage(
           markersFile: documentFile('markers_$videoId.json'),
           localFile: documentFile('local_$videoId.json'),
         ),
       );
-});
+    });
 
 /// 按视频双文件存取注入点（family 参数 = videoId，内容哈希）：
 /// 统一委托 [videoDocumentStorageFactoryProvider]，不另建路径构造。
 final videoDocumentStorageProvider =
     Provider.family<VideoDocumentStorage, String>((ref, videoId) {
-  return ref.watch(videoDocumentStorageFactoryProvider)(videoId);
-});
+      return ref.watch(videoDocumentStorageFactoryProvider)(videoId);
+    });
 
 /// 按视频文档协调器注入点（family 参数 = videoId）：全部 markers/local
 /// 写入统一经此收敛，不另建写链。
 final videoDocumentCoordinatorProvider =
     Provider.family<VideoDocumentCoordinator, String>((ref, videoId) {
-  return VideoDocumentCoordinator(
-    ref.watch(videoDocumentStorageProvider(videoId)),
-  );
-});
+      return VideoDocumentCoordinator(
+        ref.watch(videoDocumentStorageProvider(videoId)),
+      );
+    });

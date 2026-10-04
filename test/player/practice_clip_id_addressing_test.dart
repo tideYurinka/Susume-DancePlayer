@@ -136,10 +136,7 @@ void main() {
     test('「起手后另一条片段被外部删除」仍作用于原片段：先红后绿的漂移用例', () {
       // 拖动起手作用在 B（下标 1）；起手之后外部写（素材连带删除）把 A
       // 移出轨道，B 的下标从 1 漂到 0——会话收口仍必须作用在 B 上。
-      final session = editor().beginPracticeClipTrimDrag(
-        1,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(1, IntervalEdge.end);
       container.read(practiceClipsProvider.notifier).removeByMaterial('mA');
       expect(table().map((clip) => clip.id), ['cB', 'cC']);
 
@@ -157,10 +154,7 @@ void main() {
     });
 
     test('「起手后本条片段被外部删除」：会话逐帧静默，拖动不写任何片段', () {
-      final session = editor().beginPracticeClipTrimDrag(
-        1,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(1, IntervalEdge.end);
       container.read(practiceClipsProvider.notifier).removeByMaterial('mB');
 
       expect(session.moveTo(const Duration(seconds: 23)), isNull);

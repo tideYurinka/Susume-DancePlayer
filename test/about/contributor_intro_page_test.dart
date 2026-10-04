@@ -188,7 +188,11 @@ void main() {
 
     expect(saver.names, ['reward.png']);
     expect(find.text('已保存到相册'), findsOneWidget);
-    expect(find.byType(PopupMenuItem<Object>), findsNothing, reason: '长按直接保存，不弹菜单');
+    expect(
+      find.byType(PopupMenuItem<Object>),
+      findsNothing,
+      reason: '长按直接保存，不弹菜单',
+    );
     expect(tester.takeException(), isNull);
   });
 }

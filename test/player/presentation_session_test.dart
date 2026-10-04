@@ -125,13 +125,19 @@ void main() {
     controlOpen = true;
     metronome.select();
     surface.onGestureSessionStarted(start(pointerCount: 2));
-    expect(surface.tryConsumeOverlayPinchFrame(update(pointerCount: 2)), isFalse);
+    expect(
+      surface.tryConsumeOverlayPinchFrame(update(pointerCount: 2)),
+      isFalse,
+    );
 
     controlOpen = false;
     metronomeVisible = false;
     metronome.select();
     surface.onGestureSessionStarted(start(pointerCount: 2));
-    expect(surface.tryConsumeOverlayPinchFrame(update(pointerCount: 2)), isFalse);
+    expect(
+      surface.tryConsumeOverlayPinchFrame(update(pointerCount: 2)),
+      isFalse,
+    );
   });
 
   group('视口与切格', () {

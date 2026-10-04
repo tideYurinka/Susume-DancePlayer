@@ -57,7 +57,8 @@ void main() {
       picker,
       () async => destination ?? Directory(p.join(tempDir.path, 'videos')),
       indexStore:
-          indexStore ?? VideoIndexStore(File(p.join(tempDir.path, 'index.json'))),
+          indexStore ??
+          VideoIndexStore(File(p.join(tempDir.path, 'index.json'))),
       hasher: hasher ?? const XxHash64ContentHasher(),
       now: now ?? () => DateTime(2026, 9, 1, 12),
     );
@@ -184,7 +185,11 @@ void main() {
       final picker = FakeVideoPicker(
         PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 5),
       );
-      final im = importer(picker: picker, indexStore: s, hasher: GatedHasher(gate));
+      final im = importer(
+        picker: picker,
+        indexStore: s,
+        hasher: GatedHasher(gate),
+      );
 
       final imported = await im.import();
 
@@ -192,8 +197,7 @@ void main() {
       expect(imported!.name, 'dance.mp4');
       expect(File(imported.uri.toFilePath()).existsSync(), isTrue);
       expect(gate.isCompleted, isFalse, reason: '导入返回时 xxHash64 不应已完成（后台计算）');
-      expect(picker.clearCacheCalled, isTrue,
-          reason: '复制完成即清理选择器缓存，不等待哈希');
+      expect(picker.clearCacheCalled, isTrue, reason: '复制完成即清理选择器缓存，不等待哈希');
 
       gate.complete('stubbed-hash');
       final index = await waitForIndex(s, (i) => i.entries.isNotEmpty);
@@ -234,8 +238,11 @@ void main() {
         PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 3),
       );
 
-      expect(second.uri.toFilePath(), firstEntry.filePath,
-          reason: '快速键命中：立即播放既有私有副本，不重新复制');
+      expect(
+        second.uri.toFilePath(),
+        firstEntry.filePath,
+        reason: '快速键命中：立即播放既有私有副本，不重新复制',
+      );
       expect(gate.isCompleted, isFalse, reason: '快速键命中不等待哈希校验');
 
       gate.complete(firstEntry.videoId);
@@ -272,19 +279,27 @@ void main() {
       final second = await secondIm.open(
         PickedVideo(name: 'dance.mp4', sourceUri: src2.uri, sizeBytes: 3),
       );
-      expect(second.uri.toFilePath(), oldEntry.filePath,
-          reason: '快速键命中：本会话先播放既有副本');
+      expect(
+        second.uri.toFilePath(),
+        oldEntry.filePath,
+        reason: '快速键命中：本会话先播放既有副本',
+      );
 
       final index = await waitForIndex(s, (i) => i.entries.length == 2);
       final byVideoId = {for (final e in index.entries) e.videoId: e};
 
       expect(byVideoId[oldEntry.videoId], isNotNull, reason: '旧条目保留');
-      final expectedNewHash = await const XxHash64ContentHasher().hashFile(src2);
+      final expectedNewHash = await const XxHash64ContentHasher().hashFile(
+        src2,
+      );
       final newEntry = byVideoId[expectedNewHash];
       expect(newEntry, isNotNull, reason: '新内容按新视频导入');
       expect(newEntry!.displayName, 'dance.mp4');
-      expect(p.basename(newEntry.filePath), 'dance (1).mp4',
-          reason: '私有目录同名去冲突命名');
+      expect(
+        p.basename(newEntry.filePath),
+        'dance (1).mp4',
+        reason: '私有目录同名去冲突命名',
+      );
       expect(newEntry.sizeBytes, 3);
       expect(newEntry.lastOpenedAt, DateTime(2026, 9, 3, 12));
     });
@@ -321,9 +336,14 @@ void main() {
       final index = await waitForIndex(s, (i) => i.entries.length == 2);
       expect(index.findById(oldEntry.videoId), isNotNull, reason: '旧条目保留');
       expect(picker.clearCacheCalls, greaterThanOrEqualTo(1));
-      final newEntry = index.entries.firstWhere((e) => e.videoId != oldEntry.videoId);
-      expect(p.basename(newEntry.filePath), 'dance (1).mp4',
-          reason: '复制成功（清缓存发生在复制之后）并去冲突命名');
+      final newEntry = index.entries.firstWhere(
+        (e) => e.videoId != oldEntry.videoId,
+      );
+      expect(
+        p.basename(newEntry.filePath),
+        'dance (1).mp4',
+        reason: '复制成功（清缓存发生在复制之后）并去冲突命名',
+      );
       expect(newEntry.lastOpenedAt, DateTime(2026, 9, 5, 12));
     });
 
@@ -344,7 +364,9 @@ void main() {
       // 模拟接线后的镜像开启：直接以镜像条目替换整份索引
       //（upsert 的合并语义是保留既有镜像偏好，不适合用来“设置”）。
       await s.update(
-        (index) => VideoIndex(entries: [index.entries.single.copyWith(mirrored: true)]),
+        (index) => VideoIndex(
+          entries: [index.entries.single.copyWith(mirrored: true)],
+        ),
       );
 
       // 再次打开同一视频：快速键命中 → 后台校验一致 → 仅刷新时间。
@@ -364,8 +386,11 @@ void main() {
       );
       expect(afterVerify.entries.length, 1);
       expect(afterVerify.entries.single.videoId, videoId);
-      expect(afterVerify.entries.single.mirrored, isTrue,
-          reason: 'refresh 不得重置镜像状态');
+      expect(
+        afterVerify.entries.single.mirrored,
+        isTrue,
+        reason: 'refresh 不得重置镜像状态',
+      );
     });
 
     test('同内容不同文件名合并：保留既有镜像状态', () async {
@@ -384,7 +409,9 @@ void main() {
       // 模拟接线后的镜像开启：直接以镜像条目替换整份索引
       //（upsert 的合并语义是保留既有镜像偏好，不适合用来“设置”）。
       await s.update(
-        (index) => VideoIndex(entries: [index.entries.single.copyWith(mirrored: true)]),
+        (index) => VideoIndex(
+          entries: [index.entries.single.copyWith(mirrored: true)],
+        ),
       );
 
       final secondIm = importer(
@@ -402,8 +429,11 @@ void main() {
       );
       expect(index.entries.length, 1);
       expect(index.entries.single.videoId, afterFirst.entries.single.videoId);
-      expect(index.entries.single.mirrored, isTrue,
-          reason: 'upsert 合并不得重置镜像状态');
+      expect(
+        index.entries.single.mirrored,
+        isTrue,
+        reason: 'upsert 合并不得重置镜像状态',
+      );
       expect(index.entries.single.lastOpenedAt, DateTime(2026, 9, 7, 12));
     });
 

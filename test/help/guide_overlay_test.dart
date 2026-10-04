@@ -10,13 +10,11 @@ import 'package:dance_learning_app/help/content_registry.dart'
         downloadVideoTutorialId,
         importVideoAnchorKey,
         segmentLineAnchorKeyBase;
-import 'package:dance_learning_app/help/guide_anchor.dart' show GuideAnchor, guideAnchorRectsProvider;
+import 'package:dance_learning_app/help/guide_anchor.dart'
+    show GuideAnchor, guideAnchorRectsProvider;
 import 'package:dance_learning_app/help/guide_host.dart' show GuideHost;
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        OnboardingStore,
-        guideSessionProvider,
-        onboardingStorageProvider;
+    show OnboardingStore, guideSessionProvider, onboardingStorageProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/practice_stats_providers.dart'
@@ -71,11 +69,7 @@ void main() {
     expect(find.byKey(const Key('guide_skip')), findsNothing);
     expect(find.textContaining('/'), findsNothing);
     // ✕ 报出主动语态中文名。
-    expectButtonSemantics(
-      tester,
-      const Key('guide_close'),
-      label: '关闭引导',
-    );
+    expectButtonSemantics(tester, const Key('guide_close'), label: '关闭引导');
   });
 
   testWidgets('高亮框里的控件保持可用：按它照样生效，框外的入口仍被吞掉', (tester) async {
@@ -236,9 +230,7 @@ void main() {
     );
     final container = ProviderContainer(
       overrides: [
-        onboardingStorageProvider.overrideWithValue(
-          OnboardingStore(storage),
-        ),
+        onboardingStorageProvider.overrideWithValue(OnboardingStore(storage)),
       ],
     );
     addTearDown(container.dispose);
@@ -529,7 +521,8 @@ class _ThrowingPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) async {
     throw Exception('disk full');
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/device_clock.dart';
 import '../dance/dance_library_providers.dart';
 import '../dance/mastery_label.dart';
 import '../persistence/practice_plan.dart';
@@ -194,6 +195,7 @@ class _DancePlanManagerPageState extends ConsumerState<DancePlanManagerPage> {
           videoId: dance.videoId,
           initial: entry?.ddl,
           title: '计划 · ${dance.title}',
+          today: ref.read(deviceClockProvider)(),
           showPlanExtras: true,
           socialLibrary: entry?.socialLibrary ?? true,
           reviewReminders: entry?.reviewReminders ?? true,

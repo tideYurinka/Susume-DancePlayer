@@ -89,13 +89,12 @@ MarkersDocument firstBuildSeeded(
   MarkersDocument current, {
   required bool present,
   required AnnotationSaveSeed seed,
-}) =>
-    present
-        ? current
-        : current
-              .withMirrored(seed.mirrored)
-              .withLocalMirrorEnabled(seed.localMirrorEnabled)
-              .withSignature(seed.signature);
+}) => present
+    ? current
+    : current
+          .withMirrored(seed.mirrored)
+          .withLocalMirrorEnabled(seed.localMirrorEnabled)
+          .withSignature(seed.signature);
 
 /// 到期合并写的调度 seam（生产用 [TimerSaveScheduler]，测试注入手动/
 /// fake 时钟实现控制合并窗口）。

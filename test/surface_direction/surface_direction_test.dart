@@ -72,9 +72,10 @@ void main() {
 
       // 全局关 + 覆盖 → 镜像；全局开 + 覆盖 → 原相。
       expect(
-        directionOf(fragments: const [fragment], positionMs: 3000).directionOf(
-          SurfaceFace.sourceVideo,
-        ),
+        directionOf(
+          fragments: const [fragment],
+          positionMs: 3000,
+        ).directionOf(SurfaceFace.sourceVideo),
         FaceDirection.mirrored,
       );
       expect(
@@ -97,8 +98,10 @@ void main() {
         (6000, FaceDirection.original),
       ]) {
         expect(
-          directionOf(fragments: const [fragment], positionMs: positionMs)
-              .directionOf(SurfaceFace.sourceVideo),
+          directionOf(
+            fragments: const [fragment],
+            positionMs: positionMs,
+          ).directionOf(SurfaceFace.sourceVideo),
           expected,
           reason: '位置 $positionMs 相对半开区间 [2000, 6000) 的判定',
         );
@@ -135,8 +138,10 @@ void main() {
         (3500, FaceDirection.mirrored),
       ]) {
         expect(
-          directionOf(fragments: fragments, positionMs: positionMs)
-              .directionOf(SurfaceFace.sourceVideo),
+          directionOf(
+            fragments: fragments,
+            positionMs: positionMs,
+          ).directionOf(SurfaceFace.sourceVideo),
           expected,
           reason: '位置 $positionMs 的多片段并集判定',
         );
@@ -158,8 +163,10 @@ void main() {
         (3000, FaceDirection.original),
       ]) {
         expect(
-          directionOf(fragments: fragments, positionMs: positionMs)
-              .directionOf(SurfaceFace.sourceVideo),
+          directionOf(
+            fragments: fragments,
+            positionMs: positionMs,
+          ).directionOf(SurfaceFace.sourceVideo),
           expected,
           reason: '位置 $positionMs 相对共享端点 2000 的半开判定',
         );
@@ -177,8 +184,10 @@ void main() {
         (6000, false),
       ]) {
         expect(
-          directionOf(fragments: const [fragment], positionMs: positionMs)
-              .localMirrorActive,
+          directionOf(
+            fragments: const [fragment],
+            positionMs: positionMs,
+          ).localMirrorActive,
           expected,
           reason: '位置 $positionMs 相对半开区间 [2000, 6000) 的覆盖取值',
         );
@@ -257,8 +266,7 @@ void main() {
           expect(
             face.directionOf(SurfaceFace.sourceVideo),
             expected,
-            reason:
-                '全局镜像=$globalMirrored 位置=$positionMs 时方向随覆盖取值反相',
+            reason: '全局镜像=$globalMirrored 位置=$positionMs 时方向随覆盖取值反相',
           );
         }
       }
@@ -477,10 +485,14 @@ void main() {
       // 就是录像文件原相 ⇒ 它就是平台保存基准；基准键是「预览基准相对保存
       // 基准」的落点，不参与素材方向。
       final table = <(FaceDirection, FaceDirection), FaceDirection>{
-        (FaceDirection.original, FaceDirection.original): FaceDirection.original,
-        (FaceDirection.mirrored, FaceDirection.original): FaceDirection.original,
-        (FaceDirection.original, FaceDirection.mirrored): FaceDirection.mirrored,
-        (FaceDirection.mirrored, FaceDirection.mirrored): FaceDirection.mirrored,
+        (FaceDirection.original, FaceDirection.original):
+            FaceDirection.original,
+        (FaceDirection.mirrored, FaceDirection.original):
+            FaceDirection.original,
+        (FaceDirection.original, FaceDirection.mirrored):
+            FaceDirection.mirrored,
+        (FaceDirection.mirrored, FaceDirection.mirrored):
+            FaceDirection.mirrored,
       };
       for (final entry in table.entries) {
         expect(
@@ -489,8 +501,7 @@ void main() {
             platformSaveBasis: entry.key.$2,
           ).materialDirection,
           entry.value,
-          reason:
-              '素材方向：平台预览基准=${entry.key.$1} 平台保存基准=${entry.key.$2}',
+          reason: '素材方向：平台预览基准=${entry.key.$1} 平台保存基准=${entry.key.$2}',
         );
       }
     });
@@ -526,10 +537,14 @@ void main() {
 
     test('基准键 = 平台预览基准 ⊕ 平台保存基准（四组合穷举）', () {
       final table = <(FaceDirection, FaceDirection), FaceDirection>{
-        (FaceDirection.original, FaceDirection.original): FaceDirection.original,
-        (FaceDirection.mirrored, FaceDirection.original): FaceDirection.mirrored,
-        (FaceDirection.original, FaceDirection.mirrored): FaceDirection.mirrored,
-        (FaceDirection.mirrored, FaceDirection.mirrored): FaceDirection.original,
+        (FaceDirection.original, FaceDirection.original):
+            FaceDirection.original,
+        (FaceDirection.mirrored, FaceDirection.original):
+            FaceDirection.mirrored,
+        (FaceDirection.original, FaceDirection.mirrored):
+            FaceDirection.mirrored,
+        (FaceDirection.mirrored, FaceDirection.mirrored):
+            FaceDirection.original,
       };
       for (final entry in table.entries) {
         expect(
@@ -549,10 +564,14 @@ void main() {
       // 期望值独立写在这里（不是复述实现）：基准键 := 平台预览基准 ⊕ 平台保存
       // 基准 ⇒ 平台预览基准 = 基准键 ⊕ 平台保存基准。
       final previewTable = <(FaceDirection, FaceDirection), FaceDirection>{
-        (FaceDirection.original, FaceDirection.original): FaceDirection.original,
-        (FaceDirection.original, FaceDirection.mirrored): FaceDirection.mirrored,
-        (FaceDirection.mirrored, FaceDirection.original): FaceDirection.mirrored,
-        (FaceDirection.mirrored, FaceDirection.mirrored): FaceDirection.original,
+        (FaceDirection.original, FaceDirection.original):
+            FaceDirection.original,
+        (FaceDirection.original, FaceDirection.mirrored):
+            FaceDirection.mirrored,
+        (FaceDirection.mirrored, FaceDirection.original):
+            FaceDirection.mirrored,
+        (FaceDirection.mirrored, FaceDirection.mirrored):
+            FaceDirection.original,
       };
       for (final entry in previewTable.entries) {
         final baselines = SurfaceBaselines.fromBasisKey(
@@ -818,10 +837,10 @@ void main() {
       // 练习镜像不参与素材方向：活输入怎么拨都不动冻结的素材方向。
       for (final practiceMirror in [true, false]) {
         expect(
-          momentFrom(armed, practiceMirror: practiceMirror)
-              .moment
-              .baselines
-              .materialDirection,
+          momentFrom(
+            armed,
+            practiceMirror: practiceMirror,
+          ).moment.baselines.materialDirection,
           FaceDirection.original,
         );
       }
@@ -832,7 +851,8 @@ void main() {
     test('源视频面施加的缩放 = 方向的符号（原相 +1 / 镜像 -1）', () {
       expect(directionOf().surfaceScaleX(SurfaceFace.sourceVideo), 1);
       expect(
-        directionOf(globalMirrored: true).surfaceScaleX(SurfaceFace.sourceVideo),
+        directionOf(globalMirrored: true)
+            .surfaceScaleX(SurfaceFace.sourceVideo),
         -1,
       );
       expect(
@@ -868,10 +888,7 @@ void main() {
     });
 
     test('未接线的面：读它们即报未实现（不静默取默认）', () {
-      for (final face in [
-        SurfaceFace.recordingFile,
-        SurfaceFace.exportFile,
-      ]) {
+      for (final face in [SurfaceFace.recordingFile, SurfaceFace.exportFile]) {
         expect(
           () => directionOf().directionOf(face),
           throwsUnimplementedError,

@@ -40,7 +40,14 @@ library;
 
 /// 练习视频轨 / 备注轨 / 局部镜像轨 / 学习段轨 / 节拍轨 / 轨道手柄带行
 /// 六行的标识。
-enum TrackRowId { practiceVideo, note, localMirror, learning, beat, handleStrip }
+enum TrackRowId {
+  practiceVideo,
+  note,
+  localMirror,
+  learning,
+  beat,
+  handleStrip,
+}
 
 /// 行间间隙（dp）：具名常量，normal 行集与其余行集共用同一取值。
 const double kTrackRowGap = 10;
@@ -99,9 +106,7 @@ class TrackRowRect {
 
   @override
   bool operator ==(Object other) =>
-      other is TrackRowRect &&
-      other.top == top &&
-      other.height == height;
+      other is TrackRowRect && other.top == top && other.height == height;
 
   @override
   int get hashCode => Object.hash(top, height);
@@ -211,6 +216,21 @@ class TrackRowTable {
   /// 行集是否声明了某行（行缺席是行集参数的合法状态；渲染与命中层以
   /// 本谓词表达「行集含该行」，不各自用行矩形存在性迂回表达）。
   bool hasRow(TrackRowId id) => rows.any((row) => row.id == id);
+
+  /// 去掉若干行（吃一组行身份、返回新表）：留下的行保持原次序、原行高与
+  /// 原行间间隙，其余查询（[totalHeight] / [hasRow] / [rectOf] / [rowAt] /
+  /// [prefixLabels]）按新表派生；行集里没有的身份是空操作，全部去掉即空表。
+  ///
+  /// **本表对档位与空否保持无知**：哪一档去掉哪些行由构造点回答，表只回答
+  /// 「去掉这些行之后长什么样」。具名行集 [normal] / [compare] 不受影响——
+  /// 它们仍是该态的全行集。
+  TrackRowTable withoutRows(Set<TrackRowId> ids) => TrackRowTable(
+    rows: [
+      for (final row in rows)
+        if (!ids.contains(row.id)) row,
+    ],
+    gap: gap,
+  );
 
   /// 轨道片头标签集：**行 → 短标签**的有序映射，与 [rows] 同序
   /// （自上而下）。条数恒等于该态行集的条数——片头标签列与行集只有这一处

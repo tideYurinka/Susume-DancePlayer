@@ -20,7 +20,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show annotationSelectionDomainProvider, annotationEditorProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -53,7 +54,10 @@ void main() {
     late InMemoryPrivateJsonStorage privateStorage;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -115,7 +119,9 @@ void main() {
     /// 建 3 个学习段并激活第 2 段（10s–20s，与录制测试同款布景）。
     void givenActiveSegment(WidgetTester tester) {
       final editor = containerOf(tester).read(annotationEditorProvider);
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -273,9 +279,7 @@ void main() {
       expect((await readManifest()).materials, isEmpty);
     });
 
-    testWidgets('分辨率档只在开流时生效：中途改档不换实例、下次进对比态才带新档开流', (
-      tester,
-    ) async {
+    testWidgets('分辨率档只在开流时生效：中途改档不换实例、下次进对比态才带新档开流', (tester) async {
       setWideView(tester);
       await pumpPlayer(tester);
       await enterCompare(tester);

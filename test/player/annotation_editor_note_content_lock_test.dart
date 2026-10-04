@@ -6,7 +6,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:dance_learning_app/player/annotation_edit.dart';
 import 'package:dance_learning_app/player/annotation_editor.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -54,9 +55,11 @@ void main() {
 
   int historyLength() => container.read(annotationEditHistoryProvider).length;
 
-  int layoutPromptSeq() => container.read(noticeTriggerProvider(NoticeId.layoutLock));
+  int layoutPromptSeq() =>
+      container.read(noticeTriggerProvider(NoticeId.layoutLock));
 
-  int contentPromptSeq() => container.read(noticeTriggerProvider(NoticeId.noteContentLock));
+  int contentPromptSeq() =>
+      container.read(noticeTriggerProvider(NoticeId.noteContentLock));
 
   void restore({List<NoteSticker> notes = const []}) {
     editor().restoreDocument(
@@ -76,10 +79,9 @@ void main() {
         const MoveNote(index: 0, to: Duration(milliseconds: 20000)),
       );
       expect(outcome, isA<EditLocked>());
-      expect(
-        notes(),
-        const [NoteSticker(startMs: 10000, endMs: 18000, locked: true)],
-      );
+      expect(notes(), const [
+        NoteSticker(startMs: 10000, endMs: 18000, locked: true),
+      ]);
       expect(historyLength(), 0);
       expect(contentPromptSeq(), 1);
       expect(layoutPromptSeq(), 0);
@@ -97,10 +99,9 @@ void main() {
         ),
       );
       expect(outcome, isA<EditLocked>());
-      expect(
-        notes(),
-        const [NoteSticker(startMs: 10000, endMs: 18000, locked: true)],
-      );
+      expect(notes(), const [
+        NoteSticker(startMs: 10000, endMs: 18000, locked: true),
+      ]);
       expect(contentPromptSeq(), 1);
     });
 

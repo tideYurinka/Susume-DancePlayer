@@ -67,9 +67,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         separatorCount++;
         continue;
       }
-      final v = views.firstWhere(
-        (view) => identical(view.slot, item.slot),
-      );
+      final v = views.firstWhere((view) => identical(view.slot, item.slot));
       labeledWidth +=
           v.fixedWidth ?? _topBarSlotWidth(v.label, textScaler: textScaler);
     }
@@ -80,8 +78,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     // 逐槽取整/对齐的累积差（槽位到 12 位后窄视口无余量吸收），判据宁早
     // 不晚——早收标签只损失文字、晚收整行真溢出。
     const widthSafety = 8.0;
-    final iconOnly =
-        maxWidth != null && labeledWidth > maxWidth - widthSafety;
+    final iconOnly = maxWidth != null && labeledWidth > maxWidth - widthSafety;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -145,18 +142,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         slot: slot,
         tappable: true,
         bubbleLink: _avSyncLink,
-        // 互斥：从对比态进校准会话先走对比态退出（回编辑面，
-        // 单画面），再开气泡——校准会话自身的统一退出路径（含丢弃试听
-        // 值）照旧。两条互相冲突的播放态主张（进入即暂停 vs 进入即续播）
-        // 从此只有一个成立。
-        onTap: () {
-          if (ref.read(playerSessionProvider).isCompare) {
-            ref
-                .read(playerSessionProvider.notifier)
-                .enter(PlayerSessionMode.editing);
-          }
-          _toggleBubble(SpeedBubbleMode.avSync);
-        },
+        onTap: _activateAvSync,
       ),
       // 节拍提示入口：顶栏
       // 播放设置工具体系；点开节拍提示锚定气泡（与数拍
@@ -166,7 +152,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         slot: slot,
         tappable: true,
         bubbleLink: _beatPromptLink,
-        onTap: () => _toggleBubble(SpeedBubbleMode.beat),
+        onTap: _activateBeatPrompt,
       ),
       // 镜像状态接线：镜像开启即琥珀；控制器为 Listenable，
       // 开启/关闭即时重装配（[_buildPlayToolSlot]）。改名
@@ -233,7 +219,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         onTap: _toggleFramingAdjust,
       ),
       // 取景入口统一为本枚顶栏「取景调整」，对比专用工具区只剩
-      // 
+      //
       // 「练习镜像」。
       // 查看引导：槽填上、不再恒置灰——无作用对象也可点（本槽
       // 无门禁，门事实不参与），点击进帮助域的新手引导页。
@@ -241,6 +227,18 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         slot: slot,
         tappable: true,
         onTap: _openGuideUnits,
+      ),
+      // 「更多」：紧凑档横屏顶栏承载的三枚（音画同步 / 取景调整 /
+      // 节拍提示）的入口，落在「全局镜像」左侧。点开向上弹出菜单
+      // （[_showMoreMenu]），锚点 = 本钮自身（[onTapWithAnchor]）。气泡展开
+      // 与模式进入都不是生效态——本槽不点亮；音画同步与节拍提示的气泡锚也
+      // 接在本钮（紧凑档横屏下这两枚不常驻顶栏，[_buildBubbleOverlay]
+      // 取 [_moreLink]，两枚气泡才有在场锚点）。
+      PlayToolSlotId.more => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        bubbleLink: _moreLink,
+        onTapWithAnchor: _showMoreMenu,
       ),
     };
   }
@@ -297,8 +295,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     final live = _playToolLive;
     return Row(
       children: [
-        if (emptyLeadingColumns > 0)
-          Spacer(flex: emptyLeadingColumns),
+        if (emptyLeadingColumns > 0) Spacer(flex: emptyLeadingColumns),
         for (final slot in rowSet.slots)
           Expanded(
             child: Center(
@@ -538,6 +535,7 @@ class _PlayToolView {
     this.bubbleLink,
     this.listenable,
     this.onTap,
+    this.onTapWithAnchor,
   });
 
   /// 被引用的槽声明（槽键、文案、图标 token、门清单、软门标记的来源）。
@@ -570,6 +568,11 @@ class _PlayToolView {
 
   final VoidCallback? onTap;
 
+  /// 点按动作的另一种形态：非空时把**本槽自身的 `BuildContext`** 交给动作，
+  /// 槽位盒因此可直接当锚点用——今天只有「更多」用它把本钮当向上弹出菜单的
+  /// 锚点。两者不并用；都用时以本项为准，无锚点需求的槽只给 [onTap]。
+  final void Function(BuildContext anchor)? onTapWithAnchor;
+
   /// 当前展示标签（激活态且有激活标签时用激活标签）。
   String get label => active && activeLabel != null ? activeLabel! : slot.label;
 }
@@ -587,25 +590,26 @@ IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.compare => Icons.compare,
   PlayToolIcon.cropFree => Icons.crop_free,
   PlayToolIcon.helpOutline => Icons.help_outline,
+  PlayToolIcon.more => Icons.more_horiz,
 };
 
 /// 由视图件渲染单槽（气泡锚点 + 定宽包裹统一处理）；[iconOnly] = 标签收起
 /// 形态（判据见 [_playToolRow]），语义经 [Semantics] 保留。
 Widget _renderPlayTool(_PlayToolView v, {required bool iconOnly}) {
   final fixedWidth = v.fixedWidth;
-  Widget tool = _PlayTool(
-    key: Key(v.slot.key),
-    label: v.label,
-    rate: v.rate,
-    icon: _playToolIconData(v.slot.icon),
-    active: v.active,
-    enabled: v.enabled,
-    tappable: v.tappable,
-    iconOnly: iconOnly,
-    // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
-    labelMetrics: fixedWidth != null ? _kTopToolLabelStyle : null,
-    onTap: v.onTap,
-  );
+  final onTapWithAnchor = v.onTapWithAnchor;
+  // 需要槽自身上下文当锚点的动作（「更多」的向上弹出菜单）：经 [Builder]
+  // 取本槽元素，`findRenderObject()` 落到槽的盒上——锚定写法与底排菜单同一
+  // 件事，槽键仍在 [_PlayTool] 上、定位手段不变。
+  Widget tool = onTapWithAnchor == null
+      ? _buildPlayToolWidget(v, iconOnly: iconOnly)
+      : Builder(
+          builder: (anchor) => _buildPlayToolWidget(
+            v,
+            iconOnly: iconOnly,
+            onTap: () => onTapWithAnchor(anchor),
+          ),
+        );
   if (fixedWidth != null && !iconOnly) {
     tool = SizedBox(width: fixedWidth, child: tool);
   }
@@ -631,3 +635,22 @@ Widget _renderPlayTool(_PlayToolView v, {required bool iconOnly}) {
   }
   return tool;
 }
+
+/// 单槽视觉件：标签、倍率读数、图标、激活与置灰观感都来自视图件。
+Widget _buildPlayToolWidget(
+  _PlayToolView v, {
+  required bool iconOnly,
+  VoidCallback? onTap,
+}) => _PlayTool(
+  key: Key(v.slot.key),
+  label: v.label,
+  rate: v.rate,
+  icon: _playToolIconData(v.slot.icon),
+  active: v.active,
+  enabled: v.enabled,
+  tappable: v.tappable,
+  iconOnly: iconOnly,
+  // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
+  labelMetrics: v.fixedWidth != null ? _kTopToolLabelStyle : null,
+  onTap: onTap ?? v.onTap,
+);

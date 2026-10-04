@@ -77,11 +77,7 @@ void main() {
       expect(takeover.active, isTrue, reason: '准备期同样处于接管期（录制期拒绝 scrub 的判据）');
       expect(side.marker, isTrue, reason: '录制态标记就位');
       expect(side.interruptDelayedCount, 1, reason: '播放态同步：撤掉在途的延迟起播');
-      expect(
-        side.disableSegmentLoopCount,
-        0,
-        reason: '准备期只落标记与收挂账，循环停用属录制本体',
-      );
+      expect(side.disableSegmentLoopCount, 0, reason: '准备期只落标记与收挂账，循环停用属录制本体');
     });
 
     test('录制本体：循环被停用', () {
@@ -118,11 +114,10 @@ void main() {
       expect(takeover.active, isFalse, reason: 'scrub 拒绝判据复位');
       expect(side.marker, isFalse, reason: '录制态标记复位');
       expect(side.restoreSegmentLoopCount, 1, reason: '学段循环同步复位');
-      expect(
-        side.calls,
-        ['marker:false', 'restoreLoop'],
-        reason: '次序不变量：录制态标记复位先于学段循环同步复位',
-      );
+      expect(side.calls, [
+        'marker:false',
+        'restoreLoop',
+      ], reason: '次序不变量：录制态标记复位先于学段循环同步复位');
     });
 
     test('退出幂等：未处于接管期时为 no-op，不施加第二遍复位', () {
@@ -135,11 +130,7 @@ void main() {
       final afterFirst = side.calls.length;
       takeover.disengage();
 
-      expect(
-        side.calls.length,
-        afterFirst,
-        reason: '重复退出不得再写标记或再走一次学段循环同步',
-      );
+      expect(side.calls.length, afterFirst, reason: '重复退出不得再写标记或再走一次学段循环同步');
       expect(side.restoreSegmentLoopCount, 1, reason: '学段循环同步在北向次序上只有一条路径');
     });
 
@@ -166,11 +157,12 @@ void main() {
       await takeover.endScrubBeforeStart();
       takeover.engage(suppressLoop: true);
 
-      expect(
-        side.calls,
-        ['endScrub', 'marker:true', 'interruptDelayed', 'disableLoop'],
-        reason: '收尾必须先于接管：否则 scrub 的收尾会在起录之后回写播放态与位置',
-      );
+      expect(side.calls, [
+        'endScrub',
+        'marker:true',
+        'interruptDelayed',
+        'disableLoop',
+      ], reason: '收尾必须先于接管：否则 scrub 的收尾会在起录之后回写播放态与位置');
     });
   });
 

@@ -39,16 +39,15 @@ class FailingVideoDocumentStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _inner.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _inner.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _inner.loadLocalOrNull();
 
   @override
-  Future<void> saveLocal(Map<String, dynamic> json) =>
-      _inner.saveLocal(json);
+  Future<void> saveLocal(Map<String, dynamic> json) => _inner.saveLocal(json);
 
   @override
   Future<void> mutateMarkers(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     if (failMarkers) throw StateError('markers 不可写');
     await _inner.mutateMarkers(apply);
@@ -56,7 +55,8 @@ class FailingVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateLocal(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
   ) async {
     if (failLocal) throw StateError('local 不可写');
     await _inner.mutateLocal(apply);

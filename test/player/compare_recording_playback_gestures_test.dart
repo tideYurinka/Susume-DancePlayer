@@ -32,7 +32,8 @@ import 'package:dance_learning_app/player/level_control.dart'
         screenBrightnessControllerProvider,
         systemMediaVolumeControllerProvider;
 import 'package:dance_learning_app/player/speed_control.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -340,14 +341,14 @@ void main() {
       expect(engine.isPlaying, isTrue);
     });
 
-    testWidgets('录制期瞬态倍速收尾（真路径：长按 2× → 起录 → 松手）不把速率写回非 1.0×', (
-      tester,
-    ) async {
+    testWidgets('录制期瞬态倍速收尾（真路径：长按 2× → 起录 → 松手）不把速率写回非 1.0×', (tester) async {
       setDeviceView(tester);
       await pumpPlayer(tester);
       await enterCompare(tester);
       // 手动倍速 1.5：松手若写回「瞬态前基准」就会把录制强制的 1.0× 顶成 1.5。
-      await containerOf(tester).read(speedControlProvider.notifier).setRate(1.5);
+      await containerOf(tester)
+          .read(speedControlProvider.notifier)
+          .setRate(1.5);
       expect(engine.rate, 1.5);
 
       // 一根手指长按满阈值 → 瞬态 2× 生效。
@@ -367,11 +368,7 @@ void main() {
 
       await hold.up();
       await tester.pump();
-      expect(
-        engine.rate,
-        1.0,
-        reason: '录制期收尾上锁：松手不得把速率写回瞬态前的 1.5',
-      );
+      expect(engine.rate, 1.0, reason: '录制期收尾上锁：松手不得把速率写回瞬态前的 1.5');
       expect(find.byKey(const Key('double_speed_badge')), findsNothing);
 
       // 停录：恢复的「原倍速」是用户的手动倍速 1.5，不是瞬态 2×。
@@ -394,11 +391,15 @@ void main() {
       expect(
         camera.isRecording,
         isFalse,
-        reason: '双击必须与录制钮同一个动作：停录。'
+        reason:
+            '双击必须与录制钮同一个动作：停录。'
             '旧行为是「只把源侧暂停、录制照跑」——素材照录满而声明的源区间比实际内容多',
       );
       expect(camera.stopRecordingCount, 1);
-      expect(find.byKey(const Key('compare_recording_indicator')), findsNothing);
+      expect(
+        find.byKey(const Key('compare_recording_indicator')),
+        findsNothing,
+      );
       expect(engine.isPlaying, isFalse, reason: '停录后暂停在停止点');
       expect(await readManifest().then((d) => d.materials), hasLength(1));
       expect(clipsOf(tester), hasLength(1), reason: '停录即入库、片段随即入轨');
@@ -428,11 +429,7 @@ void main() {
         findsNothing,
         reason: '准备期双击 = 取消：回到待录态（不是继续准备、更不是起录）',
       );
-      expect(
-        camera.isRecording,
-        isFalse,
-        reason: '已武装的那段要被停掉并丢弃（不留下半截素材）',
-      );
+      expect(camera.isRecording, isFalse, reason: '已武装的那段要被停掉并丢弃（不留下半截素材）');
       expect(camera.stopRecordingCount, 1);
       expect(engine.isPlaying, isFalse, reason: '取消后暂停在取消点，不自动回拨');
       expect(
@@ -482,7 +479,10 @@ void main() {
       expect(engine.seekCalls, isEmpty);
       expect(engine.isPlaying, isTrue);
       expect(camera.isRecording, isTrue, reason: '手势不得把录制搅停');
-      expect(find.byKey(const Key('compare_recording_indicator')), findsOneWidget);
+      expect(
+        find.byKey(const Key('compare_recording_indicator')),
+        findsOneWidget,
+      );
       expect(
         modeOf(tester),
         PlayerSessionMode.compareWatching,
@@ -514,7 +514,10 @@ void main() {
       expect(engine.seekCalls, isEmpty, reason: '延迟播放不产生任何定位');
       expect(engine.position, greaterThan(before), reason: '只是在顺播');
       expect(camera.isRecording, isTrue);
-      expect(find.byKey(const Key('compare_recording_indicator')), findsOneWidget);
+      expect(
+        find.byKey(const Key('compare_recording_indicator')),
+        findsOneWidget,
+      );
       expect(modeOf(tester), PlayerSessionMode.compareWatching);
     });
 

@@ -77,8 +77,9 @@ void main() {
     });
 
     test('练习侧第二引擎单独播放不计，依据「不在口径内」', () {
-      final verdict =
-          practiceVerdictOf(PracticeContext.secondEngineSoloPlayback);
+      final verdict = practiceVerdictOf(
+        PracticeContext.secondEngineSoloPlayback,
+      );
       expect(verdict.counted, isFalse);
       expect(verdict.basis, PracticeBasis.outOfScope);
     });

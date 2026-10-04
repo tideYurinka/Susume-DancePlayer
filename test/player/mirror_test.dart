@@ -69,7 +69,11 @@ void main() {
       final storage = InMemoryVideoIndexStorage();
       final controller = MirrorController(storage);
 
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
 
       expect(controller.phase, MirrorPhase.asking);
       expect(controller.mirrored, isFalse);
@@ -163,7 +167,11 @@ void main() {
       // 只消费会话给出的身份；无身份时保持默认且绝不触碰索引。
       final controller = MirrorController(_ThrowingStorage());
 
-      await controller.resolve(sourcePath, videoId: null, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: null,
+        baselineMarkers: null,
+      );
 
       expect(controller.phase, MirrorPhase.idle);
       expect(controller.mirrored, isFalse);
@@ -174,7 +182,11 @@ void main() {
     test('选「是」：立即翻转，索引按 video_id 持久化 mirrored=true 且标记已询问', () async {
       final storage = InMemoryVideoIndexStorage();
       final controller = MirrorController(storage);
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
       expect(controller.phase, MirrorPhase.asking);
       // 后台哈希随后落盘（模拟条目在作答前已写入、未询问）。
       await storage.update((index) => index.upsert(entryFor(mirrored: false)));
@@ -194,7 +206,11 @@ void main() {
     test('选「否」：镜像关闭，索引持久化 mirrored=false 且标记已询问', () async {
       final storage = InMemoryVideoIndexStorage();
       final controller = MirrorController(storage);
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
       await storage.update((index) => index.upsert(entryFor(mirrored: true)));
 
       await controller.chooseMirrored(false);
@@ -214,7 +230,11 @@ void main() {
         persistRetryInterval: const Duration(milliseconds: 10),
         maxPersistRetries: 200,
       );
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
 
       await controller.chooseMirrored(true);
       expect(controller.mirrored, isTrue, reason: '选择后立即生效，不等索引落盘');
@@ -262,7 +282,11 @@ void main() {
     test('已 dispose 后 chooseMirrored 不生效、不写索引', () async {
       final storage = InMemoryVideoIndexStorage();
       final controller = MirrorController(storage);
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
       controller.dispose();
 
       await controller.chooseMirrored(true);
@@ -296,30 +320,38 @@ void main() {
           markers: MarkersDocument.empty().withMirrored(mirrored).toJson(),
         );
 
-    test('markers 存在（分享文件模拟：无 mirrorAsked 条目）→ 打开直接应用、不询问，index 回写镜像缓存', () async {
-      final indexStorage = InMemoryVideoIndexStorage(
-        initial: VideoIndex(entries: [entryWithSignature()]),
-      );
-      final coordinator =
-          VideoDocumentCoordinator(markersStorageOf(true));
-      final controller = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+    test(
+      'markers 存在（分享文件模拟：无 mirrorAsked 条目）→ 打开直接应用、不询问，index 回写镜像缓存',
+      () async {
+        final indexStorage = InMemoryVideoIndexStorage(
+          initial: VideoIndex(entries: [entryWithSignature()]),
+        );
+        final coordinator = VideoDocumentCoordinator(markersStorageOf(true));
+        final controller = MirrorController(
+          indexStorage,
+          coordinatorFor: (_) => coordinator,
+        );
 
-      await controller.resolve(
-        sourcePath,
-        videoId: videoId,
-        entry: entryWithSignature(),
-        baselineMarkers: MarkersDocument.empty().withMirrored(true),
-      );
+        await controller.resolve(
+          sourcePath,
+          videoId: videoId,
+          entry: entryWithSignature(),
+          baselineMarkers: MarkersDocument.empty().withMirrored(true),
+        );
 
-      expect(controller.phase, MirrorPhase.idle, reason: '不弹询问');
-      expect(controller.mirrored, isTrue);
-      await pollUntil(
-        () => indexStorage.current.entries.single.mirrored == true,
-        reason: '同步规则：markers 镜像回写 index 缓存',
-      );
-      expect(indexStorage.current.entries.single.mirrorAsked, isFalse,
-          reason: '回写不触碰「已询问」标记');
-    });
+        expect(controller.phase, MirrorPhase.idle, reason: '不弹询问');
+        expect(controller.mirrored, isTrue);
+        await pollUntil(
+          () => indexStorage.current.entries.single.mirrored == true,
+          reason: '同步规则：markers 镜像回写 index 缓存',
+        );
+        expect(
+          indexStorage.current.entries.single.mirrorAsked,
+          isFalse,
+          reason: '回写不触碰「已询问」标记',
+        );
+      },
+    );
 
     test('markers 存在且镜像为关 → 直接应用 false，不弹询问', () async {
       final indexStorage = InMemoryVideoIndexStorage(
@@ -327,9 +359,11 @@ void main() {
           entries: [entryWithSignature(mirrored: true, mirrorAsked: true)],
         ),
       );
-      final coordinator =
-          VideoDocumentCoordinator(markersStorageOf(false));
-      final controller = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+      final coordinator = VideoDocumentCoordinator(markersStorageOf(false));
+      final controller = MirrorController(
+        indexStorage,
+        coordinatorFor: (_) => coordinator,
+      );
 
       await controller.resolve(
         sourcePath,
@@ -339,8 +373,7 @@ void main() {
       );
 
       expect(controller.phase, MirrorPhase.idle);
-      expect(controller.mirrored, isFalse,
-          reason: 'markers 真值优先于 index 过渡值');
+      expect(controller.mirrored, isFalse, reason: 'markers 真值优先于 index 过渡值');
     });
 
     test('markers 不存在 → 维持 index mirrorAsked 逻辑（已问过按过渡值应用）', () async {
@@ -372,9 +405,13 @@ void main() {
           entries: [entryWithSignature(mirrored: true, mirrorAsked: true)],
         ),
       );
-      final coordinator =
-          VideoDocumentCoordinator(InMemoryVideoDocumentStorage());
-      final first = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+      final coordinator = VideoDocumentCoordinator(
+        InMemoryVideoDocumentStorage(),
+      );
+      final first = MirrorController(
+        indexStorage,
+        coordinatorFor: (_) => coordinator,
+      );
       await first.resolve(
         sourcePath,
         videoId: videoId,
@@ -384,7 +421,10 @@ void main() {
       expect(first.phase, MirrorPhase.historyApplied);
       first.dispose();
 
-      final reopened = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+      final reopened = MirrorController(
+        indexStorage,
+        coordinatorFor: (_) => coordinator,
+      );
       await reopened.resolve(
         sourcePath,
         videoId: videoId,
@@ -399,7 +439,9 @@ void main() {
     test('作答双写：markers 不存在 → 首建带署名缓存 + 答案镜像；index 照旧标记已询问', () async {
       const signature = SongSignature(song: 'My Love', remark: '9人版');
       final indexStorage = InMemoryVideoIndexStorage(
-        initial: VideoIndex(entries: [entryWithSignature(signatureCache: signature)]),
+        initial: VideoIndex(
+          entries: [entryWithSignature(signatureCache: signature)],
+        ),
       );
       final markersStorage = InMemoryVideoDocumentStorage();
       final controller = MirrorController(
@@ -433,7 +475,10 @@ void main() {
       );
       final markersStorage = InMemoryVideoDocumentStorage();
       final coordinator = VideoDocumentCoordinator(markersStorage);
-      final controller = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+      final controller = MirrorController(
+        indexStorage,
+        coordinatorFor: (_) => coordinator,
+      );
 
       await controller.resolve(
         sourcePath,
@@ -443,17 +488,23 @@ void main() {
       );
       expect(controller.phase, MirrorPhase.asking, reason: 'markers 未建，走询问');
       await controller.chooseMirrored(true);
-      await pollUntil(() =>
-          MarkersDocument.fromJson(markersStorage.markersSnapshot).mirrored);
+      await pollUntil(
+        () => MarkersDocument.fromJson(markersStorage.markersSnapshot).mirrored,
+      );
       controller.dispose();
 
       // 杀进程重开：新控制器、同一持久化状态 → 直接应用不询问。
-      final reopened = MirrorController(indexStorage, coordinatorFor: (_) => coordinator);
+      final reopened = MirrorController(
+        indexStorage,
+        coordinatorFor: (_) => coordinator,
+      );
       await reopened.resolve(
         sourcePath,
         videoId: videoId,
         entry: entryWithSignature(signatureCache: oldSignature),
-        baselineMarkers: MarkersDocument.fromJson(markersStorage.markersSnapshot),
+        baselineMarkers: MarkersDocument.fromJson(
+          markersStorage.markersSnapshot,
+        ),
       );
       expect(reopened.phase, MirrorPhase.idle);
       expect(reopened.mirrored, isTrue);
@@ -461,8 +512,9 @@ void main() {
       // 控制层切换：再点关掉 → markers 镜像更新，署名不被重种覆盖。
       await reopened.chooseMirrored(false);
       await pollUntil(() {
-        final markers =
-            MarkersDocument.fromJson(markersStorage.markersSnapshot);
+        final markers = MarkersDocument.fromJson(
+          markersStorage.markersSnapshot,
+        );
         return markers.mirrored == false;
       });
       final markers = MarkersDocument.fromJson(markersStorage.markersSnapshot);
@@ -472,17 +524,19 @@ void main() {
   });
 
   group('首次导入：会话基线才是镜像真值', () {
-    VideoIndexEntry entryOf({bool mirrored = false, bool mirrorAsked = false}) =>
-        VideoIndexEntry(
-          videoId: videoId,
-          displayName: 'dance.mp4',
-          filePath: sourcePath,
-          sizeBytes: 3,
-          fastKey: fastKeyFor(name: 'dance.mp4', sizeBytes: 3),
-          mirrored: mirrored,
-          mirrorAsked: mirrorAsked,
-          lastOpenedAt: DateTime(2026, 9, 1, 12),
-        );
+    VideoIndexEntry entryOf({
+      bool mirrored = false,
+      bool mirrorAsked = false,
+    }) => VideoIndexEntry(
+      videoId: videoId,
+      displayName: 'dance.mp4',
+      filePath: sourcePath,
+      sizeBytes: 3,
+      fastKey: fastKeyFor(name: 'dance.mp4', sizeBytes: 3),
+      mirrored: mirrored,
+      mirrorAsked: mirrorAsked,
+      lastOpenedAt: DateTime(2026, 9, 1, 12),
+    );
 
     test('打开时不在盘 + 未询问过：命名框本次首建的文档（种子）不是答案 → 仍询问', () async {
       // 首次导入：命名框先跑，按索引过渡值首建 markers（mirrored=false 的
@@ -491,9 +545,9 @@ void main() {
         initial: VideoIndex(entries: [entryOf()]),
       );
       final markersStorage = InMemoryVideoDocumentStorage(
-        markers: MarkersDocument.empty().withSignature(
-          const SongSignature(song: 'My Love'),
-        ).toJson(),
+        markers: MarkersDocument.empty()
+            .withSignature(const SongSignature(song: 'My Love'))
+            .toJson(),
         markersPresent: true,
       );
       final controller = MirrorController(
@@ -568,8 +622,7 @@ void main() {
         initial: VideoIndex(entries: [entryFor(localMirrorEnabled: true)]),
       );
       final markersStorage = InMemoryVideoDocumentStorage(
-        markers:
-            MarkersDocument.empty().withLocalMirrorEnabled(false).toJson(),
+        markers: MarkersDocument.empty().withLocalMirrorEnabled(false).toJson(),
       );
       final pushed = <bool>[];
       final controller = MirrorController(
@@ -592,8 +645,11 @@ void main() {
         () => indexStorage.current.entries.single.localMirrorEnabled == false,
         reason: '同步规则：markers 总开关回写 index 过渡值',
       );
-      expect(indexStorage.current.entries.single.mirrorAsked, isFalse,
-          reason: '回写不触碰「已询问」标记');
+      expect(
+        indexStorage.current.entries.single.mirrorAsked,
+        isFalse,
+        reason: '回写不触碰「已询问」标记',
+      );
     });
 
     test('读取路径②本机缓存过渡值：markers 未创建 → 按 index 过渡值应用（已问过走历史路径）', () async {
@@ -626,11 +682,14 @@ void main() {
       // 无条目（会话按摘要给出身份）：无从取 markers/index → 缺省 true。
       final noEntry = MirrorController(
         InMemoryVideoIndexStorage(),
-        coordinatorFor: (_) => VideoDocumentCoordinator(
-          InMemoryVideoDocumentStorage(),
-        ),
+        coordinatorFor: (_) =>
+            VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
       );
-      await noEntry.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await noEntry.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
       expect(noEntry.localMirrorEnabled, isTrue);
       expect(noEntry.phase, MirrorPhase.asking);
 
@@ -643,7 +702,12 @@ void main() {
         coordinatorFor: (_) =>
             VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
       );
-      await keyless.resolve(sourcePath, videoId: videoId, entry: legacy, baselineMarkers: null);
+      await keyless.resolve(
+        sourcePath,
+        videoId: videoId,
+        entry: legacy,
+        baselineMarkers: null,
+      );
       expect(keyless.localMirrorEnabled, isTrue);
     });
 
@@ -667,13 +731,17 @@ void main() {
       controller.setLocalMirrorEnabled(false);
 
       await pollUntil(
-        () => MarkersDocument.fromJson(markersStorage.markersSnapshot)
+        () =>
+            MarkersDocument.fromJson(markersStorage.markersSnapshot)
                 .localMirrorEnabled ==
             false,
         reason: '公开标记文件里读得到该字段（无「保存」步）',
       );
-      expect(indexStorage.current.entries.single.localMirrorEnabled, isFalse,
-          reason: '本机缓存（视频索引）同步回写');
+      expect(
+        indexStorage.current.entries.single.localMirrorEnabled,
+        isFalse,
+        reason: '本机缓存（视频索引）同步回写',
+      );
       controller.dispose();
 
       // 杀进程重开：新控制器、同一持久化状态 → 恢复用户取值。
@@ -685,7 +753,9 @@ void main() {
         sourcePath,
         videoId: videoId,
         entry: entryFor(mirrorAsked: true),
-        baselineMarkers: MarkersDocument.fromJson(markersStorage.markersSnapshot),
+        baselineMarkers: MarkersDocument.fromJson(
+          markersStorage.markersSnapshot,
+        ),
       );
       expect(reopened.localMirrorEnabled, isFalse);
       expect(reopened.phase, MirrorPhase.idle);
@@ -730,7 +800,8 @@ void main() {
       await controller.chooseMirrored(false);
 
       await pollUntil(
-        () => MarkersDocument.fromJson(markersStorage.markersSnapshot)
+        () =>
+            MarkersDocument.fromJson(markersStorage.markersSnapshot)
                 .localMirrorEnabled ==
             false,
       );
@@ -748,7 +819,11 @@ void main() {
         coordinatorFor: (_) => VideoDocumentCoordinator(markersStorage),
         persistRetryInterval: const Duration(milliseconds: 1),
       );
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
 
       controller.setLocalMirrorEnabled(false);
 
@@ -758,7 +833,8 @@ void main() {
       );
 
       await pollUntil(
-        () => MarkersDocument.fromJson(markersStorage.markersSnapshot)
+        () =>
+            MarkersDocument.fromJson(markersStorage.markersSnapshot)
                 .localMirrorEnabled ==
             false,
         reason: '条目出现后重试成功、双写 markers',
@@ -772,7 +848,11 @@ void main() {
         coordinatorFor: (_) =>
             VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
       );
-      await controller.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: videoId,
+        baselineMarkers: null,
+      );
 
       controller.setLocalMirrorEnabled(false);
       await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -787,8 +867,7 @@ void main() {
         ),
       );
       final markersStorage = InMemoryVideoDocumentStorage(
-        markers:
-            MarkersDocument.empty().withLocalMirrorEnabled(false).toJson(),
+        markers: MarkersDocument.empty().withLocalMirrorEnabled(false).toJson(),
       );
       final controller = MirrorController(
         indexStorage,
@@ -808,7 +887,8 @@ void main() {
       expect(controller.localMirrorEnabled, isTrue, reason: '新建片段即生效');
       expect(notified, 1);
       await pollUntil(
-        () => MarkersDocument.fromJson(markersStorage.markersSnapshot)
+        () =>
+            MarkersDocument.fromJson(markersStorage.markersSnapshot)
                 .localMirrorEnabled ==
             true,
       );
@@ -835,7 +915,11 @@ void main() {
       );
 
       // 打开会话：条目命中但摘要不符 → 身份取摘要、entry 为 null、旧条目保留。
-      await controller.resolve(sourcePath, videoId: changedId, baselineMarkers: null);
+      await controller.resolve(
+        sourcePath,
+        videoId: changedId,
+        baselineMarkers: null,
+      );
 
       expect(
         controller.phase,
@@ -871,7 +955,11 @@ void main() {
         ),
       );
 
-      await controller.resolve(sourcePath, videoId: changedId, baselineMarkers: MarkersDocument.empty().withMirrored(true));
+      await controller.resolve(
+        sourcePath,
+        videoId: changedId,
+        baselineMarkers: MarkersDocument.empty().withMirrored(true),
+      );
 
       expect(controller.phase, MirrorPhase.idle);
       expect(controller.mirrored, isTrue, reason: '新身份 markers 真值优先');

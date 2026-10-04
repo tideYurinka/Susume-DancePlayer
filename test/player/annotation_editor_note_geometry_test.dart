@@ -89,11 +89,10 @@ void main() {
           geometry: NoteGeometry(centerX: -0.5, centerY: 1.7, scale: 99),
         ),
       );
-      expect(notes().single.geometry, const NoteGeometry(
-        centerX: 0,
-        centerY: 1,
-        scale: noteMaxScale,
-      ));
+      expect(
+        notes().single.geometry,
+        const NoteGeometry(centerX: 0, centerY: 1, scale: noteMaxScale),
+      );
 
       editor().submit(
         const SetNoteGeometry(
@@ -105,11 +104,7 @@ void main() {
     });
 
     test('保留备注其它字段（时间窗 / 文本 / 样式）', () {
-      const seeded = NoteSticker(
-        startMs: 1000,
-        endMs: 5000,
-        text: '注意手',
-      );
+      const seeded = NoteSticker(startMs: 1000, endMs: 5000, text: '注意手');
       restore(notes: const [seeded]);
       editor().submit(
         const SetNoteGeometry(
@@ -117,11 +112,12 @@ void main() {
           geometry: NoteGeometry(centerX: 0.7, centerY: 0.6, scale: 2),
         ),
       );
-      expect(notes().single, seeded.copyWith(geometry: const NoteGeometry(
-        centerX: 0.7,
-        centerY: 0.6,
-        scale: 2,
-      )));
+      expect(
+        notes().single,
+        seeded.copyWith(
+          geometry: const NoteGeometry(centerX: 0.7, centerY: 0.6, scale: 2),
+        ),
+      );
     });
 
     test('同几何重提交 = EditNoop 静默（不入史）', () {

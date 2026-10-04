@@ -71,9 +71,9 @@ void main() {
         final prefixes = [
           for (final entry in group)
             int.parse(
-              RegExp(
-                r'^(\d+)',
-              ).firstMatch(entry.directory.split('/').last)!.group(1)!,
+              RegExp(r'^(\d+)')
+                  .firstMatch(entry.directory.split('/').last)!
+                  .group(1)!,
             ),
         ];
         expect(prefixes, List<int>.from(prefixes)..sort(), reason: '按数字前缀升序');

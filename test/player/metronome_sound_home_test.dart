@@ -7,7 +7,10 @@ void main() {
     test('设置槽默认值：音源普通、声音反馈关、半拍声开', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      expect(container.read(metronomeSoundTypeProvider), MetronomeSoundType.normal);
+      expect(
+        container.read(metronomeSoundTypeProvider),
+        MetronomeSoundType.normal,
+      );
       expect(container.read(metronomeSoundEnabledProvider), isFalse);
       expect(container.read(metronomeHalfBeatEnabledProvider), isTrue);
     });

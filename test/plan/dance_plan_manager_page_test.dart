@@ -25,6 +25,7 @@ import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/plan_wheel_driver.dart';
 import '../helpers/semantics_assertions.dart';
+import '../helpers/test_clock.dart';
 
 /// 各舞计划管理页部件测试：入口可达、行内容齐全、
 /// 两组分组、搜索与筛选、编辑框保存后落盘且本页与计划页刷新、空舞库引导。
@@ -66,6 +67,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(planStorage),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(initial: index),
@@ -90,6 +92,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(
             InMemoryPracticePlanStorage(),
           ),
@@ -210,7 +213,10 @@ void main() {
             ],
           ).toJson(),
           local: LocalDocument(
-            mastery: const {0: LearningMastery.mastered, 1: LearningMastery.unlearned},
+            mastery: const {
+              0: LearningMastery.mastered,
+              1: LearningMastery.unlearned,
+            },
           ).toJson(),
         ),
       },
@@ -259,7 +265,9 @@ void main() {
     // 逾期（2020）按日期排在 2026 之前；两组组头次序「已有计划」在上。
     expect(
       tester.getTopLeft(find.byKey(const Key('plan_manage_row_v2'))).dy,
-      lessThan(tester.getTopLeft(find.byKey(const Key('plan_manage_row_v1'))).dy),
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('plan_manage_row_v1'))).dy,
+      ),
     );
     expect(
       tester
@@ -274,7 +282,9 @@ void main() {
     // 未设计划组：v3 在前，完全掌握的 v4 沉底。
     expect(
       tester.getTopLeft(find.byKey(const Key('plan_manage_row_v3'))).dy,
-      lessThan(tester.getTopLeft(find.byKey(const Key('plan_manage_row_v4'))).dy),
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('plan_manage_row_v4'))).dy,
+      ),
     );
   });
 
@@ -292,10 +302,7 @@ void main() {
       ).toJson(),
     );
 
-    await tester.enterText(
-      find.byKey(const Key('plan_manage_search')),
-      'v2',
-    );
+    await tester.enterText(find.byKey(const Key('plan_manage_search')), 'v2');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('plan_manage_row_v2')), findsOneWidget);
     expect(find.byKey(const Key('plan_manage_row_v1')), findsNothing);
@@ -372,7 +379,10 @@ void main() {
       tester.widget<Text>(find.byKey(const Key('plan_manage_hints_v1'))).data,
       '曲库关',
     );
-    expect(find.byKey(const Key('plan_manage_group_with_plan')), findsOneWidget);
+    expect(
+      find.byKey(const Key('plan_manage_group_with_plan')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('无 DDL 的舞：编辑页日期滚轮默认今天，改开关保存即落 DDL 与开关', (tester) async {
@@ -390,7 +400,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final store = PracticePlanStore(storage);
-    expect((await store.ddlOf('v1'))!.date, localToday(), reason: '新建 DDL 默认今天');
+    expect(
+      (await store.ddlOf('v1'))!.date,
+      localToday(),
+      reason: '新建 DDL 默认今天',
+    );
     expect(await store.reviewRemindersEnabledOf('v1'), isFalse);
     expect(
       tester.widget<Text>(find.byKey(const Key('plan_manage_hints_v1'))).data,
@@ -408,6 +422,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(storage),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(
@@ -437,8 +452,7 @@ void main() {
     await tester.tap(find.byKey(const Key('plan_manage_row_v1')));
     await tester.pumpAndSettle();
 
-    final now = DateTime.now();
-    final ddlDay = DateTime(now.year, now.month, 15);
+    final ddlDay = DateTime(testToday.year, testToday.month, 15);
     await selectPlanDate(
       tester,
       'dance_plan_dialog_date',

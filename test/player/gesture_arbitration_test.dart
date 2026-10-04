@@ -148,8 +148,9 @@ void main() {
 
   /// 系统手势内缩：默认全零上报 → 四边取固定下限；置 null 模拟
   /// 「宿主未给出让路区」。
-  SystemGestureYieldInsets? yieldSystemInsets =
-      systemGestureYieldInsets(system: EdgeInsets.zero);
+  SystemGestureYieldInsets? yieldSystemInsets = systemGestureYieldInsets(
+    system: EdgeInsets.zero,
+  );
 
   GestureArbitration build({
     bool Function(Offset?)? onOverlayTap,
@@ -163,8 +164,7 @@ void main() {
     };
     presentation.recordRawPointerUp = rawPointerUps.add;
     presentation.overlayTapResult = onOverlayTap ?? (_) => false;
-    presentation.overlayDoubleTapResult =
-        onOverlayDoubleTap ?? (_) => false;
+    presentation.overlayDoubleTapResult = onOverlayDoubleTap ?? (_) => false;
     return GestureArbitration(
       input: GestureArbitrationInput(
         engineSeek: buildEngineSeek(),
@@ -536,9 +536,7 @@ void main() {
       expect(writtenDirections, [
         ThreeFingerSwipeDirection.left,
       ], reason: '方向写入注入点');
-      expect(shownNotices, [
-        NoticeId.threeFingerToast,
-      ], reason: '触发面只报身份');
+      expect(shownNotices, [NoticeId.threeFingerToast], reason: '触发面只报身份');
 
       await arb.onScaleUpdate(update(dx: 100, dy: 0, pointerCount: 3));
       await pumpEventQueue();
@@ -711,8 +709,13 @@ void main() {
       );
       arb.onScaleStart(start(pointerCount: 2, focal: const Offset(420, 100)));
       await arb.onScaleUpdate(
-        update(dx: 0, dy: 0, pointerCount: 2, scale: 1.5,
-            focal: const Offset(420, 100)),
+        update(
+          dx: 0,
+          dy: 0,
+          pointerCount: 2,
+          scale: 1.5,
+          focal: const Offset(420, 100),
+        ),
       );
       expect(framingCalls, isEmpty);
     });
@@ -812,7 +815,10 @@ void main() {
 
     /// 新建仲裁域并驱动一路竖滑调节会话（亮度左半屏、音量右半屏；
     /// [dy] 负为增）。
-    Future<GestureArbitration> levelGestureAt(Offset at, {double dy = -100}) async {
+    Future<GestureArbitration> levelGestureAt(
+      Offset at, {
+      double dy = -100,
+    }) async {
       level.start();
       await pumpEventQueue();
       final arb = build();
@@ -857,14 +863,19 @@ void main() {
       arb.onScaleStart(start(focal: const Offset(400, 300)));
       await arb.onScaleUpdate(update(dx: 30, dy: 0));
       await pumpEventQueue();
-      expect(engine.seekCalls.last,
-          const Duration(seconds: 21, milliseconds: 500));
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 21, milliseconds: 500),
+      );
 
       arb.onPointerCancel(PointerCancelEvent(pointer: 1));
       await pumpEventQueue();
 
-      expect(engine.seekCalls.last, const Duration(seconds: 20),
-          reason: '退回起手前位置');
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 20),
+        reason: '退回起手前位置',
+      );
       expect(engine.isPlaying, isTrue, reason: '原在播续播');
       expect(feedback.isScrubbing, isFalse);
     });
@@ -925,11 +936,16 @@ void main() {
       // 下一手势从顶区起手：让路判定必须用新 burst 的首指位置。
       arb.onPointerDown(downAt(const Offset(400, 10)));
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 10)),
+      );
       await pumpEventQueue();
 
-      expect(volume.setCalls.length, rollbackWrites,
-          reason: '顶区起手让路：不产生新的音量调节写');
+      expect(
+        volume.setCalls.length,
+        rollbackWrites,
+        reason: '顶区起手让路：不产生新的音量调节写',
+      );
       expect(feedback.isLevelAdjusting, isFalse);
     });
 
@@ -973,8 +989,11 @@ void main() {
       await pumpEventQueue();
 
       expect(volume.setCalls.length, rollbackWrites + 1);
-      expect(volume.setCalls.last, closeTo(0.5 + 100 / 600, 1e-9),
-          reason: '从回滚后的 0.5 起算，而非滞留的旧值');
+      expect(
+        volume.setCalls.last,
+        closeTo(0.5 + 100 / 600, 1e-9),
+        reason: '从回滚后的 0.5 起算，而非滞留的旧值',
+      );
     });
   });
 
@@ -994,7 +1013,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 10)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 10)),
+      );
       expect(brightness.setCalls, isEmpty);
       expect(volume.setCalls, isEmpty);
       expect(feedback.isLevelAdjusting, isFalse);
@@ -1006,7 +1027,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 595)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 595)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 595)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 595)),
+      );
       expect(brightness.setCalls, isEmpty);
       expect(volume.setCalls, isEmpty);
       expect(feedback.isLevelAdjusting, isFalse, reason: '不出现亮度/音量反馈滑条');
@@ -1020,9 +1043,14 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 10)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 30, dy: 0, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 30, dy: 0, focal: const Offset(400, 10)),
+      );
       await pumpEventQueue();
-      expect(engine.seekCalls.last, const Duration(seconds: 11, milliseconds: 500));
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 11, milliseconds: 500),
+      );
       expect(feedback.isScrubbing, isTrue);
     });
 
@@ -1034,7 +1062,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(8, 300)),
       );
       arb.onScaleStart(start(focal: const Offset(8, 300)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -60, focal: const Offset(8, 300)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -60, focal: const Offset(8, 300)),
+      );
       expect(feedback.levelKind, LevelAdjustKind.brightness);
       expect(brightness.setCalls, isNotEmpty);
     });
@@ -1045,7 +1075,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(8, 300)),
       );
       arb.onScaleStart(start(focal: const Offset(8, 300)));
-      await arb.onScaleUpdate(update(dx: 30, dy: 0, focal: const Offset(8, 300)));
+      await arb.onScaleUpdate(
+        update(dx: 30, dy: 0, focal: const Offset(8, 300)),
+      );
       await pumpEventQueue();
       expect(engine.seekCalls, isEmpty);
       expect(feedback.isScrubbing, isFalse);
@@ -1057,7 +1089,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(795, 300)),
       );
       arb.onScaleStart(start(focal: const Offset(795, 300)));
-      await arb.onScaleUpdate(update(dx: 30, dy: 0, focal: const Offset(795, 300)));
+      await arb.onScaleUpdate(
+        update(dx: 30, dy: 0, focal: const Offset(795, 300)),
+      );
       await pumpEventQueue();
       expect(engine.seekCalls, isEmpty);
     });
@@ -1069,9 +1103,7 @@ void main() {
       arb.onPointerDown(
         PointerDownEvent(pointer: 1, position: const Offset(8, 300)),
       );
-      arb.onScaleStart(
-        start(pointerCount: 3, focal: const Offset(8, 300)),
-      );
+      arb.onScaleStart(start(pointerCount: 3, focal: const Offset(8, 300)));
       await arb.onScaleUpdate(update(dx: -50, dy: 0, pointerCount: 3));
       await pumpEventQueue();
       expect(engine.seekCalls, isEmpty);
@@ -1085,8 +1117,12 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 10)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: 100, focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 60, dy: 0, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: 100, focal: const Offset(400, 10)),
+      );
+      await arb.onScaleUpdate(
+        update(dx: 60, dy: 0, focal: const Offset(400, 10)),
+      );
       await pumpEventQueue();
       expect(engine.seekCalls, isEmpty);
       expect(brightness.setCalls, isEmpty);
@@ -1099,7 +1135,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 300)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 10)),
+      );
       expect(feedback.isLevelAdjusting, isTrue);
     });
 
@@ -1110,14 +1148,18 @@ void main() {
       );
       arb.onScaleStart(start(focal: const Offset(400, 300)));
       // 纵向先锁轴（亮度照常），逐帧移进顶区后仍照常。
-      await arb.onScaleUpdate(update(dx: 0, dy: -60, focal: const Offset(400, 20)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -60, focal: const Offset(400, 20)),
+      );
       expect(feedback.isLevelAdjusting, isTrue);
     });
 
     test('起手点缺失（无原始指针按下）时不让路', () async {
       final arb = build();
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 10)),
+      );
       expect(feedback.isLevelAdjusting, isTrue);
     });
 
@@ -1127,10 +1169,14 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(8, 20)),
       );
       arb.onScaleStart(start(focal: const Offset(8, 20)));
-      await arb.onScaleUpdate(update(dx: 30, dy: 0, focal: const Offset(8, 20)));
+      await arb.onScaleUpdate(
+        update(dx: 30, dy: 0, focal: const Offset(8, 20)),
+      );
       await pumpEventQueue();
       expect(engine.seekCalls, isEmpty);
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(8, 20)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(8, 20)),
+      );
       expect(feedback.isLevelAdjusting, isFalse);
     });
 
@@ -1141,7 +1187,9 @@ void main() {
         PointerDownEvent(pointer: 1, position: const Offset(400, 10)),
       );
       arb.onScaleStart(start(focal: const Offset(400, 10)));
-      await arb.onScaleUpdate(update(dx: 0, dy: -100, focal: const Offset(400, 10)));
+      await arb.onScaleUpdate(
+        update(dx: 0, dy: -100, focal: const Offset(400, 10)),
+      );
       expect(feedback.isLevelAdjusting, isTrue);
     });
 

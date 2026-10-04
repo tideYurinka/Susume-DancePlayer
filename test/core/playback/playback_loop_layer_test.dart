@@ -320,7 +320,10 @@ void main() {
 
         async.elapse(const Duration(seconds: 3));
         expect(engine.seekCalls, isNot(contains(const Duration(seconds: 2))));
-        expect(engine.position, greaterThanOrEqualTo(const Duration(seconds: 15)));
+        expect(
+          engine.position,
+          greaterThanOrEqualTo(const Duration(seconds: 15)),
+        );
         expect(loop.loopCount, 1);
         expect(leadStates, const [true, false]);
       });
@@ -449,12 +452,12 @@ void main() {
         async.flushMicrotasks();
         async.elapse(const Duration(seconds: 1));
 
-        expect(loop.loopCount, greaterThanOrEqualTo(1),
-            reason: '越过 B 的 tick 视为已进入区间，循环不再永不触发');
         expect(
-          engine.seekCalls,
-          contains(const Duration(milliseconds: 2000)),
+          loop.loopCount,
+          greaterThanOrEqualTo(1),
+          reason: '越过 B 的 tick 视为已进入区间，循环不再永不触发',
         );
+        expect(engine.seekCalls, contains(const Duration(milliseconds: 2000)));
         expect(engine.isPlaying, isTrue);
       });
     });

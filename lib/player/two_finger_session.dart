@@ -121,7 +121,8 @@ class CrossSurfacePinchSession implements CrossSurfacePinchForwarder {
       _down(pointer, global, _Surface.band);
 
   @override
-  void trackBandPointerMove(int pointer, Offset global) => _move(pointer, global);
+  void trackBandPointerMove(int pointer, Offset global) =>
+      _move(pointer, global);
 
   @override
   void trackBandPointerUp(int pointer) => _up(pointer);

@@ -19,9 +19,6 @@ void main() {
     expect(clockMss(const Duration(seconds: 5)), '0:05');
     expect(clockMss(const Duration(seconds: 83)), '1:23');
     expect(clockMss(const Duration(minutes: 12, seconds: 5)), '12:05');
-    expect(
-      clockMss(const Duration(hours: 1, minutes: 5, seconds: 3)),
-      '65:03',
-    );
+    expect(clockMss(const Duration(hours: 1, minutes: 5, seconds: 3)), '65:03');
   });
 }

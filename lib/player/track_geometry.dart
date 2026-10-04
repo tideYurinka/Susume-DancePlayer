@@ -204,11 +204,11 @@ class TrackBandGeometry {
   /// 全宽，轴上不再出现退化窗口；不可映射时返回空轴（换算安静返回 0/零
   /// 时长）。轴恒非空：空态只由 [isMappable] 一种谓词表达。
   TimelineAxis get axis => TimelineAxis(
-        total: total ?? Duration.zero,
-        width: width,
-        window: effectiveWindow,
-        contentLeft: contentLeft,
-      );
+    total: total ?? Duration.zero,
+    width: width,
+    window: effectiveWindow,
+    contentLeft: contentLeft,
+  );
 
   /// 每像素微秒：可视窗口微秒数 ÷ **内容区宽**（唯一取值口径，与时间轴
   /// 换算自洽；片头不吃速度口径）。不可映射时安静返回 0。
@@ -242,7 +242,8 @@ class TrackBandGeometry {
     final win = effectiveWindow;
     final rel = (clampPixel(x) - contentLeft).clamp(0.0, contentWidth);
     return Duration(
-      microseconds: win.start.inMicroseconds +
+      microseconds:
+          win.start.inMicroseconds +
           (rel / contentWidth * win.visible.inMicroseconds).round(),
     );
   }
@@ -290,8 +291,9 @@ class TrackBandGeometry {
       lineHalfWidth:
           narrowedLineHalfWidth ?? pixelToDuration(kSegmentLineHitWidth / 2),
       edgeHalfWidth: pixelToDuration(kVideoRangeHitWidth / 2),
-      minSegmentHitWidth:
-          pixelToDuration(kTrackGeometryLearningSegmentMinHitWidth),
+      minSegmentHitWidth: pixelToDuration(
+        kTrackGeometryLearningSegmentMinHitWidth,
+      ),
     );
   }
 
@@ -308,14 +310,18 @@ class TrackBandGeometry {
     return resolveLearningSegmentHit(
       segments: segments,
       time: pixelToTime(dx),
-      minSegmentHitWidth:
-          pixelToDuration(kTrackGeometryLearningSegmentMinHitWidth),
+      minSegmentHitWidth: pixelToDuration(
+        kTrackGeometryLearningSegmentMinHitWidth,
+      ),
     );
   }
 
-  /// 行归属：某纵向局部坐标落在哪一行，委派轨道行表 [rows]（默认具名行集
-  /// `normal`）。横向不可映射时安静返回空——「整带无可用映射则整带无
-  /// 命中」，纵向坐标本身与带宽/总时长无关，此门禁是有意并入同一谓词。
+  /// 行归属：某纵向局部坐标落在哪一行，委派轨道行表 [rows]。生产调用方
+  /// （`track_hit_resolution.dart`）**总是显式传**本态生效的那份行集——
+  /// 紧凑档下备注轨与局部镜像轨可能不在其中，缺省具名行集 `normal` 只是
+  /// 「与档位无关」一类调用（含直测）的取值。横向不可映射时安静返回空——
+  /// 「整带无可用映射则整带无命中」，纵向坐标本身与带宽/总时长无关，此
+  /// 门禁是有意并入同一谓词。
   TrackRowId? rowAt(double dy, {TrackRowTable rows = TrackRowTable.normal}) {
     if (!isMappable) return null;
     return rows.rowAt(dy);

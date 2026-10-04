@@ -39,9 +39,7 @@ void main() {
   }
 
   FocusNode dancerFocusNode(WidgetTester tester) => tester
-      .widget<TextField>(
-        find.byKey(const Key('note_editor_dancer_field')),
-      )
+      .widget<TextField>(find.byKey(const Key('note_editor_dancer_field')))
       .focusNode!;
 
   List<String> persistedNames() => [
@@ -50,8 +48,7 @@ void main() {
       (e as Map)['name'] as String,
   ];
 
-  testWidgets('点「名册」原地换装：左段变舞者输入框、钮文案变「返回备注编辑」，同一条不换面',
-      (tester) async {
+  testWidgets('点「名册」原地换装：左段变舞者输入框、钮文案变「返回备注编辑」，同一条不换面', (tester) async {
     await pumpPanel(tester);
     final barRectBefore = tester.getRect(
       find.byKey(const Key('note_text_editor')),
@@ -60,14 +57,23 @@ void main() {
     await enterRosterMode(tester);
 
     expect(find.byKey(const Key('note_editor_dancer_field')), findsOneWidget);
-    expect(find.byKey(const Key('note_text_editor_field')), findsNothing,
-        reason: '左段原地换成舞者输入框');
-    expect(find.byKey(const Key('note_editor_roster_new')), findsOneWidget,
-        reason: '「新建」只在名册态出现');
+    expect(
+      find.byKey(const Key('note_text_editor_field')),
+      findsNothing,
+      reason: '左段原地换成舞者输入框',
+    );
+    expect(
+      find.byKey(const Key('note_editor_roster_new')),
+      findsOneWidget,
+      reason: '「新建」只在名册态出现',
+    );
     expect(find.text('返回备注编辑'), findsOneWidget);
     expect(find.text('名册'), findsNothing);
-    expect(tester.getRect(find.byKey(const Key('note_text_editor'))),
-        barRectBefore, reason: '原地换装：同一面板、同一矩形');
+    expect(
+      tester.getRect(find.byKey(const Key('note_text_editor'))),
+      barRectBefore,
+      reason: '原地换装：同一面板、同一矩形',
+    );
     expect(find.byType(Dialog), findsNothing, reason: '不弹面板');
 
     // 再点回备注态。
@@ -138,8 +144,7 @@ void main() {
     expect(find.byKey(const Key('roster_color_sheet')), findsOneWidget);
   });
 
-  testWidgets('建完立刻弹选色浮层、那期间键盘收起；选完浮层关、焦点交回舞者输入框',
-      (tester) async {
+  testWidgets('建完立刻弹选色浮层、那期间键盘收起；选完浮层关、焦点交回舞者输入框', (tester) async {
     await pumpPanel(tester);
     await enterRosterMode(tester);
 
@@ -151,10 +156,12 @@ void main() {
     await tester.tap(find.byKey(const Key('note_editor_roster_new')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('roster_color_sheet')), findsOneWidget,
-        reason: '建完自动弹选色浮层');
-    expect(dancerFocusNode(tester).hasFocus, isFalse,
-        reason: '那期间键盘收起（焦点已撤）');
+    expect(
+      find.byKey(const Key('roster_color_sheet')),
+      findsOneWidget,
+      reason: '建完自动弹选色浮层',
+    );
+    expect(dancerFocusNode(tester).hasFocus, isFalse, reason: '那期间键盘收起（焦点已撤）');
     expect(find.text('果'), findsOneWidget, reason: '输入框清了、词条在');
 
     await tester.tap(find.byKey(const Key('roster_palette_color_9')));
@@ -170,8 +177,11 @@ void main() {
       kRosterPalette[9],
       reason: '颜色由选色浮层决定，不再新建时写死',
     );
-    expect(dancerFocusNode(tester).hasFocus, isTrue,
-        reason: '焦点交回舞者输入框，可连续输入下一个名字');
+    expect(
+      dancerFocusNode(tester).hasFocus,
+      isTrue,
+      reason: '焦点交回舞者输入框，可连续输入下一个名字',
+    );
   });
 
   testWidgets('浮层里「删除」：删掉这位舞者并落盘、回到舞者输入框', (tester) async {
@@ -234,8 +244,7 @@ void main() {
     expect(dancerFocusNode(tester).hasFocus, isTrue);
   });
 
-  testWidgets('连续新建两次都取消选色：两人默认色不同（不再建出一堆同色的人）',
-      (tester) async {
+  testWidgets('连续新建两次都取消选色：两人默认色不同（不再建出一堆同色的人）', (tester) async {
     await pumpPanel(tester);
     await enterRosterMode(tester);
     for (final name in ['海', '鸟']) {
@@ -255,15 +264,10 @@ void main() {
         e.name: e.color,
     };
     expect(colors.keys, containsAll(<String>['海', '鸟']));
-    expect(
-      colors['海'],
-      isNot(colors['鸟']),
-      reason: '默认色取色板里未被占用的第一色',
-    );
+    expect(colors['海'], isNot(colors['鸟']), reason: '默认色取色板里未被占用的第一色');
   });
 
-  testWidgets('名册态一行放得下：舞者输入框、新建、快捷区、全部钮同排且在屏内',
-      (tester) async {
+  testWidgets('名册态一行放得下：舞者输入框、新建、快捷区、全部钮同排且在屏内', (tester) async {
     await pumpPanel(tester);
     await enterRosterMode(tester);
     // 多词条：快捷区横滚不撑破一行。

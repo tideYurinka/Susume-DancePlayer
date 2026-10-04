@@ -20,7 +20,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationSaveSinkProvider,
         layoutLockedProvider,
         practiceClipsProvider;
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,18 +77,19 @@ void main() {
   tearDown(() => container.dispose());
 
   AnnotationEditor editor() => container.read(annotationEditorProvider);
-  PracticeClip clipAt(int index) => container.read(practiceClipsProvider)[index];
+  PracticeClip clipAt(int index) =>
+      container.read(practiceClipsProvider)[index];
   EditHistory<AnnotationEditSnapshot> history() =>
       container.read(annotationEditHistoryProvider);
 
   group('练习片段截取：模块侧 verb 与落点解析', () {
     test('尾端点拖：请求位置经相位吸就近八拍点，只改截取范围（素材内 out）', () {
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       // 请求 25s → 就近八拍点 24s → 素材内 out = 16000（源 24000）。
-      expect(session.moveTo(const Duration(seconds: 25)), Duration(seconds: 24));
+      expect(
+        session.moveTo(const Duration(seconds: 25)),
+        Duration(seconds: 24),
+      );
       session.end();
 
       expect(clipAt(0).inMs, 0, reason: '另一端不动');
@@ -96,12 +98,12 @@ void main() {
     });
 
     test('首端点拖：吸附后只改素材内 in，out 不动', () {
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.start,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.start);
       // 请求 15s → 就近八拍点 16s → 素材内 in = 8000（源 16000）。
-      expect(session.moveTo(const Duration(seconds: 15)), Duration(seconds: 16));
+      expect(
+        session.moveTo(const Duration(seconds: 15)),
+        Duration(seconds: 16),
+      );
       session.end();
 
       expect(clipAt(0).inMs, 8000);
@@ -109,12 +111,12 @@ void main() {
     });
 
     test('钳在素材时长内：请求越素材尾被钳到素材全长', () {
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       // 请求 45s → 吸 44s → 偏移 36000 > 素材全长 20000 → 钳 20000。
-      expect(session.moveTo(const Duration(seconds: 45)), Duration(seconds: 28));
+      expect(
+        session.moveTo(const Duration(seconds: 45)),
+        Duration(seconds: 28),
+      );
       session.end();
 
       expect(clipAt(0).outMs, 20000);
@@ -132,10 +134,7 @@ void main() {
           materialDurationMs: 20000,
         ),
       ]);
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.start,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.start);
       // 请求 1s → 吸 0s → 偏移 -8000 → 钳 0（源起点停在素材首 8s）。
       expect(session.moveTo(const Duration(seconds: 1)), Duration(seconds: 8));
       session.end();
@@ -154,10 +153,7 @@ void main() {
     });
 
     test('端点不倒置：拖过对端 = no-op（返回空、状态不变）', () {
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       // 请求 8s → 吸 8s → out = 0 = in → 倒置不成立。
       expect(session.moveTo(Duration.zero), isNull);
       session.end();
@@ -170,10 +166,7 @@ void main() {
       container
           .read(beatTrackStateProvider.notifier)
           .replace(const BeatTrackState.error());
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       expect(
         session.moveTo(const Duration(milliseconds: 25100)),
         const Duration(milliseconds: 25100),
@@ -192,12 +185,12 @@ void main() {
           ),
         ),
       );
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       // 请求 25s → 吸 24s → 越有效区间尾 22s → 钳 22s（素材内 out 14000）。
-      expect(session.moveTo(const Duration(seconds: 25)), Duration(seconds: 22));
+      expect(
+        session.moveTo(const Duration(seconds: 25)),
+        Duration(seconds: 22),
+      );
       session.end();
 
       expect(clipAt(0).outMs, 14000);
@@ -225,7 +218,10 @@ void main() {
         0,
         IntervalEdge.start,
       );
-      expect(session2.moveTo(const Duration(seconds: 1)), Duration(seconds: 16));
+      expect(
+        session2.moveTo(const Duration(seconds: 1)),
+        Duration(seconds: 16),
+      );
       session2.end();
 
       expect(clipAt(0).inMs, 8000);
@@ -234,10 +230,7 @@ void main() {
 
     test('一次拖动 = 一步撤销；放宽回去仍可用；标注保存臂不入片段', () {
       final historyBefore = history().length;
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       session.moveTo(const Duration(seconds: 25));
       // 逐帧中间态不入史不入队。
       expect(history().length, historyBefore);
@@ -268,13 +261,15 @@ void main() {
 
     test('锁定分段不挡截取：逐帧照常写入、不弹提示', () {
       container.read(layoutLockedProvider.notifier).toggle();
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
       );
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
       expect(session.moveTo(const Duration(seconds: 25)), isNotNull);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
       session.end();
       expect(history().length, 1);
       expect(clipAt(0).outMs, isNot(12000), reason: '截取照常生效');
@@ -284,11 +279,11 @@ void main() {
       container
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareEditing);
-      final session = editor().beginPracticeClipTrimDrag(
-        0,
-        IntervalEdge.end,
+      final session = editor().beginPracticeClipTrimDrag(0, IntervalEdge.end);
+      expect(
+        session.moveTo(const Duration(seconds: 25)),
+        Duration(seconds: 24),
       );
-      expect(session.moveTo(const Duration(seconds: 25)), Duration(seconds: 24));
       session.end();
       expect(clipAt(0).outMs, 16000);
     });

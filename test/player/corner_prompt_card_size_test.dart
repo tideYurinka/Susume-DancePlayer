@@ -1,4 +1,5 @@
-import 'package:dance_learning_app/core/beat_grid.dart' show placeholderBeatGrid;
+import 'package:dance_learning_app/core/beat_grid.dart'
+    show placeholderBeatGrid;
 import 'package:dance_learning_app/player/loop_prompt.dart';
 import 'package:dance_learning_app/core/notice_badge.dart';
 import 'package:dance_learning_app/player/resume_position.dart'
@@ -103,7 +104,9 @@ void main() {
     testWidgets('拉通档位：竖屏 16:9 画面下两张卡高 ≤ 26%，基准卡宽 ≤ 52%', (tester) async {
       final pumped = await pumpCards(tester);
       final loop = tester.getSize(find.byKey(const Key('loop_prompt')));
-      final resume = tester.getSize(find.byKey(const Key('resume_prompt_card')));
+      final resume = tester.getSize(
+        find.byKey(const Key('resume_prompt_card')),
+      );
       // 号机竖屏 16:9 画面 361.1 × 203.1dp。宽随各自文案（续播卡按钮多 2 字，
       // 204/361.1 = 56.5%），故宽度档位只对基准卡成立；两张卡同一条命中下限
       // 撑起的高都 ≤ 26%。
@@ -161,8 +164,11 @@ void main() {
     testWidgets('收窄不改配色：正文恒白、按钮仍是浅蓝强调色', (tester) async {
       final pumped = await pumpCards(tester);
 
-      Color? painted(String text) =>
-          tester.renderObject<RenderParagraph>(find.text(text)).text.style?.color;
+      Color? painted(String text) => tester
+          .renderObject<RenderParagraph>(find.text(text))
+          .text
+          .style
+          ?.color;
 
       expect(painted('即将自动循环播放'), kNoticeTextColor);
       expect(painted('已从上次位置继续'), kNoticeTextColor);

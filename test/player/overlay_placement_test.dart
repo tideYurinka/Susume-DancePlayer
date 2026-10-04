@@ -91,29 +91,23 @@ void main() {
 
     test('写入格不改变两个尺寸系数', () {
       final written = const OverlayPlacements()
-          .withOffset(
-            OverlayPlacementCell.portraitNormal,
-            const Offset(1, 2),
-          )
-          .withOffset(
-            OverlayPlacementCell.landscapeNormal,
-            const Offset(3, 4),
-          );
+          .withOffset(OverlayPlacementCell.portraitNormal, const Offset(1, 2))
+          .withOffset(OverlayPlacementCell.landscapeNormal, const Offset(3, 4));
       expect(written.rectWidthFactor, 1.0);
       expect(written.pendulumScale, 1.0);
     });
 
     test('改尺寸系数不改变任何一格的值、原容器不变', () {
       final base = const OverlayPlacements()
-          .withOffset(
-            OverlayPlacementCell.portraitNormal,
-            const Offset(1, 2),
-          )
+          .withOffset(OverlayPlacementCell.portraitNormal, const Offset(1, 2))
           .withOffset(
             OverlayPlacementCell.landscapeCompare,
             const Offset(3, 4),
           );
-      final resized = base.withFactors(rectWidthFactor: 2.0, pendulumScale: 0.5);
+      final resized = base.withFactors(
+        rectWidthFactor: 2.0,
+        pendulumScale: 0.5,
+      );
       expect(resized.rectWidthFactor, 2.0);
       expect(resized.pendulumScale, 0.5);
       for (final cell in OverlayPlacementCell.values) {
@@ -146,10 +140,7 @@ void main() {
       expect(
         a,
         isNot(
-          a.withOffset(
-            OverlayPlacementCell.portraitNormal,
-            const Offset(1, 3),
-          ),
+          a.withOffset(OverlayPlacementCell.portraitNormal, const Offset(1, 3)),
         ),
       );
       expect(a, isNot(a.withFactors(rectWidthFactor: 2.0)));
@@ -158,23 +149,14 @@ void main() {
 
     test('相等性与哈希不受格写入顺序影响', () {
       final forward = const OverlayPlacements()
-          .withOffset(
-            OverlayPlacementCell.portraitNormal,
-            const Offset(1, 2),
-          )
+          .withOffset(OverlayPlacementCell.portraitNormal, const Offset(1, 2))
           .withOffset(
             OverlayPlacementCell.landscapeCompare,
             const Offset(3, 4),
           );
       final reverse = const OverlayPlacements()
-          .withOffset(
-            OverlayPlacementCell.landscapeCompare,
-            const Offset(3, 4),
-          )
-          .withOffset(
-            OverlayPlacementCell.portraitNormal,
-            const Offset(1, 2),
-          );
+          .withOffset(OverlayPlacementCell.landscapeCompare, const Offset(3, 4))
+          .withOffset(OverlayPlacementCell.portraitNormal, const Offset(1, 2));
       expect(forward, reverse);
       expect(forward.hashCode, reverse.hashCode);
     });

@@ -45,8 +45,9 @@ class AvSyncDeviceInfo {
   const AvSyncDeviceInfo({required this.typeLabel, this.product});
 
   /// 识别不到时的兜底设备（「其它设备」）。
-  const AvSyncDeviceInfo.unknown() : typeLabel = avSyncUnknownDeviceKey,
-        product = null;
+  const AvSyncDeviceInfo.unknown()
+    : typeLabel = avSyncUnknownDeviceKey,
+      product = null;
 
   /// 输出类型标签（蓝牙/扬声器/有线耳机…，平台通道给出）。
   final String typeLabel;
@@ -62,9 +63,8 @@ class AvSyncDeviceInfo {
       identifiable ? '$typeLabel|${product!.trim()}' : avSyncUnknownDeviceKey;
 
   /// 显示名（类型·产品名；未知设备显示「其它设备」）。
-  String get label => identifiable
-      ? '$typeLabel·${product!.trim()}'
-      : avSyncUnknownDeviceKey;
+  String get label =>
+      identifiable ? '$typeLabel·${product!.trim()}' : avSyncUnknownDeviceKey;
 
   /// 平台通道载荷解码（缺失/非 Map → 未知设备）。
   static AvSyncDeviceInfo decode(Object? raw) {
@@ -100,9 +100,7 @@ abstract interface class AvSyncDelaysStorage {
   Future<Map<String, int>> load();
 
   /// 原子「读 → [mutate] → 写」（同文件其它键保留）。
-  Future<void> update(
-    FutureOr<void> Function(Map<String, int> delays) mutate,
-  );
+  Future<void> update(FutureOr<void> Function(Map<String, int> delays) mutate);
 }
 
 /// [AvSyncDelaysStorage] 的私密 JSON 实现（键作用域与节拍器设置 store
@@ -117,9 +115,7 @@ class AvSyncDelaysStore implements AvSyncDelaysStorage {
       sanitizeAvSyncDelays((await _storage.read())[avSyncDelaysKey]);
 
   @override
-  Future<void> update(
-    FutureOr<void> Function(Map<String, int> delays) mutate,
-  ) {
+  Future<void> update(FutureOr<void> Function(Map<String, int> delays) mutate) {
     return _storage.mutate((json, {required bool present}) async {
       final delays = Map<String, int>.of(
         sanitizeAvSyncDelays(json[avSyncDelaysKey]),
@@ -282,9 +278,7 @@ class AvSyncModel extends Notifier<AvSyncState> {
   /// 「其它设备」）。事件流负责后续路由变化。
   Future<AvSyncDeviceInfo?> _initDevice() async {
     try {
-      return await ref
-          .read(audioOutputDeviceControllerProvider)
-          .get();
+      return await ref.read(audioOutputDeviceControllerProvider).get();
     } on Exception {
       return null;
     }

@@ -261,7 +261,9 @@ void main() {
     // 但用户显式删除是一条绕过版本政策的破坏性路径——留档须盖住它。
     await storage.saveMarkers(const {
       'version': 99,
-      'meta': {'signature': {'song': '读不懂的旧舞'}},
+      'meta': {
+        'signature': {'song': '读不懂的旧舞'},
+      },
     });
     expect(storage.quarantined, isEmpty, reason: '写入可写文件不留档');
 
@@ -421,8 +423,8 @@ InMemoryVideoDocumentStorage _documents({
 );
 
 MemberSchemeRecord _scheme(String schemeId) => MemberSchemeRecord(
-      schemeId: schemeId,
-      memberName: '小如',
-      importedAt: DateTime(2026, 9, 1),
-      markers: const {'version': 3},
-    );
+  schemeId: schemeId,
+  memberName: '小如',
+  importedAt: DateTime(2026, 9, 1),
+  markers: const {'version': 3},
+);

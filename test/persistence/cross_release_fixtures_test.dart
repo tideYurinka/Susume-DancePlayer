@@ -195,10 +195,7 @@ final Map<String, _DocContract> _contracts = {
   'memberSchemes': _DocContract(
     read: _readThroughSchemes,
     writeBack: _writeBackThroughSchemes,
-    reshaped: (raw) => {
-      ...raw,
-      'schemes': (raw['schemes']! as Map)['entries'],
-    },
+    reshaped: (raw) => {...raw, 'schemes': (raw['schemes']! as Map)['entries']},
     expectUserContent: (doc) {
       final d = doc as MemberSchemesDocument;
       expect(d.schemes.single.schemeId, 's1');

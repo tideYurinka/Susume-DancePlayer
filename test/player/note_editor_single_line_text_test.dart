@@ -63,8 +63,14 @@ void main() {
 
     // 独立真值 = 输入字面量剥去 \n、\r 各归一为空格（换行字符一个不剩）。
     expect(container.read(noteStickersProvider).single.text, ' 注意  收脚 ');
-    expect(container.read(noteStickersProvider).single.text, isNot(contains('\n')));
-    expect(container.read(noteStickersProvider).single.text, isNot(contains('\r')));
+    expect(
+      container.read(noteStickersProvider).single.text,
+      isNot(contains('\n')),
+    );
+    expect(
+      container.read(noteStickersProvider).single.text,
+      isNot(contains('\r')),
+    );
   });
 
   test('formatter：归一使文本变短时选区钳回新文本域、不越界', () {

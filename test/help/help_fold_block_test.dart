@@ -395,7 +395,8 @@ void main() {
 
 /// 按资产 key 找正文里画出来的那张图（折叠块内外各一张时用）。
 Finder _imageWithAsset(String assetKey) => find.byWidgetPredicate(
-  (widget) => widget is Image && (widget.image as AssetImage).assetName == assetKey,
+  (widget) =>
+      widget is Image && (widget.image as AssetImage).assetName == assetKey,
 );
 
 /// 同一篇正文里的两张图：块外的 [outside] 铺满**可用宽度** [available]，块内的
@@ -438,15 +439,16 @@ Future<void> _pumpFirstRunCard(
   await pumpFirstRunHost(
     tester,
     storage: InMemoryPrivateJsonStorage(),
-    helpAssets: FakeHelpAssetBundle({
-      onboardingCopyAssetKey: File(
-        onboardingCopyAssetKey,
-      ).readAsStringSync(),
-      '$downloadVideoTutorialDirectory/下载视频.md': tutorialMarkdown,
-    }, binary: {
-      '$downloadVideoTutorialDirectory/reward.png': onePixelPng,
-      ...images,
-    }),
+    helpAssets: FakeHelpAssetBundle(
+      {
+        onboardingCopyAssetKey: File(onboardingCopyAssetKey).readAsStringSync(),
+        '$downloadVideoTutorialDirectory/下载视频.md': tutorialMarkdown,
+      },
+      binary: {
+        '$downloadVideoTutorialDirectory/reward.png': onePixelPng,
+        ...images,
+      },
+    ),
   );
   resetFirstRunSession(tester);
   await tester.pump();

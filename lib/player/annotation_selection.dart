@@ -36,11 +36,7 @@ import '../annotation/segment_selection.dart';
 sealed class AnnotationSelection {}
 
 /// 视频首/尾边界：首尾线端标选中的目标端。
-enum VideoRangeBoundary {
-  start,
-
-  end,
-}
+enum VideoRangeBoundary { start, end }
 
 class VideoRangeBoundarySelection implements AnnotationSelection {
   const VideoRangeBoundarySelection(this.boundary);
@@ -486,8 +482,10 @@ class AnnotationSelectionDomain {
     final validated = _validated(target);
     final current = _store._current;
     final sameTarget = switch (validated) {
-      SegmentLineSelection(:final index) => current?.asSegmentLineIndex == index,
-      HalfBeatLineSelection(:final index) => current?.asHalfBeatLineIndex == index,
+      SegmentLineSelection(:final index) =>
+        current?.asSegmentLineIndex == index,
+      HalfBeatLineSelection(:final index) =>
+        current?.asHalfBeatLineIndex == index,
       VideoRangeBoundarySelection(:final boundary) =>
         current?.asVideoRangeBoundary == boundary,
       LocalMirrorFragmentSelection() || NoteFragmentSelection() => false,
@@ -510,10 +508,7 @@ class AnnotationSelectionDomain {
   /// 插入/删除变化）——匹配到则指向同一条线（插入点右侧自然 +1、撤销插入
   /// −1），匹配不到（该线已被删）则无效化；索引越界同效。非线段选中
   /// （端标/片段）不受影响。
-  void remapLineSelection(
-    AnnotationTimeline before,
-    AnnotationTimeline after,
-  ) {
+  void remapLineSelection(AnnotationTimeline before, AnnotationTimeline after) {
     final selection = _store._current;
     if (selection is SegmentLineSelection) {
       _remapIndex(

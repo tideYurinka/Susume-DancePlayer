@@ -74,9 +74,7 @@ bool unpracticedBeyondThreshold({
   required DateTime now,
 }) {
   if (lastPracticeDay == null) return true;
-  final days = localDay(now)
-      .difference(localDay(lastPracticeDay))
-      .inDays;
+  final days = localDay(now).difference(localDay(lastPracticeDay)).inDays;
   return days >= reviewReminderThresholdDays(level);
 }
 
@@ -114,9 +112,7 @@ DanceReminderState danceReminderStateAfterFire({
   required DateTime now,
 }) => DanceReminderState(
   lastRemindedOn: localDay(now),
-  sincePracticeOn: lastPracticeDay == null
-      ? null
-      : localDay(lastPracticeDay),
+  sincePracticeOn: lastPracticeDay == null ? null : localDay(lastPracticeDay),
   level: level,
 );
 
@@ -166,8 +162,9 @@ bool teamCheckAchieved({
     return true;
   }
   return eventGateStatus({
-    for (final videoId in event.danceIds) videoId: gateStatusOf(videoId),
-  }) == TeamCheckEventStatus.met;
+        for (final videoId in event.danceIds) videoId: gateStatusOf(videoId),
+      }) ==
+      TeamCheckEventStatus.met;
 }
 
 /// DDL 提醒加权：越接近期限且档位越低权重越小、排得

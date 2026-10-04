@@ -17,6 +17,8 @@
 ///
 /// **方向判定是一条具名纯件**：[editorIsPortrait] 是全仓读「编辑面此刻是不是
 /// 竖屏」的唯一函数——调用侧不得再手写 `size.height > size.width`。
+/// **档位判定同样是一条具名纯件**：[editorIsCompact] 是全仓读「编辑面此刻
+/// 是不是紧凑档」的唯一函数（阈值 600dp，取视口最短边）。
 ///
 /// **宽高比未知**：按观看态背景位处理（先出画），首帧就绪后调用侧带真实宽高
 /// 比重算重排——打开瞬间不闪一次错误布局。
@@ -32,8 +34,7 @@ library;
 import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect, Size;
 
-import 'visual_tokens.dart'
-    show kHitTargetMinSize, kCornerPromptCardPaddingV;
+import 'visual_tokens.dart' show kHitTargetMinSize, kCornerPromptCardPaddingV;
 
 /// 编辑面顶栏名义行高（dp）：返回钮 + 工具槽行 + 上下内边距的既有实测值。
 /// 只进骨架分配，不改顶栏本身的布局。
@@ -63,6 +64,23 @@ const double kEditorSettingsClusterHeight = kHitTargetMinSize;
 /// 与设备方向锁无关（方向是设备事实），只读这一次布局的屏尺寸。
 bool editorIsPortrait(Size screen) => screen.height > screen.width;
 
+/// 紧凑档阈值（dp）：视口**最短边**小于本值即紧凑档（599 紧凑、600 常规）。
+/// 现有手机视口最短边 ≤ 480dp、常见平板最短边 ≥ 600dp，分离带很宽；
+/// 600dp 同时是 Material 3 compact 的口径。
+const double kEditorCompactShortestSideThreshold = 600;
+
+/// 编辑面此刻是不是紧凑档（**档位判定的唯一函数**）：屏宽与屏高中的较小值
+/// 小于 [kEditorCompactShortestSideThreshold] 即紧凑档。
+///
+/// 与编辑面方向判据 [editorIsPortrait] 并列，同样只读这一次布局的屏尺寸——
+/// 只看逻辑尺寸、不吃字号档、与设备方向锁无关，故同一台机器竖横两向、
+/// 1.0× 与 1.6× 字号下都得到同一档。
+///
+/// 全仓的阈值算术只有本函数这一处；组合根每帧调它一次，结果经
+/// [EditorSkeleton.compact] 递给各消费点——消费方读那一份，不各算一次。
+bool editorIsCompact(Size screen) =>
+    math.min(screen.width, screen.height) < kEditorCompactShortestSideThreshold;
+
 /// 画面落位两条分支。
 enum PicturePlacement {
   /// 贴底：画面满宽、底边贴住画面区下缘，黑区留在画面上方。
@@ -75,12 +93,18 @@ enum PicturePlacement {
 /// 一次骨架分配的答案：画面区高、画面落位两分支的几何。
 class EditorSkeleton {
   const EditorSkeleton({
+    required this.compact,
     required this.portrait,
     required this.pictureAreaHeight,
     required this.picturePlacement,
     required this.pictureBandHeight,
     required this.pictureBandTop,
   });
+
+  /// 本次量测的屏尺寸落哪一档（[editorIsCompact] 的结果，原样透出）。
+  /// 紧凑档 = 顶栏走紧凑行集、空轨不占行；消费方一律读它，不按自己的
+  /// 屏尺寸重算一遍。
+  final bool compact;
 
   /// 是否走竖屏行（[editorIsPortrait] 的结果，原样透出）。假 = 横屏编辑面，
   /// 以下几何全部为 0、由既有布局接手。
@@ -117,6 +141,7 @@ class EditorSkeleton {
   @override
   bool operator ==(Object other) =>
       other is EditorSkeleton &&
+      other.compact == compact &&
       other.portrait == portrait &&
       other.pictureAreaHeight == pictureAreaHeight &&
       other.picturePlacement == picturePlacement &&
@@ -125,6 +150,7 @@ class EditorSkeleton {
 
   @override
   int get hashCode => Object.hash(
+    compact,
     portrait,
     pictureAreaHeight,
     picturePlacement,
@@ -136,6 +162,9 @@ class EditorSkeleton {
 /// 骨架分配纯函数（[EditorSkeleton] 的唯一出口；零 widget 环境直测）。
 ///
 /// - [screen]：编辑面可用屏尺寸（已扣系统栏；调用方传 SafeArea 内的尺寸）。
+/// - [compact]：本次屏尺寸落哪一档（[editorIsCompact] 的结果；缺省 = 常规
+///   档）。本库不自己再算一次——顶栏行集、气泡锚点与轨道带剪裁都读
+///   [EditorSkeleton.compact] 这一个结果，同一屏上三者不会分裂成两档。
 /// - [trackBandHeight]：本态轨道带整带高（行高表之和，不随屏高压缩）。
 /// - [videoAspectRatio]：**源画面**宽高比（宽/高）；null 或非正 = 未知。
 /// - [framingAspectRatio]：**取景选区内容**宽高比（宽/高）；
@@ -150,13 +179,15 @@ class EditorSkeleton {
 /// 选区比源画面更「高」时左右留黑、画面顶边不上移。
 EditorSkeleton editorSkeletonFor({
   required Size screen,
+  bool compact = false,
   required double trackBandHeight,
   required double? videoAspectRatio,
   double? framingAspectRatio,
 }) {
   if (!editorIsPortrait(screen)) {
     // 横屏编辑面不分配骨架：画面仍居中于剩余空间（既有形态）。
-    return const EditorSkeleton(
+    return EditorSkeleton(
+      compact: compact,
       portrait: false,
       pictureAreaHeight: 0,
       picturePlacement: PicturePlacement.background,
@@ -185,10 +216,13 @@ EditorSkeleton editorSkeletonFor({
   final known = ratio != null && ratio > 0;
   final containHeight = known ? screen.width / ratio : 0.0;
   // 盒高封顶在未取景时的画面矩形高（源画面满宽 contain 高）。
-  final unframedHeight = sourceKnown ? screen.width / sourceRatio : containHeight;
+  final unframedHeight = sourceKnown
+      ? screen.width / sourceRatio
+      : containHeight;
   final stick = known && containHeight <= pictureAreaHeight;
   final bandHeight = stick ? math.min(containHeight, unframedHeight) : 0.0;
   return EditorSkeleton(
+    compact: compact,
     portrait: true,
     pictureAreaHeight: pictureAreaHeight,
     picturePlacement: stick
@@ -409,7 +443,7 @@ double cancelZoneRadius(Rect pictureRect) => math.min(
 /// 为圆心、[cancelZoneRadius] 为半径的四分之一圆扇形——扇内（含半径边界等号
 /// 档）待取消；方形角区内但扇形外的角落不待取消；画面外（dx 或 dy 为负）不
 /// 待取消。判据用平方距离，不开根。
-bool focalInCancelZone({ required Rect pictureRect, required Offset focal }) {
+bool focalInCancelZone({required Rect pictureRect, required Offset focal}) {
   final dx = focal.dx - pictureRect.left;
   final dy = focal.dy - pictureRect.top;
   if (dx < 0 || dy < 0) return false;

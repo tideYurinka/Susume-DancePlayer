@@ -43,9 +43,9 @@ void main() {
   });
 
   test('Kotlin 源码的 package 声明与所在目录一致', () {
-    final sources = _textFilesUnder(
-      'android/app/src/main/kotlin',
-    ).where((path) => path.endsWith('.kt')).toList();
+    final sources = _textFilesUnder('android/app/src/main/kotlin')
+        .where((path) => path.endsWith('.kt'))
+        .toList();
     expect(sources, isNotEmpty, reason: '扫描不到 Kotlin 源码，护栏自身已失效');
 
     for (final path in sources) {

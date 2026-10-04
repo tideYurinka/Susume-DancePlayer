@@ -34,25 +34,26 @@ void main() {
     DateTime? lastOpenedAt,
     SongSignature? signatureCache,
     int lastPositionMs = 0,
-  }) =>
-      VideoIndexEntry(
-        videoId: videoId,
-        displayName: displayName,
-        filePath: filePath,
-        sizeBytes: sizeBytes,
-        fastKey: fastKeyFor(name: displayName, sizeBytes: sizeBytes),
-        mirrored: mirrored,
-        mirrorAsked: mirrorAsked,
-        localMirrorEnabled: localMirrorEnabled,
-        lastOpenedAt: lastOpenedAt ?? DateTime(2026, 9, 1, 12),
-        signatureCache: signatureCache,
-        lastPositionMs: lastPositionMs,
-      );
+  }) => VideoIndexEntry(
+    videoId: videoId,
+    displayName: displayName,
+    filePath: filePath,
+    sizeBytes: sizeBytes,
+    fastKey: fastKeyFor(name: displayName, sizeBytes: sizeBytes),
+    mirrored: mirrored,
+    mirrorAsked: mirrorAsked,
+    localMirrorEnabled: localMirrorEnabled,
+    lastOpenedAt: lastOpenedAt ?? DateTime(2026, 9, 1, 12),
+    signatureCache: signatureCache,
+    lastPositionMs: lastPositionMs,
+  );
 
   group('VideoIndexEntry 新增字段兼容读取', () {
     test('旧条目缺 signatureCache/lastPositionMs 兜底：未署名、位置 0', () {
       final old = VideoIndexEntry.fromJson(
-        entry().toJson()..remove('signatureCache')..remove('lastPositionMs'),
+        entry().toJson()
+          ..remove('signatureCache')
+          ..remove('lastPositionMs'),
       );
       expect(old.signatureCache, isNull);
       expect(old.lastPositionMs, 0);
@@ -69,8 +70,9 @@ void main() {
     test('写回不丢既有字段：带新字段写盘再读回全部保留', () async {
       const sig = SongSignature(song: '歌');
       await store().update(
-        (index) =>
-            index.upsert(entry(videoId: 'vid', signatureCache: sig, lastPositionMs: 42)),
+        (index) => index.upsert(
+          entry(videoId: 'vid', signatureCache: sig, lastPositionMs: 42),
+        ),
       );
       final loaded = await store().load();
       final e = loaded.findById('vid')!;
@@ -84,22 +86,19 @@ void main() {
 
   group('VideoIndexEntry 序列化（字段完整）', () {
     test('toJson 包含全部字段：videoId/displayName/filePath/sizeBytes/fastKey/mirrored/mirrorAsked/localMirrorEnabled/lastOpenedAt', () {
-      expect(
-        entry().toJson().keys.toSet(),
-        {
-          'videoId',
-          'displayName',
-          'filePath',
-          'sizeBytes',
-          'fastKey',
-          'mirrored',
-          'mirrorAsked',
-          'localMirrorEnabled',
-          'lastOpenedAt',
-          'signatureCache',
-          'lastPositionMs',
-        },
-      );
+      expect(entry().toJson().keys.toSet(), {
+        'videoId',
+        'displayName',
+        'filePath',
+        'sizeBytes',
+        'fastKey',
+        'mirrored',
+        'mirrorAsked',
+        'localMirrorEnabled',
+        'lastOpenedAt',
+        'signatureCache',
+        'lastPositionMs',
+      });
     });
 
     test('toJson/fromJson 往返一致', () {
@@ -145,7 +144,9 @@ void main() {
 
     test('byFastKey 命中，且最近打开优先', () {
       final index = VideoIndex(entries: [e1, e2]);
-      final hits = index.byFastKey(fastKeyFor(name: 'dance.mp4', sizeBytes: 100));
+      final hits = index.byFastKey(
+        fastKeyFor(name: 'dance.mp4', sizeBytes: 100),
+      );
       expect(hits.map((e) => e.videoId).toList(), ['v2', 'v1']);
     });
 
@@ -220,8 +221,9 @@ void main() {
       );
       expect(old.localMirrorEnabled, isTrue);
 
-      final off = VideoIndex(entries: [e1])
-          .setLocalMirrorEnabledByFilePath(e1.filePath, localMirrorEnabled: false);
+      final off = VideoIndex(
+        entries: [e1],
+      ).setLocalMirrorEnabledByFilePath(e1.filePath, localMirrorEnabled: false);
       expect(off.entries.single.localMirrorEnabled, isFalse);
       expect(off.entries.single.mirrorAsked, isFalse, reason: '不触碰「已询问」标记');
       // 未命中路径：原样返回（后台哈希未落盘，调用方据此重试）。
@@ -320,24 +322,26 @@ void main() {
 
     test('save 后 load 往返一致、字段完整', () async {
       final s = store();
-      final index = VideoIndex(entries: [
-        entry(
-          videoId: 'v1',
-          displayName: 'dance.mp4',
-          filePath: '/v/dance.mp4',
-          sizeBytes: 100,
-          mirrored: true,
-          mirrorAsked: true,
-          lastOpenedAt: DateTime(2026, 1, 1, 8, 30),
-        ),
-        entry(
-          videoId: 'v2',
-          displayName: 'a (1).mp4',
-          filePath: '/v/a (1).mp4',
-          sizeBytes: 200,
-          lastOpenedAt: DateTime(2026, 2, 2, 9, 45),
-        ),
-      ]);
+      final index = VideoIndex(
+        entries: [
+          entry(
+            videoId: 'v1',
+            displayName: 'dance.mp4',
+            filePath: '/v/dance.mp4',
+            sizeBytes: 100,
+            mirrored: true,
+            mirrorAsked: true,
+            lastOpenedAt: DateTime(2026, 1, 1, 8, 30),
+          ),
+          entry(
+            videoId: 'v2',
+            displayName: 'a (1).mp4',
+            filePath: '/v/a (1).mp4',
+            sizeBytes: 200,
+            lastOpenedAt: DateTime(2026, 2, 2, 9, 45),
+          ),
+        ],
+      );
       await s.update((_) => index);
 
       final restored = await s.load();
@@ -361,17 +365,18 @@ void main() {
 
       final file = File(p.join(tempDir.path, 'index.json'));
       expect(file.existsSync(), isTrue);
-      final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final decoded =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       expect(decoded['entries'], isA<List<dynamic>>());
     });
 
     test('损坏 JSON 视为空索引，不抛错', () async {
       final s = store();
-      await File(p.join(tempDir.path, 'index.json')).writeAsString('{not json!!');
+      await File(p.join(tempDir.path, 'index.json'))
+          .writeAsString('{not json!!');
       final index = await s.load();
       expect(index.entries, isEmpty);
     });
-
   });
 
   group('接入文档编解码机制', () {
@@ -384,10 +389,7 @@ void main() {
 
     test('版本政策：换代前 v1 低于地板 → 空索引；当前版本正常读', () {
       final json = VideoIndex(entries: [entry(videoId: 'v1')]).toJson();
-      expect(
-        VideoIndex.fromJson({...json, 'version': 1}).entries,
-        isEmpty,
-      );
+      expect(VideoIndex.fromJson({...json, 'version': 1}).entries, isEmpty);
       expect(VideoIndex.fromJson(json).entries, hasLength(1));
     });
 
@@ -448,7 +450,10 @@ void main() {
       expect(loaded.entries.single.videoId, 'v9');
       await s.update(
         (current) => VideoIndex(
-          entries: [...current.entries, entry(videoId: 'v2')],
+          entries: [
+            ...current.entries,
+            entry(videoId: 'v2'),
+          ],
         ),
       );
 
@@ -482,7 +487,11 @@ void main() {
         mirrored: true,
         mirrorAsked: true,
         lastOpenedAt: DateTime(2026, 1, 2, 3, 4, 5),
-        signatureCache: const SongSignature(dancer: '如', song: 'S', remark: 'R'),
+        signatureCache: const SongSignature(
+          dancer: '如',
+          song: 'S',
+          remark: 'R',
+        ),
         lastPositionMs: 2500,
       );
       final restored = VideoIndexEntry.fromJson(base.toJson());
@@ -497,10 +506,13 @@ void main() {
         VideoIndexEntryField.mirrored: false,
         VideoIndexEntryField.mirrorAsked: false,
         VideoIndexEntryField.localMirrorEnabled: false,
-        VideoIndexEntryField.lastOpenedAt:
-            DateTime(2020, 1, 1).toIso8601String(),
-        VideoIndexEntryField.signatureCache:
-            const SongSignature(song: 'o').toJson(),
+        VideoIndexEntryField.lastOpenedAt: DateTime(
+          2020,
+          1,
+          1,
+        ).toIso8601String(),
+        VideoIndexEntryField.signatureCache: const SongSignature(song: 'o')
+            .toJson(),
         VideoIndexEntryField.lastPositionMs: 7,
       };
       for (final id in VideoIndexEntryField.values) {
@@ -520,7 +532,8 @@ void main() {
     test('磁盘点：既有 version 1 文件经 store 双向读回不丢数据', () async {
       final s = store();
       await s.update(
-        (_) => VideoIndex(entries: [entry(videoId: 'keep', lastPositionMs: 42)]),
+        (_) =>
+            VideoIndex(entries: [entry(videoId: 'keep', lastPositionMs: 42)]),
       );
       final restored = await s.load();
       expect(restored.entries.single.videoId, 'keep');
@@ -532,13 +545,41 @@ void main() {
     test('update 串行化：并发写不丢失条目', () async {
       final s = store();
       await Future.wait([
-        s.update((index) => index.upsert(entry(videoId: 'v1', sizeBytes: 1, lastOpenedAt: DateTime(2026, 1, 1)))),
-        s.update((index) => index.upsert(entry(videoId: 'v2', sizeBytes: 2, lastOpenedAt: DateTime(2026, 1, 1)))),
-        s.update((index) => index.upsert(entry(videoId: 'v3', sizeBytes: 3, lastOpenedAt: DateTime(2026, 1, 1)))),
+        s.update(
+          (index) => index.upsert(
+            entry(
+              videoId: 'v1',
+              sizeBytes: 1,
+              lastOpenedAt: DateTime(2026, 1, 1),
+            ),
+          ),
+        ),
+        s.update(
+          (index) => index.upsert(
+            entry(
+              videoId: 'v2',
+              sizeBytes: 2,
+              lastOpenedAt: DateTime(2026, 1, 1),
+            ),
+          ),
+        ),
+        s.update(
+          (index) => index.upsert(
+            entry(
+              videoId: 'v3',
+              sizeBytes: 3,
+              lastOpenedAt: DateTime(2026, 1, 1),
+            ),
+          ),
+        ),
       ]);
       final restored = await s.load();
       expect(restored.entries.length, 3);
-      expect(restored.entries.map((e) => e.videoId).toSet(), {'v1', 'v2', 'v3'});
+      expect(restored.entries.map((e) => e.videoId).toSet(), {
+        'v1',
+        'v2',
+        'v3',
+      });
     });
   });
 }

@@ -27,9 +27,7 @@ void main() {
 
     test('分秒帧补足两位（1:23.5s@30fps → 01:23:15）', () {
       expect(
-        formatFrameTime(
-          const Duration(seconds: 83, milliseconds: 500),
-        ),
+        formatFrameTime(const Duration(seconds: 83, milliseconds: 500)),
         '01:23:15',
       );
     });

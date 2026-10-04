@@ -43,18 +43,36 @@ void main() {
     test('分享面板警告橙对白色系底达到 4.5:1（色相家族不变）', () {
       // 实际底色是分享面对话框的浅色 surface（近白）：对纯白与 M3 淡紫
       // seed 的 surface 两处都判，取值的深橙档压在浅色系底上都要达标。
-      expect(contrastRatio(kShareWarningTextColor.toARGB32(), white), greaterThanOrEqualTo(4.5));
-      expect(contrastRatio(kShareWarningTextColor.toARGB32(), 0xFFFEF7FF), greaterThanOrEqualTo(4.5));
+      expect(
+        contrastRatio(kShareWarningTextColor.toARGB32(), white),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(kShareWarningTextColor.toARGB32(), 0xFFFEF7FF),
+        greaterThanOrEqualTo(4.5),
+      );
     });
 
     test('备份对话框说明绿对白色系底达到 4.5:1（色相家族不变）', () {
-      expect(contrastRatio(kBackupNoteTextColor.toARGB32(), white), greaterThanOrEqualTo(4.5));
-      expect(contrastRatio(kBackupNoteTextColor.toARGB32(), 0xFFFEF7FF), greaterThanOrEqualTo(4.5));
+      expect(
+        contrastRatio(kBackupNoteTextColor.toARGB32(), white),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        contrastRatio(kBackupNoteTextColor.toARGB32(), 0xFFFEF7FF),
+        greaterThanOrEqualTo(4.5),
+      );
     });
 
     test('两处 token 走同一份达标判定', () {
-      expect(meetsContrastFloor(kShareWarningTextColor.toARGB32(), white), isTrue);
-      expect(meetsContrastFloor(kBackupNoteTextColor.toARGB32(), white), isTrue);
+      expect(
+        meetsContrastFloor(kShareWarningTextColor.toARGB32(), white),
+        isTrue,
+      );
+      expect(
+        meetsContrastFloor(kBackupNoteTextColor.toARGB32(), white),
+        isTrue,
+      );
     });
   });
 }

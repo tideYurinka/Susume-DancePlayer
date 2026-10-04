@@ -32,24 +32,26 @@ void main() {
   File localFile() => File(p.join(tempDir.path, 'local_abc.json'));
 
   AtomicVideoDocumentStorage makeReal() => AtomicVideoDocumentStorage(
-        markersFile: markersFile(),
-        localFile: localFile(),
-      );
+    markersFile: markersFile(),
+    localFile: localFile(),
+  );
 
   /// 盘上该文档的旁路留档文件（同目录、名字含 `quarantine-`）。
-  List<File> sidecars() => tempDir
-      .listSync()
-      .whereType<File>()
-      .where((file) => p.basename(file.path).contains('.quarantine-'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  List<File> sidecars() =>
+      tempDir
+          .listSync()
+          .whereType<File>()
+          .where((file) => p.basename(file.path).contains('.quarantine-'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   /// 留档的对外证据（真实文件读盘、内存 fake 读记录），真实与 fake 双跑。
   List<String> quarantinedContents(VideoDocumentStorage storage) {
     if (storage is AtomicVideoDocumentStorage) {
       return [for (final file in sidecars()) file.readAsStringSync()];
     }
-    return (storage as InMemoryVideoDocumentStorage).quarantined.values.toList();
+    return (storage as InMemoryVideoDocumentStorage).quarantined.values
+        .toList();
   }
 
   String sidecarNameOf(VideoDocumentStorage storage) {
@@ -77,9 +79,12 @@ void main() {
     group(label, () {
       test('只读三种原因各产生一份留档，且留档内容等于原文', () async {
         final cases = <DocumentReadOnlyReason, String>{
-          DocumentReadOnlyReason.aboveCurrent: '{"version":99,"meta":{"mirrored":true}}',
-          DocumentReadOnlyReason.belowFloor: '{"version":6,"meta":{"mirrored":true}}',
-          DocumentReadOnlyReason.unreadableVersionHeader: '{"meta":{"mirrored":true}}',
+          DocumentReadOnlyReason.aboveCurrent:
+              '{"version":99,"meta":{"mirrored":true}}',
+          DocumentReadOnlyReason.belowFloor:
+              '{"version":6,"meta":{"mirrored":true}}',
+          DocumentReadOnlyReason.unreadableVersionHeader:
+              '{"meta":{"mirrored":true}}',
         };
         for (final entry in cases.entries) {
           final storage = make();
@@ -87,18 +92,16 @@ void main() {
             jsonDecode(entry.value) as Map<String, dynamic>,
           );
           clearQuarantine(storage);
-          final outcome =
-              await VideoDocumentCoordinator(storage).readMarkersOutcome();
+          final outcome = await VideoDocumentCoordinator(storage)
+              .readMarkersOutcome();
           expect(outcome, isA<DocumentReadOnly<MarkersDocument>>());
           expect(
             (outcome as DocumentReadOnly<MarkersDocument>).reason,
             entry.key,
           );
-          expect(
-            quarantinedContents(storage),
-            [entry.value],
-            reason: '${entry.key} 应留档一份原文',
-          );
+          expect(quarantinedContents(storage), [
+            entry.value,
+          ], reason: '${entry.key} 应留档一份原文');
         }
       });
 
@@ -168,8 +171,8 @@ void main() {
           'version': 99,
           'prefs': {'layoutLocked': true},
         });
-        final outcome =
-            await VideoDocumentCoordinator(storage).readLocalOutcome();
+        final outcome = await VideoDocumentCoordinator(storage)
+            .readLocalOutcome();
         expect(outcome, isA<DocumentReadOnly<dynamic>>());
         expect(
           (outcome as DocumentReadOnly<dynamic>).reason,
@@ -184,7 +187,10 @@ void main() {
   group('原始文件缝的破坏性动词（真实文件）', () {
     test('留档失败 = 整次写回失败：异常向上、盘上原文一字未动', () async {
       final storage = makeReal();
-      const original = {'version': 99, 'meta': {'mirrored': true}};
+      const original = {
+        'version': 99,
+        'meta': {'mirrored': true},
+      };
       await storage.saveMarkers(Map<String, dynamic>.of(original));
       final before = await markersFile().readAsString();
       // 用同名目录占住旁路文件路径，使留档写失败。
@@ -204,7 +210,9 @@ void main() {
       );
       expect(await markersFile().readAsString(), before, reason: '原文一字未动');
       expect(
-        tempDir.listSync().whereType<File>().map((file) => p.basename(file.path)),
+        tempDir.listSync().whereType<File>().map(
+          (file) => p.basename(file.path),
+        ),
         ['markers_abc.json'],
         reason: '留档失败不落任何文件（含不留临时残件）',
       );
@@ -212,9 +220,17 @@ void main() {
 
     test('恢复整机备份的全量替换：覆盖只读原文前先留档', () async {
       final storage = makeReal();
-      const original = {'version': 99, 'meta': {'mirrored': true}};
+      const original = {
+        'version': 99,
+        'meta': {'mirrored': true},
+      };
       await storage.saveMarkers(Map<String, dynamic>.of(original));
-      const fromBackup = {'version': 8, 'meta': {'signature': {'song': '海草舞'}}};
+      const fromBackup = {
+        'version': 8,
+        'meta': {
+          'signature': {'song': '海草舞'},
+        },
+      };
 
       await storage.saveMarkers(Map<String, dynamic>.of(fromBackup));
 
@@ -228,7 +244,10 @@ void main() {
 
     test('原子读改写（mutate）也盖：改写只读原文前先留档', () async {
       final storage = makeReal();
-      const original = {'version': 99, 'meta': {'mirrored': true}};
+      const original = {
+        'version': 99,
+        'meta': {'mirrored': true},
+      };
       await storage.saveMarkers(Map<String, dynamic>.of(original));
 
       await storage.mutateMarkers((json, {required bool present}) {
@@ -253,16 +272,16 @@ void main() {
       );
       await Directory(blocked).create(recursive: true);
 
-      await expectLater(
-        storage.delete(),
-        throwsA(isA<FileSystemException>()),
-      );
+      await expectLater(storage.delete(), throwsA(isA<FileSystemException>()));
       expect(await markersFile().readAsString(), before, reason: '原文未删未动');
     });
 
     test('删除这支舞：删除只读原文前先留档，随后两份文档照常删除', () async {
       final storage = makeReal();
-      const original = {'version': 99, 'meta': {'mirrored': true}};
+      const original = {
+        'version': 99,
+        'meta': {'mirrored': true},
+      };
       await storage.saveMarkers(Map<String, dynamic>.of(original));
       await storage.saveLocal(const {'version': 99});
 

@@ -84,8 +84,9 @@ HandleSlot _slotAt(
   // 两侧分界：有邻线取中点；无邻线（首/尾线）贴屏幕/区间边缘向外顶满
   // 到带缘（钳在带内）。
   final leftBound = i == 0 ? 0.0 : (positions[i - 1] + pos) / 2;
-  final rightBound =
-      i + 1 == positions.length ? bandWidth : (pos + positions[i + 1]) / 2;
+  final rightBound = i + 1 == positions.length
+      ? bandWidth
+      : (pos + positions[i + 1]) / 2;
   // 槽 = 目标区间 [pos-24, pos+24] 与两侧分界围出的区间的交集：邻线远
   // （分界越出目标半宽）→ 槽保目标宽；邻线近 → 分界中点截断（互斥），
   // 槽向另一侧（或带缘）扩展补足目标，两侧都被占才收缩。
@@ -211,17 +212,17 @@ HandleBarPlan planHandleBar({
   var n = barWidth >= 40
       ? 5
       : barWidth >= 30
-          ? 4
-          : barWidth >= 18
-              ? 3
-              : barWidth >= 12
-                  ? 2
-                  : 0;
+      ? 4
+      : barWidth >= 18
+      ? 3
+      : barWidth >= 12
+      ? 2
+      : 0;
   var grooveWidth = contentHeight >= 14
       ? 2.0
       : contentHeight >= 10
-          ? 1.5
-          : 1.0;
+      ? 1.5
+      : 1.0;
   while (n > 0 &&
       (grooveHeight < 1 ||
           n * grooveWidth + (n + 1) * kHandleGrooveMinGap > contentWidth)) {
@@ -232,12 +233,14 @@ HandleBarPlan planHandleBar({
   if (n > 0) {
     final gap = (contentWidth - n * grooveWidth) / (n + 1);
     for (var i = 0; i < n; i++) {
-      grooves.add(Rect.fromLTWH(
-        gap + i * (grooveWidth + gap),
-        (contentHeight - grooveHeight) / 2,
-        grooveWidth,
-        grooveHeight,
-      ));
+      grooves.add(
+        Rect.fromLTWH(
+          gap + i * (grooveWidth + gap),
+          (contentHeight - grooveHeight) / 2,
+          grooveWidth,
+          grooveHeight,
+        ),
+      );
     }
   }
 

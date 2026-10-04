@@ -73,8 +73,7 @@ void main() {
     expect(state.source, isNull);
   });
 
-  test('手势提交直写公开标记文件 meta.framingSelection（去抖合并成一次落盘）',
-      () async {
+  test('手势提交直写公开标记文件 meta.framingSelection（去抖合并成一次落盘）', () async {
     container = makeContainer();
     addTearDown(container.dispose);
     final session = persistence();
@@ -89,13 +88,10 @@ void main() {
     );
     // 逐帧变更：去抖窗口内的多次提交只落一次盘、留下的终值是最后一次。
     for (final left in [0.1, 0.11, 0.12]) {
-      container.read(framingStateProvider.notifier).applySource(
-            FramingSelection(
-              left: left,
-              top: 0.2,
-              right: 0.6,
-              bottom: 0.8,
-            ),
+      container
+          .read(framingStateProvider.notifier)
+          .applySource(
+            FramingSelection(left: left, top: 0.2, right: 0.6, bottom: 0.8),
           );
     }
     container.read(framingStateProvider.notifier).applySource(selection);
@@ -128,8 +124,9 @@ void main() {
     );
     await session.flush;
     expect(
-      (storages[idA]!.markersSnapshot['meta'] as Map)
-          .containsKey('framingSelection'),
+      (storages[idA]!.markersSnapshot['meta'] as Map).containsKey(
+        'framingSelection',
+      ),
       isTrue,
     );
 
@@ -138,8 +135,9 @@ void main() {
 
     expect(container.read(framingStateProvider).source, isNull);
     expect(
-      (storages[idA]!.markersSnapshot['meta'] as Map)
-          .containsKey('framingSelection'),
+      (storages[idA]!.markersSnapshot['meta'] as Map).containsKey(
+        'framingSelection',
+      ),
       isFalse,
     );
   });
@@ -261,8 +259,7 @@ void main() {
     expect(container.read(framingStateProvider).sourceTouched, isFalse);
   });
 
-  test('更高版本的 local 文件按认识多少读多少打开、本机不写回',
-      () async {
+  test('更高版本的 local 文件按认识多少读多少打开、本机不写回', () async {
     const forward = <String, dynamic>{
       'version': 5,
       'prefs': {

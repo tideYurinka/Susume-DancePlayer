@@ -189,7 +189,8 @@ void main() {
     await AtomicJsonFile(File('${tempDir.path}/index.json')).write({
       ...indexJson,
       'entries': [
-        {...(indexJson['entries'] as List).first as Map<String, Object?>,
+        {
+          ...(indexJson['entries'] as List).first as Map<String, Object?>,
           'filePath': sourceVideo.path,
         },
       ],
@@ -200,9 +201,8 @@ void main() {
     );
     await documents.saveMarkers(markersJson);
     await documents.saveLocal(localJson);
-    await MemberSchemeFileStore(
-      File('${tempDir.path}/schemes_v1.json'),
-    ).save(schemesJson);
+    await MemberSchemeFileStore(File('${tempDir.path}/schemes_v1.json'))
+        .save(schemesJson);
     await AtomicJsonFile(File('${tempDir.path}/four_beat_buckets_v1.json'))
         .write(bucketsJson);
     await AtomicJsonFile(File('${tempDir.path}/practice_stats.json'))
@@ -211,88 +211,86 @@ void main() {
         .write(deviceJson);
     await AtomicJsonFile(File('${tempDir.path}/practice_plan.json'))
         .write(practicePlanJson);
-    await AtomicJsonFile(
-      File('${materialsBase.parent.path}/manifest.json'),
-    ).write(materialsManifestJson);
+    await AtomicJsonFile(File('${materialsBase.parent.path}/manifest.json'))
+        .write(materialsManifestJson);
     // 封面缓存图片与文档同级：它是设备本地缓存，不该进包（也不是媒体种类）。
     File('${tempDir.path}/cover_v1.jpg').writeAsBytesSync(List.filled(16, 9));
   }
 
   BackupPorts ports() => BackupPorts(
-        loadIndexJson: () async =>
-            (await AtomicJsonFile(File('${tempDir.path}/index.json'))
-                    .readOrNull()) ??
-            {},
-        loadIndex: () async => VideoIndex(entries: [
-          VideoIndexEntry(
-            videoId: 'v1',
-            displayName: 'v1.mp4',
-            filePath: sourceVideo.path,
-            sizeBytes: 64,
-            fastKey: 'k',
-            mirrored: false,
-            mirrorAsked: true,
-            lastOpenedAt: DateTime(2026, 9, 15, 8),
-            signatureCache: const SongSignature(
-              dancer: '如',
-              song: '海草舞',
-            ),
-            lastPositionMs: 42000,
-          ),
-        ]),
-        documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
-          markersFile: File('${tempDir.path}/markers_$videoId.json'),
-          localFile: File('${tempDir.path}/local_$videoId.json'),
+    loadIndexJson: () async =>
+        (await AtomicJsonFile(File('${tempDir.path}/index.json'))
+            .readOrNull()) ??
+        {},
+    loadIndex: () async => VideoIndex(
+      entries: [
+        VideoIndexEntry(
+          videoId: 'v1',
+          displayName: 'v1.mp4',
+          filePath: sourceVideo.path,
+          sizeBytes: 64,
+          fastKey: 'k',
+          mirrored: false,
+          mirrorAsked: true,
+          lastOpenedAt: DateTime(2026, 9, 15, 8),
+          signatureCache: const SongSignature(dancer: '如', song: '海草舞'),
+          lastPositionMs: 42000,
         ),
-        memberSchemeStorageFor: (videoId) => MemberSchemeFileStore(
-          File('${tempDir.path}/schemes_$videoId.json'),
-        ),
-        loadBucketShardJson: (videoId) async =>
-            await AtomicJsonFile(
-              File('${tempDir.path}/four_beat_buckets_$videoId.json'),
-            ).readOrNull(),
-        loadPracticeStatsJson: () async =>
-            await AtomicJsonFile(File('${tempDir.path}/practice_stats.json'))
-                .readOrNull(),
-        loadPracticePlanJson: () async =>
-            await AtomicJsonFile(File('${tempDir.path}/practice_plan.json'))
-                .readOrNull(),
-        loadDeviceSettings: () async =>
-            await AtomicJsonFile(File('${tempDir.path}/global_private.json'))
-                .read(),
-        loadMaterialsManifestJson: () async =>
-            await AtomicJsonFile(
-              File('${materialsBase.parent.path}/manifest.json'),
-            ).readOrNull(),
-        loadMaterialRecords: () async => [
-          MaterialRecord(
-            id: 'm1',
-            videoId: 'v1',
-            createdAt: never,
-            durationMs: 8000,
-            sourceStartMs: 0,
-            fileName: 'rec_1.mp4',
-            sizeBytes: 32,
-          ),
-        ],
-        materialsBaseDirectory: () async => materialsBase.parent,
-      );
+      ],
+    ),
+    documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
+      markersFile: File('${tempDir.path}/markers_$videoId.json'),
+      localFile: File('${tempDir.path}/local_$videoId.json'),
+    ),
+    memberSchemeStorageFor: (videoId) =>
+        MemberSchemeFileStore(File('${tempDir.path}/schemes_$videoId.json')),
+    loadBucketShardJson: (videoId) async => await AtomicJsonFile(
+      File('${tempDir.path}/four_beat_buckets_$videoId.json'),
+    ).readOrNull(),
+    loadPracticeStatsJson: () async =>
+        await AtomicJsonFile(File('${tempDir.path}/practice_stats.json'))
+            .readOrNull(),
+    loadPracticePlanJson: () async =>
+        await AtomicJsonFile(File('${tempDir.path}/practice_plan.json'))
+            .readOrNull(),
+    loadDeviceSettings: () async =>
+        await AtomicJsonFile(File('${tempDir.path}/global_private.json'))
+            .read(),
+    loadMaterialsManifestJson: () async =>
+        await AtomicJsonFile(File('${materialsBase.parent.path}/manifest.json'))
+            .readOrNull(),
+    loadMaterialRecords: () async => [
+      MaterialRecord(
+        id: 'm1',
+        videoId: 'v1',
+        createdAt: never,
+        durationMs: 8000,
+        sourceStartMs: 0,
+        fileName: 'rec_1.mp4',
+        sizeBytes: 32,
+      ),
+    ],
+    materialsBaseDirectory: () async => materialsBase.parent,
+  );
 
   Map<String, Object?> expectedDance({
     List<Object?> media = const [],
     Map<String, Object?>? buckets,
   }) => {
-        'videoId': 'v1',
-        'markers': markersJson,
-        'local': localJson,
-        'schemes': schemesJson,
-        'buckets': buckets ?? bucketsJson,
-        'media': media,
-      };
+    'videoId': 'v1',
+    'markers': markersJson,
+    'local': localJson,
+    'schemes': schemesJson,
+    'buckets': buckets ?? bucketsJson,
+    'media': media,
+  };
 
   test('默认不含媒体：解析回来覆盖全部完全私密字段、含练舞统计与桶分片', () async {
     await writeFixtures();
-    final collected = await collectWholeMachineBackup(ports(), includeMedia: false);
+    final collected = await collectWholeMachineBackup(
+      ports(),
+      includeMedia: false,
+    );
     final output = await assembleWholeMachineBackup(
       outputDir: Directory('${tempDir.path}/out'),
       payload: collected.payload,
@@ -340,7 +338,10 @@ void main() {
     File('${tempDir.path}/four_beat_buckets_v1.json').deleteSync();
     File('${tempDir.path}/practice_stats.json').deleteSync();
     File('${tempDir.path}/practice_plan.json').deleteSync();
-    final collected = await collectWholeMachineBackup(ports(), includeMedia: false);
+    final collected = await collectWholeMachineBackup(
+      ports(),
+      includeMedia: false,
+    );
     final output = await assembleWholeMachineBackup(
       outputDir: Directory('${tempDir.path}/out'),
       payload: collected.payload,
@@ -357,10 +358,12 @@ void main() {
     );
   });
 
-  test('可选媒体：勾上后源视频与练习录像进包，条目按舞前缀、payload 记录归属',
-      () async {
+  test('可选媒体：勾上后源视频与练习录像进包，条目按舞前缀、payload 记录归属', () async {
     await writeFixtures();
-    final collected = await collectWholeMachineBackup(ports(), includeMedia: true);
+    final collected = await collectWholeMachineBackup(
+      ports(),
+      includeMedia: true,
+    );
     final output = await assembleWholeMachineBackup(
       outputDir: Directory('${tempDir.path}/out'),
       payload: collected.payload,
@@ -369,13 +372,10 @@ void main() {
     );
 
     final parsed = await readSusumePackage(output.path);
-    expect(
-      parsed.manifest.media.map((m) => (m.kind, m.fileName)).toSet(),
-      {
-        (SusumeMediaKind.sourceVideo, 'v1__v1.mp4'),
-        (SusumeMediaKind.practiceClip, 'v1__rec_1.mp4'),
-      },
-    );
+    expect(parsed.manifest.media.map((m) => (m.kind, m.fileName)).toSet(), {
+      (SusumeMediaKind.sourceVideo, 'v1__v1.mp4'),
+      (SusumeMediaKind.practiceClip, 'v1__rec_1.mp4'),
+    });
     expect(parsed.backup!['dances'], [
       expectedDance(media: ['v1__v1.mp4', 'v1__rec_1.mp4']),
     ]);
@@ -393,11 +393,11 @@ void main() {
   test('素材文件已不在磁盘：跳过该条媒体，采集与装配不失败', () async {
     await writeFixtures();
     clipFile.deleteSync();
-    final collected = await collectWholeMachineBackup(ports(), includeMedia: true);
-    expect(
-      collected.media.map((m) => m.fileName),
-      ['v1__v1.mp4'],
+    final collected = await collectWholeMachineBackup(
+      ports(),
+      includeMedia: true,
     );
+    expect(collected.media.map((m) => m.fileName), ['v1__v1.mp4']);
   });
 
   test('索引没有条目、目录里没有任何舞：空备份照常装配', () async {
@@ -414,7 +414,10 @@ void main() {
       loadMaterialRecords: () async => const [],
       materialsBaseDirectory: () async => materialsBase,
     );
-    final collected = await collectWholeMachineBackup(empty, includeMedia: false);
+    final collected = await collectWholeMachineBackup(
+      empty,
+      includeMedia: false,
+    );
     final output = await assembleWholeMachineBackup(
       outputDir: Directory('${tempDir.path}/out'),
       payload: collected.payload,

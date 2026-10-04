@@ -1,5 +1,6 @@
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
-import 'package:dance_learning_app/core/beat_grid.dart' show placeholderBeatGrid;
+import 'package:dance_learning_app/core/beat_grid.dart'
+    show placeholderBeatGrid;
 import 'package:dance_learning_app/core/playback/playback_loop_layer.dart';
 import 'package:dance_learning_app/player/delayed_play.dart';
 import 'package:dance_learning_app/player/engine_seek.dart';
@@ -33,7 +34,10 @@ void main() {
     delayedLoopActiveCalls = 0;
     engine = FakePlaybackEngine(duration: const Duration(seconds: 100));
     loopLayer = PlaybackLoopLayer(engine);
-    loopPrompt = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+    loopPrompt = LoopPromptController(
+      engine,
+      gridOf: () => placeholderBeatGrid,
+    );
     delayedPlay = DelayedPlayController(
       engine,
       phaseOf: () => null,

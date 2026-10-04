@@ -89,10 +89,7 @@ void main() {
           expect(opened.activatedSegments, isEmpty);
           expect(opened.layoutLocked, isFalse);
           expect(opened.beatPrompt, isNull);
-          expect(
-            LocalDocument.versionPolicy.isWritable(entry.value),
-            isFalse,
-          );
+          expect(LocalDocument.versionPolicy.isWritable(entry.value), isFalse);
 
           // 三种写入口都试一遍：session / prefs / 记忆。
           await coordinator.patchLocal(
@@ -144,10 +141,7 @@ void main() {
 
         var json = await readRaw(storage);
         expect(json['version'], 4);
-        expect(json['session']['mastery'], {
-          '0': 'learning',
-          '2': 'mastered',
-        });
+        expect(json['session']['mastery'], {'0': 'learning', '2': 'mastered'});
         expect(json['prefs']['previewSnapEnabled'], false);
         expect(json['prefs']['layoutLocked'], true);
 
@@ -156,10 +150,7 @@ void main() {
           (doc) => doc.withSnap(previewSnapEnabled: true),
         );
         json = await readRaw(storage);
-        expect(json['session']['mastery'], {
-          '0': 'learning',
-          '2': 'mastered',
-        });
+        expect(json['session']['mastery'], {'0': 'learning', '2': 'mastered'});
         expect(json['prefs']['previewSnapEnabled'], true);
       });
     }

@@ -9,8 +9,13 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
+import 'package:dance_learning_app/player/editor_skeleton.dart'
+    show editorIsCompact;
 import 'package:dance_learning_app/player/play_tool_table.dart'
-    show kPlayToolRowLandscapeTopBar;
+    show
+        kPlayToolRowLandscapeTopBar,
+        kPlayToolRowLandscapeTopBarCompact,
+        playToolLandscapeTopBarRow;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kHitTargetDenseMinSize;
@@ -161,10 +166,10 @@ void main() {
     }
   }
 
-  // small 横屏 1.6× 下顶栏可用宽放不下带标签的
-  // 九槽，标签收起为纯图标（布局修复，非缩放）——该档的全部入口仍须在场
-  // 且收在视口内。
-  testWidgets('播放页 small 横屏 1.6×：顶栏九枚入口在场且收在视口内', (tester) async {
+  // small 横屏 1.6× 下顶栏可用宽放不下带标签的生效行集，标签收起为
+  // 纯图标（布局修复，非缩放）——该档的全部入口仍须在场且收在视口内。
+  // 判据遍历**当前视口生效的那份行集**（不是写死某一份）。
+  testWidgets('播放页 small 横屏 1.6×：生效行集全部入口在场且收在视口内', (tester) async {
     useNamedViewport(
       tester,
       ViewportTier.small,
@@ -175,7 +180,15 @@ void main() {
     await showControlLayer(tester);
     expect(tester.takeException(), isNull);
     final viewport = logicalViewport(tester);
-    for (final slot in kPlayToolRowLandscapeTopBar.slots) {
+    final rowSet = playToolLandscapeTopBarRow(
+      compact: editorIsCompact(viewport.size),
+    );
+    expect(
+      rowSet,
+      same(kPlayToolRowLandscapeTopBarCompact),
+      reason: 'small 横屏（最短边 320 < 600）落紧凑档',
+    );
+    for (final slot in rowSet.slots) {
       expect(
         find.byKey(Key(slot.key)),
         findsOneWidget,
@@ -183,6 +196,51 @@ void main() {
       );
       expectRectInside(tester, viewport, Key(slot.key), slot.label);
       // 标签收起不连带收命中盒：逐槽不小于邻接密集区兜底下限（44）。
+      expect(
+        tester.getRect(find.byKey(Key(slot.key))).width,
+        greaterThanOrEqualTo(kHitTargetDenseMinSize),
+        reason: '${slot.label} 命中盒不小于兜底下限',
+      );
+    }
+    // 搬进「更多」的三枚不常驻紧凑档横屏顶栏。
+    for (final key in [
+      'tool_av_sync',
+      'tool_framing_adjust',
+      'tool_beat_prompt',
+    ]) {
+      expect(find.byKey(Key(key)), findsNothing, reason: '$key 由「更多」承载');
+    }
+  });
+
+  // 常规档横屏代表用例（平板横置 1180×820dp，最短边 820 ≥ 600）：三枚
+  // 仍内联常驻、不出现「更多」，生效行集逐槽收在视口内。
+  testWidgets('播放页 tablet 横屏 1.6×：常规档行集全部入口在场、无「更多」', (tester) async {
+    useNamedViewport(
+      tester,
+      ViewportTier.tablet,
+      landscape: true,
+      textScale: 1.6,
+    );
+    await pumpPlayer(tester);
+    await showControlLayer(tester);
+    expect(tester.takeException(), isNull);
+    final viewport = logicalViewport(tester);
+    final rowSet = playToolLandscapeTopBarRow(
+      compact: editorIsCompact(viewport.size),
+    );
+    expect(
+      rowSet,
+      same(kPlayToolRowLandscapeTopBar),
+      reason: '平板横置（最短边 820 ≥ 600）落常规档',
+    );
+    expect(find.byKey(const Key('tool_more')), findsNothing);
+    for (final slot in rowSet.slots) {
+      expect(
+        find.byKey(Key(slot.key)),
+        findsOneWidget,
+        reason: '${slot.label} 仍内联在常规档横屏顶栏',
+      );
+      expectRectInside(tester, viewport, Key(slot.key), slot.label);
       expect(
         tester.getRect(find.byKey(Key(slot.key))).width,
         greaterThanOrEqualTo(kHitTargetDenseMinSize),

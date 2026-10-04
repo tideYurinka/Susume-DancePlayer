@@ -11,13 +11,19 @@ const _fade = Duration(milliseconds: 300);
 void main() {
   group('时长表（缺省 + 只列例外）', () {
     test('时长表例外：三指跳转 600/200，临时衔接段缺省停留 + 300 淡出', () {
-      expect(noticeTimingOf(NoticeId.threeFingerToast).hold,
-          const Duration(milliseconds: 600));
-      expect(noticeTimingOf(NoticeId.threeFingerToast).fade,
-          const Duration(milliseconds: 200));
+      expect(
+        noticeTimingOf(NoticeId.threeFingerToast).hold,
+        const Duration(milliseconds: 600),
+      );
+      expect(
+        noticeTimingOf(NoticeId.threeFingerToast).fade,
+        const Duration(milliseconds: 200),
+      );
       expect(noticeTimingOf(NoticeId.transition).hold, kDefaultNoticeHold);
-      expect(noticeTimingOf(NoticeId.transition).fade,
-          const Duration(milliseconds: 300));
+      expect(
+        noticeTimingOf(NoticeId.transition).fade,
+        const Duration(milliseconds: 300),
+      );
     });
   });
 

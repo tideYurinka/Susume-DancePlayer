@@ -18,10 +18,8 @@ void main() {
         overrides: [
           helpAssetBundleProvider.overrideWithValue(
             FakeHelpAssetBundle(const {
-              '$feedbackTutorialDirectory/问题反馈.md':
-                  '# 问题反馈\n\n这是问题反馈\n',
-              '$downloadVideoTutorialDirectory/下载视频.md':
-                  '# 下载视频\n\n下载正文\n',
+              '$feedbackTutorialDirectory/问题反馈.md': '# 问题反馈\n\n这是问题反馈\n',
+              '$downloadVideoTutorialDirectory/下载视频.md': '# 下载视频\n\n下载正文\n',
             }),
           ),
         ],

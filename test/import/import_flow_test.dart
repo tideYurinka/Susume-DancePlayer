@@ -14,7 +14,8 @@ import 'package:dance_learning_app/player/level_control.dart'
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/song_loudness.dart'
     show songLoudnessProbeProvider, SongLoudnessProbe;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,7 +103,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith((ref) async => videosDir),
           importIndexFileProvider.overrideWith((ref) async => indexFile),
@@ -185,7 +188,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith((ref) async => videosDir),
           importIndexFileProvider.overrideWith((ref) async => indexFile),
@@ -215,7 +220,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith((ref) async => videosDir),
           importIndexFileProvider.overrideWith((ref) async => indexFile),
@@ -264,7 +271,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith(
             (ref) async => Directory(p.join(tempDir.path, 'videos')),
@@ -287,9 +296,7 @@ void main() {
     expect(picker.clearCacheCalled, isFalse);
   });
 
-  testWidgets('镜像：首次打开询问并选「是」→ 按 video_id 保留；再次打开自动应用并提示', (
-    tester,
-  ) async {
+  testWidgets('镜像：首次打开询问并选「是」→ 按 video_id 保留；再次打开自动应用并提示', (tester) async {
     final tempDir = Directory.systemTemp.createTempSync('import_mirror_test');
     addTearDown(() => tempDir.deleteSync(recursive: true));
 
@@ -313,7 +320,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith((ref) async => videosDir),
           importIndexFileProvider.overrideWith((ref) async => indexFile),
@@ -386,8 +395,9 @@ void main() {
         () {
           if (!markersFile.existsSync()) return false;
           try {
-            final doc =
-                jsonDecode(markersFile.readAsStringSync()) as Map<String, dynamic>;
+            final doc = jsonDecode(
+              markersFile.readAsStringSync(),
+            ) as Map<String, dynamic>;
             final meta = doc['meta'] as Map<String, dynamic>?;
             return meta?['mirrored'] == true;
           } on FormatException {
@@ -414,7 +424,9 @@ void main() {
             FakeSystemMediaVolumeController(),
           ),
           beatAnalysisPipelineProvider.overrideWithValue(FakeBeatPipeline()),
-          songLoudnessProbeProvider.overrideWithValue(const _FixedLoudnessProbe()),
+          songLoudnessProbeProvider.overrideWithValue(
+            const _FixedLoudnessProbe(),
+          ),
           videoPickerProvider.overrideWithValue(picker),
           importVideosDirectoryProvider.overrideWith((ref) async => videosDir),
           importIndexFileProvider.overrideWith((ref) async => indexFile),

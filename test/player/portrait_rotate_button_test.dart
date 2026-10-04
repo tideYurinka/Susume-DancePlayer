@@ -150,7 +150,9 @@ void main() {
   );
 
   group('存在性与落位', () {
-    testWidgets('竖屏 + 横画面（16:9）：转屏钮在画面区右下角，内缩 8dp、视觉圆底 36dp、字形 24dp', (tester) async {
+    testWidgets('竖屏 + 横画面（16:9）：转屏钮在画面区右下角，内缩 8dp、视觉圆底 36dp、字形 24dp', (
+      tester,
+    ) async {
       setPortraitView(tester);
       await pumpPlayer(
         tester,
@@ -263,7 +265,9 @@ void main() {
       }
     });
 
-    testWidgets('命中矩形外扩到通行下限 48：视觉圆底 36 与字形 24 逐位不变、命中盒四角仍在画面区内', (tester) async {
+    testWidgets('命中矩形外扩到通行下限 48：视觉圆底 36 与字形 24 逐位不变、命中盒四角仍在画面区内', (
+      tester,
+    ) async {
       setPortraitView(tester);
       await pumpPlayer(
         tester,
@@ -415,11 +419,7 @@ void main() {
       expectButtonSemantics(tester, kPortraitRotateButtonKey, label: '转为横屏');
       activateBySemantics(tester, kPortraitRotateButtonKey);
       await tester.pump();
-      expect(
-        systemUi.lockLandscapeCount,
-        1,
-        reason: '读屏双击转屏钮应真的锁横屏',
-      );
+      expect(systemUi.lockLandscapeCount, 1, reason: '读屏双击转屏钮应真的锁横屏');
       semantics.dispose();
     });
   });

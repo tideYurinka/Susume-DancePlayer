@@ -23,14 +23,14 @@ void main() {
       );
 
   MaterialRecord record(String id, int sourceStartMs) => MaterialRecord(
-        id: id,
-        videoId: 'v1',
-        createdAt: DateTime(2026, 1, 1),
-        durationMs: 10000,
-        sourceStartMs: sourceStartMs,
-        fileName: '$id.mp4',
-        sizeBytes: 1,
-      );
+    id: id,
+    videoId: 'v1',
+    createdAt: DateTime(2026, 1, 1),
+    durationMs: 10000,
+    sourceStartMs: sourceStartMs,
+    fileName: '$id.mp4',
+    sizeBytes: 1,
+  );
 
   setUp(() {
     container = ProviderContainer();
@@ -117,9 +117,7 @@ void main() {
         clipAt('a', 0, 10000),
         clipAt('b', 20000, 30000),
       ]);
-      container
-          .read(practiceClipsProvider.notifier)
-          .removeByMaterial('m_a');
+      container.read(practiceClipsProvider.notifier).removeByMaterial('m_a');
       expect(
         [for (final clip in container.read(practiceClipsProvider)) clip.id],
         ['b'],

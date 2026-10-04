@@ -22,7 +22,8 @@ import '../persistence/annotation_save_orchestrator.dart'
     show AnnotationSaveSeed, firstBuildSeeded;
 import '../persistence/document_read_outcome.dart';
 import '../persistence/marker_document.dart'
-    as marker_doc show BeatGrid, MarkersDocument;
+    as marker_doc
+    show BeatGrid, MarkersDocument;
 import '../persistence/video_document_store.dart' show VideoDocumentCoordinator;
 import 'annotation_editor.dart' show annotationEditorProvider;
 import 'beat_prompt_memory.dart' show beatPromptMemoryProvider;

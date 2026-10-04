@@ -60,8 +60,20 @@ void main() {
     expect(rightClamped.left, 24);
     expect(rightClamped.arrowLeft, 216);
 
-    expect(bubbleRect(leftClamped, screen).overlaps(const Rect.fromLTWH(90, 100, 20, 20)), isFalse);
-    expect(bubbleRect(rightClamped, screen).overlaps(const Rect.fromLTWH(240, 100, 20, 20)), isFalse);
+    expect(
+      bubbleRect(
+        leftClamped,
+        screen,
+      ).overlaps(const Rect.fromLTWH(90, 100, 20, 20)),
+      isFalse,
+    );
+    expect(
+      bubbleRect(
+        rightClamped,
+        screen,
+      ).overlaps(const Rect.fromLTWH(240, 100, 20, 20)),
+      isFalse,
+    );
   });
 
   test('箭头钳位：框中心落在条宽之外时箭头钳在条宽内', () {
@@ -75,8 +87,17 @@ void main() {
     expect(rightOut.left, 24);
     expect(rightOut.arrowLeft, 300);
 
-    expect(bubbleRect(leftOut, screen).overlaps(const Rect.fromLTWH(0, 100, 20, 20)), isFalse);
-    expect(bubbleRect(rightOut, screen).overlaps(const Rect.fromLTWH(340, 100, 20, 20)), isFalse);
+    expect(
+      bubbleRect(leftOut, screen).overlaps(const Rect.fromLTWH(0, 100, 20, 20)),
+      isFalse,
+    );
+    expect(
+      bubbleRect(
+        rightOut,
+        screen,
+      ).overlaps(const Rect.fromLTWH(340, 100, 20, 20)),
+      isFalse,
+    );
   });
 
   test('件宽上限：宽屏上条子宽取上限 320、不近满宽', () {
@@ -86,6 +107,9 @@ void main() {
     expect(p.width, 320);
     expect(p.left, 240);
     expect(p.arrowLeft, 150);
-    expect(bubbleRect(p, wide).overlaps(const Rect.fromLTWH(390, 100, 20, 20)), isFalse);
+    expect(
+      bubbleRect(p, wide).overlaps(const Rect.fromLTWH(390, 100, 20, 20)),
+      isFalse,
+    );
   });
 }

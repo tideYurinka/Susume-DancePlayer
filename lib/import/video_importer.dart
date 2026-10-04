@@ -123,7 +123,9 @@ class VideoImporter {
   Future<ImportedDance> importDanceFile(PickedVideo picked) async {
     final imported = await copyToPrivateDir(picked);
     final videoId = await hasher.hashFile(File(imported.uri.toFilePath()));
-    await indexStore.update((index) => index.upsert(_entryFor(imported, videoId)));
+    await indexStore.update(
+      (index) => index.upsert(_entryFor(imported, videoId)),
+    );
     return ImportedDance(video: imported, videoId: videoId);
   }
 

@@ -10,11 +10,7 @@
 /// 气泡既有口径。
 library;
 
-enum BubbleReflow {
-  sideBySide,
-
-  stacked,
-}
+enum BubbleReflow { sideBySide, stacked }
 
 /// 气泡重排判定纯函数（[BubbleReflow] 的唯一出口；零 widget 环境直测）。
 ///

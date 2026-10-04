@@ -242,10 +242,7 @@ void main() {
 
     test('总时长未知：不动作（窗口无从谈起）', () {
       final stale = build(withEngine: _NullDurationEngine());
-      stale.collapseAround(
-        Duration.zero,
-        span: const Duration(seconds: 8),
-      );
+      stale.collapseAround(Duration.zero, span: const Duration(seconds: 8));
       expect(stale.window, isNull);
     });
   });

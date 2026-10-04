@@ -134,9 +134,8 @@ String formatRate(double rate) =>
 // ---------------------------------------------------------------------------
 
 /// 倍速标题与步进起步/封顶的全档候选：0.1–2.0 步 0.05（39 档）。
-List<double> rateCandidates() => List.unmodifiable([
-      for (var i = 10; i <= 200; i += 5) roundRate(i / 100),
-    ]);
+List<double> rateCandidates() =>
+    List.unmodifiable([for (var i = 10; i <= 200; i += 5) roundRate(i / 100)]);
 
 /// 每档遍数候选：1–20（整数）。
 final List<int> lapsPerRateCandidates = List<int>.unmodifiable(

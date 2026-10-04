@@ -40,17 +40,19 @@ void main() {
       ..writeAsBytesSync(List.filled(64, 1));
     channel = FakeShareChannel();
     indexStore = InMemoryVideoIndexStorage(
-      initial: VideoIndex(entries: [
-        VideoIndexEntry(
-          videoId: 'v1',
-          displayName: 'v1.mp4',
-          filePath: sourceVideo.path,
-          sizeBytes: 64,
-          fastKey: 'k',
-          mirrored: false,
-          lastOpenedAt: DateTime(2026, 9, 15, 8),
-        ),
-      ]),
+      initial: VideoIndex(
+        entries: [
+          VideoIndexEntry(
+            videoId: 'v1',
+            displayName: 'v1.mp4',
+            filePath: sourceVideo.path,
+            sizeBytes: 64,
+            fastKey: 'k',
+            mirrored: false,
+            lastOpenedAt: DateTime(2026, 9, 15, 8),
+          ),
+        ],
+      ),
     );
   });
 
@@ -68,11 +70,15 @@ void main() {
             (_) => InMemoryVideoDocumentStorage(
               markers: {
                 'version': 8,
-                'meta': {'signature': {'song': '海草舞'}},
+                'meta': {
+                  'signature': {'song': '海草舞'},
+                },
               },
               local: {
                 'version': 3,
-                'session': {'mastery': {'0': 3}},
+                'session': {
+                  'mastery': {'0': 3},
+                },
               },
             ),
           ),
@@ -91,11 +97,15 @@ void main() {
               documentStorageFor: (_) => InMemoryVideoDocumentStorage(
                 markers: {
                   'version': 8,
-                  'meta': {'signature': {'song': '海草舞'}},
+                  'meta': {
+                    'signature': {'song': '海草舞'},
+                  },
                 },
                 local: {
                   'version': 3,
-                  'session': {'mastery': {'0': 3}},
+                  'session': {
+                    'mastery': {'0': 3},
+                  },
                 },
               ),
               memberSchemeStorageFor: (_) => InMemoryMemberSchemeStorage(),
@@ -149,8 +159,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('首页 ⋯ 有「备份」且可达；备份面言明统计与桶随包走、媒体默认不勾',
-      (tester) async {
+  testWidgets('首页 ⋯ 有「备份」且可达；备份面言明统计与桶随包走、媒体默认不勾', (tester) async {
     await pumpHome(tester);
     await openBackupSheet(tester);
 
@@ -167,10 +176,7 @@ void main() {
     );
     expect(note.style?.color, kBackupNoteTextColor);
     // 钉死新文案：旧的「不在包里」说法在，或新说法被删，这条都会红。
-    expect(
-      find.text('练舞统计与四拍桶明细随包走，换机恢复后统计完整'),
-      findsOneWidget,
-    );
+    expect(find.text('练舞统计与四拍桶明细随包走，换机恢复后统计完整'), findsOneWidget);
     expect(find.textContaining('不在备份包里'), findsNothing);
     final media = tester.widget<CheckboxListTile>(
       find.byKey(const Key('backup_sheet_media')),
@@ -195,8 +201,9 @@ void main() {
 
     expect(channel.sharedFiles, hasLength(1));
     final shared = channel.sharedFiles.single;
-    final parsed =
-        (await tester.runAsync(() => readSusumePackage(shared.path)))!;
+    final parsed = (await tester.runAsync(
+      () => readSusumePackage(shared.path),
+    ))!;
     expect(parsed.isBackup, isTrue);
     expect(parsed.manifest.media, isEmpty);
     final backup = parsed.backup!;
@@ -207,24 +214,18 @@ void main() {
       isNotEmpty,
       reason: '练舞统计进包',
     );
-    expect(
-      backup['practicePlan'],
-      isNotEmpty,
-      reason: '计划文档进包',
-    );
+    expect(backup['practicePlan'], isNotEmpty, reason: '计划文档进包');
     final dances = backup['dances'] as List<Object?>;
     expect(dances, hasLength(1));
     final dance = dances.single as Map<String, Object?>;
     expect(dance['videoId'], 'v1');
     expect(dance['buckets'], isNotEmpty, reason: '四拍桶分片进包');
-    expect(
-      (dance['markers'] as Map<String, Object?>)['meta'],
-      {'signature': {'song': '海草舞'}},
-    );
-    expect(
-      (dance['local'] as Map<String, Object?>)['session'],
-      {'mastery': {'0': 3}},
-    );
+    expect((dance['markers'] as Map<String, Object?>)['meta'], {
+      'signature': {'song': '海草舞'},
+    });
+    expect((dance['local'] as Map<String, Object?>)['session'], {
+      'mastery': {'0': 3},
+    });
   });
 
   testWidgets('递出失败出声（SnackBar），面不关', (tester) async {

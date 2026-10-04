@@ -26,7 +26,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/practice_clip_playback.dart'
     show practiceClipEngineProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
     show SurfaceFace;
 import 'package:flutter/material.dart';
@@ -80,9 +81,7 @@ void main() {
           annotationSaveSinkProvider.overrideWithValue(sink),
         ],
       );
-      container
-          .read(practiceClipsProvider.notifier)
-          .restore(const [c1, c2]);
+      container.read(practiceClipsProvider.notifier).restore(const [c1, c2]);
       container.read(practiceClipActivationProvider.notifier).toggle(c1);
     });
 
@@ -152,7 +151,10 @@ void main() {
     );
 
     Future<ProviderContainer> pumpPlayer(WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
       final source = Uri.file('/videos/a.mp4');
@@ -235,11 +237,7 @@ void main() {
       final frozen = practiceEngine.position;
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
-      expect(
-        practiceEngine.position,
-        frozen,
-        reason: '不再循环已删文件：停播后位置不推进',
-      );
+      expect(practiceEngine.position, frozen, reason: '不再循环已删文件：停播后位置不推进');
     });
 
     testWidgets('播放源解析不到（清单无此素材）：退出回看、回落实时预览', (tester) async {

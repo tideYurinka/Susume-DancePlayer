@@ -12,8 +12,9 @@ class MemoryManifestStorage implements MaterialManifestStorage {
   Future<Map<String, dynamic>> load() async => jsonDeepCopy(_json);
 
   @override
-  Future<void> save(Map<String, dynamic> json) async =>
-      _json..clear()..addAll(jsonDeepCopy(json));
+  Future<void> save(Map<String, dynamic> json) async => _json
+    ..clear()
+    ..addAll(jsonDeepCopy(json));
 }
 
 Map<String, dynamic> jsonDeepCopy(Map<String, dynamic> json) =>

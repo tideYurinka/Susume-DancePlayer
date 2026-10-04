@@ -61,8 +61,7 @@ DancePlanManagerGroups dancePlanManagerGroups({
   final needle = query.trim().toLowerCase();
   final filtered = [
     for (final dance in dances)
-      if (needle.isEmpty || dance.title.toLowerCase().contains(needle))
-        dance,
+      if (needle.isEmpty || dance.title.toLowerCase().contains(needle)) dance,
   ];
   final withPlan = <DancePlanManagerDance>[
     if (!onlyWithoutPlan)
@@ -105,7 +104,4 @@ String? dancePlanSettlementLabel(DdlSettlement? settlement) =>
 List<String> dancePlanSwitchHints({
   required bool socialLibrary,
   required bool reviewReminders,
-}) => [
-  if (!socialLibrary) '曲库关',
-  if (!reviewReminders) '提醒关',
-];
+}) => [if (!socialLibrary) '曲库关', if (!reviewReminders) '提醒关'];

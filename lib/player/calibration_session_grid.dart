@@ -32,9 +32,7 @@ abstract final class CalibrationSessionGrid {
     BeatGrid? songGrid,
   ) {
     return _songIntervalOf(tier, songGrid) ??
-        Duration(
-          milliseconds: (60000 / _fixedBpmOf(tier)).round(),
-        );
+        Duration(milliseconds: (60000 / _fixedBpmOf(tier)).round());
   }
 
   /// 歌曲档且有已对齐网格时的一拍间隔；其余档 null（回落固定 BPM）。

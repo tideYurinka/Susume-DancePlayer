@@ -752,116 +752,115 @@ class PlanEvent {
     extra: extra,
   );
 
-  static final RecordCodec<PlanEvent, PlanEventField> codec =
-      RecordCodec<PlanEvent, PlanEventField>(
-        ids: PlanEventField.values,
-        decl: (id) => switch (id) {
-          PlanEventField.id => FieldDecl(
-            key: 'id',
-            read: (json) => json['id'] is String ? json['id'] : null,
-            write: (v) => v.id,
-            equal: (a, b) => a.id == b.id,
-          ),
-          PlanEventField.type => FieldDecl(
-            key: 'type',
-            read: (json) =>
-                json['type'] is String ? json['type'] : kPlanEventTypeSocial,
-            write: (v) => v.type,
-            equal: (a, b) => a.type == b.type,
-          ),
-          PlanEventField.date => FieldDecl(
-            key: 'date',
-            read: (json) => tryParsePlanDay(json['date']),
-            write: (v) => planDayKey(v.date),
-            equal: (a, b) => a.date == b.date,
-          ),
-          PlanEventField.startTime => FieldDecl(
-            key: 'startTime',
-            read: (json) =>
-                _isHhMm(json['startTime']) ? json['startTime'] as String : null,
-            write: (v) => v.startTime ?? omitField,
-            equal: (a, b) => a.startTime == b.startTime,
-          ),
-          PlanEventField.location => FieldDecl(
-            key: 'location',
-            read: (json) => json['location'] is String ? json['location'] : '',
-            write: (v) => v.location,
-            equal: (a, b) => a.location == b.location,
-          ),
-          PlanEventField.remark => FieldDecl(
-            key: 'remark',
-            read: (json) => json['remark'] is String ? json['remark'] : '',
-            write: (v) => v.remark,
-            equal: (a, b) => a.remark == b.remark,
-          ),
-          PlanEventField.danceIds => FieldDecl(
-            key: 'danceIds',
-            read: (json) => <String>[
-              for (final raw in _asListOrNull(json['danceIds']))
-                if (raw is String) raw,
-            ],
-            write: (v) => v.danceIds,
-            equal: (a, b) => _listEquals(a.danceIds, b.danceIds),
-          ),
-          PlanEventField.checklist => FieldDecl(
-            key: 'checklist',
-            read: (json) => <PlanChecklistItem>[
-              for (final raw in _asListOrNull(json['checklist']))
-                ?PlanChecklistItem.tryFromJson(raw),
-            ],
-            write: (v) => [for (final item in v.checklist) item.toJson()],
-            equal: (a, b) => _listEquals(a.checklist, b.checklist),
-          ),
-          PlanEventField.danceGates => FieldDecl(
-            key: 'danceGates',
-            read: (json) => _readDanceGates(json['danceGates']),
-            write: (v) => v.danceGates.isEmpty
-                ? omitField
-                : Map<String, Object?>.of(v.danceGates),
-            equal: (a, b) => _mapEquals(a.danceGates, b.danceGates),
-          ),
-          PlanEventField.checkMode => FieldDecl(
-            key: 'checkMode',
-            read: (json) => _isTeamCheckMode(json['checkMode'])
-                ? json['checkMode'] as String
-                : kTeamCheckModeRehearsal,
-            write: (v) => v.checkMode,
-            equal: (a, b) => a.checkMode == b.checkMode,
-          ),
-          PlanEventField.submittedOn => FieldDecl(
-            key: 'submittedOn',
-            read: (json) => tryParsePlanDay(json['submittedOn']),
-            write: (v) =>
-                v.submittedOn == null ? omitField : planDayKey(v.submittedOn!),
-            equal: (a, b) => a.submittedOn == b.submittedOn,
-          ),
-          PlanEventField.leadDays => FieldDecl(
-            key: 'leadDays',
-            read: (json) =>
-                json['leadDays'] is num ? (json['leadDays'] as num).toInt() : null,
-            write: (v) => v.leadDays ?? omitField,
-            equal: (a, b) => a.leadDays == b.leadDays,
-          ),
-        },
-        required: const {PlanEventField.id, PlanEventField.date},
-        build: (values) => PlanEvent(
-          id: values[PlanEventField.id]! as String,
-          type: values[PlanEventField.type]! as String,
-          date: values[PlanEventField.date]! as DateTime,
-          startTime: values[PlanEventField.startTime] as String?,
-          location: values[PlanEventField.location]! as String,
-          remark: values[PlanEventField.remark]! as String,
-          danceIds: values[PlanEventField.danceIds]! as List<String>,
-          checklist:
-              values[PlanEventField.checklist]! as List<PlanChecklistItem>,
-          danceGates: values[PlanEventField.danceGates]! as Map<String, String>,
-          checkMode: values[PlanEventField.checkMode]! as String,
-          submittedOn: values[PlanEventField.submittedOn] as DateTime?,
-          leadDays: values[PlanEventField.leadDays] as int?,
-        ),
-        extraOf: (v) => v.extra,
-        withExtra: (v, extra) => v._withExtra(extra),
-      );
+  static final RecordCodec<PlanEvent, PlanEventField>
+  codec = RecordCodec<PlanEvent, PlanEventField>(
+    ids: PlanEventField.values,
+    decl: (id) => switch (id) {
+      PlanEventField.id => FieldDecl(
+        key: 'id',
+        read: (json) => json['id'] is String ? json['id'] : null,
+        write: (v) => v.id,
+        equal: (a, b) => a.id == b.id,
+      ),
+      PlanEventField.type => FieldDecl(
+        key: 'type',
+        read: (json) =>
+            json['type'] is String ? json['type'] : kPlanEventTypeSocial,
+        write: (v) => v.type,
+        equal: (a, b) => a.type == b.type,
+      ),
+      PlanEventField.date => FieldDecl(
+        key: 'date',
+        read: (json) => tryParsePlanDay(json['date']),
+        write: (v) => planDayKey(v.date),
+        equal: (a, b) => a.date == b.date,
+      ),
+      PlanEventField.startTime => FieldDecl(
+        key: 'startTime',
+        read: (json) =>
+            _isHhMm(json['startTime']) ? json['startTime'] as String : null,
+        write: (v) => v.startTime ?? omitField,
+        equal: (a, b) => a.startTime == b.startTime,
+      ),
+      PlanEventField.location => FieldDecl(
+        key: 'location',
+        read: (json) => json['location'] is String ? json['location'] : '',
+        write: (v) => v.location,
+        equal: (a, b) => a.location == b.location,
+      ),
+      PlanEventField.remark => FieldDecl(
+        key: 'remark',
+        read: (json) => json['remark'] is String ? json['remark'] : '',
+        write: (v) => v.remark,
+        equal: (a, b) => a.remark == b.remark,
+      ),
+      PlanEventField.danceIds => FieldDecl(
+        key: 'danceIds',
+        read: (json) => <String>[
+          for (final raw in _asListOrNull(json['danceIds']))
+            if (raw is String) raw,
+        ],
+        write: (v) => v.danceIds,
+        equal: (a, b) => _listEquals(a.danceIds, b.danceIds),
+      ),
+      PlanEventField.checklist => FieldDecl(
+        key: 'checklist',
+        read: (json) => <PlanChecklistItem>[
+          for (final raw in _asListOrNull(json['checklist']))
+            ?PlanChecklistItem.tryFromJson(raw),
+        ],
+        write: (v) => [for (final item in v.checklist) item.toJson()],
+        equal: (a, b) => _listEquals(a.checklist, b.checklist),
+      ),
+      PlanEventField.danceGates => FieldDecl(
+        key: 'danceGates',
+        read: (json) => _readDanceGates(json['danceGates']),
+        write: (v) => v.danceGates.isEmpty
+            ? omitField
+            : Map<String, Object?>.of(v.danceGates),
+        equal: (a, b) => _mapEquals(a.danceGates, b.danceGates),
+      ),
+      PlanEventField.checkMode => FieldDecl(
+        key: 'checkMode',
+        read: (json) => _isTeamCheckMode(json['checkMode'])
+            ? json['checkMode'] as String
+            : kTeamCheckModeRehearsal,
+        write: (v) => v.checkMode,
+        equal: (a, b) => a.checkMode == b.checkMode,
+      ),
+      PlanEventField.submittedOn => FieldDecl(
+        key: 'submittedOn',
+        read: (json) => tryParsePlanDay(json['submittedOn']),
+        write: (v) =>
+            v.submittedOn == null ? omitField : planDayKey(v.submittedOn!),
+        equal: (a, b) => a.submittedOn == b.submittedOn,
+      ),
+      PlanEventField.leadDays => FieldDecl(
+        key: 'leadDays',
+        read: (json) =>
+            json['leadDays'] is num ? (json['leadDays'] as num).toInt() : null,
+        write: (v) => v.leadDays ?? omitField,
+        equal: (a, b) => a.leadDays == b.leadDays,
+      ),
+    },
+    required: const {PlanEventField.id, PlanEventField.date},
+    build: (values) => PlanEvent(
+      id: values[PlanEventField.id]! as String,
+      type: values[PlanEventField.type]! as String,
+      date: values[PlanEventField.date]! as DateTime,
+      startTime: values[PlanEventField.startTime] as String?,
+      location: values[PlanEventField.location]! as String,
+      remark: values[PlanEventField.remark]! as String,
+      danceIds: values[PlanEventField.danceIds]! as List<String>,
+      checklist: values[PlanEventField.checklist]! as List<PlanChecklistItem>,
+      danceGates: values[PlanEventField.danceGates]! as Map<String, String>,
+      checkMode: values[PlanEventField.checkMode]! as String,
+      submittedOn: values[PlanEventField.submittedOn] as DateTime?,
+      leadDays: values[PlanEventField.leadDays] as int?,
+    ),
+    extraOf: (v) => v.extra,
+    withExtra: (v, extra) => v._withExtra(extra),
+  );
 
   /// 结构读取；id 缺失/空串或日期非法返回 null（整条按损坏丢弃兜底），
   /// 陌生键收进保底区原样带回。
@@ -1440,8 +1439,7 @@ class PracticePlanStore {
     try {
       final json = await _storage.loadOrNull();
       _readOnly =
-          json != null &&
-          !PracticePlanDocument.versionPolicy.isWritable(json);
+          json != null && !PracticePlanDocument.versionPolicy.isWritable(json);
       final document = json == null
           ? const PracticePlanDocument.empty()
           : PracticePlanDocument.fromJson(json);

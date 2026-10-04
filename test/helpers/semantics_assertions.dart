@@ -32,11 +32,7 @@ void expectButtonSemantics(
   final properties = semanticsOfKey(tester, key).properties;
   expect(properties.button, isTrue, reason: reason ?? '$key 应报按钮语义');
   if (label != null) {
-    expect(
-      _semanticName(tester, key),
-      label,
-      reason: reason ?? '$key 的语义名字',
-    );
+    expect(_semanticName(tester, key), label, reason: reason ?? '$key 的语义名字');
   }
   if (enabled != null) {
     expect(properties.enabled, enabled, reason: reason ?? '$key 的可点门控');

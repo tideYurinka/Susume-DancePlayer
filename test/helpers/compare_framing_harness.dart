@@ -127,6 +127,18 @@ Future<void> enterCompareEditing(
   await tapPlayerSurface(tester, wait: wait);
 }
 
+/// 点开**生效顶栏**里的「取景调整」入口：常规档横屏与竖屏下它是内联槽位；
+/// 紧凑档横屏下它由「更多」钮的向上弹出菜单承载（先弹菜单再点条目）——
+/// 两条路都是该视口下真实用户走到取景调节态的路径，本助手按场上有无
+/// 「更多」钮二选一。
+Future<void> tapFramingEntry(WidgetTester tester) async {
+  if (find.byKey(const Key('tool_more')).evaluate().isNotEmpty) {
+    await tester.tap(find.byKey(const Key('tool_more')));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+}
+
 /// 进对比取景态（真入口）：[viaControlLayer] = true 时经对比-控制层的
 /// 「取景调整」点按进入。
 ///
@@ -148,7 +160,7 @@ Future<void> enterFramingMode(
   }
   if (compareFramingMode(tester) == PlayerSessionMode.compareFraming) return;
   await enterCompareEditing(tester, wait: wait);
-  await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+  await tapFramingEntry(tester);
   await awaitFraming(tester, wait);
 }
 

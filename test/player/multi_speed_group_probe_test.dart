@@ -37,14 +37,28 @@ void main() {
   final slowGroup = MetronomeSpeedGroup(
     standardMs: 400,
     slots: [
-      slowA1, sharedS1, slowA3, slowA4, slowA5, slowA6, slowA7, slowA8,
+      slowA1,
+      sharedS1,
+      slowA3,
+      slowA4,
+      slowA5,
+      slowA6,
+      slowA7,
+      slowA8,
       sharedS3,
     ],
   );
   final fastGroup = MetronomeSpeedGroup(
     standardMs: 150,
     slots: [
-      fastB1, sharedS1, fastB3, fastB4, fastB5, fastB6, fastB7, fastB8,
+      fastB1,
+      sharedS1,
+      fastB3,
+      fastB4,
+      fastB5,
+      fastB6,
+      fastB7,
+      fastB8,
       sharedS3,
     ],
   );
@@ -61,8 +75,22 @@ void main() {
 
   // 首次出现定序的装载清单（字面书写，慢组 9 槽在前、快组独有 6 段在后）。
   const expectedLoads = [
-    slowA1, sharedS1, slowA3, slowA4, slowA5, slowA6, slowA7, slowA8,
-    sharedS3, fastB1, fastB3, fastB4, fastB5, fastB6, fastB7, fastB8,
+    slowA1,
+    sharedS1,
+    slowA3,
+    slowA4,
+    slowA5,
+    slowA6,
+    slowA7,
+    slowA8,
+    sharedS3,
+    fastB1,
+    fastB3,
+    fastB4,
+    fastB5,
+    fastB6,
+    fastB7,
+    fastB8,
   ];
 
   // 合成资产：资产名 → 段长（毫秒）。慢组 a1 = 400 定组身份，快组 b1 =
@@ -144,25 +172,13 @@ void main() {
 
   test('选速三态：装得下取最快 / 恰好相等 / 全超取最慢', () {
     // 间隔 500：两组都装得下 → 取最快（快组 150）。
-    expect(
-      selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 500),
-      1,
-    );
+    expect(selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 500), 1);
     // 间隔恰好 150：等于快组声明长度，装得下 → 快组。
-    expect(
-      selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 150),
-      1,
-    );
+    expect(selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 150), 1);
     // 间隔恰好 400：等于慢组声明长度，但快组（150）也装得下且更快 → 快组。
-    expect(
-      selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 400),
-      1,
-    );
+    expect(selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 400), 1);
     // 间隔 100：全超 → 取最慢（慢组 400）。
-    expect(
-      selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 100),
-      0,
-    );
+    expect(selectMetronomeSpeedGroupIndex(probeSource.speedGroups, 100), 0);
   });
 
   test('每组段 id 落点：槽位 → 去重表下标，跨组共享段同 id', () {
@@ -194,8 +210,16 @@ void main() {
     expect(MetronomeSegmentTable.of(probeSource).loads, probeTable.loads);
     // 覆盖：两组每个槽位的 id 都落在清单下标域内。
     for (final slot in MetronomeSegmentSlot.values) {
-      expect(probeTable.idOf(0, slot), inInclusiveRange(0, 15), reason: '$slot');
-      expect(probeTable.idOf(1, slot), inInclusiveRange(0, 15), reason: '$slot');
+      expect(
+        probeTable.idOf(0, slot),
+        inInclusiveRange(0, 15),
+        reason: '$slot',
+      );
+      expect(
+        probeTable.idOf(1, slot),
+        inInclusiveRange(0, 15),
+        reason: '$slot',
+      );
     }
   });
 
@@ -203,22 +227,16 @@ void main() {
     for (final group in probeSource.speedGroups) {
       expect(group.slots, hasLength(9));
     }
-    expect(
-      probeSource.speedGroups.map((g) => g.standardMs).toSet().length,
-      2,
-    );
+    expect(probeSource.speedGroups.map((g) => g.standardMs).toSet().length, 2);
     for (final group in probeSource.speedGroups) {
       final longest = group.slots
           .map((s) => measuredMs(synthWav(assetDurationMs[s.asset]!)))
-          .reduce(
-            (a, b) => a >= b ? a : b,
-          );
+          .reduce((a, b) => a >= b ? a : b);
       expect(group.standardMs, longest);
     }
   });
 
-  test('端到端：换代换组后零重载、零 flush、零停流，槽位来自新组的同一张已载表',
-      () async {
+  test('端到端：换代换组后零重载、零 flush、零停流，槽位来自新组的同一张已载表', () async {
     final sink = FakeBeatAudioSink()
       // 探针 16 段 > 生产注册表派生容量（3）：探针是测试夹具，容量按其
       // 装载清单放宽；生产容量不变量仍由注册表用例钉住。
@@ -230,25 +248,32 @@ void main() {
     );
 
     // 慢组（组 0）拍先响：首条消费指令触发整张去重表一次性装载。
-    await renderer.schedule(commandOf(probeTable.idOf(0,
-        MetronomeSegmentSlot.count1)));
-    expect(sink.loads.map((l) => l.segmentId).toList(),
-        [for (var i = 0; i < expectedLoads.length; i++) i]);
-    expect(sink.loads.map((l) => l.markerMs).toList(),
-        [for (final spec in expectedLoads) spec.markerMs]);
+    await renderer.schedule(
+      commandOf(probeTable.idOf(0, MetronomeSegmentSlot.count1)),
+    );
+    expect(sink.loads.map((l) => l.segmentId).toList(), [
+      for (var i = 0; i < expectedLoads.length; i++) i,
+    ]);
+    expect(sink.loads.map((l) => l.markerMs).toList(), [
+      for (final spec in expectedLoads) spec.markerMs,
+    ]);
     final loadsAfterSlow = sink.loads.length;
     final startsAfterSlow = sink.startCount;
     final enqueuesAfterSlow = sink.enqueues.length;
 
     // 网格换代 → 选速落快组（组 1）：只换查表键。
-    await renderer.schedule(commandOf(probeTable.idOf(1,
-        MetronomeSegmentSlot.count1)));
-    await renderer.schedule(commandOf(probeTable.idOf(1,
-        MetronomeSegmentSlot.count5)));
+    await renderer.schedule(
+      commandOf(probeTable.idOf(1, MetronomeSegmentSlot.count1)),
+    );
+    await renderer.schedule(
+      commandOf(probeTable.idOf(1, MetronomeSegmentSlot.count5)),
+    );
 
     expect(sink.enqueues.length, enqueuesAfterSlow + 2);
-    expect(sink.enqueues.last.segmentId, probeTable.idOf(1,
-        MetronomeSegmentSlot.count5));
+    expect(
+      sink.enqueues.last.segmentId,
+      probeTable.idOf(1, MetronomeSegmentSlot.count5),
+    );
     // 零重载、零 flush、零停流。
     expect(sink.loads.length, loadsAfterSlow, reason: '换组不重载');
     expect(sink.flushCount, 0, reason: '换组不 flush');
@@ -267,10 +292,13 @@ void main() {
     }
 
     // 再次换代换回慢组（组 0）：同样只换查表键，仍零重载、零 flush。
-    await renderer.schedule(commandOf(probeTable.idOf(0,
-        MetronomeSegmentSlot.count5)));
-    expect(sink.enqueues.last.segmentId, probeTable.idOf(0,
-        MetronomeSegmentSlot.count5));
+    await renderer.schedule(
+      commandOf(probeTable.idOf(0, MetronomeSegmentSlot.count5)),
+    );
+    expect(
+      sink.enqueues.last.segmentId,
+      probeTable.idOf(0, MetronomeSegmentSlot.count5),
+    );
     expect(sink.loads.length, loadsAfterSlow, reason: '换回慢组不重载');
     expect(sink.flushCount, 0, reason: '换回慢组不 flush');
     expect(sink.stopCount, 0, reason: '换回慢组不停流');
@@ -283,8 +311,9 @@ void main() {
       entry: probeSource,
       loadAsset: synthLoader,
     );
-    await renderer.schedule(commandOf(probeTable.idOf(0,
-        MetronomeSegmentSlot.count1)));
+    await renderer.schedule(
+      commandOf(probeTable.idOf(0, MetronomeSegmentSlot.count1)),
+    );
     final loadedIds = sink.loads.map((l) => l.segmentId).toSet();
 
     // 会话档间隔 200ms → 选出快组；间隔 450ms → 选出慢组。两组的全部

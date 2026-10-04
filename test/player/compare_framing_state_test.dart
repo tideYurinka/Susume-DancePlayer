@@ -12,9 +12,11 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/persistence/video_document_store.dart'
     show VideoDocumentStorage;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
-import '../helpers/video_surface.dart'
-    show videoSurfacePlaceholderKey;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
+
+import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +44,10 @@ void main() {
 
   /// 横屏逻辑尺寸 960 × 540：源侧左半（0–479）、练习侧右半（481–959）。
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
@@ -55,9 +60,7 @@ void main() {
     final source = Uri.file('/videos/a.mp4');
     final docStorage =
         documentStorage ??
-        InMemoryVideoDocumentStorage(
-          local: localFiles['vid-test'] ?? const {},
-        );
+        InMemoryVideoDocumentStorage(local: localFiles['vid-test'] ?? const {});
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -67,7 +70,9 @@ void main() {
             InMemoryPrivateJsonStorage(),
           ),
           systemUiControllerProvider.overrideWithValue(systemUi),
-          contentHasherProvider.overrideWithValue(const FixedHasher('vid-test')),
+          contentHasherProvider.overrideWithValue(
+            const FixedHasher('vid-test'),
+          ),
           videoDocumentStorageFactoryProvider.overrideWithValue(
             (videoId) => docStorage,
           ),
@@ -84,9 +89,8 @@ void main() {
               ),
             ),
           ),
-          videoDocumentStorageProvider(
-            'vid-test',
-          ).overrideWithValue(docStorage),
+          videoDocumentStorageProvider('vid-test')
+              .overrideWithValue(docStorage),
         ],
         child: MaterialApp(home: PlayerPage(source: source)),
       ),
@@ -96,8 +100,7 @@ void main() {
 
   // 共用夹具（提取到 test/helpers/compare_framing_harness.dart）：屏上框几何、
   // 真入口进入取景态、真手势序列——本文件与取景条测试同源。
-  Future<void> enterFraming(WidgetTester tester) =>
-      enterFramingMode(tester);
+  Future<void> enterFraming(WidgetTester tester) => enterFramingMode(tester);
 
   Future<void> singleTapShow(WidgetTester tester) async {
     // 点源侧画面内（水平 0–479、垂直 contain 画面 135–404），避开半区分界。
@@ -157,14 +160,17 @@ void main() {
   // 钳制接线。取景手势编排（进入取基准、调节、重设基准、侧别不变）的直测在
   // `test/player/framing_session_test.dart`（FramingSessionHost，不 pump 整页）。
 
-  testWidgets('取景态在 burst 中途退出：本 burst 余帧既不再改取景、也不回落播放语义',
-      (tester) async {
+  testWidgets('取景态在 burst 中途退出：本 burst 余帧既不再改取景、也不回落播放语义', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await enterFraming(tester);
 
     // 先圈一个选区，再起一次单指手势并保持按下（本次会圈出新框）。
-    await buildBox(tester, from: const Offset(150, 180), to: const Offset(300, 320));
+    await buildBox(
+      tester,
+      from: const Offset(150, 180),
+      to: const Offset(300, 320),
+    );
     final pinned = framingBoxOnScreen(tester)!;
     final touch = await tester.startGesture(const Offset(180, 180));
     await tester.pump();
@@ -191,9 +197,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      engine.callLog.skip(callsBefore.length).where(
-            (c) => c.startsWith('seek') || c.startsWith('setVolume'),
-          ),
+      engine.callLog
+          .skip(callsBefore.length)
+          .where((c) => c.startsWith('seek') || c.startsWith('setVolume')),
       isEmpty,
     );
     // 再进一次取景态：屏上框仍是退出前定格的那一个（余帧没有改建框）。
@@ -241,11 +247,13 @@ void main() {
     setWideView(tester);
     await pumpPlayer(tester);
     await enterFraming(tester);
-    final unframed = tester.getRect(
-      find.byKey(videoSurfacePlaceholderKey),
-    );
+    final unframed = tester.getRect(find.byKey(videoSurfacePlaceholderKey));
 
-    await buildBox(tester, from: const Offset(120, 160), to: const Offset(360, 360));
+    await buildBox(
+      tester,
+      from: const Offset(120, 160),
+      to: const Offset(360, 360),
+    );
     await tester.tap(find.byKey(const Key('framing_done')));
     await tester.pumpAndSettle();
 
@@ -262,7 +270,11 @@ void main() {
     await pumpPlayer(tester);
     await enterFraming(tester);
 
-    await buildBox(tester, from: const Offset(150, 180), to: const Offset(300, 320));
+    await buildBox(
+      tester,
+      from: const Offset(150, 180),
+      to: const Offset(300, 320),
+    );
     expect(framingBoxOnScreen(tester), isNotNull, reason: '圈好后屏上出现选区框');
     expect(
       find.byKey(const Key('framing_selection_overlay')),
@@ -274,10 +286,7 @@ void main() {
     await tester.pumpAndSettle();
     // 复位生效 = 屏上框消失（回整帧）。
     expect(framingBoxOnScreen(tester), isNull);
-    expect(
-      find.byKey(const Key('framing_selection_overlay')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('framing_selection_overlay')), findsNothing);
 
     await tester.tap(find.byKey(const Key('framing_done')));
     await tester.pumpAndSettle();
@@ -315,14 +324,17 @@ void main() {
 
   testWidgets('打开含旧 v3 取景键的舞：取景未调过（直接复位）', (tester) async {
     setWideView(tester);
-    await pumpPlayer(tester, localFiles: {
-      'vid-test': {
-        'version': 3,
-        'prefs': {
-          'framingSource': {'scale': 2.5, 'offsetX': 0.0, 'offsetY': 0.0},
+    await pumpPlayer(
+      tester,
+      localFiles: {
+        'vid-test': {
+          'version': 3,
+          'prefs': {
+            'framingSource': {'scale': 2.5, 'offsetX': 0.0, 'offsetY': 0.0},
+          },
         },
       },
-    });
+    );
     await enterFraming(tester);
 
     expect(
@@ -330,12 +342,8 @@ void main() {
       isNull,
       reason: '旧值不换算、不提升：屏上无框，回未调过的起手构图',
     );
-    expect(
-      find.byKey(const Key('framing_selection_overlay')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('framing_selection_overlay')), findsNothing);
   });
-
 
   testWidgets('直写不受锁定分段门禁：「锁定分段」开启时取景仍可调', (tester) async {
     setWideView(tester);
@@ -356,13 +364,13 @@ void main() {
     );
     await enterFraming(tester);
 
-    await buildBox(tester, from: const Offset(150, 180), to: const Offset(300, 320));
-
-    expect(
-      framingBoxOnScreen(tester),
-      isNotNull,
-      reason: '锁定分段开启时屏上仍圈得出取景框',
+    await buildBox(
+      tester,
+      from: const Offset(150, 180),
+      to: const Offset(300, 320),
     );
+
+    expect(framingBoxOnScreen(tester), isNotNull, reason: '锁定分段开启时屏上仍圈得出取景框');
   });
 
   testWidgets('取景调整不入撤销／重做史', (tester) async {
@@ -375,7 +383,11 @@ void main() {
     expect(toolSlotDisabled(tester, 'tool_redo'), isTrue);
 
     await enterFraming(tester);
-    await buildBox(tester, from: const Offset(150, 180), to: const Offset(300, 320));
+    await buildBox(
+      tester,
+      from: const Offset(150, 180),
+      to: const Offset(300, 320),
+    );
     expect(framingBoxOnScreen(tester), isNotNull);
 
     await tester.tap(find.byKey(const Key('framing_done')));
@@ -385,5 +397,4 @@ void main() {
     expect(toolSlotDisabled(tester, 'tool_undo'), isTrue, reason: '取景不入撤销史');
     expect(toolSlotDisabled(tester, 'tool_redo'), isTrue, reason: '取景不入重做史');
   });
-
 }

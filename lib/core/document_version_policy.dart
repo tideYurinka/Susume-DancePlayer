@@ -84,10 +84,7 @@ class PolicyUpgrade {
 class DocumentVersionPolicy {
   /// 声明即校验：步骤必须从地板起逐级紧邻（`steps[i].from == floor + i`），
   /// 乱序、倒退、跳级（=「抬版本号却缺一级」）在构造期即失败。
-  DocumentVersionPolicy({
-    required this.floor,
-    this.steps = const [],
-  }) {
+  DocumentVersionPolicy({required this.floor, this.steps = const []}) {
     for (var i = 0; i < steps.length; i++) {
       final expected = floor + i;
       if (steps[i].from != expected) {

@@ -118,8 +118,8 @@ class QuarantiningVideoDocumentStorage implements VideoDocumentStorage {
   QuarantiningVideoDocumentStorage({
     required VideoDocumentStorageKernel markers,
     required VideoDocumentStorageKernel local,
-  })  : _markers = markers, // ignore: prefer_initializing_formals
-        _local = local; // ignore: prefer_initializing_formals
+  }) : _markers = markers, // ignore: prefer_initializing_formals
+       _local = local; // ignore: prefer_initializing_formals
 
   final VideoDocumentStorageKernel _markers;
   final VideoDocumentStorageKernel _local;
@@ -235,9 +235,9 @@ class AtomicVideoDocumentStorage extends QuarantiningVideoDocumentStorage {
     required FutureOr<File> markersFile,
     required FutureOr<File> localFile,
   }) : super(
-          markers: _AtomicDocumentKernel(AtomicJsonFile(markersFile)),
-          local: _AtomicDocumentKernel(AtomicJsonFile(localFile)),
-        );
+         markers: _AtomicDocumentKernel(AtomicJsonFile(markersFile)),
+         local: _AtomicDocumentKernel(AtomicJsonFile(localFile)),
+       );
 }
 
 /// 真实文件内核：[AtomicJsonFile] 的读写 + 同目录旁路留档。
@@ -322,13 +322,14 @@ class VideoDocumentCoordinator {
     write: _writeMarkers,
   );
 
-  DocumentReadOutcome<LocalDocument> _localOutcome(Map<String, dynamic>? json) =>
-      _outcome(
-        json,
-        policy: LocalDocument.versionPolicy,
-        decode: LocalDocument.fromJson,
-        write: _writeLocal,
-      );
+  DocumentReadOutcome<LocalDocument> _localOutcome(
+    Map<String, dynamic>? json,
+  ) => _outcome(
+    json,
+    policy: LocalDocument.versionPolicy,
+    decode: LocalDocument.fromJson,
+    write: _writeLocal,
+  );
 
   /// 文件层结局：`null`（`AtomicJsonFile.readOrNull` 对「文件不在/损坏/顶层
   /// 非对象」的兜底）落 [DocumentAbsent]；**存在但内容为空对象**不在这里
@@ -349,8 +350,10 @@ class VideoDocumentCoordinator {
       DocumentVersionVerdict.aboveCurrent ||
       DocumentVersionVerdict.belowFloor ||
       DocumentVersionVerdict.unreadableHeader ||
-      DocumentVersionVerdict.notAnObject =>
-        DocumentReadOnly(document, _reasonOf(verdict)),
+      DocumentVersionVerdict.notAnObject => DocumentReadOnly(
+        document,
+        _reasonOf(verdict),
+      ),
     };
   }
 
@@ -371,7 +374,7 @@ class VideoDocumentCoordinator {
 
   Future<DocumentWriteOutcome<MarkersDocument>> _writeMarkers(
     FutureOr<MarkersDocument> Function(DocumentWriteContext<MarkersDocument>)
-        mutate,
+    mutate,
   ) async {
     DocumentWriteOutcome<MarkersDocument>? outcome;
     await _storage.mutateMarkers((json, {required bool present}) async {
@@ -404,7 +407,7 @@ class VideoDocumentCoordinator {
 
   Future<DocumentWriteOutcome<LocalDocument>> _writeLocal(
     FutureOr<LocalDocument> Function(DocumentWriteContext<LocalDocument>)
-        mutate,
+    mutate,
   ) async {
     DocumentWriteOutcome<LocalDocument>? outcome;
     await _storage.mutateLocal((json, {required bool present}) async {

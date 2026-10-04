@@ -98,11 +98,7 @@ void main() {
       const Duration(seconds: 3),
       const Duration(seconds: 7),
     ]);
-    expect(
-      after.map((p) => p.practiceCount),
-      [1, 1],
-      reason: '换分组后同桶仍完整经过一遍',
-    );
+    expect(after.map((p) => p.practiceCount), [1, 1], reason: '换分组后同桶仍完整经过一遍');
 
     // 历史一个字节不变：既没写盘（saveCount 不动），落盘内容也逐字节相同。
     expect(bucketStorage.saveCount, savesBefore);
@@ -111,14 +107,15 @@ void main() {
 }
 
 /// 分片 → 纯值层可聚合读面：走生产同一条读取时投影（`projectShardToCurrentGrid`）。
-Map<String, Map<int, SegmentBucketValue>> _readFace(FourBeatBucketShard shard) =>
-    {
-      for (final day in projectShardToCurrentGrid(shard, null).entries)
-        day.key: {
-          for (final bucket in day.value.entries)
-            bucket.key: SegmentBucketValue(
-              wallSeconds: bucket.value.wallSeconds,
-              sweeps: bucket.value.sweeps,
-            ),
-        },
-    };
+Map<String, Map<int, SegmentBucketValue>> _readFace(
+  FourBeatBucketShard shard,
+) => {
+  for (final day in projectShardToCurrentGrid(shard, null).entries)
+    day.key: {
+      for (final bucket in day.value.entries)
+        bucket.key: SegmentBucketValue(
+          wallSeconds: bucket.value.wallSeconds,
+          sweeps: bucket.value.sweeps,
+        ),
+    },
+};

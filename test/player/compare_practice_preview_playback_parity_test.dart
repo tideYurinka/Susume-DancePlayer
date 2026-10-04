@@ -16,7 +16,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show practiceClipsProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
     show SurfaceFace;
 import 'package:dance_learning_app/player_session/player_session.dart'
@@ -105,7 +106,10 @@ void main() {
   late MemoryManifestStorage manifestStorage;
 
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
@@ -295,9 +299,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('回放态内点镜像槽：当前显示的片段画面即时反相（随同一个开关）', (
-      tester,
-    ) async {
+    testWidgets('回放态内点镜像槽：当前显示的片段画面即时反相（随同一个开关）', (tester) async {
       setWideView(tester);
       final container = await pumpPlayer(tester);
       await enterCompareEditing(tester);
@@ -323,11 +325,7 @@ void main() {
           practiceMirror: container.read(effectivePracticeMirrorProvider),
         ),
       );
-      expect(
-        closed,
-        isNot(opened),
-        reason: '正在放的那路画面当场随开关翻（不必先退出回看）',
-      );
+      expect(closed, isNot(opened), reason: '正在放的那路画面当场随开关翻（不必先退出回看）');
 
       await tapPracticeMirrorSlot(tester);
       expect(container.read(effectivePracticeMirrorProvider), isTrue);
@@ -514,7 +512,10 @@ void main() {
         reason: '关闭镜像时也恒在树上（平台画面件不因开关换结构位）',
       );
       await activateClip(tester);
-      expect(find.byKey(const Key('practice_mirrored_surface')), findsOneWidget);
+      expect(
+        find.byKey(const Key('practice_mirrored_surface')),
+        findsOneWidget,
+      );
 
       // 收尾：双引擎暂停后再 settle（回放件的循环定时器不留在树上）。
       engine.pause();

@@ -22,8 +22,8 @@ enum _MemberSchemeField {
 
 /// 条目编解码器：必填 = schemeId（缺失条目按损坏丢弃）。markers 是发送方
 /// 公开标注文档的整份 JSON 值，原样存取（编解码归既有文档模型）。
-final RecordCodec<MemberSchemeRecord, _MemberSchemeField>
-    _memberSchemeCodec = RecordCodec<MemberSchemeRecord, _MemberSchemeField>(
+final RecordCodec<MemberSchemeRecord, _MemberSchemeField> _memberSchemeCodec =
+    RecordCodec<MemberSchemeRecord, _MemberSchemeField>(
       ids: _MemberSchemeField.values,
       decl: _memberSchemeDecl,
       required: const {_MemberSchemeField.schemeId},
@@ -68,9 +68,7 @@ FieldDecl<MemberSchemeRecord> _memberSchemeDecl(_MemberSchemeField id) =>
         read: (json) => _readMastery(json['mastery']),
         write: (v) => v.mastery == null
             ? null
-            : {
-                for (final e in v.mastery!.entries) '${e.key}': e.value,
-              },
+            : {for (final e in v.mastery!.entries) '${e.key}': e.value},
         equal: (a, b) => _masteryEquals(a.mastery, b.mastery),
       ),
       _MemberSchemeField.importedAtMs => FieldDecl(
@@ -82,10 +80,9 @@ FieldDecl<MemberSchemeRecord> _memberSchemeDecl(_MemberSchemeField id) =>
       ),
       _MemberSchemeField.markers => FieldDecl(
         key: 'markers',
-        read: (json) =>
-            json['markers'] is Map<String, Object?>
-                ? json['markers'] as Map<String, Object?>
-                : const <String, Object?>{},
+        read: (json) => json['markers'] is Map<String, Object?>
+            ? json['markers'] as Map<String, Object?>
+            : const <String, Object?>{},
         write: (v) => v.markers,
         equal: (a, b) => jsonDeepEquals(a.markers, b.markers),
       ),
@@ -115,17 +112,16 @@ bool _masteryEquals(Map<int, int>? a, Map<int, int>? b) {
 
 MemberSchemeRecord _buildMemberScheme(
   Map<_MemberSchemeField, Object?> values,
-) =>
-    MemberSchemeRecord(
-      schemeId: values[_MemberSchemeField.schemeId]! as String,
-      memberName: values[_MemberSchemeField.memberName]! as String,
-      schemeName: values[_MemberSchemeField.schemeName]! as String,
-      mastery: values[_MemberSchemeField.mastery] as Map<int, int>?,
-      importedAt: DateTime.fromMillisecondsSinceEpoch(
-        values[_MemberSchemeField.importedAtMs]! as int,
-      ),
-      markers: values[_MemberSchemeField.markers]! as Map<String, Object?>,
-    );
+) => MemberSchemeRecord(
+  schemeId: values[_MemberSchemeField.schemeId]! as String,
+  memberName: values[_MemberSchemeField.memberName]! as String,
+  schemeName: values[_MemberSchemeField.schemeName]! as String,
+  mastery: values[_MemberSchemeField.mastery] as Map<int, int>?,
+  importedAt: DateTime.fromMillisecondsSinceEpoch(
+    values[_MemberSchemeField.importedAtMs]! as int,
+  ),
+  markers: values[_MemberSchemeField.markers]! as Map<String, Object?>,
+);
 
 /// 一条组员方案。
 class MemberSchemeRecord {
@@ -170,10 +166,7 @@ class MemberSchemeRecord {
 
 /// 组员方案文档：`version` + 一个方案列表。
 class MemberSchemesDocument {
-  const MemberSchemesDocument({
-    this.schemes = const [],
-    this.extra = const {},
-  });
+  const MemberSchemesDocument({this.schemes = const [], this.extra = const {}});
 
   /// 空态（文件缺失/损坏/低于地板兜底）。
   static const MemberSchemesDocument empty = MemberSchemesDocument();
@@ -306,8 +299,8 @@ class MemberSchemeStore {
 
   /// 按舞清除（随舞删除的唯一写入口）：整份文件删掉，读回空态。
   Future<void> clear() => _enqueue<void>(() async {
-        await _storage.delete();
-      });
+    await _storage.delete();
+  });
 
   /// 单条写链：串行「读 → 改 → 写」，并发写不互相覆盖。
   Future<T> _enqueue<T>(Future<T> Function() body) {
@@ -322,14 +315,15 @@ class MemberSchemeStore {
 /// 覆盖本工厂）。随舞删除走 [MemberSchemeStorage.delete]。
 final memberSchemeStorageProvider =
     Provider.family<MemberSchemeStorage, String>((ref, videoId) {
-  return MemberSchemeFileStore(
-    ref.watch(importIndexFileProvider).then(
-          (indexFile) => File(
-            p.join(indexFile.parent.path, 'schemes_$videoId.json'),
-          ),
-        ),
-  );
-});
+      return MemberSchemeFileStore(
+        ref
+            .watch(importIndexFileProvider)
+            .then(
+              (indexFile) =>
+                  File(p.join(indexFile.parent.path, 'schemes_$videoId.json')),
+            ),
+      );
+    });
 
 /// 组员方案存取注入点（family 参数 = videoId）：写链随实例存在，编排层
 /// 一律经此取实例（同一 videoId 单实例 = 单条写链），不自建。
@@ -342,10 +336,7 @@ final memberSchemeStoreProvider = Provider.family<MemberSchemeStore, String>((
 
 /// 组员方案读面（详情页「组员方案」区用）：autoDispose，页面不在场即释放；
 /// 删一条等写动作落盘后由页面 invalidate 重读。
-final memberSchemesProvider =
-    FutureProvider.autoDispose.family<MemberSchemesDocument, String>((
-      ref,
-      videoId,
-    ) {
+final memberSchemesProvider = FutureProvider.autoDispose
+    .family<MemberSchemesDocument, String>((ref, videoId) {
       return ref.watch(memberSchemeStoreProvider(videoId)).read();
     });

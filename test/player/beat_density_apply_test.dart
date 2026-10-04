@@ -17,7 +17,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationSaveSinkStateProvider,
         annotationTimelineProvider,
         layoutLockedProvider;
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:dance_learning_app/persistence/marker_document.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,8 +84,7 @@ void main() {
   AnnotationEditor editor() => container.read(annotationEditorProvider);
   AnnotationTimeline timeline() => container.read(annotationTimelineProvider);
   BeatGrid docGrid() => container.read(beatTrackStateProvider).grid!;
-  int historyLength() =>
-      container.read(annotationEditHistoryProvider).length;
+  int historyLength() => container.read(annotationEditHistoryProvider).length;
 
   group('submitBeatDensity（倍频应用命令）', () {
     test('非就绪网格抛 StateError（占位/异常不适用）', () {
@@ -97,9 +97,7 @@ void main() {
 
     test('快方向 ×2：锚点序号按倍率重写、锚点时刻与八拍点判定都不变', () {
       seedReadyGrid(anchors: const [4, 8]);
-      final anchorTimeBefore = container
-          .read(beatGridProvider)
-          .beatTime(4);
+      final anchorTimeBefore = container.read(beatGridProvider).beatTime(4);
 
       final outcome = editor().submitBeatDensity(2);
       expect(outcome.applied, isTrue);
@@ -109,10 +107,7 @@ void main() {
       // 锚点时刻不变（同一段音乐）。
       expect(container.read(beatGridProvider).beatTime(8), anchorTimeBefore);
       // 「它是不是八拍点」判定不变（新相位源下锚点仍是八拍点）。
-      expect(
-        container.read(beatPhaseProvider).isEightBeatPoint(8),
-        isTrue,
-      );
+      expect(container.read(beatPhaseProvider).isEightBeatPoint(8), isTrue);
     });
 
     test('慢方向 ×½：只保住落在新强拍上的锚点，丢弃不留越界或非强拍残留', () {
@@ -245,8 +240,7 @@ void main() {
 
   group('锚点烘焙纯函数（rebakeEightBeatAnchors）', () {
     final beats = [
-      for (var i = 0; i < 9; i++)
-        BeatPoint(t: 0.5 + i * 0.5, down: i % 4 == 0),
+      for (var i = 0; i < 9; i++) BeatPoint(t: 0.5 + i * 0.5, down: i % 4 == 0),
     ];
 
     test('原样 → 原样：恒等', () {

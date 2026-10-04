@@ -132,9 +132,7 @@ class SpeedStepPresetModel extends Notifier<SpeedStepPresetDoc> {
   /// 选中预设：参数应用到步进控制并持久化选中态。
   Future<void> select(String id) async {
     if (state.presets.every((p) => p.id != id)) return;
-    await _commit(
-      SpeedStepPresetDoc(presets: state.presets, selectedId: id),
-    );
+    await _commit(SpeedStepPresetDoc(presets: state.presets, selectedId: id));
   }
 
   /// 编辑任意预设：就地编辑/新增后保存即存——
@@ -148,15 +146,19 @@ class SpeedStepPresetModel extends Notifier<SpeedStepPresetDoc> {
   }) async {
     final target = presetById(state, id);
     if (target == null) return;
-    final nextName = name == null || name.trim().isEmpty ? target.name : name.trim();
+    final nextName = name == null || name.trim().isEmpty
+        ? target.name
+        : name.trim();
     final effectiveParams = params ?? target.params;
     if (!effectiveParams.isValid) return;
     await _commit(
       state.copyWith(
         presets: [
           for (final p in state.presets)
-            if (p.id == id) p.copyWith(name: nextName, params: effectiveParams)
-            else p,
+            if (p.id == id)
+              p.copyWith(name: nextName, params: effectiveParams)
+            else
+              p,
         ],
       ),
       apply: state.selectedId == id,

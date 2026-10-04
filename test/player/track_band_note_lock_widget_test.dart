@@ -58,7 +58,8 @@ void main() {
         playbackEngineProvider.overrideWithValue(engine),
         annotationSaveSinkProvider.overrideWithValue(sink),
         beatTrackStateProvider.overrideWithBuild(
-          (ref, _) => uniformReadyBeatState(seconds: total.inMilliseconds / 1000),
+          (ref, _) =>
+              uniformReadyBeatState(seconds: total.inMilliseconds / 1000),
         ),
       ],
     );
@@ -114,9 +115,7 @@ void main() {
   testWidgets('已锁定片段再长按解锁', (tester) async {
     final container = await pumpBandWithNotes(
       tester: tester,
-      notes: const [
-        NoteSticker(startMs: 10000, endMs: 18000, locked: true),
-      ],
+      notes: const [NoteSticker(startMs: 10000, endMs: 18000, locked: true)],
     );
     final rect = tester.getRect(find.byKey(const Key('track_notes')));
     await tester.longPressAt(Offset(xOf(rect, 14000), rect.center.dy));

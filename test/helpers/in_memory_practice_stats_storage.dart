@@ -11,9 +11,8 @@ class InMemoryPracticeStatsStorage implements PracticeStatsStorage {
   set rawJson(Map<String, dynamic>? value) => _json = value;
 
   /// 最近一次保存的整份 JSON（null = 尚未保存过）。
-  Map<String, dynamic>? get savedJson => _json == null
-      ? null
-      : Map<String, dynamic>.of(_json!);
+  Map<String, dynamic>? get savedJson =>
+      _json == null ? null : Map<String, dynamic>.of(_json!);
 
   /// 保存次数（断言 settle 无变化不写盘等时机用例）。
   int saveCount = 0;
@@ -22,9 +21,8 @@ class InMemoryPracticeStatsStorage implements PracticeStatsStorage {
   Object? saveError;
 
   @override
-  Future<Map<String, dynamic>?> loadOrNull() async => _json == null
-      ? null
-      : Map<String, dynamic>.of(_json!);
+  Future<Map<String, dynamic>?> loadOrNull() async =>
+      _json == null ? null : Map<String, dynamic>.of(_json!);
 
   @override
   Future<void> save(Map<String, dynamic> json) async {

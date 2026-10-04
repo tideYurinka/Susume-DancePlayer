@@ -122,9 +122,7 @@ steps:
     message: 兜底说明
 $_uiSection
 ''');
-      final unit = helpGuideUnits.firstWhere(
-        (u) => u.id == badgeRosterUnitId,
-      );
+      final unit = helpGuideUnits.firstWhere((u) => u.id == badgeRosterUnitId);
       final row = guideUnitRowCopy(copy, unit);
       expect(row.title, '名册');
       expect(row.description, '兜底说明');
@@ -169,9 +167,7 @@ $_uiSection
 
       // 走完欢迎步、选「带我看一遍」：下一步缺文案，判定面不给出任何步。
       container.read(guideSessionProvider.notifier).markStepDone(first!.id);
-      container.read(guideSessionProvider.notifier).choose(
-        FirstRunChoice.tour,
-      );
+      container.read(guideSessionProvider.notifier).choose(FirstRunChoice.tour);
       container.invalidate(currentGuideStepProvider);
 
       expect(await container.read(currentGuideStepProvider.future), isNull);

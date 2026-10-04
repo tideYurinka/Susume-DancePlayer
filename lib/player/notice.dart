@@ -87,7 +87,10 @@ const Duration kDefaultNoticeHold = Duration(milliseconds: 1500);
 /// 停留 + 淡出时长。未在 [noticeTimingOf] 列出的身份取
 /// `hold = [kDefaultNoticeHold]`、`fade = Duration.zero`。
 class NoticeTiming {
-  const NoticeTiming({this.hold = kDefaultNoticeHold, this.fade = Duration.zero});
+  const NoticeTiming({
+    this.hold = kDefaultNoticeHold,
+    this.fade = Duration.zero,
+  });
 
   final Duration hold;
 
@@ -98,16 +101,16 @@ class NoticeTiming {
 /// 时长表：缺省之外**只列例外**（浮层 ✕ 关闭 2000ms；三指跳转 600/200ms；
 /// 临时衔接段 300ms 淡出）。
 NoticeTiming noticeTimingOf(NoticeId id) => switch (id) {
-      NoticeId.beatOverlayClose =>
-        const NoticeTiming(hold: Duration(milliseconds: 2000)),
-      NoticeId.threeFingerToast => const NoticeTiming(
-          hold: Duration(milliseconds: 600),
-          fade: Duration(milliseconds: 200),
-        ),
-      NoticeId.transition =>
-        const NoticeTiming(fade: Duration(milliseconds: 300)),
-      _ => const NoticeTiming(),
-    };
+  NoticeId.beatOverlayClose => const NoticeTiming(
+    hold: Duration(milliseconds: 2000),
+  ),
+  NoticeId.threeFingerToast => const NoticeTiming(
+    hold: Duration(milliseconds: 600),
+    fade: Duration(milliseconds: 200),
+  ),
+  NoticeId.transition => const NoticeTiming(fade: Duration(milliseconds: 300)),
+  _ => const NoticeTiming(),
+};
 
 /// 通用触发面：按身份取用，保持计数器语义——
 /// 自增即触发；同一身份连续触发由宿主重排停留定时。调用方只报身份，
@@ -140,10 +143,10 @@ class ThreeFingerToastDirection extends Notifier<ThreeFingerSwipeDirection> {
 }
 
 /// 三指跳转方向注入点。
-final threeFingerToastDirectionProvider = NotifierProvider<
-    ThreeFingerToastDirection, ThreeFingerSwipeDirection>(
-  ThreeFingerToastDirection.new,
-);
+final threeFingerToastDirectionProvider =
+    NotifierProvider<ThreeFingerToastDirection, ThreeFingerSwipeDirection>(
+      ThreeFingerToastDirection.new,
+    );
 
 /// 提示宿主：演出层挂**唯一一条**，取代十一行并列
 /// 挂载。宿主从组合根收到声明清单，只渲染**当前这一条**——同屏不可能出现
@@ -187,7 +190,10 @@ class _NoticeHostState extends ConsumerState<NoticeHost> {
     // 触发与显示的连线收在模块内部：监听每条已声明身份的计数器，计数变化
     // 即接管当前显示槽（同一身份再次触发重排停留定时）。
     for (final spec in widget.specs) {
-      ref.listen<int>(noticeTriggerProvider(spec.id), (_, _) => _activate(spec));
+      ref.listen<int>(
+        noticeTriggerProvider(spec.id),
+        (_, _) => _activate(spec),
+      );
     }
     final controller = _controller;
     final current = _current;

@@ -40,8 +40,13 @@ double bandXOf(
   required double width,
   double bandLeft = 0,
   TimelineWindow? window,
-}) => bandLeft +
-    bandGeometryOf(total: total, window: window, width: width).timeToPixel(time);
+}) =>
+    bandLeft +
+    bandGeometryOf(
+      total: total,
+      window: window,
+      width: width,
+    ).timeToPixel(time);
 
 /// 带内屏上 x → 时间（[bandXOf] 的逆）。
 Duration bandTimeAt(

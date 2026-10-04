@@ -55,14 +55,13 @@ void main() {
     double left({
       double cellCenterX = 10 * heatmapCellPitch + 6,
       double scrollOffset = 0,
-    }) =>
-        heatmapBubbleLeftInCard(
-          cellCenterX: cellCenterX,
-          scrollOffset: scrollOffset,
-          leadingInset: leading,
-          bubbleWidth: bubbleWidth,
-          cardWidth: cardWidth,
-        );
+    }) => heatmapBubbleLeftInCard(
+      cellCenterX: cellCenterX,
+      scrollOffset: scrollOffset,
+      leadingInset: leading,
+      bubbleWidth: bubbleWidth,
+      cardWidth: cardWidth,
+    );
 
     test('居中放得下：气泡中心对准格子中心', () {
       // 格中心内容坐标 146，减滚动 0 加前置 40 = 卡内 186；居中左缘 126。
@@ -118,18 +117,33 @@ void main() {
 
     test('按次数：7月10日 · 练习 3 次', () {
       expect(
-        heatmapBubbleText(StatsMetric.count, day, total: Duration.zero, sessions: 3),
+        heatmapBubbleText(
+          StatsMetric.count,
+          day,
+          total: Duration.zero,
+          sessions: 3,
+        ),
         '7月10日 · 练习 3 次',
       );
     });
 
     test('无练习日：7月10日 · 这天没有练习', () {
       expect(
-        heatmapBubbleText(StatsMetric.time, day, total: Duration.zero, sessions: 0),
+        heatmapBubbleText(
+          StatsMetric.time,
+          day,
+          total: Duration.zero,
+          sessions: 0,
+        ),
         '7月10日 · 这天没有练习',
       );
       expect(
-        heatmapBubbleText(StatsMetric.count, day, total: Duration.zero, sessions: 0),
+        heatmapBubbleText(
+          StatsMetric.count,
+          day,
+          total: Duration.zero,
+          sessions: 0,
+        ),
         '7月10日 · 这天没有练习',
       );
     });

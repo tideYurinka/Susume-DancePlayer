@@ -100,7 +100,9 @@ FaceDirection? practicePaneDirection(
   if (scaleX == null) return null;
   final baseline =
       direction.surfaceScaleX(face) * direction.directionOf(face).scaleX;
-  return scaleX * baseline < 0 ? FaceDirection.mirrored : FaceDirection.original;
+  return scaleX * baseline < 0
+      ? FaceDirection.mirrored
+      : FaceDirection.original;
 }
 
 /// 相机预览面某一路画面件此刻的**用户可见方向**：读实测落点并按画面方向库给出
@@ -144,10 +146,6 @@ Matrix4? _mirrorLayerTransform(WidgetTester tester, Key surfaceKey) {
       )
       .evaluate();
   expect(layers, isNotEmpty, reason: '练习侧镜像显示层是恒在的显示层');
-  expect(
-    layers.length,
-    lessThanOrEqualTo(1),
-    reason: '练习侧镜像显示层只有一层（镜像口径只有一处）',
-  );
+  expect(layers.length, lessThanOrEqualTo(1), reason: '练习侧镜像显示层只有一层（镜像口径只有一处）');
   return (layers.single.widget as Transform).transform;
 }

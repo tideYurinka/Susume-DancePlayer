@@ -17,7 +17,7 @@ import 'playback_engine.dart';
 /// 使用前提：在 main() 调用 [MediaKit.ensureInitialized]（幂等）。
 ///
 /// 真机冒烟清单（打开视频 / 播放暂停 / seek / 倍速）见
-/// 
+///
 /// 冒烟属真机步骤，不在无头测试环境跑真实解码。
 class MediaKitPlaybackEngine implements PlaybackEngine {
   MediaKitPlaybackEngine() {
@@ -178,7 +178,8 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
 
   void _noteSeek(Duration position) {
     final now = DateTime.now();
-    final burst = _lastSeekAt != null &&
+    final burst =
+        _lastSeekAt != null &&
         now.difference(_lastSeekAt!) < _fastSeekBurstWindow;
     _lastSeekAt = now;
     _fastSettleTimer?.cancel();

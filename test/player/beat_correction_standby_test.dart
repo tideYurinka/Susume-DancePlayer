@@ -16,10 +16,9 @@ import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
 import 'package:dance_learning_app/player/annotation_editor.dart'
-    show
-        annotationEditorProvider,
-        layoutLockedProvider;
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+    show annotationEditorProvider, layoutLockedProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
 import 'package:dance_learning_app/player/beat_correction.dart'
@@ -31,7 +30,8 @@ import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/preview_snap.dart'
     show previewSnapEnabledProvider;
 import 'package:dance_learning_app/player/speed_bubble.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player/visual_tokens.dart';
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
@@ -58,13 +58,11 @@ import '../helpers/video_index_fixtures.dart';
 /// 当帧刷新、单步可撤销、锁门禁）与入口退出完整化（观看态角标入口、
 /// 四条退出路径）。
 
-
 void main() {
-
-/// 某标注工具槽内的文案（轨道片头标签与槽文案同字，如「分段」，
-/// 断言按槽键圈定，不被带内标签命中）。
-Finder slotText(Key slot, String text) =>
-    find.descendant(of: find.byKey(slot), matching: find.text(text));
+  /// 某标注工具槽内的文案（轨道片头标签与槽文案同字，如「分段」，
+  /// 断言按槽键圈定，不被带内标签命中）。
+  Finder slotText(Key slot, String text) =>
+      find.descendant(of: find.byKey(slot), matching: find.text(text));
   Future<void> pumpPlayer(
     WidgetTester tester, {
     required FakePlaybackEngine engine,
@@ -88,7 +86,10 @@ Finder slotText(Key slot, String text) =>
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
                 entries: [
-                  historyEntry(filePath: resolved.toFilePath(), mirrored: false),
+                  historyEntry(
+                    filePath: resolved.toFilePath(),
+                    mirrored: false,
+                  ),
                 ],
               ),
             ),
@@ -252,11 +253,11 @@ Finder slotText(Key slot, String text) =>
 
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
+      expect(find.byKey(const Key('control_beat_anchor_add')), findsOneWidget);
       expect(
-        find.byKey(const Key('control_beat_anchor_add')),
-        findsOneWidget,
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isTrue,
       );
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isTrue);
     });
   });
 
@@ -285,13 +286,13 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('control_beat_correction_exit')));
       await tester.pumpAndSettle();
 
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isFalse);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isFalse,
+      );
       expect(find.byKey(const Key('control_beat_anchor_add')), findsNothing);
       expect(slotText(const Key('control_segment'), '分段'), findsOneWidget);
-      expect(
-        slotText(const Key('control_auto_range'), '自动分段'),
-        findsOneWidget,
-      );
+      expect(slotText(const Key('control_auto_range'), '自动分段'), findsOneWidget);
     });
 
     testWidgets('收起控制层即结束待命态（锚点不丢），再展开工具槽原样', (tester) async {
@@ -305,7 +306,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
 
       expect(find.byKey(const Key('control_layer')), findsNothing);
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isFalse);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isFalse,
+      );
       expect(anchorsOf(tester), [28], reason: '退出待命态锚点不丢');
     });
   });
@@ -374,11 +378,7 @@ Finder slotText(Key slot, String text) =>
       );
       await singleTapShow(tester);
       await openBeatPromptBubble(tester);
-      expect(
-        eightBeatButton(tester).onPressed,
-        isNull,
-        reason: '入口置灰：修正无意义',
-      );
+      expect(eightBeatButton(tester).onPressed, isNull, reason: '入口置灰：修正无意义');
     });
 
     testWidgets('锁定分段：落锚照常（八拍锚点不受锁，不弹提示）', (tester) async {
@@ -419,12 +419,16 @@ Finder slotText(Key slot, String text) =>
 
       // 带内空白横滑 = 精细调整（不经吸附解析）；吸附语义经
       // 预览线命中列接管路径（手柄带）验证。
-      containerOf(tester).read(previewSnapEnabledProvider.notifier).replace(false);
+      containerOf(tester)
+          .read(previewSnapEnabledProvider.notifier)
+          .replace(false);
 
       // 预览线 seek 到 x=100（内容区宽换算），从其命中列
       //（手柄带）起手拖动。
       Future<TestGesture> columnDrag() async {
-        await engine.seek(bandTimeAt(100, total: const Duration(minutes: 3), width: 800));
+        await engine.seek(
+          bandTimeAt(100, total: const Duration(minutes: 3), width: 800),
+        );
         await tester.pumpAndSettle();
         final y = tester
             .getCenter(find.byKey(const Key('track_handle_strip_row')))
@@ -464,11 +468,7 @@ Finder slotText(Key slot, String text) =>
 
       expect(engine.seekCalls, isNotEmpty);
       for (final target in engine.seekCalls) {
-        expect(
-          target.inMilliseconds % 2000,
-          0,
-          reason: '待命态落点恒为强拍：$target',
-        );
+        expect(target.inMilliseconds % 2000, 0, reason: '待命态落点恒为强拍：$target');
       }
       expect(engine.seekCalls.last, const Duration(seconds: 90));
     });
@@ -542,9 +542,15 @@ Finder slotText(Key slot, String text) =>
         findsOneWidget,
       );
       expect(slotEnabled(tester, 'control_beat_anchor_remove'), isFalse);
-      expect(slotIconColor(tester, 'control_beat_anchor_remove'), Colors.white38);
+      expect(
+        slotIconColor(tester, 'control_beat_anchor_remove'),
+        Colors.white38,
+      );
       expect(slotEnabled(tester, 'control_beat_anchors_clear'), isFalse);
-      expect(slotIconColor(tester, 'control_beat_anchors_clear'), Colors.white38);
+      expect(
+        slotIconColor(tester, 'control_beat_anchors_clear'),
+        Colors.white38,
+      );
     });
 
     testWidgets('互斥置灰：预览位置无锚点 → 添加可点/删除置灰；已有锚点 → 反之', (tester) async {
@@ -561,7 +567,10 @@ Finder slotText(Key slot, String text) =>
         isTrue,
         reason: '预览位置有锚点 → 删除可点',
       );
-      expect(slotIconColor(tester, 'control_beat_anchor_remove'), isNot(Colors.white38));
+      expect(
+        slotIconColor(tester, 'control_beat_anchor_remove'),
+        isNot(Colors.white38),
+      );
 
       // 挪到无锚点的强拍 8s（拍序号 16）：谓词翻转，两槽互斥。
       await engine.seek(const Duration(milliseconds: 8000));
@@ -663,7 +672,8 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
       containerOf(tester).read(layoutLockedProvider.notifier).replace(true);
       await tester.pumpAndSettle();
-      final promptBefore = containerOf(tester).read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = containerOf(tester)
+          .read(noticeTriggerProvider(NoticeId.layoutLock));
 
       await tester.tap(find.byKey(const Key('control_beat_anchor_remove')));
       await tester.pumpAndSettle();
@@ -685,19 +695,27 @@ Finder slotText(Key slot, String text) =>
   });
 
   group('入口退出完整化（验收）', () {
-    testWidgets('观看态角标 → 同一气泡（「八拍矫正」不置灰不隐藏）→ 按下自动进控制层 + 关气泡 + 待命态', (tester) async {
+    testWidgets('观看态角标 → 同一气泡（「八拍矫正」不置灰不隐藏）→ 按下自动进控制层 + 关气泡 + 待命态', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
       await pumpPlayer(tester, engine: engine);
-      expect(find.byKey(const Key('control_layer')), findsNothing, reason: '观看态');
+      expect(
+        find.byKey(const Key('control_layer')),
+        findsNothing,
+        reason: '观看态',
+      );
 
       // 浮层先挪到视口中部：角标锚出的气泡在测试视口下不被顶栏遮挡
       // （真机默认位不受影响，气泡宿主自带屏内钳位）。测试视口 800×600
       // 为横屏，写入横屏·普通格。
       containerOf(tester)
           .read(overlayPlacementProvider.notifier)
-          .set(const OverlayPlacements(offsets: {
-            OverlayPlacementCell.landscapeNormal: Offset(280, 250),
-          }));
+          .set(
+            const OverlayPlacements(
+              offsets: {OverlayPlacementCell.landscapeNormal: Offset(280, 250)},
+            ),
+          );
       await tester.pumpAndSettle();
 
       // 观看态：点选数拍浮层 → 左下角角工具（节拍提示入口）。
@@ -714,9 +732,7 @@ Finder slotText(Key slot, String text) =>
         reason: '角标按下前无气泡：气泡确实由本入口打开',
       );
 
-      await tester.tap(
-        find.byKey(const Key('metronome_overlay_beat_panel')),
-      );
+      await tester.tap(find.byKey(const Key('metronome_overlay_beat_panel')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('beat_prompt_panel')), findsOneWidget);
@@ -730,7 +746,10 @@ Finder slotText(Key slot, String text) =>
 
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isTrue);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isTrue,
+      );
       expect(find.byKey(const Key('control_beat_anchor_add')), findsOneWidget);
     });
 
@@ -742,7 +761,10 @@ Finder slotText(Key slot, String text) =>
       await enterStandby(tester);
       await tester.tap(find.byKey(const Key('control_beat_correction_exit')));
       await tester.pumpAndSettle();
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isFalse);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isFalse,
+      );
       expect(anchorsOf(tester), [28]);
 
       // ② 收起控制层。
@@ -750,14 +772,20 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('control_layer_blank')));
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       await tester.pump();
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isFalse);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isFalse,
+      );
       expect(anchorsOf(tester), [28], reason: '退出待命态锚点不丢');
 
       // ③ 返回首页（标题栏「退出」= 既有的返回首页按钮）。
       await enterStandby(tester);
       await tester.tap(find.byKey(const Key('control_layer_back')));
       await tester.pumpAndSettle();
-      expect(containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby, isFalse);
+      expect(
+        containerOf(tester).read(playerSessionProvider).isBeatCorrectionStandby,
+        isFalse,
+      );
       expect(anchorsOf(tester), [28]);
 
       // 工具槽恢复原样（锚点工具全不显示、原标注工具回来）。
@@ -765,11 +793,7 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('control_beat_anchor_remove')), findsNothing);
       expect(find.byKey(const Key('control_beat_anchors_clear')), findsNothing);
       expect(slotText(const Key('control_segment'), '分段'), findsOneWidget);
-      expect(
-        slotText(const Key('control_auto_range'), '自动分段'),
-        findsOneWidget,
-      );
+      expect(slotText(const Key('control_auto_range'), '自动分段'), findsOneWidget);
     });
-
   });
 }

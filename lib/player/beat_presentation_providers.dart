@@ -23,10 +23,7 @@ import 'beat_animation.dart'
         MetronomeBeatAnimation,
         beatAnimationStyleProvider;
 import 'beat_presentation.dart'
-    show
-        BeatPresentation,
-        BeatPresentationFacts,
-        kBeatPresentationTopUpPeriod;
+    show BeatPresentation, BeatPresentationFacts, kBeatPresentationTopUpPeriod;
 import 'beat_prompt_panel.dart' show beatPromptEnabledProvider;
 import 'beat_schedule.dart' show beatScheduleConsumerProvider;
 import 'compare_recording.dart'
@@ -34,9 +31,7 @@ import 'compare_recording.dart'
 import 'metronome_overlay.dart'
     show BeatCountNumbers, isBeatOverlayContentVisible;
 import 'metronome_sound.dart'
-    show
-        metronomeHalfBeatEnabledProvider,
-        metronomeSoundEnabledProvider;
+    show metronomeHalfBeatEnabledProvider, metronomeSoundEnabledProvider;
 import 'song_loudness.dart' show metronomePlayVolumeProvider;
 import 'metronome_source_registry.dart' show effectiveMetronomeSourceIdProvider;
 import 'native_scheduled_audio.dart' show beatAudioRendererProvider;

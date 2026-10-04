@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 深度、出缘归一 700px/s 的线性速度曲线与时间平滑累积。口径直接锁定纯件，
 /// 不经轨道带 widget 泵测。
 void main() {
-group('判定带宽、深度与速度曲线', () {
+  group('判定带宽、深度与速度曲线', () {
     test('判定带宽 = 轨道带宽 ÷ 4（横屏 781.7 → 195.4；竖屏真机 361.1 → 90.3）', () {
       expect(edgePanZonePx(800), 200);
       // 真机基准：横屏 781.7、竖屏 361.1。

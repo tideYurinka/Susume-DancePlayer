@@ -86,10 +86,7 @@ void main() {
       expect(history().canUndo, isFalse);
       expect(sink.saved.length, 1);
       expect(sink.saved.single.annotations?.segmentLines, isEmpty);
-      expect(
-        container.read(annotationTimelineProvider).segmentLines,
-        isEmpty,
-      );
+      expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
     });
 
     test('redo 净变化：历史栈相应变化（+1）∧ 保存 +1', () {

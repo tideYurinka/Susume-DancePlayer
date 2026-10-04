@@ -38,16 +38,16 @@ class SpeedStepPreset {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'builtin': builtin,
-        'params': {
-          'startRate': params.startRate,
-          'maxRate': params.maxRate,
-          'lapsPerRate': params.lapsPerRate,
-          'rateIncrement': params.rateIncrement,
-        },
-      };
+    'id': id,
+    'name': name,
+    'builtin': builtin,
+    'params': {
+      'startRate': params.startRate,
+      'maxRate': params.maxRate,
+      'lapsPerRate': params.lapsPerRate,
+      'rateIncrement': params.rateIncrement,
+    },
+  };
 
   factory SpeedStepPreset.fromJson(Map<String, dynamic> json) {
     final params = json['params'];
@@ -173,9 +173,9 @@ class SpeedStepPresetDoc {
   }
 
   Map<String, dynamic> toJson() => {
-        'presets': [for (final p in presets) p.toJson()],
-        'selectedId': selectedId,
-      };
+    'presets': [for (final p in presets) p.toJson()],
+    'selectedId': selectedId,
+  };
 
   factory SpeedStepPresetDoc.fromJson(Map<String, dynamic> json) {
     final raw = json['presets'];

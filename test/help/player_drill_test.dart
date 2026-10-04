@@ -104,7 +104,10 @@ void main() {
     expect(find.byKey(const Key('drill_task_icon')), findsOneWidget);
     expect(find.byKey(const Key('drill_task_checkbox')), findsOneWidget);
     expect(find.byKey(const Key('drill_task_dots')), findsOneWidget);
-    expect(find.textContaining(guideStepMessage(helpDrillSteps.first.id)), findsOneWidget);
+    expect(
+      find.textContaining(guideStepMessage(helpDrillSteps.first.id)),
+      findsOneWidget,
+    );
     expect(find.text('1/3'), findsOneWidget);
     expect(find.byKey(const Key('drill_task_skip')), findsOneWidget);
     expect(
@@ -114,8 +117,8 @@ void main() {
     );
 
     // 停靠基准与编辑态那条同源：安全区顶 8、左右各 16（注）。
-    final screenWidth = tester.view.physicalSize.width /
-        tester.view.devicePixelRatio;
+    final screenWidth =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
     final bar = tester.getRect(find.byKey(const Key('drill_task_bar')));
     expect(bar.top, closeTo(8, 0.5));
     expect(bar.left, closeTo(16, 0.5));
@@ -270,14 +273,16 @@ void main() {
   testWidgets('步数与子勾数：3 步、末步 3 个点击类子勾（不再有单击），无三指滑步', (tester) async {
     // 步 id 与子勾 id 是注册表结构：钉住它们属结构回归，改动即真契约变更。
     expect(helpDrillSteps.length, 3);
-    expect(
-      helpDrillSteps.map((s) => s.id).toList(),
-      ['drill_single_finger', 'drill_two_finger', 'drill_taps'],
-    );
-    expect(
-      helpDrillSteps.last.subChecks.map((s) => s.id).toList(),
-      ['drill_double_tap', 'drill_two_finger_double_tap', 'drill_long_press'],
-    );
+    expect(helpDrillSteps.map((s) => s.id).toList(), [
+      'drill_single_finger',
+      'drill_two_finger',
+      'drill_taps',
+    ]);
+    expect(helpDrillSteps.last.subChecks.map((s) => s.id).toList(), [
+      'drill_double_tap',
+      'drill_two_finger_double_tap',
+      'drill_long_press',
+    ]);
     expect(
       [
         for (final s in helpDrillSteps.last.subChecks)
@@ -338,7 +343,9 @@ void main() {
     await pumpDrill(tester);
 
     await tester.tapAt(
-      tester.getCenter(find.textContaining(guideStepMessage(helpDrillSteps.first.id))),
+      tester.getCenter(
+        find.textContaining(guideStepMessage(helpDrillSteps.first.id)),
+      ),
     );
     await tester.pump();
     await tester.tapAt(

@@ -22,7 +22,11 @@ const int kPlanWheelYearCount =
 
 /// 年列档位值（升序）。
 List<int> planWheelYears(DateTime today) => [
-  for (var offset = -kPlanWheelYearsBack; offset <= kPlanWheelYearsForward; offset++)
+  for (
+    var offset = -kPlanWheelYearsBack;
+    offset <= kPlanWheelYearsForward;
+    offset++
+  )
     today.year + offset,
 ];
 
@@ -134,8 +138,10 @@ PlanTimeWheel planTimeWheelFromMinutes(int? minutes) {
   final hour = (minutes ~/ 60).clamp(0, 23);
   final minute = (minutes % 60).clamp(0, 59);
   final minuteIndex =
-      ((minute + kPlanWheelMinuteStep ~/ 2) ~/ kPlanWheelMinuteStep)
-          .clamp(0, kPlanWheelMinuteCount - 1);
+      ((minute + kPlanWheelMinuteStep ~/ 2) ~/ kPlanWheelMinuteStep).clamp(
+        0,
+        kPlanWheelMinuteCount - 1,
+      );
   return PlanTimeWheel(hourIndex: hour + 1, minuteIndex: minuteIndex);
 }
 
@@ -146,8 +152,8 @@ int? planTimeWheelToMinutes({
 }) {
   if (hourIndex <= 0) return null;
   final hour = hourIndex - 1;
-  final minute = minuteIndex.clamp(0, kPlanWheelMinuteCount - 1) *
-      kPlanWheelMinuteStep;
+  final minute =
+      minuteIndex.clamp(0, kPlanWheelMinuteCount - 1) * kPlanWheelMinuteStep;
   return hour * 60 + minute;
 }
 

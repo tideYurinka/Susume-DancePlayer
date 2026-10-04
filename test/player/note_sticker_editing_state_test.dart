@@ -21,8 +21,7 @@ void main() {
     bool readOnly = false,
     NoteStickerOverlayRegistration? registration,
   }) async {
-    final noteRegistration =
-        registration ?? NoteStickerOverlayRegistration();
+    final noteRegistration = registration ?? NoteStickerOverlayRegistration();
     final container = ProviderContainer(
       overrides: [
         playbackEngineProvider.overrideWithValue(FakePlaybackEngine()),
@@ -90,8 +89,7 @@ void main() {
     });
 
     testWidgets('播放态行为不变：退回播放态后命中恢复、可再选中', (tester) async {
-      final registration =
-          await pumpOverlay(tester, readOnly: true);
+      final registration = await pumpOverlay(tester, readOnly: true);
       final center = tester.getRect(find.byType(NoteStickerText)).center;
       expect(registration.hitTest(center), isFalse);
       // 收起控制层（退回播放态）：命中面恢复。

@@ -24,13 +24,15 @@ import 'package:dance_learning_app/persistence/marker_document.dart'
 import 'package:dance_learning_app/persistence/material_manifest.dart';
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
-import 'package:dance_learning_app/player/delayed_play.dart' show delayedPlayPreparingProvider;
+import 'package:dance_learning_app/player/delayed_play.dart'
+    show delayedPlayPreparingProvider;
 import 'package:dance_learning_app/player/level_control.dart'
     show systemMediaVolumeControllerProvider;
 import 'package:dance_learning_app/player/beat_presentation_providers.dart'
     show delayAnchorProvider;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,9 +72,7 @@ void main() {
         ProviderScope(
           overrides: [
             playbackEngineProvider.overrideWithValue(engine),
-            cameraCaptureProvider.overrideWithValue(
-              FakeCameraCaptureService(),
-            ),
+            cameraCaptureProvider.overrideWithValue(FakeCameraCaptureService()),
             privateJsonStorageProvider.overrideWithValue(
               InMemoryPrivateJsonStorage(),
             ),
@@ -117,7 +117,9 @@ void main() {
 
     /// 就绪真实网格：500ms 一拍、60 拍；八拍点在 0、4s、8s、12s、16s…。
     void givenGrid(WidgetTester tester) {
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               marker_doc.BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -142,7 +144,10 @@ void main() {
       await tap.up();
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('toolbar_delayed_play')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('toolbar_delayed_play')),
+        warnIfMissed: false,
+      );
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pump();
       await tester.pump();
@@ -171,8 +176,11 @@ void main() {
       expect(anchorOf(tester), const Duration(seconds: 16));
       expect(engine.seekCalls.last, const Duration(seconds: 14));
       expect(engine.isPlaying, isTrue);
-      expect(preparingFactOf(tester), isTrue,
-          reason: '预备期 = preparing，记账事实道置真（预备期不计）');
+      expect(
+        preparingFactOf(tester),
+        isTrue,
+        reason: '预备期 = preparing，记账事实道置真（预备期不计）',
+      );
     });
 
     testWidgets('预备期事实道：越过起点即翻回（照常计入）；打断也翻回', (tester) async {
@@ -188,8 +196,7 @@ void main() {
       // 位置越过起点（16s）：转 active，预备期事实撤销——播放照常计入。
       await tester.pump(const Duration(seconds: 3));
       await tester.pump();
-      expect(preparingFactOf(tester), isFalse,
-          reason: '越过起点后按观看态照常计入');
+      expect(preparingFactOf(tester), isFalse, reason: '越过起点后按观看态照常计入');
 
       // 再触发回 preparing，随后暂停（停沿打断）也翻回。
       await triggerAt15s(tester);
@@ -262,7 +269,10 @@ void main() {
       expect(anchorOf(tester), const Duration(seconds: 16));
 
       // 单击（画面空白处，避开中央浮层）= 唤出控制层（进编辑态）→ 打断。
-      await tester.tap(find.byKey(const Key('player_surface')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('player_surface')),
+        warnIfMissed: false,
+      );
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       await tester.pump();
       expect(anchorOf(tester), isNull, reason: '唤出控制层即撤锚');
@@ -295,7 +305,9 @@ void main() {
       expect(engine.isPlaying, isTrue);
     });
 
-    testWidgets('退后台打断（didChangeAppLifecycleState paused 显式收口）', (tester) async {
+    testWidgets('退后台打断（didChangeAppLifecycleState paused 显式收口）', (
+      tester,
+    ) async {
       setDeviceView(tester);
       await pumpPlayer(tester);
       givenGrid(tester);

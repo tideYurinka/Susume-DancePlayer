@@ -149,7 +149,9 @@ List<int> _segmentPointIndices(
   final points = <int>[];
   for (var s = 0; s < segmentStarts.length; s++) {
     final segmentStart = segmentStarts[s];
-    final nextStart = s + 1 < segmentStarts.length ? segmentStarts[s + 1] : null;
+    final nextStart = s + 1 < segmentStarts.length
+        ? segmentStarts[s + 1]
+        : null;
     if (last != null) {
       if (segmentStart > last) break;
       final segmentEnd = nextStart ?? (last + 1);
@@ -300,10 +302,9 @@ class BeatPhase {
             grid.beatIndexAt(position) - stride,
             grid.beatIndexAt(position) + stride,
           );
-    return _nearestOf(
-      [for (final index in indices) grid.beatTime(index)],
-      position,
-    );
+    return _nearestOf([
+      for (final index in indices) grid.beatTime(index),
+    ], position);
   }
 
   /// `[lo, hi]` 拍序号闭区间内的八拍点拍序号（升序；逐段求值，实现见

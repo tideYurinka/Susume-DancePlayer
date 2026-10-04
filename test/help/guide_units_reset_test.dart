@@ -1,8 +1,6 @@
 import 'package:dance_learning_app/help/content_registry.dart';
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        onboardingFlagFields,
-        guideSessionProvider;
+    show onboardingFlagFields, guideSessionProvider;
 import 'package:dance_learning_app/help/guide_units_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,7 +41,10 @@ void main() {
       for (final unit in helpGuideUnits) {
         expect(rowOf(unit.id), findsOneWidget);
         expect(
-          find.descendant(of: rowOf(unit.id), matching: find.text(guideUnitTitle(unit.id))),
+          find.descendant(
+            of: rowOf(unit.id),
+            matching: find.text(guideUnitTitle(unit.id)),
+          ),
           findsOneWidget,
         );
         expect(

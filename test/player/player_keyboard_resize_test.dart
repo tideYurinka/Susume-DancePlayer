@@ -7,7 +7,8 @@ import 'package:dance_learning_app/player/level_control.dart'
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/settings_persistence.dart';
 import 'package:dance_learning_app/persistence/video_document_store.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,7 +46,10 @@ void main() {
     // 底排槽位统一「外 6 + 内 4/4」内边距与 24 图标，整排加宽
     // 约 48dp：横屏小窗物理宽同步放宽（640→673dp 逻辑宽），避免底部工具组
     // RenderFlex 溢出（见 control_layer_test 的 setNarrowView 同类先例）。
-    tester.view.physicalSize = const Size(2020, 1080); // 合成档 673.3×360.0dp（dpr 3），非设备基准。
+    tester.view.physicalSize = const Size(
+      2020,
+      1080,
+    ); // 合成档 673.3×360.0dp（dpr 3），非设备基准。
     tester.view.viewInsets = const FakeViewPadding(bottom: 900);
     final index = InMemoryVideoIndexStorage(
       initial: VideoIndex(entries: [unsignedEntry()]),
@@ -95,9 +99,7 @@ void main() {
     expect(playerScaffold.resizeToAvoidBottomInset, isFalse);
   });
 
-  testWidgets('横屏 + 键盘大 bottom inset：底层控制层无 BOTTOM OVERFLOWED', (
-    tester,
-  ) async {
+  testWidgets('横屏 + 键盘大 bottom inset：底层控制层无 BOTTOM OVERFLOWED', (tester) async {
     await pumpPlayerLandscape(tester);
 
     // 控制层在屏（横屏形态的关键行都在），且整个布局无溢出异常。

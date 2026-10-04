@@ -105,10 +105,7 @@ void main() {
 
   group('锚点链解析（经公开求值口）', () {
     test('优先级：录制锚 > 延迟锚 > 激活锚 > 最近分段线 > 首线', () {
-      final lines = [
-        const Duration(seconds: 4),
-        const Duration(seconds: 8),
-      ];
+      final lines = [const Duration(seconds: 4), const Duration(seconds: 8)];
       expect(
         resolveBeatAnchorProbe(
           activeAnchor: const Duration(seconds: 4),

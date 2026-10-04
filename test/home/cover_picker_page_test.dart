@@ -11,7 +11,9 @@ import 'package:dance_learning_app/persistence/practice_stats.dart';
 import 'package:dance_learning_app/persistence/practice_stats_providers.dart'
     show practiceStatsStoreProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart';
+
 import '../helpers/video_surface.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,9 +35,7 @@ import '../helpers/in_memory_video_index_storage.dart';
 void main() {
   const sourcePath = '/videos/v1.mp4';
 
-  testWidgets('进入：打开并暂停，预览线停在当前封面位置，界面只有视频面+时间轴+两个动作', (
-    tester,
-  ) async {
+  testWidgets('进入：打开并暂停，预览线停在当前封面位置，界面只有视频面+时间轴+两个动作', (tester) async {
     final harness = _Harness();
     await harness.pump(tester, initialPosition: const Duration(seconds: 30));
 
@@ -103,9 +103,7 @@ void main() {
     await harness.engine.pause();
   });
 
-  testWidgets('用这一帧：按当前预览线时刻写入封面位置、缓存失效并按该位置重新生成、读面作废', (
-    tester,
-  ) async {
+  testWidgets('用这一帧：按当前预览线时刻写入封面位置、缓存失效并按该位置重新生成、读面作废', (tester) async {
     final harness = _Harness();
     await harness.pump(tester, initialPosition: const Duration(seconds: 30));
 
@@ -113,7 +111,9 @@ void main() {
     final width = tester
         .getSize(find.byKey(const Key('cover_picker_timeline')))
         .width;
-    final picked = Duration(milliseconds: 30000 + (150 * 180000 / width).round());
+    final picked = Duration(
+      milliseconds: 30000 + (150 * 180000 / width).round(),
+    );
     await tester.drag(
       find.byKey(const Key('cover_picker_timeline')),
       const Offset(150, 0),
@@ -124,16 +124,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // 封面位置字段落盘（公开标记文件 meta.coverPositionMs）。
-    expect(harness.documentStorage.markersSnapshot['meta'], containsPair(
-      'coverPositionMs',
-      picked.inMilliseconds,
-    ));
+    expect(
+      harness.documentStorage.markersSnapshot['meta'],
+      containsPair('coverPositionMs', picked.inMilliseconds),
+    );
     // 缓存失效后按新位置重新生成。
     expect(harness.coverCache.deleted, contains('v1'));
-    expect(
-      harness.generator.calls,
-      [(videoId: 'v1', sourcePath: sourcePath, position: picked)],
-    );
+    expect(harness.generator.calls, [
+      (videoId: 'v1', sourcePath: sourcePath, position: picked),
+    ]);
     expect(harness.coverCache.ready, contains('v1'));
     // 确认后回到详情。
     expect(find.byKey(const Key('cover_picker_page')), findsNothing);
@@ -164,16 +163,13 @@ void main() {
     expect(markers.rangeStartMs, 10000);
     // 封面回到跟随首线：按有效区间起点重新生成。
     expect(harness.coverCache.deleted, contains('v1'));
-    expect(
-      harness.generator.calls,
-      [
-        (
-          videoId: 'v1',
-          sourcePath: sourcePath,
-          position: const Duration(seconds: 10),
-        ),
-      ],
-    );
+    expect(harness.generator.calls, [
+      (
+        videoId: 'v1',
+        sourcePath: sourcePath,
+        position: const Duration(seconds: 10),
+      ),
+    ]);
     expect(harness.coverCache.ready, contains('v1'));
   });
 
@@ -185,10 +181,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // 位置字段照常落盘（用户意图被记录），缓存按新位置失效但没能重生成。
-    expect(harness.documentStorage.markersSnapshot['meta'], containsPair(
-      'coverPositionMs',
-      30000,
-    ));
+    expect(
+      harness.documentStorage.markersSnapshot['meta'],
+      containsPair('coverPositionMs', 30000),
+    );
     expect(harness.coverCache.deleted, contains('v1'));
     expect(harness.coverCache.ready, isNot(contains('v1')));
     // 失败如实告知，不静默当成功。
@@ -235,7 +231,9 @@ void main() {
     );
     harness.engine.seekCalls.clear();
 
-    await tester.tapAt(tester.getTopLeft(timeline) + Offset(size.width / 4, 24));
+    await tester.tapAt(
+      tester.getTopLeft(timeline) + Offset(size.width / 4, 24),
+    );
     await tester.pumpAndSettle();
 
     // 整支舞 3 分钟 → 1/4 轴宽 = 45 秒。
@@ -245,9 +243,8 @@ void main() {
 }
 
 /// 当前预览线时刻文本（键定位，避免与其它文本混淆）。
-String _timeText(WidgetTester tester) => tester
-    .widget<Text>(find.byKey(const Key('cover_picker_time')))
-    .data!;
+String _timeText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('cover_picker_time'))).data!;
 
 /// 记录删除调用并保持就绪状态的内存封面缓存（换封面使缓存失效的断言用）。
 class _SpyCoverCache extends InMemoryCoverCache {
@@ -262,14 +259,12 @@ class _SpyCoverCache extends InMemoryCoverCache {
 
 class _Harness {
   _Harness({MarkersDocument markers = const MarkersDocument.empty()})
-      : indexStorage = InMemoryVideoIndexStorage(
-          initial: VideoIndex(entries: [_entry('v1')]),
-        ),
-        documentStorage = InMemoryVideoDocumentStorage(
-          markers: markers.toJson(),
-        ),
-        coverCache = _SpyCoverCache(),
-        engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
+    : indexStorage = InMemoryVideoIndexStorage(
+        initial: VideoIndex(entries: [_entry('v1')]),
+      ),
+      documentStorage = InMemoryVideoDocumentStorage(markers: markers.toJson()),
+      coverCache = _SpyCoverCache(),
+      engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
 
   final InMemoryVideoIndexStorage indexStorage;
   final InMemoryVideoDocumentStorage documentStorage;
@@ -279,7 +274,9 @@ class _Harness {
       InMemoryPracticeStatsStorage();
   final InMemoryFourBeatBucketStorage bucketStorage =
       InMemoryFourBeatBucketStorage();
-  late final FakeCoverGenerator generator = FakeCoverGenerator(cache: coverCache);
+  late final FakeCoverGenerator generator = FakeCoverGenerator(
+    cache: coverCache,
+  );
 
   Future<void> pump(
     WidgetTester tester, {

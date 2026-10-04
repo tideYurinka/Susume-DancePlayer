@@ -32,7 +32,8 @@ import 'package:dance_learning_app/player/level_control.dart'
         screenBrightnessControllerProvider,
         systemMediaVolumeControllerProvider;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/update/update_check.dart';
 import 'package:dance_learning_app/update/update_gateway.dart';
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
@@ -188,8 +189,12 @@ void main() {
     );
 
     // 渐变暗底压在封面下半（占位图上也生效），信息条落在其底部左侧。
-    final coverTop = tester.getTopLeft(find.byKey(const Key('dance_cover_v1'))).dy;
-    final coverHeight = tester.getSize(find.byKey(const Key('dance_cover_v1'))).height;
+    final coverTop = tester
+        .getTopLeft(find.byKey(const Key('dance_cover_v1')))
+        .dy;
+    final coverHeight = tester
+        .getSize(find.byKey(const Key('dance_cover_v1')))
+        .height;
     final gradient = find.byKey(const Key('dance_cover_gradient_v1'));
     expect(gradient, findsOneWidget);
     expect(tester.getSize(gradient).height, closeTo(coverHeight * 0.5, 1));
@@ -290,17 +295,17 @@ void main() {
             segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
           ),
           local: const LocalDocument(
-            mastery: {
-              0: LearningMastery.mastered,
-              1: LearningMastery.mastered,
-            },
+            mastery: {0: LearningMastery.mastered, 1: LearningMastery.mastered},
           ),
         ),
       },
     );
     await harness.pump(tester);
 
-    expect(find.byKey(const Key('dance_card_badge_mastered_v1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dance_card_badge_mastered_v1')),
+      findsOneWidget,
+    );
     // 完成勾收进角标槽：副信息不再重复渲染同一事实。
     expect(find.byKey(const Key('dance_card_mastered_v1')), findsNothing);
     expect(_inCard('v1', '100%'), findsOneWidget);
@@ -312,17 +317,26 @@ void main() {
     addTearDown(tester.view.reset);
 
     final today = DateTime.now();
-    DateTime day(int offset) =>
-        DateTime(today.year, today.month, today.day).add(Duration(days: offset));
+    DateTime day(int offset) => DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).add(Duration(days: offset));
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1'), _entry('v2')]),
       planEntries: {
-        'v2': {'videoId': 'v2', 'ddl': {'date': planDayKey(day(-1))}},
+        'v2': {
+          'videoId': 'v2',
+          'ddl': {'date': planDayKey(day(-1))},
+        },
       },
     );
     await harness.pump(tester);
 
-    expect(find.byKey(const Key('dance_card_badge_overdue_v2')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dance_card_badge_overdue_v2')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('dance_card_badge_near_v2')), findsNothing);
     // 逾期置顶：v2 占左列首位，无目标的 v1 落右列。
     expect(
@@ -333,12 +347,18 @@ void main() {
 
   testWidgets('剩余 2 天：出临期角标；无目标未掌握：无角标', (tester) async {
     final today = DateTime.now();
-    DateTime day(int offset) =>
-        DateTime(today.year, today.month, today.day).add(Duration(days: offset));
+    DateTime day(int offset) => DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).add(Duration(days: offset));
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1'), _entry('v2')]),
       planEntries: {
-        'v2': {'videoId': 'v2', 'ddl': {'date': planDayKey(day(2))}},
+        'v2': {
+          'videoId': 'v2',
+          'ddl': {'date': planDayKey(day(2))},
+        },
       },
     );
     await harness.pump(tester);
@@ -348,10 +368,7 @@ void main() {
     expect(find.byKey(const Key('dance_card_badge_mastered_v2')), findsNothing);
     expect(find.byKey(const Key('dance_card_badge_overdue_v1')), findsNothing);
     expect(find.byKey(const Key('dance_card_badge_near_v1')), findsNothing);
-    expect(
-      find.byKey(const Key('dance_card_badge_mastered_v1')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('dance_card_badge_mastered_v1')), findsNothing);
   });
 
   testWidgets('完全掌握勾收进角标槽：副信息不再重复出勾', (tester) async {
@@ -365,10 +382,7 @@ void main() {
             segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
           ),
           local: const LocalDocument(
-            mastery: {
-              0: LearningMastery.mastered,
-              1: LearningMastery.mastered,
-            },
+            mastery: {0: LearningMastery.mastered, 1: LearningMastery.mastered},
           ),
         ),
       },
@@ -442,8 +456,7 @@ void main() {
     expect(find.byKey(const Key('stats_entry_button')), findsNothing);
   });
 
-  testWidgets('首页入口：浮动钮只有「导入视频」，⋯菜单有「备份」与「恢复备份」',
-      (tester) async {
+  testWidgets('首页入口：浮动钮只有「导入视频」，⋯菜单有「备份」与「恢复备份」', (tester) async {
     final harness = _Harness();
     await harness.pump(tester);
 
@@ -460,8 +473,7 @@ void main() {
     expect(find.byKey(const Key('restore_backup_menu_item')), findsOneWidget);
   });
 
-  testWidgets('⋯菜单「详细设置」可达：点后进入设备级设置页',
-      (tester) async {
+  testWidgets('⋯菜单「详细设置」可达：点后进入设备级设置页', (tester) async {
     final harness = _Harness();
     await harness.pump(tester);
 
@@ -474,8 +486,7 @@ void main() {
     expect(find.text('预备拍数'), findsOneWidget);
   });
 
-  testWidgets('⋯菜单在现有三项之后多出「关于」：点后打开关于页',
-      (tester) async {
+  testWidgets('⋯菜单在现有三项之后多出「关于」：点后打开关于页', (tester) async {
     final harness = _Harness();
     await harness.pump(tester);
 
@@ -634,16 +645,17 @@ void main() {
 
     final shortCard = tester.getSize(find.byKey(const Key('dance_card_v1')));
     final longCard = tester.getSize(find.byKey(const Key('dance_card_v2')));
-    expect(
-      find.byKey(const Key('dance_card_title_v1')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('dance_card_title_v1')), findsOneWidget);
     // 同比例封面下，两行标题的卡比一行标题的高。
     expect(longCard.height, greaterThan(shortCard.height));
     // 两张卡分落两列（错落仍在）。
     expect(
       tester.getTopLeft(find.byKey(const Key('dance_card_v1'))).dx,
-      isNot(moreOrLessEquals(tester.getTopLeft(find.byKey(const Key('dance_card_v2'))).dx)),
+      isNot(
+        moreOrLessEquals(
+          tester.getTopLeft(find.byKey(const Key('dance_card_v2'))).dx,
+        ),
+      ),
     );
   });
 
@@ -668,7 +680,11 @@ void main() {
       coverCache: InMemoryCoverCache(
         ready: {'v1', 'v2', 'v3'},
         aspectRatios: const {'v1': 4 / 3, 'v2': 4 / 3, 'v3': 4 / 3},
-        positions: const {'v1': Duration.zero, 'v2': Duration.zero, 'v3': Duration.zero},
+        positions: const {
+          'v1': Duration.zero,
+          'v2': Duration.zero,
+          'v3': Duration.zero,
+        },
       ),
       records: [
         PracticeSessionRecord(
@@ -896,7 +912,10 @@ void main() {
     await harness.pump(tester);
 
     // 首线帧（10s）入队取帧 → 就绪后卡片换真图与真比例。
-    expect(harness.coverRunner.requested.single.position, const Duration(seconds: 10));
+    expect(
+      harness.coverRunner.requested.single.position,
+      const Duration(seconds: 10),
+    );
     await harness.coverCache.writeFrom(
       'v1',
       File('/in-memory/v1'),
@@ -976,9 +995,8 @@ Finder _inCard(String videoId, String text) => find.descendant(
 );
 
 /// 卡片「已练遍数」栏位的文案（按键定位，不靠整卡文本撞）。
-String? _averageText(WidgetTester tester, String videoId) => tester
-    .widget<Text>(find.byKey(Key('dance_card_average_$videoId')))
-    .data;
+String? _averageText(WidgetTester tester, String videoId) =>
+    tester.widget<Text>(find.byKey(Key('dance_card_average_$videoId'))).data;
 
 class _Harness {
   _Harness({
@@ -1033,8 +1051,7 @@ class _Harness {
           practicePlanStorageProvider.overrideWithValue(planStorage),
           videoIndexStoreProvider.overrideWithValue(indexStorage),
           videoDocumentStorageFactoryProvider.overrideWithValue(
-            (videoId) =>
-                documents[videoId] ?? InMemoryVideoDocumentStorage(),
+            (videoId) => documents[videoId] ?? InMemoryVideoDocumentStorage(),
           ),
           coverCacheProvider.overrideWith((ref) => coverCache),
           coverGenerationQueueProvider.overrideWith(

@@ -291,8 +291,7 @@ class _TrackNoteRowState extends ConsumerState<TrackNoteRow> {
   }
 
   /// 清备注片段选中（选中进标注选中单选槽，清除走同一条写缝）。
-  void _clearSelection() =>
-      ref.read(annotationSelectionDomainProvider).clear();
+  void _clearSelection() => ref.read(annotationSelectionDomainProvider).clear();
 
   // ---- 拖动：两族的声明条目随族经按族注册入口登记 ----
 
@@ -303,9 +302,8 @@ class _TrackNoteRowState extends ConsumerState<TrackNoteRow> {
       AnnotationGestureTarget.noteMove,
       TrackBandDragDeclaration(
         toTime: _noteDragTime,
-        beginSession: (target) => ref
-            .read(annotationEditorProvider)
-            .beginNoteMoveDrag(target.index),
+        beginSession: (target) =>
+            ref.read(annotationEditorProvider).beginNoteMoveDrag(target.index),
         admit: _admitNoteDrag,
         readGrabOffsetMs: _noteMoveGrabOffset,
         onBegin: _beginNoteDragVisuals,

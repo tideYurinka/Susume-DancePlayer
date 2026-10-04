@@ -75,9 +75,7 @@ const TextStyle kLearningCaptionTextStyle = TextStyle(
   fontSize: kLearningCaptionFontSize,
   height: 1,
   color: kLearningCaptionTextColor,
-  shadows: [
-    Shadow(color: Colors.black87, blurRadius: 2),
-  ],
+  shadows: [Shadow(color: Colors.black87, blurRadius: 2)],
 );
 
 /// 按可用宽实选说明文案层级：
@@ -289,7 +287,9 @@ class _TrackLearningRowContent extends ConsumerWidget {
     // 快慢标记：只在**段内倍频待命态**与
     // **节拍倍频气泡打开**两处显示，其余时刻不画（关气泡即收）。
     final showDensityMarks =
-        ref.watch(playerSessionProvider.select((s) => s.isSegmentDensityStandby)) ||
+        ref.watch(
+          playerSessionProvider.select((s) => s.isSegmentDensityStandby),
+        ) ||
         ref.watch(
           speedBubbleSessionProvider.select(
             (s) => s.open == SpeedBubbleMode.beatDensity,
@@ -353,22 +353,24 @@ class _TrackLearningRowContent extends ConsumerWidget {
       final densityStarReservation = emphasized
           ? kSegmentDensityLabelStarIndent
           : 0.0;
-      final densityLabelFits = isMarked &&
+      final densityLabelFits =
+          isMarked &&
           learningCaptionFit(
-            maxWidth:
-                right -
-                left -
-                kSegmentBoxGap -
-                2 * kSegmentDensityLabelInset -
-                densityStarReservation,
-            fullText: densityLabel,
-            digitsText: densityLabel,
-            textScaler: MediaQuery.textScalerOf(context),
-          ) !=
-          LearningCaptionFit.hidden;
+                maxWidth:
+                    right -
+                    left -
+                    kSegmentBoxGap -
+                    2 * kSegmentDensityLabelInset -
+                    densityStarReservation,
+                fullText: densityLabel,
+                digitsText: densityLabel,
+                textScaler: MediaQuery.textScalerOf(context),
+              ) !=
+              LearningCaptionFit.hidden;
       // 循环范围两端：激活段序集合按相邻序派生合并范围——首段
       // 承担 start 端、末段承担 end 端（单段承担两端）；中段只保留描边。
-      final loopStart = activated && !input.activatedSegments.contains(index - 1);
+      final loopStart =
+          activated && !input.activatedSegments.contains(index - 1);
       final loopEnd = activated && !input.activatedSegments.contains(index + 1);
       // 放得下判据：段盒宽（格框满铺宽 − 段间缝）≥ 13 × 端数；
       // 不成立只省字形，帧不受影响。
@@ -382,161 +384,165 @@ class _TrackLearningRowContent extends ConsumerWidget {
           width: right - left,
           top: 0,
           bottom: 0,
-          child: editorIntroAnchor(index, GestureDetector(
-            key: ValueKey('learning_segment_$index'),
-            behavior: HitTestBehavior.opaque,
-            // 点选经命中 seam 解析最近段（短段扩展/最近中心）；tap
-            // 识别器守住段体单击（不被带级 sweep 判给拖动）。长按圈选的
-            // 识别器不挂段体也不挂行级层：判定区＝学习轨整行，
-            // 识别器住本域的覆盖层——线与首尾线的命中窗只约束单击，段窄到
-            // 线命中列互相重叠时长按仍可达。
-            onTapUp: input.onSegmentTapUp,
-            // 按下即选：按下事件就是写点（未选中的段静默只选中
-            // 这一段）；本识别器被长按/横滑/缩放抢走或系统打断时 onCancel
-            // 静默回滚到按下前——取消与抬手共用 tap 识别器的两种结局。
-            onTapDown: (_) => input.onSegmentTapDown(index),
-            onTapCancel: () => input.onSegmentTapCancel(index),
-            onHorizontalDragStart: (_) => input.onSegmentDragStart(index),
-            onHorizontalDragUpdate: (_) {},
-            child: Stack(
-              children: [
-                // 激活静态外发光层：始终占位渲染，阴影只在激活时
-                // 存在——发光画在格框之下（先入 Stack），不覆盖熟练度主色。
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Container(
-                      key: ValueKey('learning_segment_${index}_glow'),
-                      margin: _segmentGapInset,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          kSegmentBoxBorderRadius,
-                        ),
-                        boxShadow: activated
-                            ? [
-                                BoxShadow(
-                                  color: kCyanAccentColor
-                                      .withValues(alpha: kSegmentGlowOpacity),
-                                  blurRadius: kSegmentGlowBlurRadius,
-                                  spreadRadius: kSegmentGlowSpreadRadius,
-                                ),
-                              ]
-                            : const [],
-                      ),
-                    ),
-                  ),
-                ),
-                // 圆角格框：段间留缝（左右各让 gap/2）、半透明白
-                // 1px 描边——未练灰相邻段也界限分明；派生几何（Positioned
-                // 仍首尾相接满铺）不变，格框只是视觉内缩。填充恒为熟练度色；
-                // 描边只承载学习段选中（选中只有一个状态，青色
-                // 加粗整框即唯一选中视觉）与默认两态。
-                Positioned.fill(
-                  child: Padding(
-                    padding: _segmentGapInset,
-                    child: DecoratedBox(
-                      key: ValueKey('learning_segment_${index}_box'),
-                      decoration: BoxDecoration(
-                        color: learningMasteryColor(segmentMastery),
-                        borderRadius: BorderRadius.circular(
-                          kSegmentBoxBorderRadius,
-                        ),
-                        border: activated
-                            ? Border.all(
-                                color: kCyanAccentColor,
-                                width: kSegmentSelectedBorderWidth,
-                              )
-                            : Border.all(
-                                color: kSegmentBoxStrokeColor,
-                                width: kSegmentBoxStrokeWidth,
-                              ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // 快慢标记：红/蓝
-                          // 边框画在青色选中框之内（再内缩一档，不与它同宽
-                          // 同位）、段首小字表达精确档位；层级在本 Stack
-                          // 首位——星标/八拍数/循环字形画在其上，标记不
-                          // 覆盖它们；IgnorePointer 不参与命中。
-                          if (isMarked)
-                            _SegmentDensityMark(
-                              baseKey: 'learning_segment_$index',
-                              faster: densityFaster,
-                              label: densityLabel,
-                              showLabel: densityLabelFits,
-                              labelIndent: emphasized
-                                  ? kSegmentDensityLabelStarIndent
-                                  : 0.0,
-                            ),
-                          // 段内八拍数：居中淡字「N 个八拍」，
-                          // 字号/透明度小而不抢段体熟练度色；窄段按实测宽
-                          // 两级缩：仅数字或整行隐藏，key 随
-                          // 文案变体；星标在左上角、数字居中，两者不重叠。
-                          // 样式/缩放与判定侧同源（[kLearningCaptionTextStyle]
-                          // + 调用处缩放值，同一份取值，语义档（随系统字号））+
-                          // `softWrap: false`：判定说放得下就必然单行画全，
-                          // 绝不静默吞掉末字（软换行的第二行会被 maxLines
-                          // 丢掉）。
-                          if (captionFit != null &&
-                              captionText != null &&
-                              captionFit != LearningCaptionFit.hidden)
-                            Align(
-                              alignment: Alignment.center,
-                              // 白字直接压段体熟练度色，可读性由
-                              // [kLearningCaptionTextStyle] 的单层深色字阴影
-                              // 承担；说明自身不占额外横向空间，可用宽判定
-                              // 即段盒内宽。
-                              child: Text(
-                                captionFit == LearningCaptionFit.full
-                                    ? '$captionText 个八拍'
-                                    : captionText,
-                                key: ValueKey(
-                                  'learning_segment_${index}_eight_count_'
-                                  '${captionFit.name}',
-                                ),
-                                maxLines: 1,
-                                softWrap: false,
-                                textScaler: MediaQuery.textScalerOf(context),
-                                style: kLearningCaptionTextStyle,
-                              ),
-                            ),
-                          if (emphasized)
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Padding(
-                                padding: const EdgeInsets.all(3),
-                                child: Icon(
-                                  Icons.star,
-                                  key: ValueKey(
-                                    'learning_segment_${index}_emphasis',
-                                  ),
-                                  size: 16,
-                                  color: kHighlightAmber,
-                                  shadows: const [
-                                    Shadow(
-                                      color: Colors.black87,
-                                      blurRadius: 2,
+          child: editorIntroAnchor(
+            index,
+            GestureDetector(
+              key: ValueKey('learning_segment_$index'),
+              behavior: HitTestBehavior.opaque,
+              // 点选经命中 seam 解析最近段（短段扩展/最近中心）；tap
+              // 识别器守住段体单击（不被带级 sweep 判给拖动）。长按圈选的
+              // 识别器不挂段体也不挂行级层：判定区＝学习轨整行，
+              // 识别器住本域的覆盖层——线与首尾线的命中窗只约束单击，段窄到
+              // 线命中列互相重叠时长按仍可达。
+              onTapUp: input.onSegmentTapUp,
+              // 按下即选：按下事件就是写点（未选中的段静默只选中
+              // 这一段）；本识别器被长按/横滑/缩放抢走或系统打断时 onCancel
+              // 静默回滚到按下前——取消与抬手共用 tap 识别器的两种结局。
+              onTapDown: (_) => input.onSegmentTapDown(index),
+              onTapCancel: () => input.onSegmentTapCancel(index),
+              onHorizontalDragStart: (_) => input.onSegmentDragStart(index),
+              onHorizontalDragUpdate: (_) {},
+              child: Stack(
+                children: [
+                  // 激活静态外发光层：始终占位渲染，阴影只在激活时
+                  // 存在——发光画在格框之下（先入 Stack），不覆盖熟练度主色。
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        key: ValueKey('learning_segment_${index}_glow'),
+                        margin: _segmentGapInset,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            kSegmentBoxBorderRadius,
+                          ),
+                          boxShadow: activated
+                              ? [
+                                  BoxShadow(
+                                    color: kCyanAccentColor.withValues(
+                                      alpha: kSegmentGlowOpacity,
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          // 循环范围两端标志：放得下时的
-                          // repeat 字形；帧由格框装饰承担，端点与中段
-                          // 逐像素同形，不画任何短钩或填角。
-                          if (loopStart || loopEnd)
-                            _SegmentLoopEndMarks(
-                              baseKey: 'learning_segment_$index',
-                              glyphStart: glyphFits && loopStart,
-                              glyphEnd: glyphFits && loopEnd,
-                            ),
-                        ],
+                                    blurRadius: kSegmentGlowBlurRadius,
+                                    spreadRadius: kSegmentGlowSpreadRadius,
+                                  ),
+                                ]
+                              : const [],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  // 圆角格框：段间留缝（左右各让 gap/2）、半透明白
+                  // 1px 描边——未练灰相邻段也界限分明；派生几何（Positioned
+                  // 仍首尾相接满铺）不变，格框只是视觉内缩。填充恒为熟练度色；
+                  // 描边只承载学习段选中（选中只有一个状态，青色
+                  // 加粗整框即唯一选中视觉）与默认两态。
+                  Positioned.fill(
+                    child: Padding(
+                      padding: _segmentGapInset,
+                      child: DecoratedBox(
+                        key: ValueKey('learning_segment_${index}_box'),
+                        decoration: BoxDecoration(
+                          color: learningMasteryColor(segmentMastery),
+                          borderRadius: BorderRadius.circular(
+                            kSegmentBoxBorderRadius,
+                          ),
+                          border: activated
+                              ? Border.all(
+                                  color: kCyanAccentColor,
+                                  width: kSegmentSelectedBorderWidth,
+                                )
+                              : Border.all(
+                                  color: kSegmentBoxStrokeColor,
+                                  width: kSegmentBoxStrokeWidth,
+                                ),
+                        ),
+                        child: Stack(
+                          children: [
+                            // 快慢标记：红/蓝
+                            // 边框画在青色选中框之内（再内缩一档，不与它同宽
+                            // 同位）、段首小字表达精确档位；层级在本 Stack
+                            // 首位——星标/八拍数/循环字形画在其上，标记不
+                            // 覆盖它们；IgnorePointer 不参与命中。
+                            if (isMarked)
+                              _SegmentDensityMark(
+                                baseKey: 'learning_segment_$index',
+                                faster: densityFaster,
+                                label: densityLabel,
+                                showLabel: densityLabelFits,
+                                labelIndent: emphasized
+                                    ? kSegmentDensityLabelStarIndent
+                                    : 0.0,
+                              ),
+                            // 段内八拍数：居中淡字「N 个八拍」，
+                            // 字号/透明度小而不抢段体熟练度色；窄段按实测宽
+                            // 两级缩：仅数字或整行隐藏，key 随
+                            // 文案变体；星标在左上角、数字居中，两者不重叠。
+                            // 样式/缩放与判定侧同源（[kLearningCaptionTextStyle]
+                            // + 调用处缩放值，同一份取值，语义档（随系统字号））+
+                            // `softWrap: false`：判定说放得下就必然单行画全，
+                            // 绝不静默吞掉末字（软换行的第二行会被 maxLines
+                            // 丢掉）。
+                            if (captionFit != null &&
+                                captionText != null &&
+                                captionFit != LearningCaptionFit.hidden)
+                              Align(
+                                alignment: Alignment.center,
+                                // 白字直接压段体熟练度色，可读性由
+                                // [kLearningCaptionTextStyle] 的单层深色字阴影
+                                // 承担；说明自身不占额外横向空间，可用宽判定
+                                // 即段盒内宽。
+                                child: Text(
+                                  captionFit == LearningCaptionFit.full
+                                      ? '$captionText 个八拍'
+                                      : captionText,
+                                  key: ValueKey(
+                                    'learning_segment_${index}_eight_count_'
+                                    '${captionFit.name}',
+                                  ),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  textScaler: MediaQuery.textScalerOf(context),
+                                  style: kLearningCaptionTextStyle,
+                                ),
+                              ),
+                            if (emphasized)
+                              Align(
+                                alignment: Alignment.topLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(3),
+                                  child: Icon(
+                                    Icons.star,
+                                    key: ValueKey(
+                                      'learning_segment_${index}_emphasis',
+                                    ),
+                                    size: 16,
+                                    color: kHighlightAmber,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black87,
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            // 循环范围两端标志：放得下时的
+                            // repeat 字形；帧由格框装饰承担，端点与中段
+                            // 逐像素同形，不画任何短钩或填角。
+                            if (loopStart || loopEnd)
+                              _SegmentLoopEndMarks(
+                                baseKey: 'learning_segment_$index',
+                                glyphStart: glyphFits && loopStart,
+                                glyphEnd: glyphFits && loopEnd,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ),
       );
     }
@@ -677,22 +683,23 @@ class _TrackLearningRowOverlayState extends State<TrackLearningRowOverlay> {
               gestures: {
                 _LearningTrackLongPressRecognizer:
                     GestureRecognizerFactoryWithHandlers<
-                        _LearningTrackLongPressRecognizer>(
-                  () => _LearningTrackLongPressRecognizer(
-                    allowsPosition: (globalPosition) =>
-                        input.resolveSpanOrder(globalPosition) != null,
-                  ),
-                  (recognizer) {
-                    recognizer.onLongPressStart = (details) {
-                      _beginSpan(details.globalPosition);
-                    };
-                    recognizer.onLongPressMoveUpdate = (details) {
-                      _updateSpan(details.globalPosition);
-                    };
-                    recognizer.onLongPressEnd = (details) => _endSpan();
-                    recognizer.onLongPressCancel = _cancelSpan;
-                  },
-                ),
+                      _LearningTrackLongPressRecognizer
+                    >(
+                      () => _LearningTrackLongPressRecognizer(
+                        allowsPosition: (globalPosition) =>
+                            input.resolveSpanOrder(globalPosition) != null,
+                      ),
+                      (recognizer) {
+                        recognizer.onLongPressStart = (details) {
+                          _beginSpan(details.globalPosition);
+                        };
+                        recognizer.onLongPressMoveUpdate = (details) {
+                          _updateSpan(details.globalPosition);
+                        };
+                        recognizer.onLongPressEnd = (details) => _endSpan();
+                        recognizer.onLongPressCancel = _cancelSpan;
+                      },
+                    ),
               },
             ),
           ),
@@ -729,10 +736,7 @@ class _LearningTrackLongPressRecognizer extends LongPressGestureRecognizer {
 /// `Stack` 内叠加两端 `repeat` 字形（[_SegmentLoopEndMarks]，与
 /// 学习段共用同一份几何），发光保持关闭。
 class _TransitionRangeOverlay extends StatelessWidget {
-  const _TransitionRangeOverlay({
-    required this.axis,
-    required this.transition,
-  });
+  const _TransitionRangeOverlay({required this.axis, required this.transition});
 
   final TimelineAxis axis;
   final TransitionSegment transition;
@@ -747,10 +751,7 @@ class _TransitionRangeOverlay extends StatelessWidget {
     // 两端标志：临时段永远自己承担循环范围的 start / end 两端，
     // repeat 字形与学习段共用同一份几何（[_SegmentLoopEndMarks]）；
     // 放得下判据同一条公式，不成立只省字形。
-    final glyphFits = segmentLoopGlyphFits(
-      boxWidth: right - left,
-      ends: 2,
-    );
+    final glyphFits = segmentLoopGlyphFits(boxWidth: right - left, ends: 2);
     return Positioned(
       left: left,
       width: right - left,

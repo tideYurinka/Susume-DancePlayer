@@ -1,6 +1,8 @@
 import 'dart:ui' show Rect, Size;
 
 import 'package:dance_learning_app/player/editor_skeleton.dart';
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowTable;
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kHitTargetMinSize, kCornerPromptCardPaddingV;
 import 'package:flutter_test/flutter_test.dart';
@@ -13,8 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   /// 本机竖屏真机基准（1264×2736 @3.5 = 361.1×781.7dp）。
   const portraitScreen = Size(361.1, 781.7);
-  const normalTrackBandHeight = 208.0; // normal 行集整带高（行高表之和）
-  const compareTrackBandHeight = 186.0; // compare 行集整带高
+  // 两份具名行集的整带高（取值来源 = 行表自身，见 track_row_table_test）。
+  final normalTrackBandHeight = TrackRowTable.normal.totalHeight;
+  final compareTrackBandHeight = TrackRowTable.compare.totalHeight;
 
   /// 名义可用高（画面区从它再扣轨道带）：781.7 − (顶栏 52 + 底栏两行 104 +
   /// 视频播放工具栏两行 104 + 设置条 48) = 473.7；画面区高 = 本值 − 轨道带高
@@ -26,11 +29,13 @@ void main() {
 
   EditorSkeleton skeletonFor({
     Size screen = portraitScreen,
-    double trackBandHeight = normalTrackBandHeight,
+    bool compact = false,
+    double? trackBandHeight,
     double? aspectRatio,
   }) => editorSkeletonFor(
     screen: screen,
-    trackBandHeight: trackBandHeight,
+    compact: compact,
+    trackBandHeight: trackBandHeight ?? normalTrackBandHeight,
     videoAspectRatio: aspectRatio,
   );
 
@@ -38,7 +43,42 @@ void main() {
     test('屏高大于屏宽为竖屏、反之为横屏', () {
       expect(editorIsPortrait(const Size(361.1, 781.7)), isTrue);
       expect(editorIsPortrait(const Size(781.7, 361.1)), isFalse);
-      expect(editorIsPortrait(const Size(400, 400)), isFalse, reason: '正方形按横屏行处理');
+      expect(
+        editorIsPortrait(const Size(400, 400)),
+        isFalse,
+        reason: '正方形按横屏行处理',
+      );
+    });
+  });
+
+  group('紧凑档判定（唯一读点）', () {
+    test('阈值两侧：最短边 599 判紧凑档、600 判常规档', () {
+      expect(editorIsCompact(const Size(599, 800)), isTrue);
+      expect(editorIsCompact(const Size(600, 800)), isFalse);
+      expect(editorIsCompact(const Size(361.1, 781.7)), isTrue, reason: '手机竖屏');
+      expect(editorIsCompact(const Size(820, 1180)), isFalse, reason: '平板竖屏');
+    });
+
+    test('最短边取宽高较小者：朝向对调得到同一档', () {
+      expect(editorIsCompact(const Size(700, 599)), isTrue);
+      expect(editorIsCompact(const Size(599, 700)), isTrue);
+      expect(editorIsCompact(const Size(700, 600)), isFalse);
+      expect(editorIsCompact(const Size(600, 700)), isFalse);
+      expect(editorIsCompact(const Size(1180, 820)), isFalse, reason: '平板横屏');
+    });
+
+    test('骨架原样透出送进来的那一档：不按屏尺寸自行重判', () {
+      // 送 599 那一档的判据结果、屏本身按 600 判常规档——透出的仍是送进来的
+      // 那一份（同屏各消费点因此不会分裂成两档）。
+      final compact = skeletonFor(screen: const Size(600, 800), compact: true);
+      expect(compact.compact, isTrue);
+      final normal = skeletonFor(screen: const Size(599, 800));
+      expect(normal.compact, isFalse, reason: '缺省 = 常规档');
+      expect(
+        skeletonFor(screen: const Size(781.7, 361.1), compact: true).compact,
+        isTrue,
+        reason: '横屏行同样透出送来那一档',
+      );
     });
   });
 
@@ -223,7 +263,11 @@ void main() {
         framingAspectRatio: contentRatio,
       );
       final uncapped = portraitScreen.width / contentRatio;
-      expect(uncapped, greaterThan(unframed.pictureBandHeight), reason: '未封顶会顶穿上方黑区');
+      expect(
+        uncapped,
+        greaterThan(unframed.pictureBandHeight),
+        reason: '未封顶会顶穿上方黑区',
+      );
       expect(uncapped, lessThan(normalPictureArea), reason: '仍放得进画面区 → 贴底');
       expect(s.picturePlacement, PicturePlacement.stickToBottom);
       expect(
@@ -271,7 +315,10 @@ void main() {
         videoAspectRatio: sourceRatio,
         framingAspectRatio: contentRatio,
       );
-      expect(portraitScreen.width / contentRatio, greaterThan(normalPictureArea));
+      expect(
+        portraitScreen.width / contentRatio,
+        greaterThan(normalPictureArea),
+      );
       expect(s.picturePlacement, PicturePlacement.background);
       expect(s.pictureBandHeight, 0);
       expect(s.pictureBandTop, 0);
@@ -340,6 +387,7 @@ void main() {
 
     test('编辑态贴底分支：矩形 = 画面带（带顶按系统栏换算）', () {
       const stick = EditorSkeleton(
+        compact: false,
         portrait: true,
         pictureAreaHeight: 200,
         picturePlacement: PicturePlacement.stickToBottom,
@@ -356,6 +404,7 @@ void main() {
 
     test('编辑态背景位（骨架非贴底）：同观看态整屏 contain 居中', () {
       const background = EditorSkeleton(
+        compact: false,
         portrait: true,
         pictureAreaHeight: 200,
         picturePlacement: PicturePlacement.background,
@@ -444,8 +493,11 @@ void main() {
   group('竖屏名义高表', () {
     test('计入底栏两行与视频播放工具栏两行', () {
       expect(kEditorPortraitToolbarRowsHeight, kEditorToolbarHeight * 2);
-      expect(kEditorVideoToolbarHeight, kEditorToolbarHeight * 2,
-          reason: '视频播放工具栏拆两行，名义高随之翻倍');
+      expect(
+        kEditorVideoToolbarHeight,
+        kEditorToolbarHeight * 2,
+        reason: '视频播放工具栏拆两行，名义高随之翻倍',
+      );
       // 未知宽高比时画面区仍按同一名义高表扣除（先出观看态画面）。
       final s = skeletonFor(screen: const Size(360, 800), aspectRatio: null);
       expect(
@@ -462,13 +514,13 @@ void main() {
 
   group('左下角提示卡锚', () {
     // 号机基准：361.1 × 781.7dp、竖屏顶内缩 39.4、
-    // 系统手势让路带取既有代表值：左 16 / 底 44、普通态轨道带 208dp。
+    // 系统手势让路带取既有代表值：左 16 / 底 44、普通态轨道带为 normal 整带高。
     const portrait = Size(361.1, 781.7);
     const landscape = Size(781.7, 361.1);
     const deviceTopInset = 39.4;
     const yieldLeft = 16.0;
     const yieldBottom = 44.0;
-    const trackBand = 208.0;
+    final trackBand = normalTrackBandHeight;
 
     // 八格表的画面矩形（八格表原值）。
     const bandRect = Rect.fromLTWH(0, 166.6, 361.1, 203.1); // 竖屏编辑·贴底画面带
@@ -517,79 +569,81 @@ void main() {
 
     test('八格表：姿态 × 源方向 × 控制层展开/收起 → 卡左下角', () {
       final cells =
-          <({
-            String name,
-            Rect picture,
-            Size screen,
-            EditorSkeleton? editing,
-            double? left,
-            double? bottom,
-          })>[
-        (
-          name: '竖·横源·展开',
-          picture: bandRect,
-          screen: portrait,
-          editing: portraitSkeleton,
-          left: 24,
-          bottom: 293.7,
-        ),
-        (
-          name: '竖·竖源·展开（上抬到画面区下缘之上）',
-          picture: tallRect,
-          screen: portrait,
-          editing: portraitSkeleton,
-          left: 24,
-          bottom: 293.7,
-        ),
-        (
-          name: '竖·横源·收起',
-          picture: watchingRect,
-          screen: portrait,
-          editing: null,
-          left: 24,
-          bottom: 468.4,
-        ),
-        (
-          name: '竖·竖源·收起',
-          picture: tallRect,
-          screen: portrait,
-          editing: null,
-          left: 24,
-          bottom: 687.8,
-        ),
-        (
-          name: '横·横源·展开（放不下）',
-          picture: wideRect,
-          screen: landscape,
-          editing: landscapeSkeleton,
-          left: null,
-          bottom: null,
-        ),
-        (
-          name: '横·竖源·展开（放不下）',
-          picture: landscapeTallRect,
-          screen: landscape,
-          editing: landscapeSkeleton,
-          left: null,
-          bottom: null,
-        ),
-        (
-          name: '横·横源·收起',
-          picture: wideRect,
-          screen: landscape,
-          editing: null,
-          left: 93.9,
-          bottom: 317.1,
-        ),
-        (
-          name: '横·竖源·收起（跟着居中的画面走）',
-          picture: landscapeTallRect,
-          screen: landscape,
-          editing: null,
-          left: 313.3,
-          bottom: 317.1,
-        ),
-      ];
+          <
+            ({
+              String name,
+              Rect picture,
+              Size screen,
+              EditorSkeleton? editing,
+              double? left,
+              double? bottom,
+            })
+          >[
+            (
+              name: '竖·横源·展开',
+              picture: bandRect,
+              screen: portrait,
+              editing: portraitSkeleton,
+              left: 24,
+              bottom: 293.7,
+            ),
+            (
+              name: '竖·竖源·展开（上抬到画面区下缘之上）',
+              picture: tallRect,
+              screen: portrait,
+              editing: portraitSkeleton,
+              left: 24,
+              bottom: 293.7,
+            ),
+            (
+              name: '竖·横源·收起',
+              picture: watchingRect,
+              screen: portrait,
+              editing: null,
+              left: 24,
+              bottom: 468.4,
+            ),
+            (
+              name: '竖·竖源·收起',
+              picture: tallRect,
+              screen: portrait,
+              editing: null,
+              left: 24,
+              bottom: 687.8,
+            ),
+            (
+              name: '横·横源·展开（放不下）',
+              picture: wideRect,
+              screen: landscape,
+              editing: landscapeSkeleton,
+              left: null,
+              bottom: null,
+            ),
+            (
+              name: '横·竖源·展开（放不下）',
+              picture: landscapeTallRect,
+              screen: landscape,
+              editing: landscapeSkeleton,
+              left: null,
+              bottom: null,
+            ),
+            (
+              name: '横·横源·收起',
+              picture: wideRect,
+              screen: landscape,
+              editing: null,
+              left: 93.9,
+              bottom: 317.1,
+            ),
+            (
+              name: '横·竖源·收起（跟着居中的画面走）',
+              picture: landscapeTallRect,
+              screen: landscape,
+              editing: null,
+              left: 313.3,
+              bottom: 317.1,
+            ),
+          ];
 
       for (final cell in cells) {
         final anchor = anchorOf(
@@ -602,7 +656,11 @@ void main() {
           continue;
         }
         expect(anchor, isNotNull, reason: '${cell.name}：本次应画出');
-        expect(anchor!.left, closeTo(cell.left!, 0.05), reason: '${cell.name} 左');
+        expect(
+          anchor!.left,
+          closeTo(cell.left!, 0.05),
+          reason: '${cell.name} 左',
+        );
         expect(
           anchor.bottom,
           closeTo(cell.bottom!, 0.05),

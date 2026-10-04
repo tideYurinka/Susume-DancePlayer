@@ -8,7 +8,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
 import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
 import 'package:dance_learning_app/player/speed_bubble.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';

@@ -22,7 +22,6 @@ import 'package:flutter/widgets.dart' show EdgeInsets, Offset, Size;
 /// 此处仅按既有 import 面原样转出。
 export 'editor_skeleton.dart' show kScrubCancelZoneSize;
 
-
 /// 手势动作类型。
 enum PlayerGestureActionType { seek, volume, brightness }
 
@@ -97,8 +96,10 @@ Set<PlayerGestureAxis> yieldedAxes({
 }) {
   final down = downPosition;
   if (down == null) return const {};
-  final vertical = down.dy <= insets.top || down.dy >= screen.height - insets.bottom;
-  final horizontal = down.dx <= insets.left || down.dx >= screen.width - insets.right;
+  final vertical =
+      down.dy <= insets.top || down.dy >= screen.height - insets.bottom;
+  final horizontal =
+      down.dx <= insets.left || down.dx >= screen.width - insets.right;
   return {
     if (vertical) PlayerGestureAxis.vertical,
     if (horizontal) PlayerGestureAxis.horizontal,

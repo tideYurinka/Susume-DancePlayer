@@ -45,17 +45,16 @@ enum BeatAnimationStyle {
 }
 
 /// 动画形态解码/编码（设备级默认层与记忆字段共用；词表 = 枚举名）。
-BeatAnimationStyle? decodeBeatAnimationStyle(Object? raw) =>
-    switch (raw) {
-      'bar' => BeatAnimationStyle.bar,
-      'pendulum' => BeatAnimationStyle.pendulum,
-      _ => null,
-    };
+BeatAnimationStyle? decodeBeatAnimationStyle(Object? raw) => switch (raw) {
+  'bar' => BeatAnimationStyle.bar,
+  'pendulum' => BeatAnimationStyle.pendulum,
+  _ => null,
+};
 
 Object? encodeBeatAnimationStyle(BeatAnimationStyle style) => switch (style) {
-      BeatAnimationStyle.pendulum => 'pendulum',
-      BeatAnimationStyle.bar => 'bar',
-    };
+  BeatAnimationStyle.pendulum => 'pendulum',
+  BeatAnimationStyle.bar => 'bar',
+};
 
 /// 动画形态设备级「新舞默认」槽（global_private.json
 /// `metronomeSettings.animationStyle`；语义 = 新舞默认——这支舞
@@ -588,10 +587,7 @@ class _BeatBar extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(
-                      color: kCyanAccentColor,
-                      width: 1,
-                    ),
+                    border: Border.all(color: kCyanAccentColor, width: 1),
                   ),
                 ),
               ),

@@ -23,7 +23,8 @@ import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kHalfBeatLineColor, kSegmentLineSelectedColor;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
@@ -53,9 +54,7 @@ void main() {
           if (beatGrid != null) beatGridProvider.overrideWithValue(beatGrid),
           playbackEngineProvider.overrideWithValue(engine),
           if (beatGrid == null)
-            beatAnalysisPipelineProvider.overrideWithValue(
-              hangingBeatPipeline,
-            ),
+            beatAnalysisPipelineProvider.overrideWithValue(hangingBeatPipeline),
           privateJsonStorageProvider.overrideWithValue(
             InMemoryPrivateJsonStorage(),
           ),
@@ -105,9 +104,7 @@ void main() {
       await tester.tap(find.byKey(const Key('control_half_beat')));
       await tester.pumpAndSettle();
 
-      final timeline = containerOf(
-        tester,
-      ).read(annotationTimelineProvider);
+      final timeline = containerOf(tester).read(annotationTimelineProvider);
       expect(timeline.halfBeatLines, hasLength(1));
       expect(
         timeline.halfBeatLines.single.position,
@@ -220,10 +217,14 @@ void main() {
       final container = containerOf(tester);
       container
           .read(annotationEditorProvider)
-          .submit(const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)));
+          .submit(
+            const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
+          );
       container
           .read(annotationEditorProvider)
-          .submit(const AddSegmentLine(at: Duration(seconds: 10, milliseconds: 250)));
+          .submit(
+            const AddSegmentLine(at: Duration(seconds: 10, milliseconds: 250)),
+          );
       await singleTapShow(tester);
       await engine.pause();
       await tester.pumpAndSettle();
@@ -236,9 +237,9 @@ void main() {
       final positionBefore = engine.position;
 
       // 起手点 = 节拍轨行内半拍线线心（两段式按下即拖，既有手法）。
-      final startX = tester.getCenter(
-        find.byKey(const Key('half_beat_line_hit_0')),
-      ).dx;
+      final startX = tester
+          .getCenter(find.byKey(const Key('half_beat_line_hit_0')))
+          .dx;
       final startY = trackRowCenterY(tester, 'track_beat');
       await pressAndDrag(tester, Offset(startX, startY), 40);
 
@@ -259,12 +260,14 @@ void main() {
     testWidgets('同位时其它入口照常：学习段轨行点选分段线、手柄带控制柄拖动分段线', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       final container = await pumpSamePositionLines(tester, engine: engine);
-      final lineX = tester.getCenter(
-        find.byKey(const Key('half_beat_line_hit_0')),
-      ).dx;
+      final lineX = tester
+          .getCenter(find.byKey(const Key('half_beat_line_hit_0')))
+          .dx;
 
       // 学习段轨行点选那条分段线（半拍线命中列只占节拍轨行，不越行）。
-      await tester.tapAt(Offset(lineX, trackRowCenterY(tester, 'track_learning')));
+      await tester.tapAt(
+        Offset(lineX, trackRowCenterY(tester, 'track_learning')),
+      );
       await tester.pumpAndSettle();
       expect(container.read(selectedSegmentLineIndexProvider), 0);
 
@@ -290,7 +293,9 @@ void main() {
       final container = containerOf(tester);
       container
           .read(annotationEditorProvider)
-          .submit(const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)));
+          .submit(
+            const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
+          );
       container
           .read(annotationEditorProvider)
           .submit(
@@ -305,9 +310,9 @@ void main() {
       await engine.pause();
       await tester.pumpAndSettle();
 
-      final startX = tester.getCenter(
-        find.byKey(const Key('half_beat_line_hit_0')),
-      ).dx;
+      final startX = tester
+          .getCenter(find.byKey(const Key('half_beat_line_hit_0')))
+          .dx;
       final startY = trackRowCenterY(tester, 'track_beat');
       await pressAndDrag(tester, Offset(startX, startY), 40);
 
@@ -356,7 +361,11 @@ void main() {
         reason: '重合 2dp 内拖动仍归播放头（拖进度）',
       );
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
         reason: '半拍线不动',
       );
@@ -376,7 +385,11 @@ void main() {
 
       expect(engine.position, isNot(positionBefore), reason: '进度拖动照常');
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
         reason: '半拍线不动',
       );
@@ -393,7 +406,9 @@ void main() {
       final container = containerOf(tester);
       container
           .read(annotationEditorProvider)
-          .submit(const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)));
+          .submit(
+            const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
+          );
       await singleTapShow(tester);
       await engine.pause();
       await tester.pumpAndSettle();
@@ -457,14 +472,22 @@ void main() {
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 750),
       );
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_back')));
       await tester.pumpAndSettle();
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
       );
 
@@ -472,7 +495,11 @@ void main() {
       container.read(annotationEditorProvider).undo();
       await tester.pumpAndSettle();
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 750),
       );
     });
@@ -490,7 +517,11 @@ void main() {
 
       expect(find.text('已锁定分段'), findsNothing);
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 750),
       );
     });
@@ -523,9 +554,7 @@ void main() {
       const doc = marker_doc.MarkersDocument(
         rangeStartMs: 0,
         rangeEndMs: 30000,
-        halfBeatLines: [
-          HalfBeatLine(position: Duration(milliseconds: 2500)),
-        ],
+        halfBeatLines: [HalfBeatLine(position: Duration(milliseconds: 2500))],
       );
       final timeline = AnnotationTimeline.normalized(
         videoDuration: const Duration(seconds: 30),
@@ -550,7 +579,9 @@ void main() {
       final container = containerOf(tester);
       container
           .read(annotationEditorProvider)
-          .submit(const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)));
+          .submit(
+            const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
+          );
       await singleTapShow(tester);
       await engine.pause();
       await tester.pumpAndSettle();
@@ -574,8 +605,7 @@ void main() {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       final container = await pumpWithHalfBeatLine(tester, engine: engine);
       expect(find.byKey(const Key('control_segment_delete')), findsOneWidget);
-      expect(deleteSlotEnabled(tester), isTrue,
-          reason: '无作用对象 → 置灰但按得动（弹做法）');
+      expect(deleteSlotEnabled(tester), isTrue, reason: '无作用对象 → 置灰但按得动（弹做法）');
 
       await tester.tap(find.byKey(const Key('half_beat_line_hit_0')));
       await tester.pumpAndSettle();
@@ -609,8 +639,11 @@ void main() {
       await tester.tap(find.byKey(const Key('control_segment_delete')));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('half_beat_line_0')), findsNothing,
-          reason: '半拍线删除不受锁定分段');
+      expect(
+        find.byKey(const Key('half_beat_line_0')),
+        findsNothing,
+        reason: '半拍线删除不受锁定分段',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
     });
   });
@@ -645,9 +678,7 @@ void main() {
       container
           .read(annotationEditorProvider)
           .submit(
-            const AddHalfBeatLine(
-              at: Duration(seconds: 10, milliseconds: 250),
-            ),
+            const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await singleTapShow(tester);
       await engine.pause();
@@ -668,7 +699,11 @@ void main() {
       await pressAndDrag(tester, beatRowHitCenter(tester), 40);
 
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
         reason: '太密时横拖不挪半拍线',
       );
@@ -687,7 +722,11 @@ void main() {
       await pressAndDrag(tester, beatRowHitCenter(tester), 40);
 
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
       );
       expect(engine.position, isNot(positionBefore));
@@ -700,7 +739,11 @@ void main() {
       await pressAndDrag(tester, beatRowHitCenter(tester), 40);
 
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         isNot(const Duration(seconds: 10, milliseconds: 250)),
         reason: '够疏时横拖照常挪半拍线',
       );
@@ -728,7 +771,11 @@ void main() {
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 750),
         reason: '太密时步进照常按相邻半拍格点挪',
       );
@@ -779,7 +826,11 @@ void main() {
       // 前置：太密时横拖不动。
       await pressAndDrag(tester, beatRowHitCenter(tester), 40);
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
       );
 
@@ -799,7 +850,11 @@ void main() {
       await pressAndDrag(tester, beatRowHitCenter(tester), 40);
 
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         isNot(const Duration(seconds: 10, milliseconds: 250)),
         reason: '放大到够疏后同一根线横拖恢复挪线',
       );

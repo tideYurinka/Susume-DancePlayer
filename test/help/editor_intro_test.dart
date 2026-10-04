@@ -56,9 +56,7 @@ void main() {
       onSegmentTap: () => segmentTaps++,
     );
     final container = containerOf(tester);
-    container
-        .read(guideSessionProvider.notifier)
-        .trigger(practiceRangeUnitId);
+    container.read(guideSessionProvider.notifier).trigger(practiceRangeUnitId);
 
     // 第 1 步：停靠式待办条（无遮罩气泡、无「下一步」——推进只看判据）。
     expect(find.byKey(const Key('drill_task_bar')), findsOneWidget);
@@ -176,11 +174,7 @@ void main() {
     final storage = InMemoryPrivateJsonStorage();
     final segmentWidth = ValueNotifier<double>(20);
     addTearDown(segmentWidth.dispose);
-    await _pumpAnchorHost(
-      tester,
-      storage: storage,
-      segmentWidth: segmentWidth,
-    );
+    await _pumpAnchorHost(tester, storage: storage, segmentWidth: segmentWidth);
     final screenWidth =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
     final screenHeight =
@@ -206,11 +200,7 @@ void main() {
       final message = tester.getRect(
         find.text(guideStepMessage('editor_intro_zoom')),
       );
-      expect(
-        message.height,
-        greaterThan(24),
-        reason: '本断言覆盖「一句话排成两行」的情形',
-      );
+      expect(message.height, greaterThan(24), reason: '本断言覆盖「一句话排成两行」的情形');
       expect(message.left, greaterThanOrEqualTo(0));
       expect(message.right, lessThanOrEqualTo(screenWidth));
       expect(message.top, greaterThanOrEqualTo(0));
@@ -222,9 +212,7 @@ void main() {
     final storage = InMemoryPrivateJsonStorage();
     await _pumpAnchorHost(tester, storage: storage);
     final container = containerOf(tester);
-    container
-        .read(guideSessionProvider.notifier)
-        .trigger(practiceRangeUnitId);
+    container.read(guideSessionProvider.notifier).trigger(practiceRangeUnitId);
     await tester.pumpAndSettle();
 
     // 动手第 1 步在屏时跳过：整单元一次置位。
@@ -318,9 +306,7 @@ void main() {
     expect(find.byKey(const Key('guide_bubble')), findsNothing);
 
     // 重新触达（模拟再次进编辑态）：从第 1 步重头。
-    container
-        .read(guideSessionProvider.notifier)
-        .trigger(editorIntroUnitId);
+    container.read(guideSessionProvider.notifier).trigger(editorIntroUnitId);
     await tester.pumpAndSettle();
     expect(find.text('1/3'), findsOneWidget);
     expect(find.text(guideStepMessage('editor_intro_zoom')), findsOneWidget);
@@ -453,7 +439,10 @@ void main() {
     // 演练在屏（它与编辑态上手共用同一条待办条）：编辑态上手被压住——
     // 条子上是演练第 1 步，而不是编辑态上手第 1 步。
     expect(find.byKey(const Key('drill_task_bar')), findsOneWidget);
-    expect(find.textContaining(guideStepMessage(helpDrillSteps.first.id)), findsOneWidget);
+    expect(
+      find.textContaining(guideStepMessage(helpDrillSteps.first.id)),
+      findsOneWidget,
+    );
     // （演练与编辑态上手都是三步，「N/M」不再可判别，按文案区分。）
     expect(find.text(guideStepMessage(helpGuideSteps.first.id)), findsNothing);
 

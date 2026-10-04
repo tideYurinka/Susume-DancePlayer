@@ -122,8 +122,5 @@ const int kTransitionTriggerSidePercent = 10;
   // 越界钳制到最近的有效线（有效线区间 [0, segments.length - 2]），
   // 保证不变式在防御性路径下同样成立。
   final index = lineIndex.clamp(0, segments.length - 2);
-  return (
-    left: side(segments[index]),
-    right: side(segments[index + 1]),
-  );
+  return (left: side(segments[index]), right: side(segments[index + 1]));
 }

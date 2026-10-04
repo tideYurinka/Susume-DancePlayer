@@ -12,6 +12,7 @@ import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
 import 'package:dance_learning_app/player/compare_recording.dart'
     show CompareRecordingPhase, compareRecordingPhaseProvider;
+
 import 'dart:math' as math;
 
 import 'package:dance_learning_app/player/control_layer.dart'
@@ -180,11 +181,7 @@ void main() {
       final back = tester.getRect(find.byKey(const Key('control_layer_back')));
       final rect = tester.getRect(rotateButton());
       expect(rect.left, closeTo(39.4 + 4, 0.01), reason: '左 = 左内缩 + 间隙 4');
-      expect(
-        rect.left,
-        closeTo(back.left, 0.01),
-        reason: '与返回键同一条内缩线（同一列）',
-      );
+      expect(rect.left, closeTo(back.left, 0.01), reason: '与返回键同一条内缩线（同一列）');
       expect(rect.top, closeTo(56, 0.01), reason: '返回键正下方（顶内缩 0）');
     });
 
@@ -201,7 +198,9 @@ void main() {
       expect(rect.bottom, lessThanOrEqualTo(trackBand.top));
     });
 
-    testWidgets('渲染点在全屏 Stack 内：钮完整含于最近 Stack 祖先（旧锚被中带小 Stack 裁掉下半截）', (tester) async {
+    testWidgets('渲染点在全屏 Stack 内：钮完整含于最近 Stack 祖先（旧锚被中带小 Stack 裁掉下半截）', (
+      tester,
+    ) async {
       setLandscapeView(tester);
       await pumpPlayer(
         tester,
@@ -218,15 +217,21 @@ void main() {
       expect(ancestor.left, closeTo(0, 0.01));
       expect(ancestor.top, closeTo(0, 0.01));
       expect(ancestor.width, closeTo(screen.width, 0.01));
-      expect(ancestor.height, closeTo(screen.height, 0.01),
-          reason: '最近 Stack 祖先 = 全屏 Stack，不是中带小 Stack');
+      expect(
+        ancestor.height,
+        closeTo(screen.height, 0.01),
+        reason: '最近 Stack 祖先 = 全屏 Stack，不是中带小 Stack',
+      );
 
       final rect = tester.getRect(rotateButton());
       expect(rect.left, greaterThanOrEqualTo(ancestor.left));
       expect(rect.top, greaterThanOrEqualTo(ancestor.top));
       expect(rect.right, lessThanOrEqualTo(ancestor.right));
-      expect(rect.bottom, lessThanOrEqualTo(ancestor.bottom),
-          reason: '钮矩形完整含于最近 Stack 祖先内，无裁剪');
+      expect(
+        rect.bottom,
+        lessThanOrEqualTo(ancestor.bottom),
+        reason: '钮矩形完整含于最近 Stack 祖先内，无裁剪',
+      );
     });
 
     testWidgets('与数拍数字默认位置不相交（数字在 x ≈ 130–190）', (tester) async {
@@ -467,15 +472,14 @@ void main() {
       );
       await openEditor(tester);
 
-      expectButtonSemantics(tester, kLandscapeToPortraitButtonKey,
-          label: '转为竖屏');
+      expectButtonSemantics(
+        tester,
+        kLandscapeToPortraitButtonKey,
+        label: '转为竖屏',
+      );
       activateBySemantics(tester, kLandscapeToPortraitButtonKey);
       await tester.pump();
-      expect(
-        systemUi.lockPortraitCount,
-        1,
-        reason: '读屏双击转屏钮应真的锁竖屏',
-      );
+      expect(systemUi.lockPortraitCount, 1, reason: '读屏双击转屏钮应真的锁竖屏');
       semantics.dispose();
     });
 
@@ -541,9 +545,9 @@ class _SourcePage extends StatelessWidget {
       body: Center(
         child: TextButton(
           key: const Key('open_player'),
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute<void>(builder: (_) => child)),
+          onPressed: () =>
+              Navigator.of(context)
+                  .push(MaterialPageRoute<void>(builder: (_) => child)),
           child: const Text('打开播放'),
         ),
       ),

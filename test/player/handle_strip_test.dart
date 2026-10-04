@@ -193,11 +193,7 @@ void main() {
 
     test('空列表与单线：不越界，单线槽居中并贴边顶满', () {
       expect(
-        assignHandleSlots(
-          positions: const [],
-          bandWidth: 800,
-          contentLeft: 0,
-        ),
+        assignHandleSlots(positions: const [], bandWidth: 800, contentLeft: 0),
         isEmpty,
       );
       final solo = assignHandleSlots(
@@ -336,7 +332,11 @@ void main() {
         plan.contentWidth - (plan.grooves.last.left + plan.grooves.last.width),
       ];
       for (final gap in gaps) {
-        expect(gap, closeTo(4.4, 1e-9), reason: '端距 = 内缝 = 右端距 = 4.4dp，保留小数不取整');
+        expect(
+          gap,
+          closeTo(4.4, 1e-9),
+          reason: '端距 = 内缝 = 右端距 = 4.4dp，保留小数不取整',
+        );
       }
       // 左右严格对称：每条纹与其镜像纹互补。
       expectSymmetric(plan);
@@ -371,14 +371,18 @@ void main() {
         for (var i = 1; i < plain.grooves.length; i++)
           plain.grooves[i].left -
               (plain.grooves[i - 1].left + plain.grooves[i - 1].width),
-        plain.contentWidth - (plain.grooves.last.left + plain.grooves.last.width),
+        plain.contentWidth -
+            (plain.grooves.last.left + plain.grooves.last.width),
       ];
       for (final gap in gaps) {
         expect(gap, closeTo(4.8, 1e-9));
       }
       expectSymmetric(plain);
       // 两态互为对照：开态内容盒 30、关态 32，落位不同。
-      expect(stroked.grooves.first.left, isNot(closeTo(plain.grooves.first.left, 1e-6)));
+      expect(
+        stroked.grooves.first.left,
+        isNot(closeTo(plain.grooves.first.left, 1e-6)),
+      );
     });
 
     test('槽压窄：条宽 = min(条宽上限, 槽宽)', () {
@@ -406,12 +410,12 @@ void main() {
 
     test('密集退化：条宽 40/32/24/12/8dp → 纹数 5/4/3/2/0', () {
       int grooveCount(double barWidth) => planHandleBar(
-            slotWidth: barWidth,
-            maxBarWidth: barWidth,
-            barHeight: 18,
-            rowHeight: 30,
-            stroked: true,
-          ).grooves.length;
+        slotWidth: barWidth,
+        maxBarWidth: barWidth,
+        barHeight: 18,
+        rowHeight: 30,
+        stroked: true,
+      ).grooves.length;
       expect(grooveCount(40), 5);
       expect(grooveCount(32), 4);
       expect(grooveCount(24), 3);
@@ -465,12 +469,24 @@ void main() {
             final label = '条 $width×$height 描边$stroked';
             expect(plan.cornerRadius, height / 2, reason: label);
             expect(plan.rowOffsetY, greaterThanOrEqualTo(0), reason: label);
-            expect(plan.rowOffsetY + plan.barHeight, lessThanOrEqualTo(30), reason: label);
+            expect(
+              plan.rowOffsetY + plan.barHeight,
+              lessThanOrEqualTo(30),
+              reason: label,
+            );
             for (final g in plan.grooves) {
               expect(g.left, greaterThanOrEqualTo(0), reason: label);
               expect(g.top, greaterThanOrEqualTo(0), reason: label);
-              expect(g.left + g.width, lessThanOrEqualTo(plan.contentWidth + 1e-9), reason: label);
-              expect(g.top + g.height, lessThanOrEqualTo(plan.contentHeight + 1e-9), reason: label);
+              expect(
+                g.left + g.width,
+                lessThanOrEqualTo(plan.contentWidth + 1e-9),
+                reason: label,
+              );
+              expect(
+                g.top + g.height,
+                lessThanOrEqualTo(plan.contentHeight + 1e-9),
+                reason: label,
+              );
               expect(g.width, greaterThan(0), reason: label);
               expect(g.height, greaterThan(0), reason: label);
             }
@@ -485,7 +501,15 @@ void main() {
             }
             // 端距对称：左端距 = 右端距。
             if (plan.grooves.isNotEmpty) {
-              expect(plan.grooves.first.left, closeTo(plan.contentWidth - (plan.grooves.last.left + plan.grooves.last.width), 1e-9), reason: label);
+              expect(
+                plan.grooves.first.left,
+                closeTo(
+                  plan.contentWidth -
+                      (plan.grooves.last.left + plan.grooves.last.width),
+                  1e-9,
+                ),
+                reason: label,
+              );
             }
           }
         }
@@ -503,8 +527,9 @@ void main() {
         stroked: true,
       );
       const dpr = 1.0;
-      final snapped =
-          plan.grooves.map((g) => snapRectToDevicePixels(g, dpr)).toList();
+      final snapped = plan.grooves
+          .map((g) => snapRectToDevicePixels(g, dpr))
+          .toList();
       for (final g in snapped) {
         expect((g.left * dpr) % 1, 0, reason: '左缘在栅格上');
         expect((g.right * dpr) % 1, 0, reason: '右缘在栅格上');
@@ -513,8 +538,7 @@ void main() {
       for (var i = 1; i + 1 < snapped.length; i++) {
         final gapA =
             snapped[i].left - (snapped[i - 1].left + snapped[i - 1].width);
-        final gapB =
-            snapped[i + 1].left - (snapped[i].left + snapped[i].width);
+        final gapB = snapped[i + 1].left - (snapped[i].left + snapped[i].width);
         expect(gapA, closeTo(gapB, 1 / dpr), reason: '缝均匀');
       }
       // 纹宽不因吸附跑出 plan 的 2dp ± 半像素。
@@ -526,7 +550,11 @@ void main() {
     test('snapToDevicePixel：条左缘 24.3 在 1× 下吸到 24（条缘归栅格）', () {
       expect(snapToDevicePixel(24.3, 1.0), 24.0);
       expect(snapToDevicePixel(24.6, 1.0), 25.0);
-      expect(snapToDevicePixel(24.5, 3.0), closeTo(74 / 3, 1e-9), reason: '24.5×3=73.5 → Dart 四舍五入取 74');
+      expect(
+        snapToDevicePixel(24.5, 3.0),
+        closeTo(74 / 3, 1e-9),
+        reason: '24.5×3=73.5 → Dart 四舍五入取 74',
+      );
     });
   });
 }

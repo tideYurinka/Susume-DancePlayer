@@ -55,14 +55,13 @@ BeatTrackState uniformReadyBeatState({double seconds = 30}) {
 /// 就绪但拍点为空态样例（行为修正缝）：beat 段存在、拍点列表
 /// 为空——App 自身写入路径产不出（只有手改或分享来的标记文件会有）；
 /// 真实拍点可用谓词须判其不可用，占位均匀节奏不得冒充真实网格。
-BeatTrackState readyEmptyBeatsBeatState() =>
-    BeatTrackState.ready(
-      marker_doc.BeatGrid(
-        model: 'fake.onnx',
-        fps: 100,
-        generatedAt: DateTime.utc(2024),
-      ),
-    );
+BeatTrackState readyEmptyBeatsBeatState() => BeatTrackState.ready(
+  marker_doc.BeatGrid(
+    model: 'fake.onnx',
+    fps: 100,
+    generatedAt: DateTime.utc(2024),
+  ),
+);
 
 /// 就绪态均匀网格文档：拍点每 0.5s 一拍、强拍每 4 拍（4/4 均匀，
 /// 强拍序号 0/4/8…、时刻 0/2/4…s）；可选八拍锚点（拍序号数组）。
@@ -98,9 +97,8 @@ class HangingBeatPipeline implements BeatAnalysisPipeline {
   const HangingBeatPipeline();
 
   @override
-  Future<List<marker_doc.BeatPoint>> analyze(
-    BeatAnalysisRequest request,
-  ) => Completer<List<marker_doc.BeatPoint>>().future;
+  Future<List<marker_doc.BeatPoint>> analyze(BeatAnalysisRequest request) =>
+      Completer<List<marker_doc.BeatPoint>>().future;
 }
 
 /// 挂起管线共享实例。

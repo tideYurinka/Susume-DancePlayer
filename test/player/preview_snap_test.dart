@@ -1,7 +1,8 @@
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
 import 'package:dance_learning_app/annotation/segment_line.dart';
 import 'package:dance_learning_app/core/beat_grid.dart';
-import 'package:dance_learning_app/persistence/marker_document.dart' as marker_doc;
+import 'package:dance_learning_app/persistence/marker_document.dart'
+    as marker_doc;
 import 'package:dance_learning_app/player/preview_snap.dart';
 import 'package:flutter_test/flutter_test.dart';
 

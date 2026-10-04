@@ -19,7 +19,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationTimelineProvider,
         layoutLockedProvider,
         noteStickersProvider;
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart';
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,8 +73,9 @@ void main() {
   AnnotationEditor editor() => container.read(annotationEditorProvider);
   AnnotationTimeline timeline() => container.read(annotationTimelineProvider);
 
-  void enterCompare({PlayerSessionMode mode = PlayerSessionMode.compareEditing}) =>
-      container.read(playerSessionProvider.notifier).enter(mode);
+  void enterCompare({
+    PlayerSessionMode mode = PlayerSessionMode.compareEditing,
+  }) => container.read(playerSessionProvider.notifier).enter(mode);
 
   void seedLines() {
     editor().submit(AddSegmentLine(at: ten));
@@ -84,9 +86,9 @@ void main() {
 
   void seedNote() {
     editor().restoreDocument(
-      const AnnotationRestoreDocument(notes: [
-        NoteSticker(startMs: 1000, endMs: 9000, text: '手'),
-      ]),
+      const AnnotationRestoreDocument(
+        notes: [NoteSticker(startMs: 1000, endMs: 9000, text: '手')],
+      ),
     );
   }
 
@@ -99,42 +101,54 @@ void main() {
       ('移半拍线', MoveHalfBeatLine(index: 0, to: Duration(seconds: 15))),
       ('删半拍线', RemoveHalfBeatLine(index: 0)),
       ('首尾边界调整', SetVideoRange(start: Duration(seconds: 5))),
-      ('自动分段', AutoSegment(
+      (
+        '自动分段',
+        AutoSegment(
           start: Duration.zero,
           end: total,
           cuts: const [Duration(seconds: 15)],
-        )),
+        ),
+      ),
       ('清空分段', ClearSegmentLines()),
-      ('节拍对齐应用', ApplyBeatShift(
+      (
+        '节拍对齐应用',
+        ApplyBeatShift(
           delta: const Duration(milliseconds: 100),
           shiftSeconds: 0.1,
-        )),
+        ),
+      ),
       ('落八拍锚点', AddEightBeatAnchor(at: Duration(seconds: 15))),
       ('删八拍锚点', RemoveEightBeatAnchor(at: Duration(seconds: 15))),
       ('清空八拍锚点', ClearEightBeatAnchors()),
       ('插备注片段', InsertNote(at: Duration(seconds: 30))),
       ('移备注片段', MoveNote(index: 0, to: Duration(seconds: 30))),
-      ('备注端点拖', DragNoteEdge(
+      (
+        '备注端点拖',
+        DragNoteEdge(
           index: 0,
           edge: IntervalEdge.end,
           to: Duration(seconds: 30),
-        )),
-      ('备注贴纸几何', SetNoteGeometry(
+        ),
+      ),
+      (
+        '备注贴纸几何',
+        SetNoteGeometry(
           index: 0,
           geometry: NoteGeometry(centerX: 0.6, centerY: 0.4, scale: 1.2),
-        )),
+        ),
+      ),
       ('删备注片段', RemoveNote(index: 0)),
       ('加局部镜像片段', AddLocalMirrorFragment(at: Duration(seconds: 30))),
       ('删局部镜像片段', RemoveLocalMirrorFragment(index: 0)),
-      ('移局部镜像片段', MoveLocalMirrorFragment(
-          index: 0,
-          to: Duration(seconds: 30),
-        )),
-      ('局部镜像端点拖', DragLocalMirrorFragmentEdge(
+      ('移局部镜像片段', MoveLocalMirrorFragment(index: 0, to: Duration(seconds: 30))),
+      (
+        '局部镜像端点拖',
+        DragLocalMirrorFragmentEdge(
           index: 0,
           edge: IntervalEdge.end,
           to: Duration(seconds: 30),
-        )),
+        ),
+      ),
     ]) {
       test('对比-控制层：$name 被拒，不弹提示、不入史、不入盘', () {
         seedLines();
@@ -143,9 +157,12 @@ void main() {
         final historyBefore = container
             .read(annotationEditHistoryProvider)
             .length;
-        final lockPromptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-        final contentLockPromptBefore = container
-            .read(noticeTriggerProvider(NoticeId.noteContentLock));
+        final lockPromptBefore = container.read(
+          noticeTriggerProvider(NoticeId.layoutLock),
+        );
+        final contentLockPromptBefore = container.read(
+          noticeTriggerProvider(NoticeId.noteContentLock),
+        );
 
         final outcome = editor().submit(command);
 
@@ -159,8 +176,11 @@ void main() {
         );
         expect(sink.diffs, isEmpty, reason: name);
         // 静默：对比态不是「锁」，不弹「已锁定分段」也不弹「备注已锁定」。
-        expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), lockPromptBefore,
-            reason: name);
+        expect(
+          container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+          lockPromptBefore,
+          reason: name,
+        );
         expect(
           container.read(noticeTriggerProvider(NoticeId.noteContentLock)),
           contentLockPromptBefore,
@@ -185,7 +205,9 @@ void main() {
       final historyBefore = container
           .read(annotationEditHistoryProvider)
           .length;
-      editor().submit(MoveSegmentLine(index: 0, to: const Duration(seconds: 15)));
+      editor().submit(
+        MoveSegmentLine(index: 0, to: const Duration(seconds: 15)),
+      );
       expect(timeline().segmentLines.map((l) => l.position), [ten, twenty]);
       expect(
         container.read(annotationEditHistoryProvider).length,
@@ -199,12 +221,17 @@ void main() {
       seedLines();
       container.read(layoutLockedProvider.notifier).toggle();
       enterCompare();
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
+      );
       final outcome = editor().submit(
         MoveSegmentLine(index: 0, to: const Duration(seconds: 15)),
       );
       expect(outcome, isA<EditLocked>());
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore + 1);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore + 1,
+      );
     });
   });
 
@@ -226,10 +253,7 @@ void main() {
         editor().submit(ToggleSegmentEmphasis(order: 0)),
         isA<EditApplied>(),
       );
-      expect(
-        editor().submit(ToggleSegmentFlag(index: 0)),
-        isA<EditApplied>(),
-      );
+      expect(editor().submit(ToggleSegmentFlag(index: 0)), isA<EditApplied>());
       expect(
         container.read(annotationEditHistoryProvider).length,
         historyBefore + 3,
@@ -244,10 +268,7 @@ void main() {
         editor().submit(SetNoteText(index: 0, text: '改字')),
         isA<EditApplied>(),
       );
-      expect(
-        editor().submit(ToggleNoteLock(index: 0)),
-        isA<EditApplied>(),
-      );
+      expect(editor().submit(ToggleNoteLock(index: 0)), isA<EditApplied>());
       expect(container.read(noteStickersProvider)[0].text, '改字');
       expect(container.read(noteStickersProvider)[0].locked, isTrue);
     });
@@ -257,11 +278,15 @@ void main() {
     test('观看态/编辑态下同一几何 verb 照常生效', () {
       seedLines();
       expect(
-        editor().submit(MoveSegmentLine(index: 0, to: const Duration(seconds: 15))),
+        editor().submit(
+          MoveSegmentLine(index: 0, to: const Duration(seconds: 15)),
+        ),
         isA<EditApplied>(),
       );
-      expect(timeline().segmentLines.first.position,
-          const Duration(seconds: 15));
+      expect(
+        timeline().segmentLines.first.position,
+        const Duration(seconds: 15),
+      );
       expect(sink.diffs, isNotEmpty);
     });
   });

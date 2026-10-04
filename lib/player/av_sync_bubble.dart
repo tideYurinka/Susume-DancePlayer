@@ -11,8 +11,7 @@ import 'calibration_session_grid.dart'
 import '../beat_track_state/beat_track_state.dart' show beatGridProvider;
 import 'speed_bubble.dart' show SpeedBubbleMode, speedBubbleSessionProvider;
 import 'visual_tokens.dart';
-import '../help/content_registry.dart'
-    show avSyncDelayColumnAnchorKey;
+import '../help/content_registry.dart' show avSyncDelayColumnAnchorKey;
 import '../help/guide_anchor.dart' show GuideAnchor;
 
 /// 音画同步锚定气泡内容：挂在共享锚定气泡互斥会话
@@ -168,9 +167,8 @@ class _AvSyncBubbleContentState extends ConsumerState<AvSyncBubbleContent> {
               const SizedBox(width: 4),
               TextButton(
                 key: const Key('av_sync_reset'),
-                onPressed: () => ref
-                    .read(avSyncCalibrationSessionProvider.notifier)
-                    .reset(),
+                onPressed: () =>
+                    ref.read(avSyncCalibrationSessionProvider.notifier).reset(),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 32),
@@ -271,9 +269,9 @@ class _AvSyncSessionPulseState extends ConsumerState<_AvSyncSessionPulse> {
     // 启用）；已启动的节拍表不重启。可用性读派生格谓词（watch 网格即随
     // 三态重建）。
     final grid = ref.watch(beatGridProvider);
-    final tier = ref.watch(avSyncCalibrationSessionProvider.select(
-      (state) => state.tier,
-    ));
+    final tier = ref.watch(
+      avSyncCalibrationSessionProvider.select((state) => state.tier),
+    );
     // 歌曲档可用性：视图实时读既有会话网格纯函数（真实拍点不可用置灰，
     // 严格读法与 [av_sync_session.dart] `_songGrid` 同一谓词）。
     final songAvailable = CalibrationSessionGrid.isTierAvailable(

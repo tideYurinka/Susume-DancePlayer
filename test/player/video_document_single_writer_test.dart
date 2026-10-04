@@ -56,8 +56,7 @@ class GatedVideoDocumentStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _inner.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _inner.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _inner.loadLocalOrNull();
 
   @override
   Future<void> saveLocal(Map<String, dynamic> json) => _inner.saveLocal(json);
@@ -67,15 +66,15 @@ class GatedVideoDocumentStorage implements VideoDocumentStorage {
 
   @override
   Future<void> mutateMarkers(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
-  ) =>
-      _inner.mutateMarkers(apply);
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
+  ) => _inner.mutateMarkers(apply);
 
   @override
   Future<void> mutateLocal(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) apply,
-  ) =>
-      _inner.mutateLocal(apply);
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    apply,
+  ) => _inner.mutateLocal(apply);
 
   /// 放行全部停在闸门上的读。
   void releaseAll() {
@@ -145,24 +144,20 @@ void main() {
 
         final markers = await mirrorWriter.readMarkers();
         expect(markers.mirrored, isTrue, reason: '镜像开关字段存活');
-        expect(
-          markers.segmentLines,
-          hasLength(1),
-          reason: '刚提交的标注未被退回上一版',
-        );
+        expect(markers.segmentLines, hasLength(1), reason: '刚提交的标注未被退回上一版');
       });
 
       test('生产装配：会话与消费方取得同一条写链', () async {
         final gated = GatedVideoDocumentStorage(make(tempDir));
         final container = ProviderContainer(
           overrides: [
-            videoDocumentStorageFactoryProvider.overrideWithValue(
-              (_) => gated,
-            ),
+            videoDocumentStorageFactoryProvider.overrideWithValue((_) => gated),
             videoIndexStoreProvider.overrideWithValue(
               InMemoryVideoIndexStorage(initial: VideoIndex.empty),
             ),
-            contentHasherProvider.overrideWithValue(const FixedHasher(kVideoId)),
+            contentHasherProvider.overrideWithValue(
+              const FixedHasher(kVideoId),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -194,11 +189,7 @@ void main() {
 
         final markers = await sessionChain.readMarkers();
         expect(markers.mirrored, isTrue, reason: '镜像开关字段存活');
-        expect(
-          markers.segmentLines,
-          hasLength(1),
-          reason: '刚提交的标注未被退回上一版',
-        );
+        expect(markers.segmentLines, hasLength(1), reason: '刚提交的标注未被退回上一版');
       });
     });
   }

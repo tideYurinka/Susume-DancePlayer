@@ -7,16 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('具名行集 normal', () {
     test('行序 = 备注轨 → 局部镜像轨 → 学习段轨 → 节拍轨 → 轨道手柄带行', () {
-      expect(
-        TrackRowTable.normal.rows.map((r) => r.id),
-        const [
-          TrackRowId.note,
-          TrackRowId.localMirror,
-          TrackRowId.learning,
-          TrackRowId.beat,
-          TrackRowId.handleStrip,
-        ],
-      );
+      expect(TrackRowTable.normal.rows.map((r) => r.id), const [
+        TrackRowId.note,
+        TrackRowId.localMirror,
+        TrackRowId.learning,
+        TrackRowId.beat,
+        TrackRowId.handleStrip,
+      ]);
     });
 
     test('逐行行高与行键：备注轨 36dp 新增，其余逐位沿用今天取值', () {
@@ -94,10 +91,7 @@ void main() {
         ],
         gap: kTrackRowGap,
       );
-      expect(
-        () => onlyMirror.rectOf(TrackRowId.beat),
-        throwsArgumentError,
-      );
+      expect(() => onlyMirror.rectOf(TrackRowId.beat), throwsArgumentError);
     });
   });
 
@@ -134,15 +128,12 @@ void main() {
 
   group('具名行集 compare（对比练习）', () {
     test('行序 = 备注轨 → 练习视频轨 → 学习段轨 → 节拍轨（无局部镜像轨、无手柄带行）', () {
-      expect(
-        TrackRowTable.compare.rows.map((r) => r.id),
-        const [
-          TrackRowId.note,
-          TrackRowId.practiceVideo,
-          TrackRowId.learning,
-          TrackRowId.beat,
-        ],
-      );
+      expect(TrackRowTable.compare.rows.map((r) => r.id), const [
+        TrackRowId.note,
+        TrackRowId.practiceVideo,
+        TrackRowId.learning,
+        TrackRowId.beat,
+      ]);
     });
 
     test('逐行行高与行键：备注轨 36dp 在顶、练习视频轨 48dp（与学习段轨同高、不新增视觉常量）', () {
@@ -198,11 +189,19 @@ void main() {
     });
 
     test('对比态标签集：条数与次序跟随该态行集，无局部镜像轨即无「镜像」', () {
-      expect(TrackRowTable.compare.prefixLabels, const ['备注', '练习', '分段', '节拍']);
+      expect(TrackRowTable.compare.prefixLabels, const [
+        '备注',
+        '练习',
+        '分段',
+        '节拍',
+      ]);
     });
 
     test('标签文案与行键、行标识分离：标签不改行键', () {
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo), '练习');
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo),
+        '练习',
+      );
       expect(
         TrackRowTable.compare.rows
             .firstWhere((row) => row.id == TrackRowId.practiceVideo)
@@ -224,9 +223,18 @@ void main() {
         TrackRowTable.normal.prefixLabelOf(TrackRowId.practiceVideo),
         isNull,
       );
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo), '练习');
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.localMirror), isNull);
-      expect(TrackRowTable.compare.prefixLabelOf(TrackRowId.handleStrip), isNull);
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.practiceVideo),
+        '练习',
+      );
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.localMirror),
+        isNull,
+      );
+      expect(
+        TrackRowTable.compare.prefixLabelOf(TrackRowId.handleStrip),
+        isNull,
+      );
     });
 
     test('自下而上（片头列读序）= 行集倒序的标签', () {
@@ -243,6 +251,104 @@ void main() {
         '练习',
         '备注',
       ]);
+    });
+  });
+
+  group('去掉若干行（剪裁出新表）', () {
+    test('紧凑档剪掉备注轨与局部镜像轨：余行次序不变，整带高按剪裁后逐行重算', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      expect(trimmed.rows.map((r) => r.id), const [
+        TrackRowId.learning,
+        TrackRowId.beat,
+        TrackRowId.handleStrip,
+      ]);
+      expect(trimmed.gap, kTrackRowGap);
+      // 48 + 24 + 30 + 10 × 2 = 122（worked example）。
+      expect(trimmed.totalHeight, 122);
+      // 行顶按新行序重排：学习段轨 0、节拍轨 58、手柄带行 92。
+      expect(
+        trimmed.rectOf(TrackRowId.learning),
+        const TrackRowRect(top: 0, height: 48),
+      );
+      expect(
+        trimmed.rectOf(TrackRowId.beat),
+        const TrackRowRect(top: 58, height: 24),
+      );
+      expect(
+        trimmed.rectOf(TrackRowId.handleStrip),
+        const TrackRowRect(top: 92, height: 30),
+      );
+    });
+
+    test('成员谓词与片头标签集随剪裁收缩；被剪掉的行取标签为空、取矩形仍报错', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      expect(trimmed.hasRow(TrackRowId.note), isFalse);
+      expect(trimmed.hasRow(TrackRowId.localMirror), isFalse);
+      expect(trimmed.hasRow(TrackRowId.learning), isTrue);
+      expect(trimmed.hasRow(TrackRowId.beat), isTrue);
+      expect(trimmed.hasRow(TrackRowId.handleStrip), isTrue);
+      expect(trimmed.prefixLabels, const ['分段', '节拍', '控制']);
+      expect(trimmed.prefixLabelOf(TrackRowId.note), isNull);
+      expect(trimmed.prefixLabelOf(TrackRowId.localMirror), isNull);
+      expect(trimmed.prefixLabelOf(TrackRowId.handleStrip), '控制');
+      // 不在行集内取矩形仍按既有口径显式报错，不静默返回空矩形。
+      expect(() => trimmed.rectOf(TrackRowId.note), throwsArgumentError);
+      expect(() => trimmed.rectOf(TrackRowId.localMirror), throwsArgumentError);
+    });
+
+    test('坐标 → 行按剪裁后的行序与行高派生（原备注轨那一段现属下一行）', () {
+      final trimmed = TrackRowTable.normal.withoutRows(const {
+        TrackRowId.note,
+        TrackRowId.localMirror,
+      });
+      // 原备注轨行中（18）现落学习段轨；区间含两端、间隙返回空。
+      expect(trimmed.rowAt(18), TrackRowId.learning);
+      expect(trimmed.rowAt(0), TrackRowId.learning);
+      expect(trimmed.rowAt(48), TrackRowId.learning);
+      expect(trimmed.rowAt(53), isNull); // 行间隙
+      expect(trimmed.rowAt(58), TrackRowId.beat);
+      expect(trimmed.rowAt(122), TrackRowId.handleStrip); // 整带底边
+      expect(trimmed.rowAt(122.5), isNull);
+    });
+
+    test('行集里没有的身份是空操作：对比行集剪局部镜像轨不改变任何行', () {
+      final trimmed = TrackRowTable.compare.withoutRows(const {
+        TrackRowId.localMirror,
+      });
+      expect(
+        trimmed.rows.map((r) => r.id),
+        TrackRowTable.compare.rows.map((r) => r.id),
+      );
+      expect(
+        trimmed.rows.map((r) => r.key),
+        TrackRowTable.compare.rows.map((r) => r.key),
+      );
+      expect(trimmed.gap, TrackRowTable.compare.gap);
+      expect(trimmed.totalHeight, TrackRowTable.compare.totalHeight);
+    });
+
+    test('对比行集剪掉空备注轨：练习视频轨升到最顶，整带高 140', () {
+      final trimmed = TrackRowTable.compare.withoutRows(const {
+        TrackRowId.note,
+      });
+      expect(trimmed.rows.map((r) => r.id), const [
+        TrackRowId.practiceVideo,
+        TrackRowId.learning,
+        TrackRowId.beat,
+      ]);
+      // 48 + 48 + 24 + 10 × 2 = 140（worked example）。
+      expect(trimmed.totalHeight, 140);
+      expect(
+        trimmed.rectOf(TrackRowId.practiceVideo),
+        const TrackRowRect(top: 0, height: 48),
+      );
+      expect(trimmed.hasRow(TrackRowId.note), isFalse);
     });
   });
 
