@@ -8,6 +8,8 @@ import 'package:dance_learning_app/dance/cover_cache.dart';
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
 import 'package:dance_learning_app/dance/dance_library_providers.dart';
 import 'package:dance_learning_app/dance/dance_practice_totals.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart'
+    show FileVideoCopyPresence, VideoCopyPresence, videoCopyPresenceProvider;
 import 'package:dance_learning_app/import/import_providers.dart'
     show videoIndexStoreProvider;
 import 'package:dance_learning_app/persistence/video_index.dart';
@@ -32,6 +34,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
 import '../helpers/in_memory_member_scheme_storage.dart';
 import '../helpers/in_memory_practice_stats_storage.dart';
@@ -176,11 +179,15 @@ void main() {
   ProviderContainer container({
     VideoIndexStorage? indexOverride,
     Map<String, InMemoryVideoDocumentStorage>? documentsOverride,
+    VideoCopyPresence? copyPresence,
   }) {
     final container = ProviderContainer(
       overrides: [
         videoIndexStoreProvider.overrideWithValue(
           indexOverride ?? indexStorage,
+        ),
+        videoCopyPresenceProvider.overrideWithValue(
+          copyPresence ?? const FileVideoCopyPresence(),
         ),
         videoDocumentStorageFactoryProvider.overrideWithValue(
           (videoId) =>
@@ -343,6 +350,28 @@ void main() {
       (await MemberSchemeStore(schemeStorages['v2']!).read()).schemes,
       hasLength(1),
     );
+  });
+
+  test('谓词判副本在、删的一刻恰好不在（竞态）：这一步是空操作，删除照常走完', () async {
+    // 竞态窗口：存在性判定问过之后、删之前，文件被别处删掉。条目指向一个
+    // 根本不在盘上的路径，而替身按「都在场」作答——正是这个窗口。
+    final gonePath = p.join(tempDir.path, 'gone.mp4');
+    final raceIndex = InMemoryVideoIndexStorage(
+      initial: VideoIndex(entries: [_entry('v1', gonePath)]),
+    );
+    final harness = container(
+      indexOverride: raceIndex,
+      copyPresence: FakeVideoCopyPresence(),
+    );
+
+    // 不抛：删副本这一步对不存在的文件是空操作，删除照常走完。
+    await deleteDance(harness.read(_refProvider), 'v1');
+
+    expect(raceIndex.current.entries, isEmpty, reason: '索引条目照常先删');
+    // 竞态没有中断后面几步：文档、素材与封面照常清理。
+    expect(await documents['v1']!.loadMarkersOrNull(), isNull);
+    expect(materialFileV1.existsSync(), isFalse);
+    expect(await coverCache.readyCover('v1', Duration.zero), isNull);
   });
 
   test('写后失效：删除后整库读面与单支读面不再列出该舞', () async {

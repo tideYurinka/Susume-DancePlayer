@@ -329,7 +329,7 @@ class DanceSnapshot {
   /// 紧急度（计划文档 DDL 派生；无目标 / 已达成 = null）。
   final DanceUrgency? urgency;
 
-  /// 视频标识（内容哈希）。
+  /// 视频标识。
   String get videoId => entry.videoId;
 
   /// 卡片标题：[danceDisplayTitle]（署名显示串，未署名回退「文件名回落名」

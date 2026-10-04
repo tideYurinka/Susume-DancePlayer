@@ -142,9 +142,10 @@ class OpenSession {
   /// 兜底定身份后补建条目：同一支舞再打开按路径命中，不再兜底。
   ///
   /// 按副本现算显示名、大小与快速键（身份与路径由本次打开给出）；大小取一次
-  /// **同步** stat（不读内容、不落异步 IO——建立序列不因环境时钟而挂住）；
-  /// 返回补建落定后的条目——同 videoId 已有条目时 [VideoIndex.upsert] 合并，
-  /// 故返回的是合并结果（既有镜像组态保留）。
+  /// **同步** stat（不读内容、不落异步 IO——建立序列不因环境时钟而挂住）。
+  /// 条目经 [VideoIndexEntry.forVideoCopy] 构造，镜像组态落缺省；同 videoId
+  /// 已有条目时 [VideoIndex.upsert] 合并并经 [VideoIndexEntry.preservedMirrorStateOf]
+  /// 保住既有镜像组态，故返回的是合并结果——本条目里的缺省不会生效。
   ///
   /// 副本 stat 不到（真摘要算不出时走不到这里，桩实现下才会）或索引不可写
   /// → 本次打开照常（身份已定），下次打开再兜底一次，返回 null。
@@ -155,14 +156,11 @@ class OpenSession {
     } on Object {
       return null;
     }
-    final name = p.basename(filePath);
-    final created = VideoIndexEntry(
+    final created = VideoIndexEntry.forVideoCopy(
       videoId: videoId,
-      displayName: name,
+      displayName: p.basename(filePath),
       filePath: filePath,
       sizeBytes: sizeBytes,
-      fastKey: fastKeyFor(name: name, sizeBytes: sizeBytes),
-      mirrored: false,
       lastOpenedAt: now(),
     );
     try {

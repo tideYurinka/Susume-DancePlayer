@@ -135,16 +135,21 @@ void main() {
         initial: VideoIndex(entries: [entry(filePath: originalPath)]),
       );
 
-      final outcome = await recovery(
-        picker: FakeVideoPicker(
-          PickedVideo(name: 'v1.mp4', sourceUri: selected.uri, sizeBytes: 3),
-        ),
-        indexStore: storage,
-        hasher: RecordingHasher('v1'),
-      ).restoreFrom(
-        storage.current.entries.single,
-        PickedVideo(name: 'v1.mp4', sourceUri: selected.uri, sizeBytes: 3),
-      );
+      final outcome =
+          await recovery(
+            picker: FakeVideoPicker(
+              PickedVideo(
+                name: 'v1.mp4',
+                sourceUri: selected.uri,
+                sizeBytes: 3,
+              ),
+            ),
+            indexStore: storage,
+            hasher: RecordingHasher('v1'),
+          ).restoreFrom(
+            storage.current.entries.single,
+            PickedVideo(name: 'v1.mp4', sourceUri: selected.uri, sizeBytes: 3),
+          );
 
       expect(outcome, isA<VideoCopyRestored>());
       expect(await File(originalPath).readAsBytes(), [7, 7, 7]);
@@ -179,11 +184,7 @@ void main() {
       );
       expect(File(originalPath).existsSync(), isFalse, reason: '不符不复制');
       expect(storage.updateCount, 0, reason: '不符不落索引');
-      expect(
-        picker.clearCacheCalled,
-        isFalse,
-        reason: '选中文件还要用来另建一支，不清选择器缓存',
-      );
+      expect(picker.clearCacheCalled, isFalse, reason: '选中文件还要用来另建一支，不清选择器缓存');
       expect(storage.current.entries.single.displayName, 'old-name.mp4');
     });
   });
@@ -253,7 +254,10 @@ void main() {
       ).recover(storage.current.entries.single);
 
       expect(outcome, isA<VideoRecoveryFailed>());
-      expect((outcome as VideoRecoveryFailed).error, isA<FileSystemException>());
+      expect(
+        (outcome as VideoRecoveryFailed).error,
+        isA<FileSystemException>(),
+      );
       expect(File(originalPath).existsSync(), isFalse);
       expect(storage.updateCount, 0, reason: '复制失败不写显示名/快速键');
       expect(storage.current.entries.single.displayName, 'old-name.mp4');
@@ -266,17 +270,18 @@ void main() {
         initial: VideoIndex(entries: [entry(filePath: originalPath)]),
       );
 
-      final outcome = await recovery(
-        picker: FakeVideoPicker(null),
-        indexStore: storage,
-        hasher: RecordingHasher('v1'),
-      ).restoreFrom(
-        storage.current.entries.single,
-        PickedVideo(
-          name: 'v1.mp4',
-          sourceUri: Uri.parse('content://media/external/video/v1.mp4'),
-        ),
-      );
+      final outcome =
+          await recovery(
+            picker: FakeVideoPicker(null),
+            indexStore: storage,
+            hasher: RecordingHasher('v1'),
+          ).restoreFrom(
+            storage.current.entries.single,
+            PickedVideo(
+              name: 'v1.mp4',
+              sourceUri: Uri.parse('content://media/external/video/v1.mp4'),
+            ),
+          );
 
       expect(outcome, isA<VideoRecoveryFailed>());
       expect((outcome as VideoRecoveryFailed).error, isA<StateError>());

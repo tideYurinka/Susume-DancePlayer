@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:dance_learning_app/annotation/note_sticker.dart';
 import 'package:dance_learning_app/core/playback/playback_loop_providers.dart';
 import 'package:dance_learning_app/core/video_identity.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart'
+    show VideoCopyPresence, videoCopyPresenceProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/annotation/learning_segment_attributes.dart';
@@ -69,6 +71,7 @@ import '../helpers/fake_beat_pipeline.dart';
 import '../helpers/fake_brightness.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_ui.dart';
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_member_scheme_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
@@ -89,14 +92,6 @@ class _GatedHasher implements ContentHasher {
 
   @override
   Future<String> hashFile(File file) => digest.future;
-}
-
-/// 盘上的实体视频副本：装载门只在真有文件可装载时置位（无实体文件不开门），
-/// 门时序用例因此需要一份真文件在盘上。
-String _createTempVideo() {
-  final dir = Directory.systemTemp.createTempSync('open_restore_gate');
-  addTearDown(() => dir.deleteSync(recursive: true));
-  return (File('${dir.path}/a.mp4')..writeAsBytesSync(const [0])).path;
 }
 
 /// 真实副本文件（兜底补建条目按副本读大小与名字，故补建场景用真文件）。
@@ -318,6 +313,10 @@ Probe makeProbe({
   Map<String, dynamic> local = const {},
   FakeBeatPipeline? pipeline,
   MemberSchemeStorage? memberSchemeStorage,
+
+  /// 副本存在性替身：缺省「副本都在场」（喂假路径，不碰真实文件系统）；
+  /// 门时序用例因此不需要一份真文件在盘上。
+  VideoCopyPresence? copyPresence,
   List<Override> extraOverrides = const [],
 }) {
   final docStorage = CountingVideoDocumentStorage(
@@ -334,6 +333,9 @@ Probe makeProbe({
       videoIndexStoreProvider.overrideWithValue(indexStorage),
       contentHasherProvider.overrideWithValue(hasher),
       videoDocumentStorageFactoryProvider.overrideWithValue(documentStorage),
+      videoCopyPresenceProvider.overrideWithValue(
+        copyPresence ?? FakeVideoCopyPresence(),
+      ),
       // 节拍分析注入 fake：本文件用例不消费节拍，避免真实管线启动。
       beatAnalysisPipelineProvider.overrideWithValue(
         pipeline ?? FakeBeatPipeline(),
@@ -1057,17 +1059,31 @@ void main() {
   group('装载门归打开恢复持有', () {
     test('建立前置位：建立序列还在途、打开恢复未开始，门已挡住写入口', () async {
       final hasher = _GatedHasher();
-      final probe = makeProbe(hasher: hasher, markers: markersJson());
+      // 门问的是副本存在性注入点：这条路径并不在盘上（也不在索引里，建立
+      // 序列因此停在算摘要那一步），替身说在场即置位——「副本在不在」只有
+      // 这一个答案来源，这里不再自己查一次文件系统。
+      const gatePath = '/videos/gate.mp4';
+      final presence = FakeVideoCopyPresence();
+      final probe = makeProbe(
+        hasher: hasher,
+        markers: markersJson(),
+        copyPresence: presence,
+      );
       final host = _RecordingOpenLoadHost();
 
       final opening = probe.restorer.open(
-        source: Uri.file(_createTempVideo()),
+        source: Uri.file(gatePath),
         videoDuration: kDuration,
         askNaming: false,
         host: host,
       );
       await Future<void>.delayed(Duration.zero);
 
+      expect(
+        presence.consulted,
+        contains(gatePath),
+        reason: '门要不要置位只问存在性注入点这一处',
+      );
       expect(
         probe.container.read(loadGateActiveProvider),
         isTrue,
@@ -1094,7 +1110,7 @@ void main() {
         final host = _RecordingOpenLoadHost()..gated.add(call);
 
         final opening = probe.restorer.open(
-          source: Uri.file(_createTempVideo()),
+          source: Uri.file(kFilePath),
           videoDuration: kDuration,
           askNaming: true,
           host: host,
@@ -1123,11 +1139,15 @@ void main() {
 
     test('无实体文件不置位：没有可装载的内容，门不起', () async {
       final hasher = _GatedHasher();
-      final probe = makeProbe(hasher: hasher);
+      const missingPath = '/videos/not-on-disk.mp4';
+      final probe = makeProbe(
+        hasher: hasher,
+        copyPresence: FakeVideoCopyPresence(missingPaths: const {missingPath}),
+      );
       final host = _RecordingOpenLoadHost();
 
       final opening = probe.restorer.open(
-        source: Uri.file('/videos/not-on-disk.mp4'),
+        source: Uri.file(missingPath),
         videoDuration: kDuration,
         askNaming: false,
         host: host,
@@ -1155,7 +1175,7 @@ void main() {
       final host = _RecordingOpenLoadHost();
 
       await probe.restorer.open(
-        source: Uri.file(_createTempVideo()),
+        source: Uri.file(kFilePath),
         videoDuration: kDuration,
         askNaming: false,
         host: host,

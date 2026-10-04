@@ -54,6 +54,30 @@ class VideoIndexEntry {
     this.extra = const {},
   });
 
+  /// 由一份已落位的**视频副本**与它的 [videoId] 新建条目：显示名、路径与
+  /// 大小都取自这份副本，快速键由显示名与大小派生（[fastKeyFor]）——落条目
+  /// 的字段清单只有这一处，导入首建与打开兜底补建共用。
+  ///
+  /// 镜像组态在这里落**缺省**（未作答）：同 videoId 已有条目时
+  /// [VideoIndex.upsert] 经 [preservedMirrorStateOf] 保住既有组态，本条目
+  /// 里的缺省因此不会把用户既有选择冲回默认——保留发生在合并那一步，不在
+  /// 这里。
+  factory VideoIndexEntry.forVideoCopy({
+    required String videoId,
+    required String displayName,
+    required String filePath,
+    required int sizeBytes,
+    required DateTime lastOpenedAt,
+  }) => VideoIndexEntry(
+    videoId: videoId,
+    displayName: displayName,
+    filePath: filePath,
+    sizeBytes: sizeBytes,
+    fastKey: fastKeyFor(name: displayName, sizeBytes: sizeBytes),
+    mirrored: false,
+    lastOpenedAt: lastOpenedAt,
+  );
+
   /// 视频标识：内容 xxHash64（小写十六进制）。
   final String videoId;
 
@@ -340,8 +364,8 @@ class VideoIndex {
   /// 按应用私有目录副本路径记录镜像作答（持久化路径）。
   ///
   /// 播放器打开时只有副本路径，按路径找条目写入镜像状态并标记
-  /// 「已询问」；未命中原样返回（索引里没有该副本路径的条目，
-  /// 调用方据此重试）。
+  /// 「已询问」；索引里没有该副本路径的条目时原样返回（同一实例，调用方
+  /// 据此跳过写盘，不重试）。
   VideoIndex setMirrorAnswerByFilePath(
     String filePath, {
     required bool mirrored,

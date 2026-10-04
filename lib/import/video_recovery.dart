@@ -17,6 +17,7 @@ import 'dart:io';
 
 import '../core/video_identity.dart';
 import '../persistence/video_index.dart';
+import 'local_video_source.dart';
 import 'picked_video.dart';
 import 'video_picker.dart';
 
@@ -69,7 +70,7 @@ class VideoRecovery {
   /// 视频索引读写（接口形态供测试注入内存实现）。
   final VideoIndexStorage indexStore;
 
-  /// 内容哈希计算（核对用；测试可注入固定值/抛错桩）。
+  /// 视频标识计算（核对用；测试可注入固定值/抛错桩）。
   final ContentHasher hasher;
 
   /// 「选择视频文件」这条出路：让用户挑一份文件再核对。
@@ -122,14 +123,8 @@ class VideoRecovery {
     }
   }
 
-  /// 找回源同样必须物化成本地文件（与导入源的边界同一条）。
-  File _localSourceOf(PickedVideo picked) {
-    if (picked.sourceUri.scheme != 'file') {
-      throw StateError(
-        '暂不支持非本地文件的找回源（${picked.sourceUri.scheme}）；'
-        'file_picker 会先把所选文件物化到缓存，正常应为 file://。',
-      );
-    }
-    return File(picked.sourceUri.toFilePath());
-  }
+  /// 找回源同样必须物化成本地文件（与导入源的边界同一条，见
+  /// [localSourceFileOf]）。
+  File _localSourceOf(PickedVideo picked) =>
+      localSourceFileOf(picked, what: '找回源');
 }

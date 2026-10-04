@@ -160,7 +160,10 @@ void main() {
     await tester.tap(find.byKey(const Key('dance_recovery_mismatch_cancel')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('dance_recovery_mismatch_dialog')), findsNothing);
+    expect(
+      find.byKey(const Key('dance_recovery_mismatch_dialog')),
+      findsNothing,
+    );
     expect(
       find.byKey(const Key('dance_recovery_page')),
       findsOneWidget,
@@ -209,6 +212,17 @@ void main() {
       isTrue,
       reason: '新条目自己的副本已复制进私有目录',
     );
+    // 总读取次数不增加：核对选中文件时已算出标识，另建一支直接拿它落条目
+    // （[VideoIsNotThisDance.videoId] 一路带到建舞分支），刚复制的副本不再
+    // 整读第二遍。
+    expect(harness.recording.hashedPaths, [
+      harness.selectedFile.path,
+    ], reason: '核对读一遍源文件；另建一支不重读副本');
+    expect(
+      harness.recording.hashedPaths,
+      isNot(contains(created.filePath)),
+      reason: '新副本路径从未被摘要读过',
+    );
   });
 
   testWidgets('「选择视频文件」+ 选择器取消：零副作用，留在找回面', (tester) async {
@@ -221,7 +235,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dance_recovery_page')), findsOneWidget);
-    expect(find.byKey(const Key('dance_recovery_mismatch_dialog')), findsNothing);
+    expect(
+      find.byKey(const Key('dance_recovery_mismatch_dialog')),
+      findsNothing,
+    );
     expect(harness.indexStorage.updateCount, 0);
     expect(File(harness.entryFilePath).existsSync(), isFalse);
   });

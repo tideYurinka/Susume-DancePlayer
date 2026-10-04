@@ -105,8 +105,8 @@ class DanceRecoveryPage extends ConsumerWidget {
       case VideoCopyRestored():
         invalidateDanceLibraryFrom(ref);
         Navigator.of(context).pop();
-      case VideoIsNotThisDance(:final picked):
-        await _askCreateOrCancel(context, ref, picked);
+      case VideoIsNotThisDance(:final picked, :final videoId):
+        await _askCreateOrCancel(context, ref, picked, videoId);
       case VideoRecoveryCancelled():
         return;
       case VideoRecoveryFailed():
@@ -116,10 +116,14 @@ class DanceRecoveryPage extends ConsumerWidget {
   }
 
   /// 核对不符：明确告知，并给「按新视频另建一支」或「取消」两条路。
+  ///
+  /// [videoId] = 核对选中文件时算出的**视频标识**，一路带到建舞分支落条目
+  /// （不再把刚复制的副本整读第二遍）。
   Future<void> _askCreateOrCancel(
     BuildContext context,
     WidgetRef ref,
     PickedVideo picked,
+    String videoId,
   ) async {
     final createNew = await showDialog<bool>(
       context: context,
@@ -147,9 +151,12 @@ class DanceRecoveryPage extends ConsumerWidget {
     if (createNew != true || !context.mounted) return;
 
     // 「按新视频另建一支」复用既有导入管道（建舞分支）：复制进私有目录 →
-    // 算标识 → 落条目；旧舞保持丢失，两条条目各走各的。
+    // 落条目；标识在核对时已算出，随结局带来，不再读一遍新副本；旧舞保持
+    // 丢失，两条条目各走各的。
     try {
-      await ref.read(videoImporterProvider).importDanceFile(picked);
+      await ref
+          .read(videoImporterProvider)
+          .importDanceFile(picked, knownVideoId: videoId);
     } on Object {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

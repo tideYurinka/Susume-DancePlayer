@@ -317,9 +317,16 @@ Future<void> _bestEffort(Future<void> Function() step) async {
 /// 舞照常成立，不留半个残骸。存在性问的是 [VideoCopyPresence] 那一处判定。
 /// 删除本身是同步文件操作：widget 测试的 fake async 时钟下异步文件 IO 不可
 /// 完成（与素材库删除同款）。
+///
+/// 空操作由本步自己保证，不指望调用方的兜底：判定说在、删的一刻恰好不在
+/// （竞态）时，只有「文件不存在」一类错误被吞掉，别的错误照旧向上走。
 Future<void> _deleteVideoCopy(VideoCopyPresence presence, String path) async {
   if (!presence.exists(path)) return;
-  File(path).deleteSync();
+  try {
+    File(path).deleteSync();
+  } on PathNotFoundException {
+    // 谓词判在、删的一刻文件恰好没了：对不存在的文件删除是空操作。
+  }
 }
 
 /// 按 videoId 读该舞的两份文档（缺失/损坏由文档层兜底为空态）。

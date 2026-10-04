@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/video_identity.dart';
+import 'local_video_source.dart';
 import 'picked_video.dart';
 import '../persistence/video_index.dart';
 import '../dance/video_copy_presence.dart';
@@ -44,7 +45,7 @@ class ImportedVideo {
   }
 }
 
-/// 建舞分支的返回值：导入副本 + 内容哈希（新舞身份）。
+/// 建舞分支的返回值：导入副本 + 视频标识（新舞身份）。
 class ImportedDance {
   const ImportedDance({required this.video, required this.videoId});
 
@@ -79,7 +80,7 @@ class VideoImporter {
   /// 视频索引读写（index.json；接口形态供测试注入内存实现）。
   final VideoIndexStorage indexStore;
 
-  /// 内容哈希计算（测试可注入门控/桩实现）。
+  /// 视频标识计算（测试可注入门控/桩实现）。
   final ContentHasher hasher;
 
   /// 时钟（测试注入固定时间，保证最近打开时间可断言）。
@@ -167,18 +168,21 @@ class VideoImporter {
         )).video.copyWith(isNewImport: true),
       VideoRecoveryFailed(:final error, :final stackTrace) =>
         Error.throwWithStackTrace(error, stackTrace),
-      VideoRecoveryCancelled() => throw StateError(
-        '找回不会取消：这里已经拿着用户选中的文件',
-      ),
+      VideoRecoveryCancelled() => throw StateError('找回不会取消：这里已经拿着用户选中的文件'),
     };
   }
 
-  /// 建舞分支：从分享包建一支新舞——与首次导入同一条
-  /// 「复制进私有目录 → 算副本摘要 → 落条目」路径，返回导入副本与
-  /// 内容哈希（新舞的身份）；导入编排要拿内容哈希挂组员方案，
-  /// 因此摘要是同步等的。
-  Future<ImportedDance> importDanceFile(PickedVideo picked) =>
-      _copyHashAndIndex(picked);
+  /// 建舞分支：另建一支新舞——与首次导入同一条「复制进私有目录 → 算副本
+  /// 摘要 → 落条目」路径，返回导入副本与视频标识（新舞的身份）；导入编排
+  /// 要拿标识挂组员方案，因此摘要是同步等的。
+  ///
+  /// [knownVideoId] = 调用方已经算出的这支视频的**视频标识**（找回路径上
+  /// 「不是这支」的结局就是它）：传入时不再读副本，总读取次数因此不增加；
+  /// 缺省为 null = 没有已知标识，按副本算（既有调用点行为不变）。
+  Future<ImportedDance> importDanceFile(
+    PickedVideo picked, {
+    String? knownVideoId,
+  }) => _copyHashAndIndex(picked, knownVideoId: knownVideoId);
 
   /// 首次导入与建舞分支共用的落盘路径：复制 → 同步算副本摘要 → 落条目。
   ///
@@ -258,32 +262,20 @@ class VideoImporter {
     }
   }
 
-  /// 导入源必须物化成本地文件。
-  ///
-  /// 非 `file://` 源无可复制的文件：file_picker 会先把所选文件物化到缓存，
-  /// 正常应为 file://。
-  File _sourceFileOf(PickedVideo picked) {
-    if (picked.sourceUri.scheme != 'file') {
-      throw StateError(
-        '暂不支持非本地文件的导入源（${picked.sourceUri.scheme}）；'
-        'file_picker 会先把所选文件物化到缓存，正常应为 file://。',
-      );
-    }
-    return File(picked.sourceUri.toFilePath());
-  }
+  /// 导入源必须物化成本地文件（判据与文案见 [localSourceFileOf]）。
+  File _sourceFileOf(PickedVideo picked) =>
+      localSourceFileOf(picked, what: '导入源');
 
-  /// 由已导入的视频与内容哈希构造索引条目。
-  VideoIndexEntry _entryFor(ImportedVideo imported, String videoId) {
-    return VideoIndexEntry(
-      videoId: videoId,
-      displayName: imported.name,
-      filePath: imported.uri.toFilePath(),
-      sizeBytes: imported.sizeBytes,
-      fastKey: fastKeyFor(name: imported.name, sizeBytes: imported.sizeBytes),
-      mirrored: false,
-      lastOpenedAt: now(),
-    );
-  }
+  /// 由已导入的视频与它的视频标识构造索引条目（字段清单见
+  /// [VideoIndexEntry.forVideoCopy]）。
+  VideoIndexEntry _entryFor(ImportedVideo imported, String videoId) =>
+      VideoIndexEntry.forVideoCopy(
+        videoId: videoId,
+        displayName: imported.name,
+        filePath: imported.uri.toFilePath(),
+        sizeBytes: imported.sizeBytes,
+        lastOpenedAt: now(),
+      );
 
   /// 目标文件名去冲突：同名时在扩展名前插入 ` (n)` 序号，不覆盖旧文件。
   Future<File> _uniqueTarget(Directory directory, String name) async {

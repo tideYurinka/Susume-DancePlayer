@@ -12,7 +12,6 @@
 library;
 
 import 'dart:async';
-import 'dart:io' show File;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,6 +20,7 @@ import '../beat_track_state/beat_track_state.dart'
     show BeatTrackState, beatTrackStateProvider;
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
+import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
 import '../import/import_providers.dart'
     show contentHasherProvider, videoIndexStoreProvider;
 import '../persistence/video_index.dart' show VideoIndexEntry;
@@ -169,7 +169,7 @@ class VideoOpenRestorer {
           _ref.read(videoDocumentCoordinatorProvider(videoId)),
     );
     final gate = _ref.read(loadGateActiveProvider.notifier);
-    if (_hasVideoCopy(session.filePath)) gate.begin();
+    if (_shouldArmLoadGate(session.filePath)) gate.begin();
     try {
       try {
         await session.establish();
@@ -594,16 +594,13 @@ class VideoOpenRestorer {
       // 回写失败不阻塞播放（非关键路径，下次打开再对账）。
     }
   }
-}
 
-/// 打开路径上「有没有实体视频副本」：无实体文件（不存在 / 平台路径不可用）
-/// 时「装载未完成」门不置位——没有可装载的内容，「正在装载」不该留下。
-/// 只回答门要不要置位这一件事；副本丢失的判定与拦截发生在打开入口之前
-/// （见词条「副本丢失」）。
-bool _hasVideoCopy(String filePath) {
-  try {
-    return File(filePath).existsSync();
-  } on Object {
-    return false;
-  }
+  /// 「装载未完成」门要不要置位：没有实体视频副本（不存在 / 平台路径不可用）
+  /// 时不置位——没有可装载的内容，「正在装载」不该留下。
+  ///
+  /// 「副本在不在」只问 [videoCopyPresenceProvider] 这一处（见词条「副本
+  /// 丢失」），本模块不自己查一次文件系统；副本丢失的判定与拦截发生在打开
+  /// 入口之前。
+  bool _shouldArmLoadGate(String filePath) =>
+      _ref.read(videoCopyPresenceProvider).exists(filePath);
 }

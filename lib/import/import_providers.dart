@@ -35,7 +35,7 @@ final videoIndexStoreProvider = Provider<VideoIndexStorage>((ref) {
   return VideoIndexStore(ref.watch(importIndexFileProvider));
 });
 
-/// 内容哈希计算：生产为在后台 isolate 里算的 xxHash64（导入同步等结果，
+/// 视频标识计算：生产为在后台 isolate 里算的 xxHash64（导入同步等结果，
 /// 不占 UI isolate）；测试注入固定值/门控桩（`test/helpers/gated_hasher.dart`
 /// 先例）。
 final contentHasherProvider = Provider<ContentHasher>(

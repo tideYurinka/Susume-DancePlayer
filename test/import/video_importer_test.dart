@@ -580,11 +580,7 @@ void main() {
         copyPresence: presence,
       ).open(picked);
 
-      expect(
-        presence.consulted,
-        contains(gonePath),
-        reason: '副本在不在只在存在性注入点上问',
-      );
+      expect(presence.consulted, contains(gonePath), reason: '副本在不在只在存在性注入点上问');
       expect(
         opened.uri.toFilePath(),
         gonePath,
@@ -638,11 +634,9 @@ void main() {
         copyPresence: FakeVideoCopyPresence(missingPaths: {gonePath}),
       ).open(picked);
 
-      expect(
-        hasher.hashedPaths,
-        [src.path],
-        reason: '核对读一遍源文件；标识已知，不再读一遍新副本（总读取次数不增加）',
-      );
+      expect(hasher.hashedPaths, [
+        src.path,
+      ], reason: '核对读一遍源文件；标识已知，不再读一遍新副本（总读取次数不增加）');
       expect(opened.uri.toFilePath(), isNot(gonePath));
       expect(File(opened.uri.toFilePath()).existsSync(), isTrue);
       expect(opened.isNewImport, isTrue, reason: '按新视频导入：进播放器前弹命名框');
@@ -686,9 +680,7 @@ void main() {
         picker: picker,
         indexStore: s,
         hasher: hasher,
-      ).open(
-        PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 3),
-      );
+      ).open(PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 3));
 
       expect(opened.uri.toFilePath(), present.path);
       // 副本在场：仍走后台对账（刷新最近打开时间），不是找回——找回只刷新
