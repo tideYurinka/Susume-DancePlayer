@@ -10,9 +10,9 @@ part of 'annotation_editor.dart';
 
 /// 标注保存编排器接缝：标注编辑模块每次**完成**的编辑提交
 /// 经此把段级 diff 交给保存编排（burst 合并 latest-wins、切后台/退出
-/// flush、写失败静默由编排器承担）。默认 null；打开恢复接线在
-/// 按视频内容哈希校验通过后注入 per-video 实例（[VideoOpenRestorer]），
-/// 哈希不一致/索引无条目时保持 null（按新视频语义，不写旧文件）。
+/// flush、写失败静默由编排器承担）。默认 null；打开恢复接线在按路径取到
+/// 身份（条目命中，或兜底定身份并补建条目）后注入 per-video 实例
+/// （[VideoOpenRestorer]），会话无身份时保持 null（无落盘目标）。
 class AnnotationSaveSinkModel extends Notifier<AnnotationSaveSink?> {
   @override
   AnnotationSaveSink? build() {

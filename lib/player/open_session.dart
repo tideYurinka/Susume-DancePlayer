@@ -1,36 +1,41 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import '../core/video_identity.dart';
 import '../persistence/video_index.dart';
 import '../persistence/local_document.dart';
 import '../persistence/marker_document.dart';
 import '../persistence/video_document_store.dart';
 
-/// 定身份结果的三支语义（见词条「视频标识」）。
+/// 定身份结果的两支语义（打开路径收窄后；见词条「视频标识」）。
 enum OpenIdentityKind {
-  /// 条目命中且摘要相符：这支舞，身份取条目。
-  matched,
+  /// 按路径命中条目：这支舞，身份取条目——不读视频内容、不校验条目身份与
+  /// 文件内容相符（那条对账只保留在导入域）。
+  entryHit,
 
-  /// 条目命中但摘要不符：按新视频，身份取摘要，旧条目保留。
-  contentChanged,
-
-  /// 条目未命中（条目尚未落盘或索引不可读）：身份取摘要，按新视频语义
-  /// 且可落盘——内容寻址使后台任务算出的身份与解析算出的必然相同。
-  newVideo,
+  /// 按路径查不到条目（索引写失败一类罕见情形）：兜底算一次摘要定身份，
+  /// 并按算出的身份补建条目，使同一支舞再打开按路径命中、不再兜底。
+  fallbackHash,
 }
 
-/// 打开会话（零框架纯库）：建立序列 = 定身份 → 读两份文档 → 建基线快照
+/// 打开会话（零框架纯库）：建立序列 = 按路径定身份 → 读两份文档 → 建基线快照
 /// → 置「已建立」。
 ///
 /// 不引 Flutter、不引状态容器，只依赖被注入的索引存取、摘要计算与按视频
-/// 文档写链；可脱离 widget 直测。建立序列不对索引条目做任何等待：
-/// 「条目尚未落盘」不是错误状态，身份由内容摘要给出。
+/// 文档写链；可脱离 widget 直测。
+///
+/// 身份按路径由清单条目承载：命中即取条目身份，打开路径**全程不读视频
+/// 内容**（不因视频大小而变慢，也不再校验「条目身份与文件内容相符」）。
+/// 查不到条目才兜底读一次内容算出身份并补建条目；兜底也算不出（副本不在
+/// 一类）→ 无身份空态、不落盘。建立序列不对索引条目做任何等待。
 class OpenSession {
   OpenSession({
     required this.filePath,
     required this.indexStore,
     required this.hasher,
     required this.coordinatorFor,
+    this.now = DateTime.now,
   });
 
   /// 应用私有目录内视频副本路径（打开时的快速键，与索引条目一一对应）。
@@ -39,12 +44,15 @@ class OpenSession {
   /// 被注入的索引存取（打开时按路径取条目；索引不可读按未命中）。
   final VideoIndexStorage indexStore;
 
-  /// 被注入的内容摘要计算（定身份用）。
+  /// 被注入的内容摘要计算：只在按路径查不到条目时兜底调用一次。
   final ContentHasher hasher;
 
   /// 按视频文档写链的来源（按身份寻址两份文档）。生产传按视频文档协调器
   /// 注入点——会话不另建协调器实例，两份文档因此只有一条写链、一个写入者。
   final VideoDocumentCoordinator Function(String videoId) coordinatorFor;
+
+  /// 时钟（补建条目时记最近打开时间；测试注入固定时间）。
+  final DateTime Function() now;
 
   bool _established = false;
   String? _videoId;
@@ -55,17 +63,18 @@ class OpenSession {
   LocalDocument _local = const LocalDocument.empty();
   VideoDocumentCoordinator? _coordinator;
 
-  /// 建立序列是否已走完（含摘要失败、文档不可读等无身份收场）。
+  /// 建立序列是否已走完（含兜底摘要失败、文档不可读等无身份收场）。
   bool get established => _established;
 
-  /// 身份（内容摘要或命中的条目 videoId）；无身份时为 null。
+  /// 身份（命中条目的 videoId，或兜底算出的内容摘要）；无身份时为 null。
   String? get videoId => _videoId;
 
   /// 定身份结果；无身份时为 null。
   OpenIdentityKind? get identity => _identity;
 
-  /// 命中且摘要相符的索引条目；其余支语义为 null——哈希不符时旧条目保留
-  /// 但不被套用。
+  /// 打开时的索引条目：按路径命中的条目，或兜底定身份后补建的条目；两者
+  /// 都不可得（兜底摘要失败，或副本读不到大小而无从补建）时为 null——该支
+  /// 按新视频缺省值处理，不套用任何旧条目。
   VideoIndexEntry? get entry => _entry;
 
   /// 公开标记文件的基线快照。
@@ -87,19 +96,29 @@ class OpenSession {
 
   /// 走建立序列；调用方（宿主）在打开播放页时装配本会话。
   ///
-  /// 全部成功才落身份与基线（all-or-nothing）：摘要失败或文档不可读时
+  /// 全部成功才落身份与基线（all-or-nothing）：兜底摘要失败或文档不可读时
   /// 无身份、无落盘目标，[established] 仍为真（序列已走完）。
   Future<void> establish() async {
     final entry = await _loadEntryByPath();
-    final String digest;
-    try {
-      digest = await hasher.hashFile(File(filePath));
-    } on Object {
-      _established = true;
-      return; // 摘要失败：无身份，按空态且不落盘（行为不变）。
+    final String videoId;
+    if (entry != null) {
+      // 命中条目即取身份：打开路径不读视频内容、不校验条目身份与内容相符。
+      videoId = entry.videoId;
+      _identity = OpenIdentityKind.entryHit;
+      _entry = entry;
+    } else {
+      // 兜底：按路径查不到条目（索引写失败一类罕见情形）才读一次内容。
+      final String digest;
+      try {
+        digest = await hasher.hashFile(File(filePath));
+      } on Object {
+        _established = true;
+        return; // 兜底摘要算不出（副本不在一类）：无身份空态、不落盘。
+      }
+      videoId = digest;
+      _identity = OpenIdentityKind.fallbackHash;
+      _entry = await _backfillEntry(digest);
     }
-    final matched = entry != null && entry.videoId == digest;
-    final videoId = matched ? entry.videoId : digest;
     final coordinator = coordinatorFor(videoId);
     final MarkersDocument markers;
     final LocalDocument local;
@@ -113,19 +132,47 @@ class OpenSession {
       _established = true;
       return; // 文档不可读（平台路径不可用等）：无基线即无身份可用。
     }
-    _videoId = videoId;
-    if (matched) {
-      _identity = OpenIdentityKind.matched;
-      _entry = entry;
-    } else {
-      _identity = entry == null
-          ? OpenIdentityKind.newVideo
-          : OpenIdentityKind.contentChanged;
-    }
     _markers = markers;
     _local = local;
     _coordinator = coordinator;
+    _videoId = videoId;
     _established = true;
+  }
+
+  /// 兜底定身份后补建条目：同一支舞再打开按路径命中，不再兜底。
+  ///
+  /// 按副本现算显示名、大小与快速键（身份与路径由本次打开给出）；大小取一次
+  /// **同步** stat（不读内容、不落异步 IO——建立序列不因环境时钟而挂住）；
+  /// 返回补建落定后的条目——同 videoId 已有条目时 [VideoIndex.upsert] 合并，
+  /// 故返回的是合并结果（既有镜像组态保留）。
+  ///
+  /// 副本 stat 不到（真摘要算不出时走不到这里，桩实现下才会）或索引不可写
+  /// → 本次打开照常（身份已定），下次打开再兜底一次，返回 null。
+  Future<VideoIndexEntry?> _backfillEntry(String videoId) async {
+    final int sizeBytes;
+    try {
+      sizeBytes = File(filePath).lengthSync();
+    } on Object {
+      return null;
+    }
+    final name = p.basename(filePath);
+    final created = VideoIndexEntry(
+      videoId: videoId,
+      displayName: name,
+      filePath: filePath,
+      sizeBytes: sizeBytes,
+      fastKey: fastKeyFor(name: name, sizeBytes: sizeBytes),
+      mirrored: false,
+      lastOpenedAt: now(),
+    );
+    try {
+      final index = await indexStore.update(
+        (current) => current.upsert(created),
+      );
+      return index.findById(videoId);
+    } on Object {
+      return null;
+    }
   }
 
   /// 按打开路径取索引条目；索引不可读按未命中（不等条目）。

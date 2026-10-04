@@ -27,9 +27,10 @@ enum VideoIndexEntryField {
 
 /// 视频索引（index.json）——import 域。
 ///
-/// 每条索引对应一个已导入视频（[VideoIndexEntry]）；打开视频时先用
-/// 快速键（大小 + 文件名）先行匹配立即恢复播放，后台哈希校验一致则
-/// 刷新最近打开时间，不一致按新视频导入（旧条目保留）。
+/// 每条索引对应一个已导入视频（[VideoIndexEntry]）；导入时先用快速键
+/// （大小 + 文件名）先行匹配立即恢复播放，后台哈希对账一致则刷新最近打开
+/// 时间，不一致按新视频导入（旧条目保留）。打开一支已有的舞按 [filePath]
+/// 命中条目即取身份，不读视频内容。
 ///
 /// JSON 字段对应：
 /// `videoId` ← video_id（内容 xxHash64）、`displayName` ← 显示名、
@@ -307,10 +308,10 @@ class VideoIndex {
     return null;
   }
 
-  /// 按应用私有目录副本路径精确查找（镜像历史恢复用）。
+  /// 按应用私有目录副本路径精确查找（打开时定身份与镜像历史恢复用）。
   ///
-  /// 导入后副本路径不变且与 videoId 一一对应，播放器打开时以
-  /// 自身 source 路径匹配，无需等后台哈希即可恢复镜像偏好。
+  /// 导入后副本路径不变且与 videoId 一一对应，打开一支舞以自身 source 路径
+  /// 匹配即可取到条目与镜像偏好——不读视频内容、不等任何摘要。
   VideoIndexEntry? findByFilePath(String filePath) {
     for (final e in entries) {
       if (e.filePath == filePath) return e;

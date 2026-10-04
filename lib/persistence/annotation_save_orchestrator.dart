@@ -59,8 +59,8 @@ class AnnotationSaveSeed {
     this.localMirrorEnabled = true,
   });
 
-  /// 由打开会话给出的已确认条目取首建初值：条目为 null（新视频 / 摘要不符）
-  /// 时按缺省，不套用旧条目。
+  /// 由打开会话给出的条目取首建初值：条目为 null（会话无身份）时按缺省，
+  /// 不套用旧条目。
   factory AnnotationSaveSeed.fromEntry(VideoIndexEntry? entry) => entry == null
       ? const AnnotationSaveSeed()
       : AnnotationSaveSeed(

@@ -420,7 +420,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
 
   /// 标注保存编排器接缝（dispose 收尾用，initState 缓存：dispose 内不可
   /// 用 ref 读 provider）。null = 未接编排器，flush 零行为。打开恢复接线
-  /// 在哈希校验通过后注入 per-video 实例，经下方 listenManual
+  /// 在按路径取到身份后注入 per-video 实例，经下方 listenManual
   /// 同步到本缓存。
   AnnotationSaveSink? _saveSink;
 
@@ -504,8 +504,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       isControlOpen: () => _controlOpen,
       metronomeVisible: () => ref.read(beatOverlayContentVisibleProvider),
     );
-    // 保存编排器接缝：注入点值随打开恢复接线变化（哈希校验
-    // 通过后才有 per-video 实例），监听保持缓存同步；dispose 经控制器清空。
+    // 保存编排器接缝：注入点值随打开恢复接线变化（会话取到身份
+    // 后才有 per-video 实例），监听保持缓存同步；dispose 经控制器清空。
     _saveSinkModel = ref.read(annotationSaveSinkStateProvider.notifier);
     ref.listenManual(
       annotationSaveSinkProvider,

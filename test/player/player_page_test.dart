@@ -386,11 +386,10 @@ void main() {
   });
 
   group('装载未完成门', () {
-    /// 挂起摘要：返回永不完成的 Future，把打开会话钉在「装载未完成」。
-    /// （摘要完成前的门存续窗口即 1–4 秒）
-    Future<void> pumpLoadingPage(
-      WidgetTester tester,
-      _PendingHasher hasher, {
+    /// 挂起公开标记文件读：把打开会话钉在「装载未完成」。打开路径按路径命中
+    /// 条目即取身份、不读视频内容，故可挂起的环节是建立序列的文档读，不是摘要。
+    Future<_GatedMarkersStorage> pumpLoadingPage(
+      WidgetTester tester, {
       required FakePlaybackEngine engine,
       FakeScreenBrightnessController? brightness,
       FakeSystemMediaVolumeController? volume,
@@ -399,26 +398,26 @@ void main() {
       final dir = Directory.systemTemp.createTempSync('load_gate');
       addTearDown(() => dir.deleteSync(recursive: true));
       final file = File('${dir.path}/a.mp4')..writeAsBytesSync(const [0]);
+      final docs = _GatedMarkersStorage();
       await pumpPlayer(
         tester,
         engine: engine,
         source: Uri.file(file.path),
-        hasher: hasher,
-        docs: InMemoryVideoDocumentStorage(),
+        hasher: const FixedHasher('seeded'),
+        docs: docs,
         beatPipeline: hangingBeatPipeline,
         brightness: brightness,
         volume: volume,
       );
+      return docs;
     }
 
     testWidgets('装载未完成：点进编辑器被挡并弹「正在装载」；播放/拖动/亮度音量不受影响；落定后放行', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
-      final hasher = _PendingHasher();
       final brightness = FakeScreenBrightnessController(initialBrightness: 0.5);
       final volume = FakeSystemMediaVolumeController(currentVolume: 0.5);
-      await pumpLoadingPage(
+      final docs = await pumpLoadingPage(
         tester,
-        hasher,
         engine: engine,
         brightness: brightness,
         volume: volume,
@@ -467,9 +466,9 @@ void main() {
       expect(volume.setCalls, isNotEmpty);
 
       // 装载落定（建立序列走完）→ 入口自动恢复可用，无需重开页面。
-      // 摘要值与 pumpPlayer 种入的索引条目 videoId 一致（摘要相符 → 身份
-      // 取条目、镜像走历史应用，不弹询问遮罩）；身份值本身不参与门断言。
-      hasher.complete('seeded');
+      // 身份由 pumpPlayer 种入的索引条目按路径承载（镜像走历史应用，不弹
+      // 询问遮罩）；身份值本身不参与门断言。
+      docs.release();
       await tester.pumpAndSettle();
       expect(container.read(loadGateActiveProvider), isFalse);
       await singleTapShow(tester);
@@ -5107,14 +5106,34 @@ class _DurationlessEngine extends FakePlaybackEngine {
   Duration? get duration => null;
 }
 
-/// 挂起摘要：[hashFile] 返回永不完成的 Future，把打开会话钉在
-/// 「装载未完成」——门的存续窗口（1–4 秒摘要耗时）在测试里可控；
-/// [complete] 即装载落定。
-class _PendingHasher implements ContentHasher {
-  final Completer<String> _gate = Completer<String>();
+/// 挂起公开标记文件读：建立序列在文档读上不落定，把打开会话钉在「装载未完成」
+/// ——门的存续窗口在测试里可控；[release] 即装载落定。
+///
+/// 打开一支舞命中条目后不读视频内容，故可挂起的环节从「摘要」换成「文档读」
+/// （挂起摘要已不再能拖住装载）。
+class _GatedMarkersStorage extends InMemoryVideoDocumentStorage {
+  final Completer<void> _gate = Completer<void>();
+  bool _passed = false;
+
+  Future<void> _awaitGate() async {
+    if (_passed) return;
+    await _gate.future;
+    _passed = true;
+  }
 
   @override
-  Future<String> hashFile(File file) => _gate.future;
+  Future<Map<String, dynamic>?> loadMarkersOrNull() async {
+    await _awaitGate();
+    return super.loadMarkersOrNull();
+  }
 
-  void complete(String digest) => _gate.complete(digest);
+  @override
+  Future<Map<String, dynamic>> loadMarkers() async {
+    await _awaitGate();
+    return super.loadMarkers();
+  }
+
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
 }

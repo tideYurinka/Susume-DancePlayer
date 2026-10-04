@@ -188,7 +188,7 @@ void main() {
         baselineMarkers: null,
       );
       expect(controller.phase, MirrorPhase.asking);
-      // 后台哈希随后落盘（模拟条目在作答前已写入、未询问）。
+      // 作答前条目已在册（打开会话保证：按路径命中，或兜底定身份后补建）。
       await storage.update((index) => index.upsert(entryFor(mirrored: false)));
 
       await controller.chooseMirrored(true);
@@ -223,27 +223,22 @@ void main() {
       );
     });
 
-    test('作答后索引条目才落盘（模拟首次导入后台哈希）：重试直至持久化', () async {
-      final storage = InMemoryVideoIndexStorage();
-      final controller = MirrorController(
-        storage,
-        persistRetryInterval: const Duration(milliseconds: 10),
-        maxPersistRetries: 200,
+    test('条目在册：作答即写回条目并标记「已询问」，不等任何后台落盘', () async {
+      final storage = InMemoryVideoIndexStorage(
+        initial: VideoIndex(entries: [entryFor(mirrored: false)]),
       );
+      final controller = MirrorController(storage);
       await controller.resolve(
         sourcePath,
         videoId: videoId,
+        entry: entryFor(mirrored: false),
         baselineMarkers: null,
       );
 
       await controller.chooseMirrored(true);
-      expect(controller.mirrored, isTrue, reason: '选择后立即生效，不等索引落盘');
+      expect(controller.mirrored, isTrue, reason: '选择后立即生效');
 
-      // 后台哈希随后落盘（先 mirrored=false、未询问，与既有导入管道一致）。
-      await storage.update((index) => index.upsert(entryFor(mirrored: false)));
-      expect(storage.current.entries.single.mirrored, isFalse);
-
-      // 重试循环应把作答写回条目（镜像按 video_id 存取）。
+      // 条目由打开会话保证在册——作答当场写回（镜像按 video_id 存取）。
       await pollUntil(
         () =>
             storage.current.entries.single.mirrored == true &&
@@ -252,12 +247,18 @@ void main() {
     });
 
     test('跨会话恢复：新控制器对同一索引 resolve → 按历史应用', () async {
-      final storage = InMemoryVideoIndexStorage();
+      final storage = InMemoryVideoIndexStorage(
+        initial: VideoIndex(entries: [entryFor(mirrored: false)]),
+      );
       final first = MirrorController(storage);
-      await first.resolve(sourcePath, videoId: videoId, baselineMarkers: null);
+      await first.resolve(
+        sourcePath,
+        videoId: videoId,
+        entry: entryFor(mirrored: false),
+        baselineMarkers: null,
+      );
       await first.chooseMirrored(true);
-      // 后台哈希随后落盘：重试循环把作答写回条目。
-      await storage.update((index) => index.upsert(entryFor(mirrored: false)));
+      // 作答当场写回条目。
       await pollUntil(
         () =>
             storage.current.entries.single.mirrored == true &&
@@ -811,27 +812,25 @@ void main() {
       expect(markers.localMirrorEnabled, isFalse, reason: '首建带总开关过渡值');
     });
 
-    test('首次导入条目未落盘：切换后按既有重试兜底写入，条目出现即双写', () async {
-      final indexStorage = InMemoryVideoIndexStorage();
+    test('条目在册：切换总开关即双写 markers，不等任何后台落盘', () async {
+      final indexStorage = InMemoryVideoIndexStorage(
+        initial: VideoIndex(entries: [entryFor(mirrorAsked: true)]),
+      );
       final markersStorage = InMemoryVideoDocumentStorage();
       final controller = MirrorController(
         indexStorage,
         coordinatorFor: (_) => VideoDocumentCoordinator(markersStorage),
-        persistRetryInterval: const Duration(milliseconds: 1),
       );
       await controller.resolve(
         sourcePath,
         videoId: videoId,
+        entry: entryFor(mirrorAsked: true),
         baselineMarkers: null,
       );
 
       controller.setLocalMirrorEnabled(false);
 
-      // 后台哈希随后落盘（首次导入的索引条目出现）。
-      await indexStorage.update(
-        (index) => index.upsert(entryFor(mirrorAsked: true)),
-      );
-
+      // 条目由打开会话保证在册——切换当场双写。
       await pollUntil(
         () =>
             MarkersDocument.fromJson(markersStorage.markersSnapshot)

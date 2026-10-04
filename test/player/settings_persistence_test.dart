@@ -883,8 +883,9 @@ void main() {
       InMemoryVideoIndexStorage index,
       Map<String, InMemoryVideoDocumentStorage> docs, {
       required ContentHasher hasher,
+      String filePath = pathA,
     }) => OpenSession(
-      filePath: pathA,
+      filePath: filePath,
       indexStore: index,
       hasher: hasher,
       coordinatorFor: (videoId) => VideoDocumentCoordinator(docs[videoId]!),
@@ -918,7 +919,7 @@ void main() {
       expect(container.read(layoutLockedProvider), true);
     });
 
-    test('会话未识别身份（摘要失败）→ 维持默认、不写盘', () async {
+    test('会话无身份（按路径查不到条目且兜底摘要失败）→ 维持默认、不写盘', () async {
       final index = InMemoryVideoIndexStorage(
         initial: VideoIndex(
           entries: [
@@ -929,8 +930,16 @@ void main() {
       final docs = {idA: InMemoryVideoDocumentStorage()};
       container = containerFor(index, docs);
       addTearDown(container.dispose);
-      final open = sessionFor(index, docs, hasher: const _ThrowingHasher());
+      // 打开路径按路径取身份：查不到条目的路径 + 兜底摘要失败 = 无身份
+      // （索引里有别的路径的条目不算命中）。
+      final open = sessionFor(
+        index,
+        docs,
+        hasher: const _ThrowingHasher(),
+        filePath: pathB,
+      );
       await open.establish();
+      expect(open.identified, isFalse);
 
       final session = persistence();
       unawaited(session.openFor(open));
@@ -940,6 +949,7 @@ void main() {
 
       expect(container.read(layoutLockedProvider), true);
       expect(docs[idA]!.localSnapshot, isEmpty);
+      expect(index.current.findByFilePath(pathB), isNull, reason: '兜底失败不补建');
     });
   });
 

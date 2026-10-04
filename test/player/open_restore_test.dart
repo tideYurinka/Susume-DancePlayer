@@ -63,6 +63,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import '../helpers/fake_beat_pipeline.dart';
 import '../helpers/fake_brightness.dart';
@@ -73,7 +74,7 @@ import '../helpers/in_memory_member_scheme_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 
-/// 抛错哈希（哈希计算失败的兜底路径用）。
+/// 抛错哈希（兜底定身份的失败路径用：条目命中时一调用就失败即证伪「读内容」）。
 class ThrowingHasher implements ContentHasher {
   const ThrowingHasher();
 
@@ -96,6 +97,17 @@ String _createTempVideo() {
   final dir = Directory.systemTemp.createTempSync('open_restore_gate');
   addTearDown(() => dir.deleteSync(recursive: true));
   return (File('${dir.path}/a.mp4')..writeAsBytesSync(const [0])).path;
+}
+
+/// 真实副本文件（兜底补建条目按副本读大小与名字，故补建场景用真文件）。
+Future<File> writeTempVideo({int sizeBytes = 8}) async {
+  final directory = await Directory.systemTemp.createTemp('open_restore_test');
+  addTearDown(() async {
+    if (await directory.exists()) await directory.delete(recursive: true);
+  });
+  final file = File(p.join(directory.path, 'a.mp4'));
+  await file.writeAsBytes(List<int>.filled(sizeBytes, 3));
+  return file;
 }
 
 /// 带写盘计数的按视频文档存储（打开恢复不得触发多余写盘断言用）。
@@ -305,14 +317,13 @@ Probe makeProbe({
   Map<String, dynamic> markers = const {},
   Map<String, dynamic> local = const {},
   FakeBeatPipeline? pipeline,
-  VideoDocumentStorage Function(String videoId)? storageFor,
   MemberSchemeStorage? memberSchemeStorage,
   List<Override> extraOverrides = const [],
 }) {
   final docStorage = CountingVideoDocumentStorage(
     InMemoryVideoDocumentStorage(markers: markers, local: local),
   );
-  final documentStorage = storageFor ?? (String videoId) => docStorage;
+  VideoDocumentStorage documentStorage(String videoId) => docStorage;
   final indexStorage = InMemoryVideoIndexStorage(
     initial: index ?? VideoIndex(entries: [entryFor()]),
   );
@@ -643,42 +654,31 @@ void main() {
     expect(probe.container.read(delayedLoopProvider), DelayedLoopBeats.four);
   });
 
-  test('内容哈希不一致：按新视频处理（不载旧标注、旧条目/旧文件保留、身份取摘要）', () async {
-    // 旧条目（hash-old）的文档与新内容（different-content）的文档分属两个文件。
-    final oldStorage = CountingVideoDocumentStorage(
-      InMemoryVideoDocumentStorage(markers: markersJson(), local: localJson()),
-    );
-    final newStorage = CountingVideoDocumentStorage(
-      InMemoryVideoDocumentStorage(),
-    );
+  test('条目命中即取身份：摘要一调用就失败也照常载入这支舞的标注（打开不读内容）', () async {
     final probe = makeProbe(
-      hasher: const FixedHasher('different-content'),
-      index: VideoIndex(entries: [entryFor(videoId: 'hash-old')]),
-      storageFor: (videoId) => videoId == 'hash-old' ? oldStorage : newStorage,
+      // 打开路径触发任何内容摘要都判失败——条目命中时它一次都不该被调用。
+      hasher: const ThrowingHasher(),
+      markers: markersJson(),
+      local: localJson(),
     );
     await probe.open();
 
     final timeline = probe.container.read(annotationTimelineProvider);
-    expect(timeline.segmentLines, isEmpty);
-    expect(probe.container.read(selectedLearningSegmentsProvider), isEmpty);
-    expect(probe.container.read(layoutLockedProvider), isFalse);
+    expect(timeline.segmentLines, hasLength(1), reason: '按条目身份载入旧标注');
+    expect(probe.container.read(selectedLearningSegmentsProvider), isNotEmpty);
+    expect(probe.container.read(layoutLockedProvider), isTrue);
     expect(
       probe.container.read(annotationSaveSinkProvider),
       isNotNull,
-      reason: '按新视频语义仍可落盘（身份取摘要）',
+      reason: '身份来自条目 → 照常接通保存',
     );
-    // 旧条目保留、旧文件不被读也不被写。
-    expect(probe.indexStorage.current.findById('hash-old'), isNotNull);
-    expect(oldStorage.markersSnapshot, markersJson());
-    expect(oldStorage.localSnapshot, localJson());
-    expect(oldStorage.markersWrites, 0);
-    expect(oldStorage.localWrites, 0);
-    expect(newStorage.markersWrites, 0);
+    expect(probe.docStorage.markersWrites, 0, reason: '恢复本身不写盘');
   });
 
-  test('内容哈希计算失败：按新视频处理，不载旧标注', () async {
+  test('兜底摘要失败（副本不在）：无身份空态，不载标注、不接保存编排', () async {
     final probe = makeProbe(
       hasher: const ThrowingHasher(),
+      index: VideoIndex.empty,
       markers: markersJson(),
       local: localJson(),
     );
@@ -689,14 +689,16 @@ void main() {
       isEmpty,
     );
     expect(probe.container.read(annotationSaveSinkProvider), isNull);
+    expect(probe.indexStorage.current.entries, isEmpty, reason: '兜底失败不补建');
   });
 
-  test('索引无条目（条目尚未落盘）：空态但照常接通保存——身份取内容摘要', () async {
+  test('按路径无条目：兜底算一次定身份并补建条目，空态但照常接通保存', () async {
+    final video = await writeTempVideo();
     final probe = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: VideoIndex.empty,
     );
-    await probe.open();
+    await probe.open(filePath: video.path);
 
     expect(
       probe.container.read(annotationTimelineProvider).segmentLines,
@@ -708,18 +710,22 @@ void main() {
       reason: '「无条目 ⇒ 不接保存编排」这条语义已删除',
     );
     expect(probe.docStorage.markersWrites, 0, reason: '恢复本身不写盘');
+    final created = probe.indexStorage.current.findByFilePath(video.path);
+    expect(created?.videoId, kVideoId, reason: '兜底定身份后补建条目');
+    expect(created?.sizeBytes, 8, reason: '条目按副本现算大小');
   });
 
-  test('端到端：刚导入就打开（索引无条目）→ 标注落盘 → 重开后仍在', () async {
+  test('端到端：兜底定身份落标注 → 重开按路径命中、不再兜底', () async {
+    final video = await writeTempVideo();
     final probeA = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: VideoIndex.empty,
       // 分析失败：异常态不触发自动分段，本用例只验证标注落盘。
       pipeline: FakeBeatPipeline(error: '无有效音轨'),
     );
-    await probeA.open();
+    await probeA.open(filePath: video.path);
 
-    // 刚导入就打开：无索引条目，身份取内容摘要，标注经会话协调器落盘。
+    // 无索引条目：身份取兜底算出的摘要，标注经会话协调器落盘。
     final outcome = probeA.container
         .read(annotationEditorProvider)
         .submit(const AddSegmentLine(at: Duration(seconds: 30)));
@@ -729,21 +735,21 @@ void main() {
     final persisted = probeA.docStorage.markersSnapshot;
     expect(persisted['annotations']['segmentLines'], hasLength(1));
 
-    // 重开：同一内容身份寻址到同一份文档；索引仍无条目。
+    // 重开：索引里已有兜底补建的条目 → 按路径命中；摘要一调用就失败也不影响。
     final probeB = makeProbe(
-      hasher: const FixedHasher(kVideoId),
-      index: VideoIndex.empty,
+      hasher: const ThrowingHasher(),
+      index: probeA.indexStorage.current,
       markers: persisted,
       pipeline: FakeBeatPipeline(error: '无有效音轨'),
     );
-    await probeB.open();
+    await probeB.open(filePath: video.path);
 
     final timeline = probeB.container.read(annotationTimelineProvider);
     expect(timeline.segmentLines, hasLength(1));
     expect(
       timeline.segmentLines.single.position,
       const Duration(seconds: 30),
-      reason: '无索引条目时打开的标注落盘后重开仍在',
+      reason: '兜底补建条目后重开不再兜底、同一身份寻址到同一份文档',
     );
   });
 
@@ -1028,7 +1034,7 @@ void main() {
       );
     });
 
-    test('open 建立的身份按内容摘要落定：非首次导入照常传给下游会话', () async {
+    test('open 建立的身份按路径条目落定：非首次导入照常传给下游会话', () async {
       final probe = makeProbe(
         hasher: const FixedHasher(kVideoId),
         markers: markersJson(withBeat: true),

@@ -26,10 +26,6 @@ import 'cover_placeholder.dart';
 import 'dance_detail_page.dart';
 import 'prep_settings_page.dart';
 
-/// 新导入等索引落盘的预算：后台 SHA-256 → 索引写通常在秒级完成。
-const int _indexWriteRetryLimit = 30;
-const Duration _indexWriteRetryInterval = Duration(milliseconds: 500);
-
 /// 首页 = 舞库：两列卡片列出全部已导入的舞——大封面（底部渐变
 /// 暗底上压熟练度百分比与已练遍数一行白字）、最多两行的署名标题、通栏
 /// 细线、「查看详情 ›」详情行，按最近练习倒序。卡片量与排序全部来自舞库
@@ -178,10 +174,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     final video = result;
     // 首次导入的新视频：进播放器前弹歌曲命名框；
     // 既有条目/遗留旧视频不弹。
+    // 导入返回时条目已落盘（见 VideoImporter）——回到本页由 [_openPlayer]
+    // 收尾重算读面，新卡随即出现，不必等任何后台落盘。
     await _openPlayer(video.uri, askNaming: video.isNewImport);
-    // 导入返回时条目已落盘（见 VideoImporter）；这里仍按副本路径确认一次，
-    // 条目在则重算读面让新卡出现。
-    if (mounted) await _waitForImportedIndexEntry(video.uri);
   }
 
   /// 点卡片主体：打开该舞续播（续播位置与「从头播放？」归播放器侧）。
@@ -217,23 +212,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _openHelpCenter() {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const HelpCenterPage()));
-  }
-
-  /// 等本次导入的索引条目落盘：按副本路径轮询索引，条目出现即重算读面让
-  /// 新卡出现（既有条目第一轮即命中，只多一次读）；页面不在场或预算用尽
-  /// 即停，不遗留挂起工作。
-  Future<void> _waitForImportedIndexEntry(Uri uri) async {
-    final filePath = uri.toFilePath();
-    final indexStore = ref.read(videoIndexStoreProvider);
-    for (var i = 0; i < _indexWriteRetryLimit && mounted; i++) {
-      final index = await indexStore.load();
-      if (!mounted) return;
-      if (index.findByFilePath(filePath) != null) {
-        _reloadLibrary();
-        return;
-      }
-      await Future<void>.delayed(_indexWriteRetryInterval);
-    }
   }
 
   @override
