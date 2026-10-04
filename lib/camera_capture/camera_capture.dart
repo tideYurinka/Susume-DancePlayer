@@ -124,7 +124,12 @@ class RecordingOutput {
 }
 
 /// 相机权限状态：未询问 / 已授权 / 拒绝（可重试）/ 永久拒绝（去设置）。
-enum CameraPermissionStatus { notDetermined, granted, denied, permanentlyDenied }
+enum CameraPermissionStatus {
+  notDetermined,
+  granted,
+  denied,
+  permanentlyDenied,
+}
 
 /// 相机采集注入点：真实实现走 `camera` 插件；测试 override 注入 fake。
 final cameraCaptureProvider = Provider<CameraCaptureService>(

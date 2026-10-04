@@ -29,8 +29,11 @@ void main() {
     expect(kRosterPalette.length, 24);
     expect(kRosterPalette.toSet().length, 24);
     for (final argb in kRosterPalette) {
-      expect((argb >> 24) & 0xFF, 0xFF,
-          reason: '色板色全不透明: 0x${argb.toRadixString(16)}');
+      expect(
+        (argb >> 24) & 0xFF,
+        0xFF,
+        reason: '色板色全不透明: 0x${argb.toRadixString(16)}',
+      );
     }
   });
 
@@ -113,10 +116,7 @@ void main() {
 
     test('⑥ 音画同步禁用档位钮前景在共享气泡底衬上 ≥ 4.5', () {
       expect(
-        actualContrast(
-          kAvSyncTierDisabledTextColor,
-          kSpeedBubbleScrimColor,
-        ),
+        actualContrast(kAvSyncTierDisabledTextColor, kSpeedBubbleScrimColor),
         greaterThanOrEqualTo(4.5),
       );
     });

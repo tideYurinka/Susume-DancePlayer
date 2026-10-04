@@ -76,9 +76,8 @@ class _IssueReportPageState extends ConsumerState<IssueReportPage> {
     if (_sending) return;
     final description = _description.text;
     if (description.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('先说说遇到了什么问题')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('先说说遇到了什么问题')));
       return;
     }
 
@@ -110,9 +109,8 @@ class _IssueReportPageState extends ConsumerState<IssueReportPage> {
     } on Object {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('日志包未递出')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('日志包未递出')));
     }
   }
 
@@ -178,8 +176,7 @@ class _IssueReportPageState extends ConsumerState<IssueReportPage> {
         IssueDanceAttachment(
           title: dance.title,
           videoId: dance.videoId,
-          markers: await storageFor(dance.videoId)
-              .loadShareableMarkersOrNull(),
+          markers: await storageFor(dance.videoId).loadShareableMarkersOrNull(),
         ),
     ];
   }

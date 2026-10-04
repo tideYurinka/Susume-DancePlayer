@@ -31,9 +31,8 @@ void main() {
     });
 
     test('只写非原样档：档值 1 不落键；原样键读回即消失（删键语义）', () {
-      final written = MarkersDocument(
-        segmentDensities: {0: 1.0, 1: 2.0},
-      ).toJson()['annotations']['segmentDensities'];
+      final written = MarkersDocument(segmentDensities: {0: 1.0, 1: 2.0})
+          .toJson()['annotations']['segmentDensities'];
       expect(written, {'1': 2.0});
       // 回原样后重写：该键从文件消失。
       final afterReset = MarkersDocument(segmentDensities: {0: 2.0})
@@ -43,7 +42,8 @@ void main() {
         MarkersDocument(segmentDensities: {0: 2.0}).toJson(),
       );
       expect(
-        MarkersDocument(segmentDensities: {}).toJson()['annotations']
+        MarkersDocument(segmentDensities: {})
+            .toJson()['annotations']
             .containsKey('segmentDensities'),
         isFalse,
       );
@@ -101,7 +101,10 @@ void main() {
         },
       });
       expect(doc.segmentLines.first.position, const Duration(seconds: 5));
-      expect(doc.halfBeatLines.first.position, const Duration(milliseconds: 2500));
+      expect(
+        doc.halfBeatLines.first.position,
+        const Duration(milliseconds: 2500),
+      );
       expect(doc.localMirrorFragments.first.startMs, 1000);
       final restored = MarkersDocument.fromJson(doc.toJson());
       expect(restored.segmentLines, doc.segmentLines);

@@ -19,10 +19,10 @@ void main() {
     canInstall = true;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(installChannel, (call) async {
-      installCalls.add(call);
-      if (call.method == 'canRequestInstall') return canInstall;
-      return null;
-    });
+          installCalls.add(call);
+          if (call.method == 'canRequestInstall') return canInstall;
+          return null;
+        });
   });
 
   tearDown(() {

@@ -108,14 +108,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         );
       case 'settings':
         await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const PrepSettingsPage(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const PrepSettingsPage()),
         );
       case 'about':
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AboutPage()),
-        );
+        await Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => const AboutPage()));
       case 'restore_backup':
         // 与「导入视频」、入站分享共用同一把导入互斥。
         if (_importing) return;
@@ -218,9 +215,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   /// 首页顶栏「帮助」（在「⋯」左边）：push 帮助中心。
   void _openHelpCenter() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const HelpCenterPage()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const HelpCenterPage()));
   }
 
   /// 等本次导入的索引条目落盘：按副本路径轮询索引，条目出现即重算读面让
@@ -398,14 +394,13 @@ double _measuredTextHeight(
   TextStyle style,
   double maxWidth,
   TextDirection textDirection,
-) =>
-    measureTextExtent(
-      text,
-      style,
-      direction: textDirection,
-      maxWidth: maxWidth,
-      maxLines: 2,
-    ).height;
+) => measureTextExtent(
+  text,
+  style,
+  direction: textDirection,
+  maxWidth: maxWidth,
+  maxLines: 2,
+).height;
 
 /// 卡片高度估算 = 封面高度 ＋ 标题实测高度 ＋ 细线 ＋ 详情行高度：标题按
 /// 当前主题与列宽实测（最多两行），不再用固定信息块常量，分列估算与实际

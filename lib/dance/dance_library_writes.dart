@@ -51,7 +51,8 @@ class DanceLibraryWrites {
     final coordinator = VideoDocumentCoordinator(storage);
     try {
       final outcome = await coordinator.readMarkersOutcome();
-      if (outcome is! WritableDocumentReadOutcome<MarkersDocument>) return false;
+      if (outcome is! WritableDocumentReadOutcome<MarkersDocument>)
+        return false;
       final result = await outcome.write((context) {
         final seeded = firstBuildSeeded(
           context.document,

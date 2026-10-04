@@ -140,6 +140,9 @@ void main() {
 
     // 归一国空即删：备注删除不受锁定分段管，一步可撤销。
     expect(container.read(noteStickersProvider), isEmpty);
-    expect(container.read(annotationEditHistoryProvider).length, stepsBefore + 1);
+    expect(
+      container.read(annotationEditHistoryProvider).length,
+      stepsBefore + 1,
+    );
   });
 }

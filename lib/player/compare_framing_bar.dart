@@ -98,11 +98,7 @@ const String kCompareFramingBarDoneLabel = '完成';
 /// `TextButton` 默认 = [ColorScheme.primary]，浅色主题的深紫压在深底与视频
 /// 上不可读），两条命令经 [onReset] / [onDone] 回宿主。
 class FramingBar extends StatelessWidget {
-  const FramingBar({
-    super.key,
-    required this.onDone,
-    required this.onReset,
-  });
+  const FramingBar({super.key, required this.onDone, required this.onReset});
 
   /// 「完成」：退出取景态（对比路径回对比-控制层、单画面路径回编辑态）。
   final VoidCallback onDone;
@@ -259,12 +255,8 @@ bool _fitsOnOneLine(BuildContext context, double availableWidth) {
   final baseStyle = DefaultTextStyle.of(context).style;
   final textScaler = MediaQuery.textScalerOf(context);
 
-  double textWidth(String text, TextStyle style) => measureTextExtent(
-    text,
-    style,
-    scaler: textScaler,
-    maxLines: 1,
-  ).width;
+  double textWidth(String text, TextStyle style) =>
+      measureTextExtent(text, style, scaler: textScaler, maxLines: 1).width;
 
   final labelStyle =
       Theme.of(context).textTheme.labelLarge ??

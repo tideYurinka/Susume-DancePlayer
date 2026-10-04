@@ -76,7 +76,8 @@ const String kIssueSectionFrequency = '出现频率';
 
 /// 包文件名：`susume-logs-<yyyyMMdd-HHmmss>.zip`（本地时间）。
 String issueLogPackageFileName({required DateTime now}) {
-  final stamp = '${now.year.toString().padLeft(4, '0')}${twoDigit(now.month)}'
+  final stamp =
+      '${now.year.toString().padLeft(4, '0')}${twoDigit(now.month)}'
       '${twoDigit(now.day)}-${twoDigit(now.hour)}${twoDigit(now.minute)}'
       '${twoDigit(now.second)}';
   return 'susume-logs-$stamp.zip';
@@ -108,9 +109,8 @@ String buildIssueReportText({
   // 是末尾一节。
   add(
     '附带的数据',
-    [
-      for (final dance in dances) '- ${dance.title}（${dance.videoId}）',
-    ].join('\n'),
+    [for (final dance in dances) '- ${dance.title}（${dance.videoId}）']
+        .join('\n'),
   );
   return sections.join('\n\n');
 }
@@ -136,19 +136,23 @@ Future<File> assembleIssueLogPackage({
   List<IssueDanceAttachment> dances = const [],
 }) async {
   await outputDir.create(recursive: true);
-  final output = File(p.join(outputDir.path, issueLogPackageFileName(now: now)));
+  final output = File(
+    p.join(outputDir.path, issueLogPackageFileName(now: now)),
+  );
 
   final entries = <StoredZipEntry>[
     (
       name: kIssueReportEntry,
-      bytes: utf8.encode(buildIssueReportText(
-        description: description,
-        reproduce: reproduce,
-        actual: actual,
-        expected: expected,
-        frequency: frequency,
-        dances: dances,
-      )),
+      bytes: utf8.encode(
+        buildIssueReportText(
+          description: description,
+          reproduce: reproduce,
+          actual: actual,
+          expected: expected,
+          frequency: frequency,
+          dances: dances,
+        ),
+      ),
       file: null,
     ),
     (
@@ -159,16 +163,13 @@ Future<File> assembleIssueLogPackage({
     if (dances.isNotEmpty)
       (
         name: kIssueDancesEntry,
-        bytes: utf8.encode(jsonEncode([
-          for (final dance in dances) dance.toJson(),
-        ])),
+        bytes: utf8.encode(
+          jsonEncode([for (final dance in dances) dance.toJson()]),
+        ),
         file: null,
       ),
   ];
-  for (final name in [
-    kIssueLogCurrentFileName,
-    kIssueLogPreviousFileName,
-  ]) {
+  for (final name in [kIssueLogCurrentFileName, kIssueLogPreviousFileName]) {
     final file = File(p.join(logDirectory.path, name));
     if (!await file.exists()) continue;
     entries.add((name: '$kIssueLogsEntryPrefix$name', bytes: null, file: file));

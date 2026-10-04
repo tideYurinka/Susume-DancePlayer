@@ -18,10 +18,7 @@ void main() {
         rangeEndMs: 258182,
         segmentLines: const [
           SegmentLine(position: Duration(milliseconds: 4200)),
-          SegmentLine(
-            position: Duration(milliseconds: 38000),
-            flagged: true,
-          ),
+          SegmentLine(position: Duration(milliseconds: 38000), flagged: true),
         ],
         emphasizedSegments: const [0, 2],
         beat: BeatGrid(
@@ -127,9 +124,7 @@ void main() {
     });
 
     test('署名 JSON 为结构三元组 dancer/song/remark，缺省字段空串', () {
-      const doc = MarkersDocument(
-        signature: SongSignature(song: 'My Love'),
-      );
+      const doc = MarkersDocument(signature: SongSignature(song: 'My Love'));
       expect(doc.toJson()['meta'], {
         'mirrored': false,
         'localMirrorEnabled': true,
@@ -138,14 +133,11 @@ void main() {
     });
 
     test('无署名时 meta 不写 signature 键，读回为 null', () {
-      final meta = const MarkersDocument().toJson()['meta']
-          as Map<String, dynamic>;
+      final meta =
+          const MarkersDocument().toJson()['meta'] as Map<String, dynamic>;
       expect(meta.containsKey('signature'), isFalse);
       expect(
-        MarkersDocument.fromJson(const {
-          'version': 8,
-          'meta': {},
-        }).signature,
+        MarkersDocument.fromJson(const {'version': 8, 'meta': {}}).signature,
         isNull,
       );
     });
@@ -164,8 +156,8 @@ void main() {
     });
 
     test('缺省写盘不写该键；显式位置才写键', () {
-      final absent = const MarkersDocument().toJson()['meta']
-          as Map<String, dynamic>;
+      final absent =
+          const MarkersDocument().toJson()['meta'] as Map<String, dynamic>;
       expect(absent.containsKey('coverPositionMs'), isFalse);
 
       const doc = MarkersDocument(coverPositionMs: 12345);
@@ -361,10 +353,7 @@ void main() {
     });
 
     test('文件缺失（空 JSON）得到空态文档（等价默认值）', () {
-      expect(
-        MarkersDocument.fromJson(const {}),
-        const MarkersDocument.empty(),
-      );
+      expect(MarkersDocument.fromJson(const {}), const MarkersDocument.empty());
     });
   });
 
@@ -372,10 +361,7 @@ void main() {
     test('文档层、段层、元素层的未知键都原样带回、写回原样', () {
       final fromFile = MarkersDocument.fromJson(const {
         'version': 8,
-        'meta': {
-          'mirrored': true,
-          'metaFuture': 'keep-me',
-        },
+        'meta': {'mirrored': true, 'metaFuture': 'keep-me'},
         'beat': {
           'model': 'm.onnx',
           'fps': 100,
@@ -389,11 +375,7 @@ void main() {
           'corrFuture': {'x': 1},
         },
         'annotations': {
-          'range': {
-            'startMs': 0,
-            'endMs': 100,
-            'rangeFuture': 'keep',
-          },
+          'range': {'startMs': 0, 'endMs': 100, 'rangeFuture': 'keep'},
           'segmentLines': [
             {'timeMs': 100, 'flag': false, 'segFuture': 1},
           ],
@@ -406,12 +388,13 @@ void main() {
       expect(fromFile.metaExtra, {'metaFuture': 'keep-me'});
       expect(fromFile.beat?.extra, {'beatFuture': 7});
       expect(fromFile.rangeExtra, {'rangeFuture': 'keep'});
-      expect(fromFile.correctionsExtra, {'corrFuture': {'x': 1}});
-      expect(fromFile.annotationsExtra, {'annFuture': [1, 2]});
-      expect(
-        fromFile.segmentLines.single.extra,
-        {'segFuture': 1},
-      );
+      expect(fromFile.correctionsExtra, {
+        'corrFuture': {'x': 1},
+      });
+      expect(fromFile.annotationsExtra, {
+        'annFuture': [1, 2],
+      });
+      expect(fromFile.segmentLines.single.extra, {'segFuture': 1});
 
       final written = fromFile.toJson();
       expect(written['docFuture'], true);
@@ -448,10 +431,7 @@ void main() {
       expect(written['corrections']['shift'], 0.25);
       expect(written['corrections']['anchors'], [4]);
       expect(written['annotations']['segmentLines'], isA<List>());
-      expect(written['annotations']['range'], {
-        'startMs': 0,
-        'endMs': 0,
-      });
+      expect(written['annotations']['range'], {'startMs': 0, 'endMs': 0});
     });
 
     test('本版本字段与扩展字段互不干扰', () {
@@ -503,7 +483,10 @@ void main() {
           'practiceNote': 'private',
           'metaFuture': 'keep-me',
         },
-        'corrections': <String, Object?>{'shift': 0.25, 'anchors': [4]},
+        'corrections': <String, Object?>{
+          'shift': 0.25,
+          'anchors': [4],
+        },
         'annotations': <String, Object?>{
           'range': <String, Object?>{'startMs': 0, 'endMs': 100},
           'segmentLines': [
@@ -521,7 +504,10 @@ void main() {
           'localMirrorEnabled': false,
           'coverPositionMs': 42000,
         },
-        'corrections': {'shift': 0.25, 'anchors': [4]},
+        'corrections': {
+          'shift': 0.25,
+          'anchors': [4],
+        },
         'annotations': {
           'range': {'startMs': 0, 'endMs': 100},
           'segmentLines': [
@@ -677,9 +663,8 @@ void main() {
         right: 0.8,
         bottom: 0.8,
       );
-      final cleared = const MarkersDocument(
-        framingSelection: selection,
-      ).withFramingSelection(null);
+      final cleared = const MarkersDocument(framingSelection: selection)
+          .withFramingSelection(null);
       expect(
         (cleared.toJson()['meta'] as Map).containsKey('framingSelection'),
         isFalse,
@@ -757,10 +742,10 @@ void main() {
     test('结构断言：版本链从地板无缝连到本版', () {
       expect(MarkersDocument.versionPolicy.floor, 7);
       expect(MarkersDocument.versionPolicy.currentVersion, 9);
-      expect(
-        MarkersDocument.versionPolicy.steps.map((step) => step.from),
-        [7, 8],
-      );
+      expect(MarkersDocument.versionPolicy.steps.map((step) => step.from), [
+        7,
+        8,
+      ]);
     });
 
     test('v7 文件读入：meta/corrections/annotations 各元素逐项在场', () {
@@ -811,11 +796,17 @@ void main() {
       expect(doc.segmentDensities, isEmpty);
 
       // 陌生键逐层进保底区。
-      expect(doc.extra, {'docFuture': {'keep': 1}});
+      expect(doc.extra, {
+        'docFuture': {'keep': 1},
+      });
       expect(doc.metaExtra, {'metaFuture': 'keep-meta'});
       expect(doc.beat?.extra, {'beatFuture': 7});
-      expect(doc.correctionsExtra, {'corrFuture': {'keep': true}});
-      expect(doc.annotationsExtra, {'annFuture': [1, 2]});
+      expect(doc.correctionsExtra, {
+        'corrFuture': {'keep': true},
+      });
+      expect(doc.annotationsExtra, {
+        'annFuture': [1, 2],
+      });
       expect(doc.rangeExtra, {'rangeFuture': 'keep'});
       expect(doc.segmentLines[0].extra, {'segFuture': 1});
       expect(doc.notesExtra, {'notesFuture': 'keep'});
@@ -925,9 +916,13 @@ void main() {
       expect(doc.coverPositionMs, 8800);
       expect(doc.rangeStartMs, 1000);
       expect(doc.segmentLines.single.position.inMilliseconds, 4200);
-      expect(doc.extra, {'docFuture': {'keep': 1}});
+      expect(doc.extra, {
+        'docFuture': {'keep': 1},
+      });
       expect(doc.metaExtra, {'metaFuture': 'keep-meta'});
-      expect(doc.annotationsExtra, {'annFuture': [1, 2]});
+      expect(doc.annotationsExtra, {
+        'annFuture': [1, 2],
+      });
       expect(doc.segmentLines.single.extra, {'segFuture': 1});
     });
 

@@ -53,7 +53,9 @@ void main() {
 
     /// 就绪网格文档：拍点 0.5/1.0/1.5/2.0s，第 1 拍 downbeat（4 拍）。
     void seedReadyGrid() {
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -72,7 +74,10 @@ void main() {
 
     Future<void> pumpHost(WidgetTester tester) async {
       engine = FakePlaybackEngine(duration: const Duration(minutes: 1));
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
@@ -96,9 +101,9 @@ void main() {
 
     Future<void> openBubble(WidgetTester tester) async {
       await pumpHost(tester);
-      container.read(speedBubbleSessionProvider.notifier).open(
-            SpeedBubbleMode.beatDensity,
-          );
+      container
+          .read(speedBubbleSessionProvider.notifier)
+          .open(SpeedBubbleMode.beatDensity);
       await tester.pumpAndSettle();
     }
 
@@ -204,18 +209,20 @@ void main() {
       seedReadyGrid();
       await tester.pumpAndSettle();
 
-      bool fasterEnabled() => tester
-          .widget<ButtonStyleButton>(
-            find.byKey(const Key('beat_density_faster')),
-          )
-          .onPressed !=
-      null;
-      bool slowerEnabled() => tester
-          .widget<ButtonStyleButton>(
-            find.byKey(const Key('beat_density_slower')),
-          )
-          .onPressed !=
-      null;
+      bool fasterEnabled() =>
+          tester
+              .widget<ButtonStyleButton>(
+                find.byKey(const Key('beat_density_faster')),
+              )
+              .onPressed !=
+          null;
+      bool slowerEnabled() =>
+          tester
+              .widget<ButtonStyleButton>(
+                find.byKey(const Key('beat_density_slower')),
+              )
+              .onPressed !=
+          null;
 
       // ×1：两枚都可用。
       expect(fasterEnabled(), isTrue);
@@ -331,11 +338,7 @@ void main() {
           reason: '${entry.key} 的触控目标已放大（旧紧凑档 32）',
         );
       }
-      expect(
-        heights.values.toSet(),
-        hasLength(1),
-        reason: '五个控件同挂一档样式，行高一致',
-      );
+      expect(heights.values.toSet(), hasLength(1), reason: '五个控件同挂一档样式，行高一致');
       expect(tester.takeException(), isNull);
     });
 
@@ -413,7 +416,9 @@ void main() {
       seedReadyGrid();
       await tester.pumpAndSettle();
 
-      final width0 = tester.getSize(find.byKey(const Key('beat_density_bubble')));
+      final width0 = tester.getSize(
+        find.byKey(const Key('beat_density_bubble')),
+      );
       await tapBubble(tester, find.byKey(const Key('beat_density_faster')));
       await tester.pumpAndSettle();
       expect(
@@ -541,12 +546,13 @@ void main() {
     testWidgets('置灰门 = 真实拍点可用：占位/异常置灰、就绪可点', (tester) async {
       final container = await openBeatBubble(tester);
 
-      bool enabled() => tester
-          .widget<ButtonStyleButton>(
-            find.byKey(const Key('beat_correction_density_button')),
-          )
-          .onPressed !=
-      null;
+      bool enabled() =>
+          tester
+              .widget<ButtonStyleButton>(
+                find.byKey(const Key('beat_correction_density_button')),
+              )
+              .onPressed !=
+          null;
       expect(enabled(), isFalse, reason: '占位网格置灰');
 
       container
@@ -557,7 +563,9 @@ void main() {
       // 异常态：使用提示说明原因。
       expect(find.text('节拍识别失败，暂不可用'), findsOneWidget);
 
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -578,7 +586,9 @@ void main() {
 
     testWidgets('点「节拍倍频」→ 节拍提示气泡消失、倍频气泡出现且锚同一入口', (tester) async {
       final container = await openBeatBubble(tester);
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -593,9 +603,7 @@ void main() {
           );
       await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const Key('beat_correction_density_button')),
-      );
+      await tester.tap(find.byKey(const Key('beat_correction_density_button')));
       await tester.pumpAndSettle();
 
       expect(
@@ -606,7 +614,9 @@ void main() {
       expect(find.byKey(const Key('beat_density_bubble')), findsOneWidget);
 
       final entry = tester.getRect(find.byKey(const Key('beat_entry')));
-      final bubble = tester.getRect(find.byKey(const Key('beat_density_bubble')));
+      final bubble = tester.getRect(
+        find.byKey(const Key('beat_density_bubble')),
+      );
       expect(bubble.top, greaterThanOrEqualTo(entry.bottom));
       expect(
         (bubble.center.dx - entry.center.dx).abs(),
@@ -616,7 +626,10 @@ void main() {
     });
 
     testWidgets('三条使用提示默认字号下均单行不截断；列宽与气泡总宽不变', (tester) async {
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await openBeatBubble(tester, entryLeft: 600);
@@ -630,11 +643,7 @@ void main() {
         final paragraph = tester.renderObject<RenderParagraph>(
           find.byKey(Key(key)),
         );
-        expect(
-          paragraph.didExceedMaxLines,
-          isFalse,
-          reason: '$key 应单行完整显示',
-        );
+        expect(paragraph.didExceedMaxLines, isFalse, reason: '$key 应单行完整显示');
       }
       // 列宽与气泡总宽不变（既有钉值：312 / 708）。
       expect(BeatPromptBubbleContent.correctionColWidth, 312);

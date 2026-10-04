@@ -14,8 +14,11 @@ import 'package:dance_learning_app/player/editor_skeleton.dart';
 import 'package:dance_learning_app/player/gesture_feedback.dart';
 import 'package:dance_learning_app/player/picture_layer.dart';
 import 'package:dance_learning_app/player/scrub_indicator.dart';
-import 'package:dance_learning_app/player/visual_tokens.dart' show kHighlightAmber;
+import 'package:dance_learning_app/player/visual_tokens.dart'
+    show kHighlightAmber;
+
 import '../helpers/video_surface.dart';
+
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
     show FaceDirection;
 import 'package:flutter/gestures.dart'
@@ -52,7 +55,6 @@ const EditorSkeleton backgroundSkeleton = EditorSkeleton(
   pictureBandHeight: 0,
   pictureBandTop: 0,
 );
-
 
 Duration? tenSeconds() => const Duration(seconds: 10);
 void main() {
@@ -177,7 +179,10 @@ void main() {
 
   group('宽高比与退化', () {
     testWidgets('宽高比已知：画面按 contain 收窄（横屏 9:16 左右留黑）', (tester) async {
-      tester.view.physicalSize = const Size(800, 400); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        800,
+        400,
+      ); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -188,7 +193,10 @@ void main() {
     });
 
     testWidgets('竖屏屏幕下竖屏视频按宽铺满、上下留黑', (tester) async {
-      tester.view.physicalSize = const Size(400, 800); // 合成档 400.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        400,
+        800,
+      ); // 合成档 400.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -199,7 +207,10 @@ void main() {
     });
 
     testWidgets('宽高比未知：画面填满可用区域（内核自行 contain）', (tester) async {
-      tester.view.physicalSize = const Size(800, 400); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        800,
+        400,
+      ); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -210,8 +221,13 @@ void main() {
   });
 
   group('骨架分配（画面落位）', () {
-    testWidgets('贴底：画面带宽 = 骨架给高，顶 = 系统栏 + 顶栏 + 骨架带顶（未调过取景 = 贴底画面带）', (tester) async {
-      tester.view.physicalSize = const Size(800, 400); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
+    testWidgets('贴底：画面带宽 = 骨架给高，顶 = 系统栏 + 顶栏 + 骨架带顶（未调过取景 = 贴底画面带）', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(
+        800,
+        400,
+      ); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -234,7 +250,10 @@ void main() {
     });
 
     testWidgets('背景位骨架：画面走整屏 contain，不落带', (tester) async {
-      tester.view.physicalSize = const Size(800, 400); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        800,
+        400,
+      ); // 合成档 800.0×400.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -248,7 +267,10 @@ void main() {
 
   group('对比态取景（分屏）', () {
     testWidgets('对比态：上下分屏、两侧半区；练习面内容件摆进练习半区', (tester) async {
-      tester.view.physicalSize = const Size(400, 800); // 合成档 400.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        400,
+        800,
+      ); // 合成档 400.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -298,7 +320,6 @@ void main() {
       expect(find.byKey(const Key('practice_surface_probe')), findsNothing);
     });
   });
-
 
   group('反馈浮层气泡底', () {
     Future<Size> mountScrubbing(
@@ -365,9 +386,7 @@ void main() {
         bubbleRect.bottom,
         greaterThanOrEqualTo(tester.getCenter(find.textContaining('/')).dy),
       );
-      final hintCenter = tester.getCenter(
-        find.text(kScrubCancelHintText),
-      );
+      final hintCenter = tester.getCenter(find.text(kScrubCancelHintText));
       expect(bubbleRect.top, lessThanOrEqualTo(hintCenter.dy));
       expect(bubbleRect.bottom, greaterThanOrEqualTo(hintCenter.dy));
     });
@@ -391,9 +410,7 @@ void main() {
         screenSize: const Size(360, 640),
       );
 
-      final hint = tester.getSize(
-        find.text(kScrubCancelHintText),
-      );
+      final hint = tester.getSize(find.text(kScrubCancelHintText));
       // 单行：行高 = 字号 × scale × 行高倍数（1.4，Material 默认），两行会翻倍。
       expect(hint.height, lessThan(12 * 1.6 * 1.4 * 2));
       final bubble = tester.getSize(
@@ -401,26 +418,18 @@ void main() {
       );
       expect(bubble.width, lessThanOrEqualTo(360));
       // 提示文案完整渲染在气泡内（不截断、不省略）。
-      final hintRect = tester.getRect(
-        find.text(kScrubCancelHintText),
-      );
+      final hintRect = tester.getRect(find.text(kScrubCancelHintText));
       final bubbleRect = tester.getRect(
         find.byKey(const Key('scrub_indicator_bubble')),
       );
-      expect(
-        hintRect.right,
-        lessThanOrEqualTo(bubbleRect.right - 12 + 0.5),
-      );
+      expect(hintRect.right, lessThanOrEqualTo(bubbleRect.right - 12 + 0.5));
       expect(hintRect.left, greaterThanOrEqualTo(bubbleRect.left + 12 - 0.5));
     });
 
     testWidgets('时长未知：气泡仍在，只显示目标时间、无条', (tester) async {
       final bubble = await mountScrubbing(tester, durationOf: noDuration);
 
-      expect(
-        find.byKey(const Key('scrub_indicator')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('scrub_indicator')), findsOneWidget);
       expect(find.byKey(const Key('scrub_indicator_bar')), findsNothing);
       expect(find.textContaining('/'), findsNothing);
       expect(bubble.height, greaterThan(0));
@@ -651,7 +660,10 @@ void main() {
       feedback.beginScrubbing();
       await tester.pumpWidget(
         mount(
-          buildInput(feedback: feedback, pictureRectOf: () => const Rect.fromLTWH(20, 40, 300, 200)),
+          buildInput(
+            feedback: feedback,
+            pictureRectOf: () => const Rect.fromLTWH(20, 40, 300, 200),
+          ),
         ),
       );
       expect(find.byKey(const Key('scrub_cancel_mark')), findsOneWidget);
@@ -740,7 +752,12 @@ void main() {
       final feedback = GestureFeedbackController();
       feedback.beginScrubbing();
       await tester.pumpWidget(
-        mount(buildInput(feedback: feedback, pictureRectOf: () => const Rect.fromLTWH(0, 0, 400, 50))),
+        mount(
+          buildInput(
+            feedback: feedback,
+            pictureRectOf: () => const Rect.fromLTWH(0, 0, 400, 50),
+          ),
+        ),
       );
       expect(
         tester.getSize(find.byKey(const Key('scrub_cancel_mark'))),

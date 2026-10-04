@@ -6,18 +6,16 @@ library;
 import 'package:dance_learning_app/annotation/compare_materials.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-MaterialRecord _material({
-  int durationMs = 10500,
-  int sourceStartMs = 10000,
-}) => MaterialRecord(
-  id: 'm1',
-  videoId: 'v1',
-  createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
-  durationMs: durationMs,
-  sourceStartMs: sourceStartMs,
-  fileName: 'take.mp4',
-  sizeBytes: 1,
-);
+MaterialRecord _material({int durationMs = 10500, int sourceStartMs = 10000}) =>
+    MaterialRecord(
+      id: 'm1',
+      videoId: 'v1',
+      createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
+      durationMs: durationMs,
+      sourceStartMs: sourceStartMs,
+      fileName: 'take.mp4',
+      sizeBytes: 1,
+    );
 
 void main() {
   group('起录武装点换算', () {
@@ -62,7 +60,6 @@ void main() {
         reason: '余量再大也不越过有效区间头',
       );
     });
-
   });
 
   group('片段入点换算', () {

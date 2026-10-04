@@ -140,8 +140,11 @@ class DbnDownBeatTracker {
     final fps = cfg.fps;
 
     _st = _BarStateSpace(
-        60.0 * fps / cfg.maxBpm, 60.0 * fps / cfg.minBpm, cfg.numTempi,
-        cfg.beatsPerBar);
+      60.0 * fps / cfg.maxBpm,
+      60.0 * fps / cfg.minBpm,
+      cfg.numTempi,
+      cfg.beatsPerBar,
+    );
     final numStates = _st.numStates;
 
     // ---- Transition model (madmom BarTransitionModel) ----------------------
@@ -249,7 +252,10 @@ class DbnDownBeatTracker {
 
   /// madmom exponential_transition with threshold=np.spacing(1), norm=True.
   Float64List _exponentialTransition(
-      Int32List fromInt, Int32List toInt, double lambda) {
+    Int32List fromInt,
+    Int32List toInt,
+    double lambda,
+  ) {
     final nf = fromInt.length;
     final nt = toInt.length;
     final out = Float64List(nf * nt);
@@ -280,7 +286,9 @@ class DbnDownBeatTracker {
   // -------------------------------------------------------------------------
 
   List<({double t, int beatNumber})> decode(
-      Float32List beatAct, Float32List downbeatAct) {
+    Float32List beatAct,
+    Float32List downbeatAct,
+  ) {
     final fps = cfg.fps;
     final numFrames = math.min(beatAct.length, downbeatAct.length);
 
@@ -500,8 +508,12 @@ class _BarStateSpace {
   /// madmom BarStateSpace(num_beats, min_interval, max_interval, num_intervals)
   /// stacking a BeatStateSpace `num_beats` times (one traversal of the tempo
   /// state space per beat of the bar; positions offset by the beat counter).
-  factory _BarStateSpace(double minIntervalIn, double maxIntervalIn,
-      int numIntervals, int numBeats) {
+  factory _BarStateSpace(
+    double minIntervalIn,
+    double maxIntervalIn,
+    int numIntervals,
+    int numBeats,
+  ) {
     // BeatStateSpace interval selection: linear spacing by default; if
     // num_intervals is given and smaller than the linear count, iteratively
     // increase the log-space resolution until >= num_intervals unique rounded
@@ -523,7 +535,8 @@ class _BarStateSpace {
         final lo = math.log(minIntervalIn) / math.ln2;
         final hi = math.log(maxIntervalIn) / math.ln2;
         for (var i = 0; i < numLogIntervals; i++) {
-          lg[i] = math.pow(2.0, lo + (hi - lo) * i / (numLogIntervals - 1))
+          lg[i] = math
+              .pow(2.0, lo + (hi - lo) * i / (numLogIntervals - 1))
               .toDouble();
         }
         final rounded = <int>{};
@@ -576,12 +589,22 @@ class _BarStateSpace {
       }
     }
 
-    return _BarStateSpace._(Int32List.fromList(intervals), firstStates,
-        lastStates, positions, stateIntervals);
+    return _BarStateSpace._(
+      Int32List.fromList(intervals),
+      firstStates,
+      lastStates,
+      positions,
+      stateIntervals,
+    );
   }
 
-  _BarStateSpace._(this.intervals, this.firstStates, this.lastStates,
-      this.statePositions, this.stateIntervals);
+  _BarStateSpace._(
+    this.intervals,
+    this.firstStates,
+    this.lastStates,
+    this.statePositions,
+    this.stateIntervals,
+  );
 }
 
 /// np.round: round half to even (Dart's `round` rounds half away from zero).

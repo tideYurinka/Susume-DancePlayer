@@ -20,7 +20,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         localMirrorFragmentsProvider,
         selectedLocalMirrorFragmentIndexProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -139,7 +140,9 @@ void main() {
       // 经 verb 创建（入史）→ tap 选中（不产生编辑步）→ undo 回退到创建
       // 前 → 片段消失、派生 selected 失效。
       editor().submit(
-        const AddLocalMirrorFragment(at: Duration(seconds: 6, milliseconds: 300)),
+        const AddLocalMirrorFragment(
+          at: Duration(seconds: 6, milliseconds: 300),
+        ),
       );
       domain().select(LocalMirrorFragmentSelection(0));
       expect(selectedFragmentIndex(), 0);
@@ -180,23 +183,26 @@ void main() {
       expect(landed, const Duration(seconds: 16));
       session.end();
       expect(fragments().first.startMs, 16000);
-      expect(container.read(annotationEditHistoryProvider).length, beforeHist + 1);
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        beforeHist + 1,
+      );
     });
 
     test('端点拖会话：begin 选中 + 钳制到邻段起点 + end 单步入史', () {
       seedTwo();
       final beforeHist = container.read(annotationEditHistoryProvider).length;
-      final session = editor().beginLocalMirrorEdgeDrag(
-        0,
-        IntervalEdge.end,
-      );
+      final session = editor().beginLocalMirrorEdgeDrag(0, IntervalEdge.end);
       expect(selectedFragmentIndex(), 0);
       final landed = session.moveTo(const Duration(seconds: 25));
       // 拖 0 号右端越过 1 号起点 20s → 钳到 20000。
       expect(landed, const Duration(seconds: 20));
       session.end();
       expect(fragments().first.endMs, 20000);
-      expect(container.read(annotationEditHistoryProvider).length, beforeHist + 1);
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        beforeHist + 1,
+      );
     });
 
     test('会话内 moveTo no-op（钳空）不写不误记历史', () {

@@ -121,15 +121,21 @@ void main() {
     await writeStoredZip(file, [
       (
         name: 'manifest.json',
-        bytes: utf8.encode(jsonEncode({
-          'version': 99,
-          'videoId': 'hash-v1',
-          'schemeName': '测试歌',
-          'schemeId': 'scheme-1',
-        })),
+        bytes: utf8.encode(
+          jsonEncode({
+            'version': 99,
+            'videoId': 'hash-v1',
+            'schemeName': '测试歌',
+            'schemeId': 'scheme-1',
+          }),
+        ),
         file: null,
       ),
-      (name: 'markers.json', bytes: utf8.encode(jsonEncode(markers)), file: null),
+      (
+        name: 'markers.json',
+        bytes: utf8.encode(jsonEncode(markers)),
+        file: null,
+      ),
     ]);
     return file;
   }

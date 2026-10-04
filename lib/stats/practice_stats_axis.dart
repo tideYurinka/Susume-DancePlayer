@@ -79,11 +79,16 @@ BarChartAxis barChartAxis({
 }) {
   final steps = metric == StatsMetric.time ? _timeSteps : _countSteps;
   final step = steps.firstWhere(
-    (candidate) => maxValue <= 0 || (maxValue / candidate).ceil() <= _maxIntervals,
+    (candidate) =>
+        maxValue <= 0 || (maxValue / candidate).ceil() <= _maxIntervals,
     orElse: () => steps.last,
   );
   final upper = maxValue <= 0 ? step : (maxValue / step).ceil() * step;
-  return BarChartAxis(step: step, upperBound: upper, ticks: _ticks(step, upper));
+  return BarChartAxis(
+    step: step,
+    upperBound: upper,
+    ticks: _ticks(step, upper),
+  );
 }
 
 /// 自 0 到上界、按步长升序的刻度值。

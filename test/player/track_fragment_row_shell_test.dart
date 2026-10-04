@@ -162,9 +162,7 @@ void main() {
       await tester.pumpWidget(
         harness(
           startBand: 24,
-          payload: const [
-            Positioned.fill(child: SizedBox(key: payloadKey)),
-          ],
+          payload: const [Positioned.fill(child: SizedBox(key: payloadKey))],
         ),
       );
       final body = tester.element(find.byKey(bodyKey));

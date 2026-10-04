@@ -126,9 +126,8 @@ class FileCoverCache implements CoverCache {
     // 生成的」（下次重取），不会让读侧把旧位置的图当新封面。写失败与
     // rename 失败同列返回 false（调用方按取不到帧处理）。
     try {
-      await (await _positionFileFor(
-        videoId,
-      )).writeAsString('${position.inMilliseconds}');
+      await (await _positionFileFor(videoId))
+          .writeAsString('${position.inMilliseconds}');
     } on FileSystemException {
       return false;
     }

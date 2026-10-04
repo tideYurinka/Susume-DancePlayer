@@ -118,9 +118,7 @@ void main() {
 
   testWidgets('按下「下载」显示进度，下载用的是清单里的地址', (tester) async {
     final gateway = FakeUpdateGateway(
-      manifestScript: [
-        updateManifestFixture(buildNumber: 2, size: 1000),
-      ],
+      manifestScript: [updateManifestFixture(buildNumber: 2, size: 1000)],
     )..progressScript = const [(250, 1000)];
     final gate = Completer<void>();
     gateway.downloadGate = gate;
@@ -199,9 +197,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('未获授权：下载完成后提示条改为「需要允许安装未知应用」+ 前往设置，不自动跳转', (
-    tester,
-  ) async {
+  testWidgets('未获授权：下载完成后提示条改为「需要允许安装未知应用」+ 前往设置，不自动跳转', (tester) async {
     final gateway = FakeUpdateGateway(
       manifestScript: [updateManifestFixture(buildNumber: 2, size: 1000)],
     )..canRequestInstallValue = false;
@@ -302,11 +298,7 @@ void main() {
       find.descendant(of: find.byType(AppBar), matching: find.text('关于')),
       findsOneWidget,
     );
-    expect(
-      find.text('最新版本 0.1.1'),
-      findsOneWidget,
-      reason: '关于页版本行读的是同一份结论',
-    );
+    expect(find.text('最新版本 0.1.1'), findsOneWidget, reason: '关于页版本行读的是同一份结论');
     expect(gateway.fetchCalls, 1, reason: '同一次更新只发一次请求');
     expect(tester.takeException(), isNull);
   });

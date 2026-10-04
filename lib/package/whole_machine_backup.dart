@@ -11,6 +11,7 @@
 ///   带走），恢复侧才能做到全量替换后逐字段相等（恢复归）。
 /// - 递出经 `ShareChannel`；云端直连、定时备份不做。
 library;
+
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,10 +33,8 @@ import '../persistence/practice_stats_providers.dart'
     show practiceStatsStorageProvider;
 import '../persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
-import '../persistence/video_document_store.dart'
-    show VideoDocumentStorage;
+import '../persistence/video_document_store.dart' show VideoDocumentStorage;
 import 'susume_package.dart';
-
 
 /// payload schema 版本（自 v1 起；恢复侧按包格式版本门 + 该值双重判别）。
 /// v2 = 纳入练舞统计与每舞四拍桶分片；v1 是此前不含这两项的旧包。v3 =
@@ -87,7 +86,7 @@ class BackupPorts {
   /// 按舞四拍桶分片原文（`four_beat_buckets_<videoId>.json`，完全私密级；
   /// 该舞无分片时为 null）。
   final Future<Map<String, Object?>?> Function(String videoId)
-      loadBucketShardJson;
+  loadBucketShardJson;
 
   /// 练舞统计原文（`practice_stats.json`，完全私密级；文件缺失时为 null）。
   final Future<Map<String, Object?>?> Function() loadPracticeStatsJson;
@@ -111,7 +110,8 @@ class BackupPorts {
 }
 
 /// 一支舞在备份 payload 里的条目。
-class BackupDancePayload {  const BackupDancePayload({
+class BackupDancePayload {
+  const BackupDancePayload({
     required this.videoId,
     required this.markers,
     required this.local,
@@ -138,13 +138,13 @@ class BackupDancePayload {  const BackupDancePayload({
   final List<String> media;
 
   Map<String, Object?> toJson() => {
-        'videoId': videoId,
-        'markers': markers,
-        'local': local,
-        'schemes': schemes,
-        'buckets': buckets,
-        'media': media,
-      };
+    'videoId': videoId,
+    'markers': markers,
+    'local': local,
+    'schemes': schemes,
+    'buckets': buckets,
+    'media': media,
+  };
 }
 
 /// 整机备份 payload：包内 `backup.json` 的值。
@@ -177,14 +177,14 @@ class WholeMachineBackupPayload {
   final Map<String, Object?>? materialsManifest;
 
   Map<String, Object?> toJson() => {
-        'payloadVersion': kBackupPayloadVersion,
-        'index': index,
-        'dances': [for (final d in dances) d.toJson()],
-        'device': deviceSettings,
-        'practiceStats': practiceStats,
-        'practicePlan': practicePlan,
-        'materialsManifest': ?materialsManifest,
-      };
+    'payloadVersion': kBackupPayloadVersion,
+    'index': index,
+    'dances': [for (final d in dances) d.toJson()],
+    'device': deviceSettings,
+    'practiceStats': practiceStats,
+    'practicePlan': practicePlan,
+    'materialsManifest': ?materialsManifest,
+  };
 
   /// 恢复侧解码：与 [toJson] 同一份 schema 的读向。
   /// payloadVersion 不在 [kMinBackupPayloadVersion]..[kBackupPayloadVersion]
@@ -405,7 +405,7 @@ final backupPortsProvider = Provider<BackupPorts>((ref) {
   return BackupPorts(
     loadIndexJson: () async =>
         (await AtomicJsonFile(await ref.watch(importIndexFileProvider))
-                .readOrNull()) ??
+            .readOrNull()) ??
         {},
     loadIndex: () => ref.watch(videoIndexStoreProvider).load(),
     documentStorageFor: ref.watch(videoDocumentStorageFactoryProvider),
@@ -430,5 +430,3 @@ Future<File> _materialsManifestFile(Ref ref) async {
   final base = await ref.watch(materialsBaseDirectoryProvider)();
   return File(p.join(base.path, 'manifest.json'));
 }
-
-

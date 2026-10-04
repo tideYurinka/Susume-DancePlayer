@@ -26,14 +26,13 @@ import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/jpeg_bytes.dart';
+
 /// 舞库装配层直测：provider 经注入的读端口（既有内存替身）装配四个来源，
 /// 脱离 widget 与真实文件。
 void main() {
   test('整库入口：一次装入索引 + 两份文档 + 一次统计聚合，卡片量齐全', () async {
     final harness = _Harness(
-      index: VideoIndex(
-        entries: [_entry('v1'), _entry('v2')],
-      ),
+      index: VideoIndex(entries: [_entry('v1'), _entry('v2')]),
       documents: {
         'v1': _documents(
           markers: MarkersDocument(
@@ -60,10 +59,7 @@ void main() {
 
     expect(snapshot.dances, hasLength(2));
     // 练过的舞在前；没练过的排在其类别尾部。
-    expect(
-      [for (final dance in snapshot.dances) dance.videoId],
-      ['v1', 'v2'],
-    );
+    expect([for (final dance in snapshot.dances) dance.videoId], ['v1', 'v2']);
     final practiced = snapshot.dances.first;
     expect(practiced.title, '「如」真值名');
     expect(practiced.masteryPercent, 75.0);
@@ -104,11 +100,7 @@ void main() {
     // v1 有缓存图片（横屏 4:3）、v2 没有；v1 的封面位置是显式值。
     final temp = await harness.coverCache.tempFileFor('v1');
     await temp.writeAsBytes(fakeJpegBytes(width: 720, height: 540));
-    await harness.coverCache.writeFrom(
-      'v1',
-      temp,
-      const Duration(seconds: 42),
-    );
+    await harness.coverCache.writeFrom('v1', temp, const Duration(seconds: 42));
 
     final snapshot = await harness.container.read(
       danceLibrarySnapshotProvider.future,
@@ -167,7 +159,8 @@ void main() {
     expect(snapshot.dances.first.videoId, 'v1');
   });
 
-  test('单支舞入口与批量结果一致；未落条目的舞返回 null', () async {    final harness = _Harness(
+  test('单支舞入口与批量结果一致；未落条目的舞返回 null', () async {
+    final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
         'v1': _documents(
@@ -176,10 +169,7 @@ void main() {
             segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
           ),
           local: const LocalDocument(
-            mastery: {
-              0: LearningMastery.mastered,
-              1: LearningMastery.mastered,
-            },
+            mastery: {0: LearningMastery.mastered, 1: LearningMastery.mastered},
           ),
         ),
       },
@@ -267,18 +257,13 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     // 释放后索引变化：下次订阅（进页面）读到新的一支舞。
-    await harness.indexStorage.update(
-      (index) => index.upsert(_entry('v2')),
-    );
+    await harness.indexStorage.update((index) => index.upsert(_entry('v2')));
 
     final second = await harness.container.read(
       danceLibrarySnapshotProvider.future,
     );
     // 重算看到新导入的舞；未练组按导入次序倒序（后导入在前）。
-    expect(
-      [for (final dance in second.dances) dance.videoId],
-      ['v2', 'v1'],
-    );
+    expect([for (final dance in second.dances) dance.videoId], ['v2', 'v1']);
   });
 }
 

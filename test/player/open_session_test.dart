@@ -21,35 +21,35 @@ const String kVideoId = 'hash-1';
 const String kFilePath = '/videos/a.mp4';
 
 VideoIndexEntry entryFor({String videoId = kVideoId}) => VideoIndexEntry(
-      videoId: videoId,
-      displayName: 'a.mp4',
-      filePath: kFilePath,
-      sizeBytes: 1,
-      fastKey: '1:a.mp4',
-      mirrored: false,
-      mirrorAsked: true,
-      lastOpenedAt: DateTime(2026, 9, 1),
-      signatureCache: const SongSignature(song: 'a'),
-    );
+  videoId: videoId,
+  displayName: 'a.mp4',
+  filePath: kFilePath,
+  sizeBytes: 1,
+  fastKey: '1:a.mp4',
+  mirrored: false,
+  mirrorAsked: true,
+  lastOpenedAt: DateTime(2026, 9, 1),
+  signatureCache: const SongSignature(song: 'a'),
+);
 
 Map<String, dynamic> markersJson() => {
-      'version': 8,
-      'annotations': {
-        'range': {'startMs': 0, 'endMs': 180000},
-        'segmentLines': [
-          {'timeMs': 60000, 'flag': true},
-        ],
-        'emphasizedSegments': [1],
-      },
-    };
+  'version': 8,
+  'annotations': {
+    'range': {'startMs': 0, 'endMs': 180000},
+    'segmentLines': [
+      {'timeMs': 60000, 'flag': true},
+    ],
+    'emphasizedSegments': [1],
+  },
+};
 
 Map<String, dynamic> localJson() => {
-      'version': 3,
-      'session': {
-        'mastery': {'1': 'practicing'},
-        'activatedSegments': [1],
-      },
-    };
+  'version': 3,
+  'session': {
+    'mastery': {'1': 'practicing'},
+    'activatedSegments': [1],
+  },
+};
 
 /// 索引不可读（读盘抛错）的存储：按「未命中」语义处理。
 class ThrowingIndexStorage implements VideoIndexStorage {
@@ -59,21 +59,19 @@ class ThrowingIndexStorage implements VideoIndexStorage {
   @override
   Future<VideoIndex> update(
     FutureOr<VideoIndex> Function(VideoIndex current) mutate,
-  ) async =>
-      throw StateError('index unreadable');
+  ) async => throw StateError('index unreadable');
 }
 
 OpenSession sessionFor({
   required VideoIndexStorage indexStore,
   required ContentHasher hasher,
   required VideoDocumentCoordinator Function(String videoId) coordinatorFor,
-}) =>
-    OpenSession(
-      filePath: kFilePath,
-      indexStore: indexStore,
-      hasher: hasher,
-      coordinatorFor: coordinatorFor,
-    );
+}) => OpenSession(
+  filePath: kFilePath,
+  indexStore: indexStore,
+  hasher: hasher,
+  coordinatorFor: coordinatorFor,
+);
 
 void main() {
   test('建立序列·条目命中且摘要相符：身份取条目、读该身份两份文档为基线', () async {
@@ -136,11 +134,7 @@ void main() {
     expect(session.videoId, 'hash-new');
     expect(session.entry, isNull, reason: '不套用旧条目（登记的行为修正）');
     expect(requested, ['hash-new'], reason: '按新视频读新身份的两份文档');
-    expect(
-      index.current.findById('hash-old'),
-      isNotNull,
-      reason: '旧条目保留',
-    );
+    expect(index.current.findById('hash-old'), isNotNull, reason: '旧条目保留');
     expect(session.markers, const MarkersDocument.empty());
     expect(
       session.markersOnDisk,
@@ -190,9 +184,9 @@ void main() {
     // 可落盘：会话协调器写入即落到摘要寻址的文档——后台任务算出的身份与
     // 解析算出的必然相同，故此刻的写入与哈希落盘后的打开同址。
     await session.coordinator!.patchMarkers(
-      (current) => current.withSegmentLines(
-        const [SegmentLine(position: Duration(seconds: 30))],
-      ),
+      (current) => current.withSegmentLines(const [
+        SegmentLine(position: Duration(seconds: 30)),
+      ]),
     );
     expect(
       storage.markersSnapshot['annotations']['segmentLines'],
@@ -279,11 +273,7 @@ void main() {
         },
       );
 
-      expect(
-        session.markers.framingSelection,
-        isNull,
-        reason: '旧值不换算：按未调过打开',
-      );
+      expect(session.markers.framingSelection, isNull, reason: '旧值不换算：按未调过打开');
       expect(storage.markersSnapshot, isEmpty, reason: 'meta 段不出现取景选区');
     });
 
@@ -328,17 +318,14 @@ void main() {
 
       expect(
         session.markers.framingSelection,
-        const FramingSelection(
-          left: 0.1,
-          top: 0.2,
-          right: 0.5,
-          bottom: 0.9,
-        ),
+        const FramingSelection(left: 0.1, top: 0.2, right: 0.5, bottom: 0.9),
       );
-      expect(
-        (storage.markersSnapshot['meta'] as Map)['framingSelection'],
-        {'left': 0.1, 'top': 0.2, 'right': 0.5, 'bottom': 0.9},
-      );
+      expect((storage.markersSnapshot['meta'] as Map)['framingSelection'], {
+        'left': 0.1,
+        'top': 0.2,
+        'right': 0.5,
+        'bottom': 0.9,
+      });
     });
 
     test('含旧取景字段的 v8 文件：打开即未调过、迁移只丢旧字段', () async {
@@ -353,11 +340,11 @@ void main() {
 
       expect(session.markers.framingSelection, isNull);
       expect(storage.markersSnapshot['version'], 8, reason: '打开不写回');
-      expect(
-        (storage.markersSnapshot['meta'] as Map)['framingBand'],
-        {'top': 0.1, 'bottom': 0.5, 'centerX': 0.3},
-        reason: '打开动作不写盘，迁移只在下一次写回生效',
-      );
+      expect((storage.markersSnapshot['meta'] as Map)['framingBand'], {
+        'top': 0.1,
+        'bottom': 0.5,
+        'centerX': 0.3,
+      }, reason: '打开动作不写盘，迁移只在下一次写回生效');
     });
 
     test('无旧键：打开照常、不写盘', () async {
@@ -369,11 +356,9 @@ void main() {
   });
 }
 
-
 class _ThrowingHasher implements ContentHasher {
   const _ThrowingHasher();
 
   @override
   Future<String> hashFile(File file) async => throw StateError('hash failed');
 }
-

@@ -46,11 +46,10 @@ void main() {
 
     test('load：metronomeSettings 损坏（非 Map）兜底空设置', () async {
       final storage = InMemoryPrivateJsonStorage();
-      await storage.mutate((json, {required bool present}) => json['metronomeSettings'] = 'broken');
-      expect(
-        await MetronomeSettingsStore(storage).load(),
-        isEmpty,
+      await storage.mutate(
+        (json, {required bool present}) => json['metronomeSettings'] = 'broken',
       );
+      expect(await MetronomeSettingsStore(storage).load(), isEmpty);
     });
 
     test('update：保留同文件其它键与既有节拍器字段', () async {

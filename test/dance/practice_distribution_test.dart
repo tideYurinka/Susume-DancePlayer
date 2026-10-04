@@ -2,7 +2,8 @@ import 'package:dance_learning_app/annotation/learning_segment_attributes.dart';
 import 'package:dance_learning_app/annotation/learning_segments.dart';
 import 'package:dance_learning_app/core/beat_grid.dart';
 import 'package:dance_learning_app/persistence/marker_document.dart'
-    as marker_doc show BeatGrid, BeatPoint;
+    as marker_doc
+    show BeatGrid, BeatPoint;
 import 'package:dance_learning_app/dance/practice_distribution.dart';
 import 'package:dance_learning_app/dance/segment_practice_aggregation.dart'
     show SegmentBucketValue;
@@ -38,14 +39,15 @@ void main() {
 
     // 64 拍、首强拍 0、桶宽 4 拍 ⇒ 16 个桶（左边界 0…30s）。
     expect(distribution.buckets, hasLength(16));
-    expect(distribution.buckets[0].duration,
-        const Duration(milliseconds: 1500));
+    expect(
+      distribution.buckets[0].duration,
+      const Duration(milliseconds: 1500),
+    );
     expect(distribution.buckets[0].count, 3);
     // 缺席桶位如实为 0。
     expect(distribution.buckets[2].duration, Duration.zero);
     expect(distribution.buckets[2].count, 0);
-    expect(distribution.buckets[3].duration,
-        const Duration(milliseconds: 500));
+    expect(distribution.buckets[3].duration, const Duration(milliseconds: 500));
     expect(distribution.beatGridNotReady, isFalse);
   });
 
@@ -110,10 +112,7 @@ void main() {
   });
 
   test('timeLerpX：单点居中、两端钳在绘图区内', () {
-    expect(
-      timeLerpX([const Duration(seconds: 3)], width: 300, pad: 18),
-      [150],
-    );
+    expect(timeLerpX([const Duration(seconds: 3)], width: 300, pad: 18), [150]);
     final xs = timeLerpX(
       [Duration.zero, const Duration(seconds: 10)],
       width: 300,
@@ -179,7 +178,11 @@ void main() {
     // 窗口 = 本地日 09-09…09-15（含今天）。
     expect(
       filterPracticeBuckets(
-        _readFace({'2026-09-09': {0: const SegmentBucketValue(wallSeconds: 1, sweeps: 1)}}),
+        _readFace({
+          '2026-09-09': {
+            0: const SegmentBucketValue(wallSeconds: 1, sweeps: 1),
+          },
+        }),
         range: PracticeDistributionRange.last7Days,
         now: now,
       ),
@@ -187,7 +190,11 @@ void main() {
     );
     expect(
       filterPracticeBuckets(
-        _readFace({'2026-09-08': {0: const SegmentBucketValue(wallSeconds: 1, sweeps: 1)}}),
+        _readFace({
+          '2026-09-08': {
+            0: const SegmentBucketValue(wallSeconds: 1, sweeps: 1),
+          },
+        }),
         range: PracticeDistributionRange.last7Days,
         now: now,
       ),
@@ -241,7 +248,9 @@ void main() {
       source: PracticeDistributionInput(
         segments: _segments([4, 8]),
         buckets: _readFace({
-          '2026-09-15': {0: const SegmentBucketValue(wallSeconds: 1, sweeps: 3)},
+          '2026-09-15': {
+            0: const SegmentBucketValue(wallSeconds: 1, sweeps: 3),
+          },
         }),
       ),
       range: PracticeDistributionRange.cumulative,
@@ -264,10 +273,30 @@ void main() {
     );
 
     const value = SegmentBucketValue(wallSeconds: 1, sweeps: 1);
-    final today = input(_readFace({'2026-09-15': {0: value}}));
-    expect(today, input(_readFace({'2026-09-15': {0: value}})));
+    final today = input(
+      _readFace({
+        '2026-09-15': {0: value},
+      }),
+    );
+    expect(
+      today,
+      input(
+        _readFace({
+          '2026-09-15': {0: value},
+        }),
+      ),
+    );
     // 同累计、不同本地日：分布变化必须让读面变化可见（页面据此重算范围）。
-    expect(today, isNot(input(_readFace({'2026-09-14': {0: value}}))));
+    expect(
+      today,
+      isNot(
+        input(
+          _readFace({
+            '2026-09-14': {0: value},
+          }),
+        ),
+      ),
+    );
     expect(
       today,
       isNot(
@@ -317,7 +346,10 @@ void main() {
       input(docGrid(segmentDensities: {0: 2, 1: 0.5})),
       isNot(input(docGrid(segmentDensities: {0: 2}))),
     );
-    expect(input(docGrid(segmentDensities: {0: 2})), input(docGrid(segmentDensities: {0: 2})));
+    expect(
+      input(docGrid(segmentDensities: {0: 2})),
+      input(docGrid(segmentDensities: {0: 2})),
+    );
   });
 
   test('网格未就绪：数值为 0 并标注缺数据', () {
@@ -326,7 +358,9 @@ void main() {
         segments: _segments([4, 8]),
         grid: grid,
         buckets: _readFace({
-          '2026-09-15': {0: const SegmentBucketValue(wallSeconds: 2, sweeps: 1)},
+          '2026-09-15': {
+            0: const SegmentBucketValue(wallSeconds: 2, sweeps: 1),
+          },
         }),
         range: PracticeDistributionRange.cumulative,
         now: now,
@@ -388,8 +422,16 @@ void main() {
 
     test('段像素区间：按真实时间铺位，段界与时间横轴对得上', () {
       final result = bands([
-        LearningSegment(order: 0, start: Duration.zero, end: Duration(seconds: 10)),
-        LearningSegment(order: 1, start: Duration(seconds: 10), end: Duration(seconds: 20)),
+        LearningSegment(
+          order: 0,
+          start: Duration.zero,
+          end: Duration(seconds: 10),
+        ),
+        LearningSegment(
+          order: 1,
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 20),
+        ),
       ]);
       expect(result[0].left, pad);
       expect(result[0].right, closeTo(10 * 12 + pad, 1e-9));
@@ -415,7 +457,11 @@ void main() {
 
     test('极窄段：区间不出现负宽，过渡带按段宽收窄且两半各归各段', () {
       final result = bands([
-        LearningSegment(order: 0, start: Duration.zero, end: Duration(seconds: 1)),
+        LearningSegment(
+          order: 0,
+          start: Duration.zero,
+          end: Duration(seconds: 1),
+        ),
         LearningSegment(
           order: 1,
           start: Duration(seconds: 1),
@@ -430,12 +476,19 @@ void main() {
       expect(narrow.trailTransition, closeTo(tw, 1e-9));
       expect(result[1].leadTransition, closeTo(tw, 1e-9));
       // 各段固色区不为负：过渡带只吃本段宽的一半。
-      expect(narrow.width - narrow.trailTransition / 2, greaterThanOrEqualTo(0));
+      expect(
+        narrow.width - narrow.trailTransition / 2,
+        greaterThanOrEqualTo(0),
+      );
     });
 
     test('段间空隙：两段不共界时过渡带为 0，空隙不填色', () {
       final result = bands([
-        LearningSegment(order: 0, start: Duration.zero, end: Duration(seconds: 5)),
+        LearningSegment(
+          order: 0,
+          start: Duration.zero,
+          end: Duration(seconds: 5),
+        ),
         LearningSegment(
           order: 1,
           start: Duration(seconds: 10),
@@ -469,7 +522,11 @@ void main() {
 
     test('首线之前 / 尾线之后 / 段间空隙：无段可归，返回空', () {
       final gap = [
-        LearningSegment(order: 0, start: Duration.zero, end: const Duration(seconds: 5)),
+        LearningSegment(
+          order: 0,
+          start: Duration.zero,
+          end: const Duration(seconds: 5),
+        ),
         LearningSegment(
           order: 1,
           start: const Duration(seconds: 10),
@@ -511,7 +568,10 @@ void main() {
       final segments = _segments([10, 20]);
       final bands = masteryBands(
         segments: segments,
-        masteries: const {0: LearningMastery.learning, 1: LearningMastery.mastered},
+        masteries: const {
+          0: LearningMastery.learning,
+          1: LearningMastery.mastered,
+        },
         domainStart: domainStart,
         domainEnd: domainEnd,
         width: width,
@@ -539,26 +599,56 @@ void main() {
 
     test('绘图区端点对应域首末；中点对应域中值', () {
       expect(
-        timeAtPixel(pad, domainStart: domainStart, domainEnd: domainEnd, width: width, pad: pad),
+        timeAtPixel(
+          pad,
+          domainStart: domainStart,
+          domainEnd: domainEnd,
+          width: width,
+          pad: pad,
+        ),
         domainStart,
       );
       expect(
-        timeAtPixel(width - pad, domainStart: domainStart, domainEnd: domainEnd, width: width, pad: pad),
+        timeAtPixel(
+          width - pad,
+          domainStart: domainStart,
+          domainEnd: domainEnd,
+          width: width,
+          pad: pad,
+        ),
         domainEnd,
       );
       expect(
-        timeAtPixel(width / 2, domainStart: domainStart, domainEnd: domainEnd, width: width, pad: pad),
+        timeAtPixel(
+          width / 2,
+          domainStart: domainStart,
+          domainEnd: domainEnd,
+          width: width,
+          pad: pad,
+        ),
         const Duration(seconds: 12),
       );
     });
 
     test('越出绘图区：钳到域端，不返回界外时刻', () {
       expect(
-        timeAtPixel(0, domainStart: domainStart, domainEnd: domainEnd, width: width, pad: pad),
+        timeAtPixel(
+          0,
+          domainStart: domainStart,
+          domainEnd: domainEnd,
+          width: width,
+          pad: pad,
+        ),
         domainStart,
       );
       expect(
-        timeAtPixel(width, domainStart: domainStart, domainEnd: domainEnd, width: width, pad: pad),
+        timeAtPixel(
+          width,
+          domainStart: domainStart,
+          domainEnd: domainEnd,
+          width: width,
+          pad: pad,
+        ),
         domainEnd,
       );
     });
@@ -601,8 +691,19 @@ List<LearningSegment> _segments(List<int> boundariesSeconds) {
 
 /// 桶宽不均的测试网格：四拍线在 0s / 2s / 5s（末桶右界外推到 8s）。
 class _UnevenTestGrid implements BeatGrid {
-  final _beatMs = <int>[0, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000,
-    6500, 8000];
+  final _beatMs = <int>[
+    0,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    4000,
+    5000,
+    6500,
+    8000,
+  ];
 
   @override
   int get firstDownbeatIndex => 0;

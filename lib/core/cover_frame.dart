@@ -90,10 +90,7 @@ List<String> buildCoverFrameArguments({
     '-y',
     '-loglevel',
     'error',
-    if (fastSeek > Duration.zero) ...[
-      '-ss',
-      _seconds(fastSeek),
-    ],
+    if (fastSeek > Duration.zero) ...['-ss', _seconds(fastSeek)],
     '-i',
     videoPath,
     '-ss',

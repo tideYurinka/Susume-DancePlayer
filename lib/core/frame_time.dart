@@ -37,7 +37,8 @@ String formatFrameTime(Duration duration, {double fps = kDefaultVideoFps}) {
     microseconds: duration.inMicroseconds % Duration.microsecondsPerMinute,
   );
   final seconds = remainderAfterMinutes.inSeconds;
-  final frame = remainderAfterMinutes.inMicroseconds %
+  final frame =
+      remainderAfterMinutes.inMicroseconds %
       Duration.microsecondsPerSecond ~/
       frameDuration.inMicroseconds;
   return '${minutes.toString().padLeft(2, '0')}:'

@@ -147,13 +147,15 @@ Future<({Rect bandRect, TrackBandGeometry geometry})> _pumpBand(
     ),
   );
   await pumpSettle(tester);
-  container.read(annotationEditorProvider).restoreDocument(
-    AnnotationRestoreDocument(
-      timeline: AnnotationTimeline.wholeVideo(total),
-      localMirrorFragments: mirrorFragments,
-      notes: notes,
-    ),
-  );
+  container
+      .read(annotationEditorProvider)
+      .restoreDocument(
+        AnnotationRestoreDocument(
+          timeline: AnnotationTimeline.wholeVideo(total),
+          localMirrorFragments: mirrorFragments,
+          notes: notes,
+        ),
+      );
   container.read(practiceClipsProvider.notifier).state = clips;
   session.updateWindow(window);
   await pumpSettle(tester);
@@ -183,11 +185,7 @@ void _expectRowKeys(
       answer.top,
       reason: '${row.key} 行顶 == 行表的答案',
     );
-    expect(
-      rendered.height,
-      answer.height,
-      reason: '${row.key} 行高 == 行表的答案',
-    );
+    expect(rendered.height, answer.height, reason: '${row.key} 行高 == 行表的答案');
   }
 }
 

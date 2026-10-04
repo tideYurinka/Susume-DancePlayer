@@ -5,7 +5,8 @@ import 'package:dance_learning_app/annotation/annotation_timeline.dart'
 import 'package:dance_learning_app/annotation/note_sticker.dart'
     show NoteSticker;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
-import 'package:dance_learning_app/core/beat_grid.dart' show placeholderBeatGrid;
+import 'package:dance_learning_app/core/beat_grid.dart'
+    show placeholderBeatGrid;
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/core/video_identity.dart' show ContentHasher;
@@ -187,7 +188,9 @@ void main() {
                 ),
               ),
             ),
-            contentHasherProvider.overrideWithValue(const _FixedHasher('seeded')),
+            contentHasherProvider.overrideWithValue(
+              const _FixedHasher('seeded'),
+            ),
             videoDocumentStorageFactoryProvider.overrideWithValue(
               (videoId) => InMemoryVideoDocumentStorage(),
             ),
@@ -227,11 +230,7 @@ void main() {
         closeTo(492.4 - 24, 0.05),
         reason: '底 = 画面底边 − 24（基准不再是屏幕左下角）',
       );
-      expect(
-        781.7 - rect.bottom,
-        greaterThan(300),
-        reason: '卡离屏幕底 300dp 以上',
-      );
+      expect(781.7 - rect.bottom, greaterThan(300), reason: '卡离屏幕底 300dp 以上');
       // 收窄后卡只占画面窄窄一条：画面 361.1 × 203.1dp。
       expect(
         rect.width / 361.1,
@@ -337,8 +336,7 @@ void main() {
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
     });
 
-    testWidgets('编辑态层序与命中顺序：控制层 → 两张提示卡 → 备注文本编辑器 → 屏幕中央提示',
-        (tester) async {
+    testWidgets('编辑态层序与命中顺序：控制层 → 两张提示卡 → 备注文本编辑器 → 屏幕中央提示', (tester) async {
       final engine = FakePlaybackEngine(
         duration: const Duration(seconds: 30),
         videoAspectRatio: 16 / 9,
@@ -355,12 +353,18 @@ void main() {
       await singleTapShow(tester);
       expect(find.byKey(const Key('control_layer')), findsOneWidget);
 
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(
-          timeline: AnnotationTimeline.wholeVideo(const Duration(seconds: 30)),
-          notes: [const NoteSticker(startMs: 10000, endMs: 14000, text: '')],
-        ),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              timeline: AnnotationTimeline.wholeVideo(
+                const Duration(seconds: 30),
+              ),
+              notes: [
+                const NoteSticker(startMs: 10000, endMs: 14000, text: ''),
+              ],
+            ),
+          );
       container.read(noteTextEditorTargetProvider.notifier).open(10000);
       await tester.pump();
       expect(find.byKey(const Key('note_text_editor')), findsOneWidget);
@@ -376,7 +380,9 @@ void main() {
       expect(find.byKey(const Key('resume_prompt_card')), findsOneWidget);
 
       // 屏幕中央短暂提示在场（整页最后绘制的那条）。
-      container.read(noticeTriggerProvider(NoticeId.layoutLock).notifier).show();
+      container
+          .read(noticeTriggerProvider(NoticeId.layoutLock).notifier)
+          .show();
       await tester.pump();
       expect(find.text('已锁定分段'), findsOneWidget);
 
@@ -387,18 +393,25 @@ void main() {
         find.byType(ControlLayer),
         find.byKey(const Key('loop_prompt')),
       );
-      int layerIndex(Finder layer) => paintIndexOf(stack, tester.element(layer));
+      int layerIndex(Finder layer) =>
+          paintIndexOf(stack, tester.element(layer));
 
       final controlIndex = layerIndex(find.byType(ControlLayer));
       final loopIndex = layerIndex(find.byKey(const Key('loop_prompt')));
-      final resumeIndex = layerIndex(find.byKey(const Key('resume_prompt_card')));
+      final resumeIndex = layerIndex(
+        find.byKey(const Key('resume_prompt_card')),
+      );
       final editorIndex = layerIndex(find.byType(NoteTextEditorPanel));
       final noticeIndex = layerIndex(find.text('已锁定分段'));
       expect(loopIndex, greaterThan(controlIndex), reason: '循环提示卡在控制层之上');
       expect(resumeIndex, greaterThan(controlIndex), reason: '续播小卡在控制层之上');
       expect(editorIndex, greaterThan(loopIndex), reason: '备注文本编辑器面在两张卡之上');
       expect(editorIndex, greaterThan(resumeIndex), reason: '备注文本编辑器面在两张卡之上');
-      expect(noticeIndex, greaterThan(editorIndex), reason: '屏幕中央提示在备注文本编辑器面之上');
+      expect(
+        noticeIndex,
+        greaterThan(editorIndex),
+        reason: '屏幕中央提示在备注文本编辑器面之上',
+      );
 
       final card = tester.getRect(find.byKey(const Key('loop_prompt')));
 
@@ -568,7 +581,9 @@ void main() {
       expect(find.byKey(const Key('resume_prompt_card')), findsOneWidget);
 
       final loop = tester.getRect(find.byKey(const Key('loop_prompt')));
-      final resume = tester.getRect(find.byKey(const Key('resume_prompt_card')));
+      final resume = tester.getRect(
+        find.byKey(const Key('resume_prompt_card')),
+      );
       expect(resume.left, loop.left);
       expect(resume.bottom, loop.bottom);
       expect(loop.left, closeTo(24, 0.01));

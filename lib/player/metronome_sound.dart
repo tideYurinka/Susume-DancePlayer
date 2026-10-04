@@ -27,12 +27,11 @@ extension MetronomeSoundTypeX on MetronomeSoundType {
 MetronomeSoundType? decodeMetronomeSoundType(Object? raw) =>
     raw == 'normal' ? MetronomeSoundType.normal : null;
 
-Object? encodeMetronomeSoundType(MetronomeSoundType type) =>
-    switch (type) {
-      MetronomeSoundType.vocal => 'vocal',
-      MetronomeSoundType.geigi => 'geigi',
-      MetronomeSoundType.normal => 'normal',
-    };
+Object? encodeMetronomeSoundType(MetronomeSoundType type) => switch (type) {
+  MetronomeSoundType.vocal => 'vocal',
+  MetronomeSoundType.geigi => 'geigi',
+  MetronomeSoundType.normal => 'normal',
+};
 
 /// 音源设备级「新舞默认」槽（`metronomeSettings.soundType`）。
 final metronomeSoundTypeDefaultProvider =
@@ -64,7 +63,8 @@ final metronomeSoundTypeProvider =
       MetronomeSoundTypeModel.new,
     );
 
-class MetronomeSoundTypeModel extends BeatPromptEffectiveModel<MetronomeSoundType> {
+class MetronomeSoundTypeModel
+    extends BeatPromptEffectiveModel<MetronomeSoundType> {
   @override
   MetronomeSoundType? memoryValueOf(memory) {
     final raw = memory?.soundType;
@@ -107,8 +107,7 @@ final metronomeHalfBeatEnabledDefaultProvider =
       MetronomeHalfBeatEnabledDefaultModel.new,
     );
 
-class MetronomeHalfBeatEnabledDefaultModel
-    extends PersistedSettingModel<bool> {
+class MetronomeHalfBeatEnabledDefaultModel extends PersistedSettingModel<bool> {
   @override
   String get settingField => 'halfBeatEnabled';
 
@@ -131,8 +130,7 @@ final metronomeHalfBeatEnabledProvider =
       MetronomeHalfBeatEnabledModel.new,
     );
 
-class MetronomeHalfBeatEnabledModel
-    extends BeatPromptEffectiveModel<bool> {
+class MetronomeHalfBeatEnabledModel extends BeatPromptEffectiveModel<bool> {
   @override
   bool? memoryValueOf(memory) => memory?.halfBeat;
 
@@ -148,4 +146,3 @@ class MetronomeHalfBeatEnabledModel
   void writeMemoryField(bool value) =>
       ref.read(beatPromptMemoryProvider.notifier).setHalfBeat(value);
 }
-

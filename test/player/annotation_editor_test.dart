@@ -82,7 +82,10 @@ void main() {
 
     test('区间外加线 EditNoop 静默且不半写不入史', () {
       // 吸附入模块后：无就绪网格 → 请求直通合法域检查；触界 = 编辑不成立。
-      expect(editor().submit(AddSegmentLine(at: Duration.zero)), isA<EditNoop>());
+      expect(
+        editor().submit(AddSegmentLine(at: Duration.zero)),
+        isA<EditNoop>(),
+      );
       expect(editor().submit(AddSegmentLine(at: total)), isA<EditNoop>());
       expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
       expect(history().canUndo, isFalse);
@@ -98,10 +101,7 @@ void main() {
         () => editor().submit(ToggleSegmentFlag(index: -1)),
         throwsRangeError,
       );
-      expect(
-        container.read(annotationTimelineProvider).segmentLines.length,
-        1,
-      );
+      expect(container.read(annotationTimelineProvider).segmentLines.length, 1);
       expect(history().length, 1);
     });
 
@@ -110,13 +110,13 @@ void main() {
       final before = history().length;
 
       expect(
-        editor()
-            .submit(MoveSegmentLine(index: 0, to: thirty))
-            .applied,
+        editor().submit(MoveSegmentLine(index: 0, to: thirty)).applied,
         isFalse,
       );
-      expect(editor().submit(MoveSegmentLine(index: 1, to: total)).applied,
-          isFalse,);
+      expect(
+        editor().submit(MoveSegmentLine(index: 1, to: total)).applied,
+        isFalse,
+      );
       expect(
         editor().submit(MoveSegmentLine(index: 0, to: Duration.zero)).applied,
         isFalse,
@@ -132,9 +132,12 @@ void main() {
     });
 
     test('同值熟练度 EditNoop；重点切换 applied 且 geometryChanged 为假', () {
-      editor().submit(SetSegmentMastery(order: 0, mastery: LearningMastery.mastered));
-      final noop = editor()
-          .submit(SetSegmentMastery(order: 0, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
+      );
+      final noop = editor().submit(
+        SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
+      );
       expect(noop.applied, isFalse);
       expect(history().length, 1);
 
@@ -161,7 +164,9 @@ void main() {
 
     test('行为修正点：纯属性编辑（熟练度/重点）不清激活', () {
       seedActive();
-      editor().submit(SetSegmentMastery(order: 1, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 1, mastery: LearningMastery.mastered),
+      );
       expect(container.read(selectedLearningSegmentsProvider), {1});
       editor().submit(ToggleSegmentEmphasis(order: 1));
       expect(container.read(selectedLearningSegmentsProvider), {1});
@@ -217,7 +222,9 @@ void main() {
   group('历史语义', () {
     test('新编辑清重做分支', () {
       seedLines([ten]);
-      editor().submit(SetSegmentMastery(order: 0, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
+      );
       editor().undo();
       expect(history().canRedo, isTrue);
       editor().submit(ToggleSegmentEmphasis(order: 0));
@@ -240,7 +247,9 @@ void main() {
 
     test('undo/redo 清点选槽；非几何编辑不清学习段选中', () {
       seedLines([ten]);
-      editor().submit(SetSegmentMastery(order: 0, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
+      );
       domain().toggleLearningSegment(0);
       domain().select(SegmentLineSelection(0));
       editor().undo();
@@ -282,7 +291,9 @@ void main() {
 
     test('撤销纯属性变化不清激活', () {
       seedLines([thirty]);
-      editor().submit(SetSegmentMastery(order: 1, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 1, mastery: LearningMastery.mastered),
+      );
       domain().toggleLearningSegment(1);
       editor().undo();
       expect(container.read(selectedLearningSegmentsProvider), {1});
@@ -349,8 +360,10 @@ void main() {
     test('拖首尾：begin 选中端标；moveTo 返回钳制落点；end 单步入史', () {
       seedLines([thirty]);
       final start = editor().beginRangeDrag(VideoRangeBoundary.start);
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start,);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
       expect(start.moveTo(twenty), twenty);
       start.end();
 
@@ -364,8 +377,10 @@ void main() {
       expect(history().length, 3);
       editor().undo();
       editor().undo();
-      expect(container.read(annotationTimelineProvider).rangeEnd,
-          container.read(annotationTimelineProvider).videoDuration,);
+      expect(
+        container.read(annotationTimelineProvider).rangeEnd,
+        container.read(annotationTimelineProvider).videoDuration,
+      );
     });
 
     test('undo 遇悬挂会话防御性收口', () {
@@ -382,10 +397,7 @@ void main() {
       // 收口产生的会话记录随本次 undo 消费，剩种子记录仍可撤销。
       expect(history().canUndo, isTrue);
       editor().undo();
-      expect(
-        container.read(annotationTimelineProvider).segmentLines,
-        isEmpty,
-      );
+      expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
     });
   });
 
@@ -471,7 +483,9 @@ void main() {
       seedLines([ten, twenty, thirty]);
       // 点选只产生单元素集合；多段选中由长按圈选产生，此处直接布置。
       container.read(selectedLearningSegmentsProvider.notifier).state = {
-        0, 1, 2,
+        0,
+        1,
+        2,
       };
       expect(container.read(selectedLearningSegmentsProvider), {0, 1, 2});
       // 全部未练：并列取最小段序。
@@ -539,7 +553,9 @@ void main() {
   group('resetForVideo', () {
     test('全复位 + 清历史', () {
       seedLines([ten, thirty]);
-      editor().submit(SetSegmentMastery(order: 1, mastery: LearningMastery.mastered));
+      editor().submit(
+        SetSegmentMastery(order: 1, mastery: LearningMastery.mastered),
+      );
       editor().submit(ToggleSegmentEmphasis(order: 1));
       domain().select(SegmentLineSelection(0));
       domain().toggleLearningSegment(1);
@@ -570,11 +586,9 @@ void main() {
       seedLines([ten, twenty]);
       final historyBefore = history().length;
 
-      final outcome = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final outcome = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
 
       expect(outcome.applied, isTrue);
       expect(outcome.geometryChanged, isTrue);
@@ -608,11 +622,9 @@ void main() {
       final masteryBefore = container.read(learningMasteryProvider);
       final emphasisBefore = container.read(learningEmphasisProvider);
 
-      editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
 
       // 旧分区 [0,10)/[10,20)/[20,60) → 新分区 [0.5,10)/[10,20)。
       // 新段 0 与旧段 0 相交 → 继承「掌握」；旧段 2 落在新尾之外 → 丢弃。
@@ -641,11 +653,9 @@ void main() {
       final masteryBefore = container.read(learningMasteryProvider);
       final emphasisBefore = container.read(learningEmphasisProvider);
 
-      final outcome = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [],
-      ));
+      final outcome = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const []),
+      );
 
       expect(outcome.applied, isTrue);
       expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
@@ -658,18 +668,14 @@ void main() {
     });
 
     test('AutoSegment：无净变化 EditNoop 不入史', () {
-      editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
       final historyAfterFirst = history().length;
 
-      final outcome = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final outcome = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
       expect(outcome.applied, isFalse);
       expect(history().length, historyAfterFirst);
     });
@@ -680,20 +686,16 @@ void main() {
         SetSegmentMastery(order: 0, mastery: LearningMastery.mastered),
       );
       editor().submit(ToggleSegmentEmphasis(order: 1));
-      editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
       final masteryAfterFirst = container.read(learningMasteryProvider);
       final emphasisAfterFirst = container.read(learningEmphasisProvider);
       final historyAfterFirst = history().length;
 
-      final outcome = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final outcome = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
 
       expect(outcome.applied, isFalse);
       expect(container.read(learningMasteryProvider), masteryAfterFirst);
@@ -732,24 +734,25 @@ void main() {
       seedLines([const Duration(seconds: 9), const Duration(seconds: 11)]);
       editor().submit(const ToggleSegmentFlag(index: 0));
       final before = container.read(annotationTimelineProvider);
-      expect(
-        before.segmentLines.map((l) => l.flagged),
-        [true, false],
-        reason: '播种：9s 置位、11s 未置位',
-      );
+      expect(before.segmentLines.map((l) => l.flagged), [
+        true,
+        false,
+      ], reason: '播种：9s 置位、11s 未置位');
       final historyBefore = history().length;
 
-      final outcome = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final outcome = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
 
       expect(outcome.applied, isTrue);
       expect(history().length, historyBefore + 1, reason: '整动作一次入史');
       var timeline = container.read(annotationTimelineProvider);
       expect(timeline.segmentLines.single.position, ten);
-      expect(timeline.segmentLines.single.flagged, isTrue, reason: '9s 的 flag 迁到 10s');
+      expect(
+        timeline.segmentLines.single.flagged,
+        isTrue,
+        reason: '9s 的 flag 迁到 10s',
+      );
 
       editor().undo();
       timeline = container.read(annotationTimelineProvider);
@@ -777,26 +780,26 @@ void main() {
       expect(cleared.segmentLines, isEmpty, reason: '没有可落的刀，线上一律无 flag');
 
       editor().undo();
-      expect(container.read(annotationTimelineProvider), before, reason: '撤销还原旧线及其 flag');
+      expect(
+        container.read(annotationTimelineProvider),
+        before,
+        reason: '撤销还原旧线及其 flag',
+      );
     });
 
     test('AutoSegment：迁移出 flag 后同档位重复应用仍 EditNoop 不入史', () {
       seedLines([const Duration(seconds: 9)]);
       editor().submit(const ToggleSegmentFlag(index: 0));
 
-      final first = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final first = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
       expect(first.applied, isTrue);
       final historyAfterFirst = history().length;
 
-      final repeat = editor().submit(AutoSegment(
-        start: gridStart,
-        end: gridEnd,
-        cuts: const [ten],
-      ));
+      final repeat = editor().submit(
+        AutoSegment(start: gridStart, end: gridEnd, cuts: const [ten]),
+      );
       expect(repeat.applied, isFalse);
       expect(history().length, historyAfterFirst);
     });

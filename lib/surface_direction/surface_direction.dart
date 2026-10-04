@@ -102,7 +102,9 @@ enum FaceDirection {
 
 /// 水平翻转的合成（`⊕`）：两侧取值相同即原相、相异即镜像。
 FaceDirection _compose(FaceDirection a, FaceDirection b) =>
-    a.isMirrored ^ b.isMirrored ? FaceDirection.mirrored : FaceDirection.original;
+    a.isMirrored ^ b.isMirrored
+    ? FaceDirection.mirrored
+    : FaceDirection.original;
 
 /// 布尔开关作为 `⊕` 的一项：开 = 镜像、关 = 原相。
 FaceDirection _flipOf(bool on) =>
@@ -274,9 +276,7 @@ class SurfaceDirection {
       ownOrientation: FaceDirection.original,
     ),
     SurfaceFace.recordingFile ||
-    SurfaceFace.exportFile => throw UnimplementedError(
-      '画面方向：$face 的取值表口径尚未接线',
-    ),
+    SurfaceFace.exportFile => throw UnimplementedError('画面方向：$face 的取值表口径尚未接线'),
   };
 
   /// 局部镜像此刻是否生效：总开关开 ∧ 当前位置落在某片段的半开区间

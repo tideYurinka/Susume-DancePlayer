@@ -64,10 +64,10 @@ void main() {
     final second = await seedText('v1', 'second-image');
 
     expect(await second.readAsString(), 'second-image');
-    expect(
-      tempDir.listSync().map((e) => p.basename(e.path)).toList()..sort(),
-      ['cover_v1.jpg', 'cover_v1.jpg.position'],
-    );
+    expect(tempDir.listSync().map((e) => p.basename(e.path)).toList()..sort(), [
+      'cover_v1.jpg',
+      'cover_v1.jpg.position',
+    ]);
     expect(await isReady('v2', Duration.zero), isFalse);
   });
 
@@ -89,10 +89,10 @@ void main() {
 
     expect(await isReady('v1', Duration.zero), isFalse);
     expect(await staleTemp.exists(), isFalse);
-    expect(
-      tempDir.listSync().map((e) => p.basename(e.path)).toList()..sort(),
-      ['cover_v2.jpg', 'cover_v2.jpg.position'],
-    );
+    expect(tempDir.listSync().map((e) => p.basename(e.path)).toList()..sort(), [
+      'cover_v2.jpg',
+      'cover_v2.jpg.position',
+    ]);
     expect(await isReady('v2', Duration.zero), isTrue);
   });
 
@@ -105,10 +105,7 @@ void main() {
   test('取帧产物缺失：写入失败且不产生缓存文件（保持未就绪）', () async {
     final missingProduct = File(p.join(tempDir.path, 'never-written.jpg'));
 
-    expect(
-      await cache.writeFrom('v1', missingProduct, Duration.zero),
-      isFalse,
-    );
+    expect(await cache.writeFrom('v1', missingProduct, Duration.zero), isFalse);
     expect(await isReady('v1', Duration.zero), isFalse);
   });
 

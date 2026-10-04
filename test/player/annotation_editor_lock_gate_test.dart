@@ -22,7 +22,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         localMirrorFragmentsProvider,
         noteStickersProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:dance_learning_app/persistence/marker_document.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,7 +85,9 @@ void main() {
 
   /// 就绪网格文档：拍点 0.5/1.0/1.5/2.0s，第 1 拍 downbeat。
   void seedReadyGrid() {
-    container.read(beatTrackStateProvider.notifier).replace(
+    container
+        .read(beatTrackStateProvider.notifier)
+        .replace(
           BeatTrackState.ready(
             BeatGrid(
               model: 'madmom_downbeat_rnn_full.onnx',
@@ -108,11 +111,7 @@ void main() {
     RemoveSegmentLine(index: 0),
     MoveSegmentLine(index: 0, to: Duration(seconds: 15)),
     SetVideoRange(start: Duration(seconds: 5)),
-    AutoSegment(
-      start: Duration.zero,
-      end: Duration(minutes: 1),
-      cuts: [],
-    ),
+    AutoSegment(start: Duration.zero, end: Duration(minutes: 1), cuts: []),
     ClearSegmentLines(),
     ToggleSegmentFlag(index: 0),
   ];
@@ -187,7 +186,9 @@ void main() {
             .read(annotationEditHistoryProvider)
             .length;
         sink.diffs.clear();
-        final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+        final promptBefore = container.read(
+          noticeTriggerProvider(NoticeId.layoutLock),
+        );
 
         final outcome = editor().submit(command);
 
@@ -199,7 +200,10 @@ void main() {
           historyBefore,
         );
         expect(sink.diffs, isEmpty);
-        expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore + 1);
+        expect(
+          container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+          promptBefore + 1,
+        );
       });
     }
 
@@ -207,15 +211,22 @@ void main() {
       seedLines();
       lock();
       final before = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-      expect(editor().submit(const ToggleSegmentFlag(index: 1)),
-          isA<EditLocked>());
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), before + 1);
+      expect(
+        editor().submit(const ToggleSegmentFlag(index: 1)),
+        isA<EditLocked>(),
+      );
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        before + 1,
+      );
     });
 
     test('锁定时状态未动：线位置与首尾保持', () {
       seedLines();
       lock();
-      editor().submit(MoveSegmentLine(index: 0, to: const Duration(seconds: 15)));
+      editor().submit(
+        MoveSegmentLine(index: 0, to: const Duration(seconds: 15)),
+      );
       editor().submit(const SetVideoRange(start: Duration(seconds: 5)));
       expect(timeline().segmentLines.map((l) => l.position), [ten, twenty]);
       expect(timeline().rangeStart, Duration.zero);
@@ -278,12 +289,17 @@ void main() {
       seedLines();
       lock();
       final before = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-      expect(editor().submit(AddHalfBeatLine(at: const Duration(seconds: 15))),
-          isNot(isA<EditLocked>()));
+      expect(
+        editor().submit(AddHalfBeatLine(at: const Duration(seconds: 15))),
+        isNot(isA<EditLocked>()),
+      );
       final index = timeline().halfBeatLines.length - 1;
       editor().submit(MoveHalfBeatLine(index: index, to: ten));
       editor().submit(RemoveHalfBeatLine(index: 0));
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), before);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        before,
+      );
     });
 
     test('节拍对齐「应用」照常（登记修正：不再纳入锁门禁）', () {
@@ -309,30 +325,42 @@ void main() {
       seedReadyGrid();
       lock();
       final before = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-      expect(editor().submit(AddEightBeatAnchor(at: const Duration(seconds: 1))),
-          isNot(isA<EditLocked>()));
+      expect(
+        editor().submit(AddEightBeatAnchor(at: const Duration(seconds: 1))),
+        isNot(isA<EditLocked>()),
+      );
       editor().submit(RemoveEightBeatAnchor(at: const Duration(seconds: 1)));
       editor().submit(const ClearEightBeatAnchors());
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), before);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        before,
+      );
     });
 
     test('备注贴纸的建/移/删照常', () {
       lock();
       final before = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-      expect(editor().submit(InsertNote(at: const Duration(seconds: 15))),
-          isNot(isA<EditLocked>()));
+      expect(
+        editor().submit(InsertNote(at: const Duration(seconds: 15))),
+        isNot(isA<EditLocked>()),
+      );
       expect(container.read(noteStickersProvider), hasLength(1));
       editor().submit(MoveNote(index: 0, to: const Duration(seconds: 25)));
       editor().submit(RemoveNote(index: 0));
       expect(container.read(noteStickersProvider), isEmpty);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), before);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        before,
+      );
     });
 
     test('局部镜像片段的建/移/删照常', () {
       lock();
       final before = container.read(noticeTriggerProvider(NoticeId.layoutLock));
       expect(
-        editor().submit(AddLocalMirrorFragment(at: const Duration(seconds: 15))),
+        editor().submit(
+          AddLocalMirrorFragment(at: const Duration(seconds: 15)),
+        ),
         isNot(isA<EditLocked>()),
       );
       expect(container.read(localMirrorFragmentsProvider), hasLength(1));
@@ -341,7 +369,10 @@ void main() {
       );
       editor().submit(const RemoveLocalMirrorFragment(index: 0));
       expect(container.read(localMirrorFragmentsProvider), isEmpty);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), before);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        before,
+      );
     });
   });
 
@@ -357,8 +388,10 @@ void main() {
             .applied,
         isTrue,
       );
-      expect(editor().submit(const ToggleSegmentEmphasis(order: 0)).applied,
-          isTrue,);
+      expect(
+        editor().submit(const ToggleSegmentEmphasis(order: 0)).applied,
+        isTrue,
+      );
       expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), 0);
     });
 
@@ -366,7 +399,10 @@ void main() {
       seedLines();
       lock();
       domain().select(SegmentLineSelection(0));
-      expect(container.read(annotationSelectionProvider), isA<SegmentLineSelection>());
+      expect(
+        container.read(annotationSelectionProvider),
+        isA<SegmentLineSelection>(),
+      );
       domain().clear();
       domain().toggleLearningSegment(0);
       expect(container.read(selectedLearningSegmentsProvider), isNotEmpty);
@@ -391,9 +427,7 @@ void main() {
       lock();
       editor().clearForVideoRestore();
       editor().restoreDocument(
-        const AnnotationRestoreDocument(
-          emphasizedSegments: {0},
-        ),
+        const AnnotationRestoreDocument(emphasizedSegments: {0}),
       );
       expect(container.read(learningEmphasisProvider), {0});
       editor().resetForVideo(total);

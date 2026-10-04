@@ -49,8 +49,8 @@ class ScrubSession {
     this.indicator,
     this.cancelZoneEnabled = false,
     this.requireKnownDuration = true,
-  })  : _pauseEngine = pause,
-        _playEngine = play;
+  }) : _pauseEngine = pause,
+       _playEngine = play;
 
   /// 每帧落点走 [SeekSubmitter] 实例（内部 seam）：钳制、清循环
   /// 激活、串行入队、显示位/窗口跟随固定次序由它收口，本件不重复实现。
@@ -117,8 +117,7 @@ class ScrubSession {
   Future<bool> begin() async {
     if (_active) return true;
     final total = seek.total?.call();
-    if (requireKnownDuration &&
-        (total == null || total <= Duration.zero)) {
+    if (requireKnownDuration && (total == null || total <= Duration.zero)) {
       return false;
     }
     _active = true;

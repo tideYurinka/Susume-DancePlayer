@@ -44,4 +44,3 @@ class FakeHelpImageSaver implements HelpImageSaver {
     names.add(name);
   }
 }
-

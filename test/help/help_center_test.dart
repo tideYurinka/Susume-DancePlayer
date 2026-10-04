@@ -131,7 +131,8 @@ void main() {
       expect(
         hit.map((chapter) => chapter.displayTitle).toList(),
         hasLength(1),
-        reason: '「$core」应在手册里恰好一章讲，实际：'
+        reason:
+            '「$core」应在手册里恰好一章讲，实际：'
             '${content.manualChapters.map((c) => c.displayTitle).toList()}',
       );
     });
@@ -151,7 +152,8 @@ void main() {
           expect(
             _numberPrefix(tutorial.directory),
             greaterThan(_numberPrefix(tutorials[i - 1].directory)),
-            reason: '${tutorial.directory} 应排在 ${tutorials[i - 1].directory} 之后',
+            reason:
+                '${tutorial.directory} 应排在 ${tutorials[i - 1].directory} 之后',
           );
         }
       }
@@ -180,16 +182,12 @@ void main() {
         expect(guideUnitDescription(unit.id), isNotEmpty);
       }
       expect(GuideUnitForm.values, hasLength(4));
-      expect(
-        helpGuideSteps.map((s) => s.form).toSet(),
-        {
-          GuideUnitForm.inplaceTour,
-          GuideUnitForm.handsOnDrill,
-          GuideUnitForm.transientHint,
-          GuideUnitForm.oneShotCard,
-        },
-        reason: '名册短暂提示、首启一次性图文与编辑态上手动手两步都落演出层步表',
-      );
+      expect(helpGuideSteps.map((s) => s.form).toSet(), {
+        GuideUnitForm.inplaceTour,
+        GuideUnitForm.handsOnDrill,
+        GuideUnitForm.transientHint,
+        GuideUnitForm.oneShotCard,
+      }, reason: '名册短暂提示、首启一次性图文与编辑态上手动手两步都落演出层步表');
       expect(
         helpGuideUnits.any((u) => u.id == playerDrillUnitId),
         isTrue,
@@ -408,8 +406,7 @@ String _corePhraseOf(String message) {
 List<int> _headingLevels(String markdown) {
   final levels = <int>{
     for (final line in markdown.split('\n'))
-      if (RegExp(r'^#{1,4} ').hasMatch(line))
-        line.indexOf(' '),
+      if (RegExp(r'^#{1,4} ').hasMatch(line)) line.indexOf(' '),
   };
   return levels.toList()..sort();
 }

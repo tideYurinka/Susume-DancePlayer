@@ -174,7 +174,7 @@ class ScrubIndicator extends StatelessWidget {
     final timeText = total == null
         ? formatFrameTime(target, fps: fps)
         : '${formatFrameTime(target, fps: fps)} / '
-            '${formatFrameTime(total, fps: fps)}';
+              '${formatFrameTime(total, fps: fps)}';
     final barWidth =
         MediaQuery.sizeOf(context).width * kScrubIndicatorWidthFraction;
     // 进入取消区 → 警示色（条 + 时间同转）并显示「松开取消」。
@@ -248,9 +248,7 @@ class ScrubIndicator extends StatelessWidget {
                   color: armed ? kHighlightAmber : Colors.white70,
                   fontSize: 12,
                   fontWeight: armed ? FontWeight.w700 : FontWeight.w400,
-                  shadows: const [
-                    Shadow(color: Colors.black54, blurRadius: 4),
-                  ],
+                  shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
                 ),
               ),
             ],

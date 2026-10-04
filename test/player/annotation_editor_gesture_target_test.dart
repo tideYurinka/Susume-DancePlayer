@@ -26,8 +26,7 @@ void main() {
 
   AnnotationEditor editor() => container.read(annotationEditorProvider);
 
-  void enableLock() =>
-      container.read(layoutLockedProvider.notifier).toggle();
+  void enableLock() => container.read(layoutLockedProvider.notifier).toggle();
 
   void enterCompare() => container
       .read(playerSessionProvider.notifier)
@@ -35,88 +34,85 @@ void main() {
 
   group('目标声明表覆盖全部手势目标（无门 = 显式空清单）', () {
     test('逐 target 声明的门禁原因集合', () {
-      final expected = <(AnnotationGestureTarget,
-          Set<AnnotationEditGateReason>)>[
-        // verb 支撑（从逐 verb 声明取值）。
-        (
-          AnnotationGestureTarget.segmentLineMove,
-          {
-            AnnotationEditGateReason.userLayoutLock,
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.halfBeatLineMove,
-          {
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.rangeBoundaryDrag,
-          {
-            AnnotationEditGateReason.userLayoutLock,
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.localMirrorMove,
-          {
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.localMirrorEdgeDrag,
-          {
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.noteMove,
-          {
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        (
-          AnnotationGestureTarget.noteEdgeDrag,
-          {
-            AnnotationEditGateReason.compareReadonly,
-            AnnotationEditGateReason.memberSchemeReadonly,
-          },
-        ),
-        // 练习片段截取：不声明任何门禁原因（显式空清单）——对比态自己的
-        // 写点，既不受对比态只读、也不受锁定分段。
-        (
-          AnnotationGestureTarget.practiceClipTrim,
-          const {},
-        ),
-        // 无 verb 的目标：就地声明；无门 = 显式空清单。
-        (AnnotationGestureTarget.segmentLineTap, const {}),
-        (AnnotationGestureTarget.controlKnobTap, const {}),
-        (
-          AnnotationGestureTarget.halfBeatLineTap,
-          {AnnotationEditGateReason.compareReadonly},
-        ),
-        (AnnotationGestureTarget.rangeBoundaryTap, const {}),
-        (AnnotationGestureTarget.localMirrorRowTap, const {}),
-        (
-          AnnotationGestureTarget.noteRowTap,
-          {AnnotationEditGateReason.compareReadonly},
-        ),
-        (
-          AnnotationGestureTarget.noteLockLongPress,
-          {AnnotationEditGateReason.compareReadonly},
-        ),
-        (AnnotationGestureTarget.practiceClipBlockTap, const {}),
-        (AnnotationGestureTarget.learningTrackTap, const {}),
-        (AnnotationGestureTarget.previewLineDrag, const {}),
-        (AnnotationGestureTarget.blankSurfacePinchPan, const {}),
-      ];
+      final expected =
+          <(AnnotationGestureTarget, Set<AnnotationEditGateReason>)>[
+            // verb 支撑（从逐 verb 声明取值）。
+            (
+              AnnotationGestureTarget.segmentLineMove,
+              {
+                AnnotationEditGateReason.userLayoutLock,
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.halfBeatLineMove,
+              {
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.rangeBoundaryDrag,
+              {
+                AnnotationEditGateReason.userLayoutLock,
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.localMirrorMove,
+              {
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.localMirrorEdgeDrag,
+              {
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.noteMove,
+              {
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            (
+              AnnotationGestureTarget.noteEdgeDrag,
+              {
+                AnnotationEditGateReason.compareReadonly,
+                AnnotationEditGateReason.memberSchemeReadonly,
+              },
+            ),
+            // 练习片段截取：不声明任何门禁原因（显式空清单）——对比态自己的
+            // 写点，既不受对比态只读、也不受锁定分段。
+            (AnnotationGestureTarget.practiceClipTrim, const {}),
+            // 无 verb 的目标：就地声明；无门 = 显式空清单。
+            (AnnotationGestureTarget.segmentLineTap, const {}),
+            (AnnotationGestureTarget.controlKnobTap, const {}),
+            (
+              AnnotationGestureTarget.halfBeatLineTap,
+              {AnnotationEditGateReason.compareReadonly},
+            ),
+            (AnnotationGestureTarget.rangeBoundaryTap, const {}),
+            (AnnotationGestureTarget.localMirrorRowTap, const {}),
+            (
+              AnnotationGestureTarget.noteRowTap,
+              {AnnotationEditGateReason.compareReadonly},
+            ),
+            (
+              AnnotationGestureTarget.noteLockLongPress,
+              {AnnotationEditGateReason.compareReadonly},
+            ),
+            (AnnotationGestureTarget.practiceClipBlockTap, const {}),
+            (AnnotationGestureTarget.learningTrackTap, const {}),
+            (AnnotationGestureTarget.previewLineDrag, const {}),
+            (AnnotationGestureTarget.blankSurfacePinchPan, const {}),
+          ];
       expect(
         AnnotationGestureTarget.values.toSet(),
         expected.map((e) => e.$1).toSet(),
@@ -134,10 +130,7 @@ void main() {
 
   group('两张表一致性：verb 支撑的目标 == 逐 verb 声明', () {
     test('逐 target 与代表 verb 的声明集合相等', () {
-      final pairs = <(
-        AnnotationGestureTarget,
-        AnnotationEdit
-      )>[
+      final pairs = <(AnnotationGestureTarget, AnnotationEdit)>[
         (
           AnnotationGestureTarget.segmentLineMove,
           const MoveSegmentLine(index: 0, to: Duration.zero),
@@ -206,9 +199,8 @@ void main() {
       for (final target in AnnotationGestureTarget.values) {
         expect(
           editor().gestureStartRejected(target),
-          gestureTargetGateReasons(target).contains(
-            AnnotationEditGateReason.userLayoutLock,
-          ),
+          gestureTargetGateReasons(target)
+              .contains(AnnotationEditGateReason.userLayoutLock),
           reason: '$target 的起手拒绝必须由声明里的用户锁回答',
         );
       }
@@ -219,9 +211,8 @@ void main() {
       for (final target in AnnotationGestureTarget.values) {
         expect(
           editor().gestureStartRejected(target),
-          gestureTargetGateReasons(target).contains(
-            AnnotationEditGateReason.compareReadonly,
-          ),
+          gestureTargetGateReasons(target)
+              .contains(AnnotationEditGateReason.compareReadonly),
           reason: '$target 的起手拒绝必须由声明里的对比态只读回答',
         );
       }
@@ -262,9 +253,8 @@ void main() {
       for (final target in AnnotationGestureTarget.values) {
         expect(
           editor().gestureStartRejectedBySegmentLock(target),
-          gestureTargetGateReasons(target).contains(
-            AnnotationEditGateReason.userLayoutLock,
-          ),
+          gestureTargetGateReasons(target)
+              .contains(AnnotationEditGateReason.userLayoutLock),
           reason: '$target 的锁拒必须由声明里的用户锁回答',
         );
       }

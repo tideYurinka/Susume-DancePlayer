@@ -50,8 +50,7 @@ class AtomicJsonFile implements PrivateJsonStorage {
 
   /// 读取整份 JSON；文件缺失/损坏/顶层非对象时返回空 Map。
   @override
-  Future<Map<String, dynamic>> read() async =>
-      await readOrNull() ?? const {};
+  Future<Map<String, dynamic>> read() async => await readOrNull() ?? const {};
 
   /// 读取文件原始文本（不解析）；文件缺失/读失败返回 null。
   ///

@@ -67,9 +67,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         separatorCount++;
         continue;
       }
-      final v = views.firstWhere(
-        (view) => identical(view.slot, item.slot),
-      );
+      final v = views.firstWhere((view) => identical(view.slot, item.slot));
       labeledWidth +=
           v.fixedWidth ?? _topBarSlotWidth(v.label, textScaler: textScaler);
     }
@@ -80,8 +78,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     // 逐槽取整/对齐的累积差（槽位到 12 位后窄视口无余量吸收），判据宁早
     // 不晚——早收标签只损失文字、晚收整行真溢出。
     const widthSafety = 8.0;
-    final iconOnly =
-        maxWidth != null && labeledWidth > maxWidth - widthSafety;
+    final iconOnly = maxWidth != null && labeledWidth > maxWidth - widthSafety;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -233,7 +230,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         onTap: _toggleFramingAdjust,
       ),
       // 取景入口统一为本枚顶栏「取景调整」，对比专用工具区只剩
-      // 
+      //
       // 「练习镜像」。
       // 查看引导：槽填上、不再恒置灰——无作用对象也可点（本槽
       // 无门禁，门事实不参与），点击进帮助域的新手引导页。
@@ -297,8 +294,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     final live = _playToolLive;
     return Row(
       children: [
-        if (emptyLeadingColumns > 0)
-          Spacer(flex: emptyLeadingColumns),
+        if (emptyLeadingColumns > 0) Spacer(flex: emptyLeadingColumns),
         for (final slot in rowSet.slots)
           Expanded(
             child: Center(

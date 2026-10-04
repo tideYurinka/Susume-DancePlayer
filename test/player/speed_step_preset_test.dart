@@ -11,10 +11,7 @@ void main() {
 
     test('N 去重递增：避开既有同名，取最小可用正整数', () {
       expect(defaultCustomPresetName(const ['自定义 1']), '自定义 2');
-      expect(
-        defaultCustomPresetName(const ['自定义 1', '自定义 2']),
-        '自定义 3',
-      );
+      expect(defaultCustomPresetName(const ['自定义 1', '自定义 2']), '自定义 3');
       // 有空档（1、3 已占）→ 取最小空档 2。
       expect(defaultCustomPresetName(const ['自定义 1', '自定义 3']), '自定义 2');
       // 非默认名样式不算占用。

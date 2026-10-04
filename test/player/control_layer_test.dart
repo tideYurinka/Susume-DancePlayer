@@ -1,5 +1,5 @@
-
 import 'dart:async' show unawaited;
+
 import 'package:dance_learning_app/annotation/annotation.dart';
 import 'package:dance_learning_app/annotation/note_sticker.dart'
     show NoteGeometry;
@@ -26,12 +26,11 @@ import 'package:dance_learning_app/help/content_registry.dart'
         segmentDeleteSlotAnchorKey;
 import 'package:dance_learning_app/help/drill_task_bar.dart'
     show kDrillTaskBarAdvanceHold;
-import 'package:dance_learning_app/help/guide_anchor.dart' show guideAnchorRectsProvider;
+import 'package:dance_learning_app/help/guide_anchor.dart'
+    show guideAnchorRectsProvider;
 import 'package:dance_learning_app/help/guide_host.dart' show GuideHost;
 import 'package:dance_learning_app/help/guide_state.dart'
-    show
-        guideSessionProvider,
-        onboardingFlagFields;
+    show guideSessionProvider, onboardingFlagFields;
 import 'package:dance_learning_app/help/guide_units_page.dart'
     show GuideUnitsPage;
 import 'package:dance_learning_app/import/import_providers.dart';
@@ -103,8 +102,7 @@ import 'package:dance_learning_app/player/editor_skeleton.dart'
         portraitRotateButtonRect;
 import 'package:dance_learning_app/player/track_band_session.dart'
     show TrackBandSession;
-import 'package:dance_learning_app/player/track_time.dart'
-    show TimelineWindow;
+import 'package:dance_learning_app/player/track_time.dart' show TimelineWindow;
 import 'package:dance_learning_app/player/note_editor.dart'
     show noteTextEditorTargetProvider;
 import 'package:dance_learning_app/player/compare_framing_view.dart'
@@ -130,6 +128,7 @@ import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
+
 import 'dart:io';
 
 import 'package:dance_learning_app/annotation/compare_materials.dart';
@@ -159,11 +158,14 @@ import 'package:dance_learning_app/persistence/video_document_store.dart'
 import 'package:dance_learning_app/player/speed_bubble.dart';
 import 'package:dance_learning_app/player/speed_control.dart';
 import 'package:dance_learning_app/player/visual_tokens.dart';
-import '../helpers/video_surface.dart'
-    show videoSurfacePlaceholderKey;
+
+import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+
 import 'package:dance_learning_app/player/gestures.dart' show seekDeltaFor;
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
+
 import 'dart:io' show Directory;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -176,11 +178,14 @@ import '../helpers/fake_system_ui.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/guide_copy_fixture.dart';
 import '../helpers/in_memory_private_json_storage.dart';
+
 import 'package:dance_learning_app/player/mirror.dart' show MirrorController;
 import 'package:dance_learning_app/player/practice_mirror.dart';
 import 'package:dance_learning_app/player/song_naming.dart'
     show SongNamingDialog;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
+
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/memory_manifest_storage.dart';
@@ -189,7 +194,6 @@ import '../helpers/semantics_assertions.dart';
 import '../helpers/track_row_geometry.dart';
 import '../helpers/video_index_fixtures.dart';
 import '../helpers/device_viewport.dart';
-
 
 /// 经控制柄（轨道手柄带）点击分段线（选中路径）。
 Future<void> tapSegmentLineHandle(WidgetTester tester, int index) {
@@ -201,17 +205,13 @@ Future<void> tapSegmentLineHandle(WidgetTester tester, int index) {
 
 /// 顶栏播放设置工具图标：取工具槽位内第一个 Icon 的颜色
 /// （置灰 = 白系低透明度，激活 = 琥珀）。
-Color toolIconColor(WidgetTester tester, String toolKey) =>
-    tester
-        .widget<Icon>(
-          find
-              .descendant(
-                of: find.byKey(Key(toolKey)),
-                matching: find.byType(Icon),
-              )
-              .first,
-        )
-        .color!;
+Color toolIconColor(WidgetTester tester, String toolKey) => tester
+    .widget<Icon>(
+      find
+          .descendant(of: find.byKey(Key(toolKey)), matching: find.byType(Icon))
+          .first,
+    )
+    .color!;
 
 /// 可视窗口几何断言：[TimelineWindow] 按三字段逐一
 /// 比对。
@@ -227,7 +227,6 @@ void expectWindow(
   expect(actual.end, end, reason: reason);
   if (total != null) expect(actual.total, total, reason: reason);
 }
-
 
 /// 直接挂载宿主：顶栏交互用例的测试壳只做生产
 /// 宿主对控制层的三件事——传入镜像状态机与轨道带会话域、收起边沿移除
@@ -312,9 +311,8 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
                   : widget.engine.play(),
               onDelayedPlay: () {},
               onBack: () {},
-              onCollapse: () => ref
-                  .read(playerSessionProvider.notifier)
-                  .collapse(),
+              onCollapse: () =>
+                  ref.read(playerSessionProvider.notifier).collapse(),
               onEditSignature: () => unawaited(
                 showDialog<void>(
                   context: context,
@@ -338,11 +336,10 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
 }
 
 void main() {
-
-/// 某标注工具槽内的文案（轨道片头标签与槽文案同字，如「分段」
-/// 「镜像」，断言按槽键圈定，不被带内标签命中）。
-Finder slotText(Key slot, String text) =>
-    find.descendant(of: find.byKey(slot), matching: find.text(text));
+  /// 某标注工具槽内的文案（轨道片头标签与槽文案同字，如「分段」
+  /// 「镜像」，断言按槽键圈定，不被带内标签命中）。
+  Finder slotText(Key slot, String text) =>
+      find.descendant(of: find.byKey(slot), matching: find.text(text));
   Future<void> pumpPlayer(
     WidgetTester tester, {
     required FakePlaybackEngine engine,
@@ -374,11 +371,11 @@ Finder slotText(Key slot, String text) =>
     // flutter_test 的 fake async 时钟下不完成。
     final entries =
         indexEntries ??
-        [
-          historyEntry(filePath: resolved.toFilePath(), mirrored: false),
-        ];
+        [historyEntry(filePath: resolved.toFilePath(), mirrored: false)];
     final docStorage = docs ?? InMemoryVideoDocumentStorage();
-    final entryVideoId = entries.length == 1 ? entries.single.videoId : 'seeded';
+    final entryVideoId = entries.length == 1
+        ? entries.single.videoId
+        : 'seeded';
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -413,9 +410,7 @@ Finder slotText(Key slot, String text) =>
             audioOutputDeviceControllerProvider.overrideWithValue(
               _FakeAudioOutputDeviceController(),
             ),
-          contentHasherProvider.overrideWithValue(
-            FixedHasher(entryVideoId),
-          ),
+          contentHasherProvider.overrideWithValue(FixedHasher(entryVideoId)),
           // 打开会话读两份文档（工厂）与镜像控制器读 markers（协调器）指向
           // 同一份内存文档：真实实现走 path_provider，在 flutter_test 的
           // fake async 时钟下不完成。
@@ -431,9 +426,7 @@ Finder slotText(Key slot, String text) =>
               () async => materialsDir,
             ),
           if (manifestStorage != null)
-            materialManifestStorageProvider.overrideWithValue(
-              manifestStorage,
-            ),
+            materialManifestStorageProvider.overrideWithValue(manifestStorage),
           // 镜像索引：种入匹配 source 的「已询问」条目（镜像 false）→ 走
           // 历史应用路径，不弹询问遮罩（避免阻断控制层交互）。
           videoIndexStoreProvider.overrideWithValue(
@@ -456,7 +449,8 @@ Finder slotText(Key slot, String text) =>
       await injectBeatState(
         tester,
         uniformReadyBeatState(
-          seconds: (engine.duration?.inMilliseconds ??
+          seconds:
+              (engine.duration?.inMilliseconds ??
                   const Duration(seconds: 30).inMilliseconds) /
               1000,
         ),
@@ -495,12 +489,16 @@ Finder slotText(Key slot, String text) =>
   /// ——断言「顶栏槽全部内联 / 逐个点顶栏槽」的用例须在真放得下的视口下跑。
   /// 960 与真实横屏设备同量级（dev 机横屏约 995 逻辑宽）。
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
 
-  Future<void> singleTapShow(WidgetTester tester) async {    await tester.tap(find.byKey(const Key('player_surface')));
+  Future<void> singleTapShow(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('player_surface')));
     await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
     await tester.pump();
   }
@@ -511,7 +509,7 @@ Finder slotText(Key slot, String text) =>
   ///
   /// 声明在 [singleTapShow] 之后：Dart 局部函数须先声明后引用。
   Future<(FakePlaybackEngine, ProviderContainer, InMemoryVideoDocumentStorage)>
-      pumpMirrorPlayer(
+  pumpMirrorPlayer(
     WidgetTester tester, {
     Map<String, dynamic> markers = const {},
   }) async {
@@ -544,7 +542,7 @@ Finder slotText(Key slot, String text) =>
       FakePlaybackEngine,
       ProviderContainer,
       InMemoryVideoDocumentStorage,
-      MirrorController
+      MirrorController,
     )
   >
   pumpControlLayer(
@@ -604,10 +602,7 @@ Finder slotText(Key slot, String text) =>
             engine: e,
             title: resolved.pathSegments.last,
             skeleton: editorSkeletonFor(
-              screen: Size(
-                screenWidth,
-                tester.view.physicalSize.height / dpr,
-              ),
+              screen: Size(screenWidth, tester.view.physicalSize.height / dpr),
               trackBandHeight: TrackRowTable.normal.totalHeight,
               videoAspectRatio: e.videoAspectRatio,
             ),
@@ -652,12 +647,15 @@ Finder slotText(Key slot, String text) =>
       // 就绪网格覆盖引擎全时长（与整页 harness 同一注入，分段工具就绪门
       // 与步进范围判定按全窗拍数计）。
       ProviderScope.containerOf(
-        tester.element(find.byType(ControlLayer)),
-        listen: false,
-      ).read(beatTrackStateProvider.notifier).replace(
+            tester.element(find.byType(ControlLayer)),
+            listen: false,
+          )
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             uniformReadyBeatState(
-              seconds: (e.duration?.inMilliseconds ??
-                  const Duration(seconds: 30).inMilliseconds) /
+              seconds:
+                  (e.duration?.inMilliseconds ??
+                      const Duration(seconds: 30).inMilliseconds) /
                   1000,
             ),
           );
@@ -679,7 +677,10 @@ Finder slotText(Key slot, String text) =>
   /// 内边距与 24 图标后整排的加宽量，见 [setNarrowView] 处同类先例；
   /// 实际逻辑尺寸 668×1368dp，非设备基准）。
   void setWidenedPortraitView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1336, 2736); // 合成档 668.0×1368.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1336,
+      2736,
+    ); // 合成档 668.0×1368.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }
@@ -702,27 +703,27 @@ Finder slotText(Key slot, String text) =>
       slotInkWell(tester, slotKey).onTap != null;
 
   /// 标注工具槽位内第一个 Icon 的颜色（置灰 = 白系低透明度）。
-  Color slotIconColor(WidgetTester tester, String slotKey) =>
-      tester.widget<Icon>(
+  Color slotIconColor(WidgetTester tester, String slotKey) => tester
+      .widget<Icon>(
         find
             .descendant(
               of: find.byKey(Key(slotKey)),
               matching: find.byType(Icon),
             )
             .first,
-      ).color!;
+      )
+      .color!;
 
   /// 菜单条目文字的显式颜色（未置灰 = null，置灰 = 浅底菜单不可用 token）。
-  Color? menuEntryTextColor(WidgetTester tester, String entryKey) =>
-      tester
-          .widget<Text>(
-            find.descendant(
-              of: find.byKey(Key(entryKey)),
-              matching: find.byType(Text),
-            ),
-          )
-          .style
-          ?.color;
+  Color? menuEntryTextColor(WidgetTester tester, String entryKey) => tester
+      .widget<Text>(
+        find.descendant(
+          of: find.byKey(Key(entryKey)),
+          matching: find.byType(Text),
+        ),
+      )
+      .style
+      ?.color;
 
   /// 正常态槽集声明的槽键（声明次序）：槽位与次序的唯一来源是槽集声明
   /// 几何类断言不再手抄字段表。
@@ -831,10 +832,7 @@ Finder slotText(Key slot, String text) =>
       expect(find.text('a.mp4'), findsOneWidget);
       // 底部工具条右侧标注工具可见（不可用态）。
       expect(slotText(const Key('control_segment'), '分段'), findsOneWidget);
-      expect(
-        slotText(const Key('control_auto_range'), '自动分段'),
-        findsOneWidget,
-      );
+      expect(slotText(const Key('control_auto_range'), '自动分段'), findsOneWidget);
 
       // 单击控制层外空白（中部轨道区占位）收起。
       await tapBlankAndCollapse(
@@ -1075,7 +1073,10 @@ Finder slotText(Key slot, String text) =>
       final bandWidth = tester
           .getSize(find.byKey(const Key('track_band')))
           .width;
-      expect(rect.center.dx, closeTo(bandX(12, total: 30, width: bandWidth), 1));
+      expect(
+        rect.center.dx,
+        closeTo(bandX(12, total: 30, width: bandWidth), 1),
+      );
     });
 
     testWidgets('预览线在有效区间边界时分段按钮拒绝创建', (tester) async {
@@ -1094,9 +1095,7 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('learning_segment_0')), findsNothing);
     });
 
-    testWidgets('自动分段：打开三档菜单即触达，角标锚在菜单本体上', (
-      tester,
-    ) async {
+    testWidgets('自动分段：打开三档菜单即触达，角标锚在菜单本体上', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(
         tester,
@@ -1105,9 +1104,8 @@ Finder slotText(Key slot, String text) =>
         guideStorage: InMemoryPrivateJsonStorage(
           initial: {
             // 其余 13 个单元全部按「已看过」装配，只留自动分段待走。
-            'onboarding': {
-              for (final f in onboardingFlagFields.values) f: true,
-            }..['badgeAutoSegment'] = false,
+            'onboarding': {for (final f in onboardingFlagFields.values) f: true}
+              ..['badgeAutoSegment'] = false,
           },
         ),
       );
@@ -1128,22 +1126,17 @@ Finder slotText(Key slot, String text) =>
       );
       await tester.pumpAndSettle();
       expect(
-        container
-            .read(guideAnchorRectsProvider)[autoSegmentMenuAnchorKey],
+        container.read(guideAnchorRectsProvider)[autoSegmentMenuAnchorKey],
         isNotNull,
       );
-      expectGuidePointsAt(
-        tester,
-        find.byKey(Key(autoSegmentMenuAnchorKey)),
-      );
+      expectGuidePointsAt(tester, find.byKey(Key(autoSegmentMenuAnchorKey)));
 
       // 菜单项照常可点（洞内穿透的前提）：选档生效、菜单关闭、矩形撤下。
       await tester.tap(find.byKey(const Key('control_auto_seg_4')));
       await tester.pumpAndSettle();
       expect(renderedAutoEntryKeys(tester), isEmpty, reason: '菜单已关闭');
       expect(
-        container
-            .read(guideAnchorRectsProvider)[autoSegmentMenuAnchorKey],
+        container.read(guideAnchorRectsProvider)[autoSegmentMenuAnchorKey],
         isNull,
         reason: '菜单关闭即撤下矩形，宿主不再按已关菜单的位置画洞',
       );
@@ -1187,10 +1180,7 @@ Finder slotText(Key slot, String text) =>
       // 重复位置 no-op 语义不变：再点一次不产生重复线。
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pumpAndSettle();
-      expect(
-        container.read(annotationTimelineProvider).segmentLines.length,
-        1,
-      );
+      expect(container.read(annotationTimelineProvider).segmentLines.length, 1);
       // no-op 路径不重复触达：序号保持首次落线记下的 0，不被二次改写。
       expect(
         container
@@ -1199,7 +1189,6 @@ Finder slotText(Key slot, String text) =>
         0,
       );
     });
-
 
     testWidgets('八拍点落在有效区间边界时拒斥创建（既有区间外拒斥不变）', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
@@ -1218,10 +1207,7 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('segment_line_0')), findsNothing);
-      expect(
-        container.read(annotationTimelineProvider).segmentLines,
-        isEmpty,
-      );
+      expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
     });
 
     testWidgets('占位态：置灰、单击弹「节拍分析中…」且不建线', (tester) async {
@@ -1237,8 +1223,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
 
       // 网格未就绪种类唯一一条外观断言：置灰统一为同一 token。
-      expect(slotIconColor(tester, 'control_segment'),
-          kToolSlotDisabledIconColor);
+      expect(
+        slotIconColor(tester, 'control_segment'),
+        kToolSlotDisabledIconColor,
+      );
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pumpAndSettle();
 
@@ -1258,9 +1246,9 @@ Finder slotText(Key slot, String text) =>
         tester.element(find.byType(PlayerPage)),
         listen: false,
       );
-      container.read(beatTrackStateProvider.notifier).replace(
-            const BeatTrackState.error(),
-          );
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(const BeatTrackState.error());
       await singleTapShow(tester);
       await engine.seek(const Duration(seconds: 10));
       await engine.pause();
@@ -1374,7 +1362,11 @@ Finder slotText(Key slot, String text) =>
       expect(segmentColor(tester, 1), kMasteryLearningColor);
       expect(segmentColor(tester, 1)!.a, 1.0);
       expect(masteryToolLabel(), '学习中');
-      expect(masteryToolIconColor(), kMasteryLearningColor, reason: '工具区回显当前熟练度');
+      expect(
+        masteryToolIconColor(),
+        kMasteryLearningColor,
+        reason: '工具区回显当前熟练度',
+      );
 
       await selectMastery(tester, 'control_mastery_keepingUp');
       expect(segmentColor(tester, 1), kMasteryKeepingUpColor);
@@ -1521,11 +1513,13 @@ Finder slotText(Key slot, String text) =>
         isFalse,
         reason: '档位菜单本身仍关着',
       );
-      expect(slotEnabled(tester, 'control_mastery'), isTrue,
-          reason: '无对象 → 置灰但按得动');
+      expect(
+        slotEnabled(tester, 'control_mastery'),
+        isTrue,
+        reason: '无对象 → 置灰但按得动',
+      );
       // 槽键挂外层 Padding（统一座架），可点性走语义助手。
-      expect(slotEnabled(tester, 'control_emphasis'), isTrue,
-          reason: '同门同款');
+      expect(slotEnabled(tester, 'control_emphasis'), isTrue, reason: '同门同款');
 
       await tester.tap(find.byKey(const Key('control_mastery')));
       await tester.pump();
@@ -1655,9 +1649,8 @@ Finder slotText(Key slot, String text) =>
       await dragSelect(tester, 0, 600);
       expect(container.read(selectedLearningSegmentsProvider), const {0, 1, 2});
 
-      Icon emphasisIcon(WidgetTester tester) => tester.widget<Icon>(
-        find.byKey(const Key('control_emphasis_icon')),
-      );
+      Icon emphasisIcon(WidgetTester tester) =>
+          tester.widget<Icon>(find.byKey(const Key('control_emphasis_icon')));
       // 不全有星：灯不亮。
       expect(emphasisIcon(tester).color, isNot(Colors.amber));
 
@@ -1716,10 +1709,11 @@ Finder slotText(Key slot, String text) =>
     /// 开菜单读条目可用性，再点外部收起。
     Future<bool> flagEntryEnabled(WidgetTester tester) async {
       await openAddMenu(tester);
-      final enabled =
-          tester.widget<PopupMenuItem<VoidCallback?>>(
-                find.byKey(const Key('control_segment_flag')),
-              ).enabled;
+      final enabled = tester
+          .widget<PopupMenuItem<VoidCallback?>>(
+            find.byKey(const Key('control_segment_flag')),
+          )
+          .enabled;
       await tester.tapAt(const Offset(20, 20));
       await tester.pumpAndSettle();
       return enabled;
@@ -1803,8 +1797,7 @@ Finder slotText(Key slot, String text) =>
       await pumpWithTwoLines(tester);
 
       expect(find.byKey(const Key('control_segment_delete')), findsOneWidget);
-      expect(deleteSlotEnabled(tester), isTrue,
-          reason: '无作用对象 → 置灰但按得动');
+      expect(deleteSlotEnabled(tester), isTrue, reason: '无作用对象 → 置灰但按得动');
       await tapSegmentLineHandle(tester, 1);
       await tester.pumpAndSettle();
       expect(deleteSlotEnabled(tester), isTrue);
@@ -1825,18 +1818,22 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('control_segment_delete')), findsOneWidget);
-      expect(deleteSlotEnabled(tester), isTrue,
-          reason: '学习段选中 → 删除无对象 → 置灰但按得动');
+      expect(
+        deleteSlotEnabled(tester),
+        isTrue,
+        reason: '学习段选中 → 删除无对象 → 置灰但按得动',
+      );
       // 「标记分段线」条目随学习段选中回到置灰（菜单开着才见条目；
       // 置灰仍按得动）。
       expect(await flagEntryEnabled(tester), isTrue);
       expect(controlLayer(), findsOneWidget);
     });
-
   });
 
   group('轨道带（带内空白横滑 = 精细调整）', () {
-    testWidgets('控制层展开时在轨道带内空白水平拖动 → 精细调整 seek（与视频区同一语义：起手定格、全程无浮层、松手恢复）', (tester) async {
+    testWidgets('控制层展开时在轨道带内空白水平拖动 → 精细调整 seek（与视频区同一语义：起手定格、全程无浮层、松手恢复）', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -1870,7 +1867,9 @@ Finder slotText(Key slot, String text) =>
 
       // 首帧 seek = 定格基准 + 150px；落点 = 首帧 + 后 150px（共 15s 位移）。
       expect(engine.seekCalls, isNotEmpty);
-      final target = engine.seekCalls.first + const Duration(seconds: 7, milliseconds: 500);
+      final target =
+          engine.seekCalls.first +
+          const Duration(seconds: 7, milliseconds: 500);
       expect(engine.seekCalls.last, target);
       // 松手恢复手势前播放态（原在播 → 续播）。
       expect(engine.callLog, contains('pause'));
@@ -2096,7 +2095,9 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
       // 点预设行即应用该预设并进入启用流程（范围内直接启用）。
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
 
       // 预览（0:00）位于激活段 0 内：不弹范围选择，直接启用。
@@ -2116,7 +2117,9 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       // 点预设行即应用并进入启用流程（范围内激活直接启用；
       // 范围外弹三选一）。
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
 
       expect(find.byKey(const Key('speed_step_scope_dialog')), findsOneWidget);
@@ -2147,7 +2150,9 @@ Finder slotText(Key slot, String text) =>
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
 
       // 居中浮层（锁定分段提示同款）：短暂显示后自动消失。
@@ -2155,10 +2160,7 @@ Finder slotText(Key slot, String text) =>
       expect(prompt, findsOneWidget);
       // 浮层为 IgnorePointer 子树：不拦截触摸、不与手势争 arena。
       final ignorePointer = tester.firstWidget<IgnorePointer>(
-        find.ancestor(
-          of: prompt,
-          matching: find.byType(IgnorePointer),
-        ),
+        find.ancestor(of: prompt, matching: find.byType(IgnorePointer)),
       );
       expect(ignorePointer.ignoring, isTrue);
       expect(find.byType(SnackBar), findsNothing);
@@ -2178,7 +2180,9 @@ Finder slotText(Key slot, String text) =>
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
       await tester.tap(find.byKey(const Key('speed_step_scope_cancel')));
       await tester.pump();
@@ -2193,7 +2197,9 @@ Finder slotText(Key slot, String text) =>
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
 
       expect(find.byKey(const Key('speed_step_scope_dialog')), findsOneWidget);
@@ -2254,9 +2260,7 @@ Finder slotText(Key slot, String text) =>
 
     Finder topBarTool(String key) => find.byKey(Key(key));
 
-    testWidgets('宽敞视口：全部工具固定槽位内联、无「更多」入口、最右工具贴顶栏右内缘', (
-      tester,
-    ) async {
+    testWidgets('宽敞视口：全部工具固定槽位内联、无「更多」入口、最右工具贴顶栏右内缘', (tester) async {
       setWideView(tester);
       await pumpControlLayer(tester);
 
@@ -2267,17 +2271,18 @@ Finder slotText(Key slot, String text) =>
       expect(guideRight, closeTo(960 - 4, 2));
     });
 
-    testWidgets('默认视口（800 逻辑宽）：顶栏 11 槽全部内联、无「更多」入口', (
-      tester,
-    ) async {
+    testWidgets('默认视口（800 逻辑宽）：顶栏 11 槽全部内联、无「更多」入口', (tester) async {
       // 顶栏可用宽 = 总宽 − 返回键 − 间隙，容下 11 槽（移走「倍速
       // 步进」槽后更宽松；溢出机制本身由下面的窄视口用例覆盖）。
       await pumpControlLayer(tester);
 
       expect(find.byKey(const Key('tool_more')), findsNothing);
       expect(find.byKey(const Key('tool_local_mirror')), findsOneWidget);
-      expect(find.byKey(const Key('tool_guide')), findsOneWidget,
-          reason: '位次最后的工具也在内联段');
+      expect(
+        find.byKey(const Key('tool_guide')),
+        findsOneWidget,
+        reason: '位次最后的工具也在内联段',
+      );
     });
 
     testWidgets('窄视口：标题区让位保持、滚动也不与工具区重叠', (tester) async {
@@ -2286,7 +2291,9 @@ Finder slotText(Key slot, String text) =>
 
       // 标题让位：不越过最左工具（撤销）左缘（跑马自身判定与滚动见
       // title_auto_scroll_test；此处验证 Expanded 让位布局不变）。
-      final titleRect = tester.getRect(find.byKey(const Key('control_layer_title')));
+      final titleRect = tester.getRect(
+        find.byKey(const Key('control_layer_title')),
+      );
       final firstToolRect = tester.getRect(find.byKey(const Key('tool_undo')));
       expect(titleRect.right, lessThanOrEqualTo(firstToolRect.left));
     });
@@ -2412,9 +2419,9 @@ Finder slotText(Key slot, String text) =>
           .getSize(find.byKey(const Key('control_layer_title_slot')))
           .width;
       // 能单份完整容纳的最长标题（不右缩口径：文本 <= 槽宽 − 间隙 − 图标）。
-      final chars = ((slotWidth - kTopBarRenameIconGap - kTopBarRenameIconSize) /
-              advance)
-          .floor();
+      final chars =
+          ((slotWidth - kTopBarRenameIconGap - kTopBarRenameIconSize) / advance)
+              .floor();
       expect(chars, greaterThan(2));
       final title = 'M' * chars;
       final textWidth = advance * chars;
@@ -2432,11 +2439,7 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
 
       // 单份完整显示：没有跑马灯（溢出时 [AutoScrollTitle] 渲染两份文本）。
-      expect(
-        find.text(title),
-        findsOneWidget,
-        reason: '文本未超可用宽，不该被判为长标题转跑马灯',
-      );
+      expect(find.text(title), findsOneWidget, reason: '文本未超可用宽，不该被判为长标题转跑马灯');
       final zone = tester.getRect(hotZone());
       expect(
         zone.width,
@@ -2478,10 +2481,7 @@ Finder slotText(Key slot, String text) =>
       // 装载落定：图标恢复、入口放行（无需重开页面）。
       container.read(loadGateActiveProvider.notifier).settle();
       await tester.pump();
-      expect(
-        tester.widget<Icon>(iconInZone()).color,
-        kTopBarRenameIconColor,
-      );
+      expect(tester.widget<Icon>(iconInZone()).color, kTopBarRenameIconColor);
       await tester.tap(hotZone());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -2490,9 +2490,7 @@ Finder slotText(Key slot, String text) =>
   });
 
   group('节拍提示入口移顶栏', () {
-    testWidgets('点顶栏节拍提示打开节拍提示气泡面板；对齐入口开独立气泡', (
-      tester,
-    ) async {
+    testWidgets('点顶栏节拍提示打开节拍提示气泡面板；对齐入口开独立气泡', (tester) async {
       await pumpControlLayer(tester);
 
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
@@ -2527,9 +2525,7 @@ Finder slotText(Key slot, String text) =>
       expect(toolIconColor(tester, 'tool_beat_prompt'), isNot(kHighlightAmber));
     });
 
-    testWidgets('竖屏 361.1dp 顶栏节拍提示工具打开同一个三段堆叠面板（验收）', (
-      tester,
-    ) async {
+    testWidgets('竖屏 361.1dp 顶栏节拍提示工具打开同一个三段堆叠面板（验收）', (tester) async {
       // 真机竖屏基准 361.1×781.7dp（1264×2736 @3.5，唯一竖屏基准）。
       useNamedViewport(tester, ViewportTier.compact);
       await pumpControlLayer(tester);
@@ -2616,7 +2612,9 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
       // 点预设行即应用并进入启用流程（预览在激活段 0 内 → 直接启用）。
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pumpAndSettle();
     }
 
@@ -2714,7 +2712,9 @@ Finder slotText(Key slot, String text) =>
       // 已启用时再点「已启用」那行 = 停用；生效倍速回到手动 0.75。
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pumpAndSettle();
 
       expect(engine.rate, 0.75);
@@ -2743,19 +2743,29 @@ Finder slotText(Key slot, String text) =>
       expect(during.center.dx, closeTo(before.center.dx, 0.01));
       expect(slotRect('tool_beat_prompt'), beatBefore);
       expect(slotRect('tool_mirror'), mirrorBefore);
-      expect(find.byKey(const Key('tool_more')), findsNothing, reason: '无工具落进「更多」');
+      expect(
+        find.byKey(const Key('tool_more')),
+        findsNothing,
+        reason: '无工具落进「更多」',
+      );
 
       // 停用步进（回到手动 1.0）后仍同宽同中心。
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pumpAndSettle();
       final after = slotRect('tool_speed_settings');
       expect(after.width, before.width, reason: '停用步进不改槽宽');
       expect(after.center.dx, closeTo(before.center.dx, 0.01));
       expect(slotRect('tool_beat_prompt'), beatBefore);
       expect(slotRect('tool_mirror'), mirrorBefore);
-      expect(find.byKey(const Key('tool_more')), findsNothing, reason: '无工具弹出「更多」');
+      expect(
+        find.byKey(const Key('tool_more')),
+        findsNothing,
+        reason: '无工具弹出「更多」',
+      );
     });
 
     testWidgets('文本缩放 0.8：定宽不收缩，步进生效仍不重排、无溢出', (tester) async {
@@ -2766,14 +2776,18 @@ Finder slotText(Key slot, String text) =>
       await pumpControlLayer(tester);
       await seedActiveSegment(tester);
 
-      final before = tester.getRect(find.byKey(const Key('tool_speed_settings')));
+      final before = tester.getRect(
+        find.byKey(const Key('tool_speed_settings')),
+      );
       expect(
         before.width,
         topBarSpeedSlotWidth(textScaler: TextScaler.linear(0.8)),
       );
 
       await enableFirstPreset(tester);
-      final during = tester.getRect(find.byKey(const Key('tool_speed_settings')));
+      final during = tester.getRect(
+        find.byKey(const Key('tool_speed_settings')),
+      );
       expect(during.width, before.width);
       expect(during.center.dx, closeTo(before.center.dx, 0.01));
       expect(inSpeedTool(find.text('0.5x')), findsOneWidget);
@@ -2797,7 +2811,9 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -2915,7 +2931,6 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('learning_segment_1')), findsOneWidget);
       expect(undoIconColor(tester, 'tool_redo'), kToolSlotDisabledIconColor);
     });
-
   });
 
   group('锁定分段（范围扩展与置灰）', () {
@@ -2958,10 +2973,16 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pump();
-      expect(find.byKey(const Key('segment_line_1')), findsNothing,
-          reason: '锁下点击分段不建线');
-      expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget,
-          reason: '置灰按钮单击弹居中「已锁定分段」提示');
+      expect(
+        find.byKey(const Key('segment_line_1')),
+        findsNothing,
+        reason: '锁下点击分段不建线',
+      );
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsOneWidget,
+        reason: '置灰按钮单击弹居中「已锁定分段」提示',
+      );
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
@@ -2978,8 +2999,7 @@ Finder slotText(Key slot, String text) =>
 
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pump();
-      expect(find.text('正在装载'), findsOneWidget,
-          reason: '装载未完成压倒锁的原因文案');
+      expect(find.text('正在装载'), findsOneWidget, reason: '装载未完成压倒锁的原因文案');
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
     });
 
@@ -2991,8 +3011,11 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('control_segment_delete')));
       await tester.pump();
 
-      expect(find.byKey(const Key('segment_line_0')), findsOneWidget,
-          reason: '锁下点击删除不执行');
+      expect(
+        find.byKey(const Key('segment_line_0')),
+        findsOneWidget,
+        reason: '锁下点击删除不执行',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget);
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
@@ -3010,27 +3033,36 @@ Finder slotText(Key slot, String text) =>
       // 锁定：单击只弹「已锁定分段」，不展开菜单、不改边界。
       await tester.tap(find.byKey(const Key('control_auto_range')));
       await tester.pumpAndSettle();
-      expect(renderedAutoEntryKeys(tester), isEmpty,
-          reason: '锁定期间菜单不展开');
+      expect(renderedAutoEntryKeys(tester), isEmpty, reason: '锁定期间菜单不展开');
       final timeline = container.read(annotationTimelineProvider);
       expect(timeline.rangeStart, Duration.zero);
       expect(timeline.rangeEnd, const Duration(seconds: 30));
-      expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget,
-          reason: '灰着的自动分段单击弹「已锁定分段」');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsOneWidget,
+        reason: '灰着的自动分段单击弹「已锁定分段」',
+      );
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
 
       await tester.tap(find.byKey(const Key('layout_lock_toggle')));
       await tester.pumpAndSettle();
-      expect(slotEnabled(tester, 'control_auto_range'), isTrue,
-          reason: '解锁 + 节拍就绪：自动分段正常可点');
+      expect(
+        slotEnabled(tester, 'control_auto_range'),
+        isTrue,
+        reason: '解锁 + 节拍就绪：自动分段正常可点',
+      );
       // 解锁后自动首尾照常执行：首 = 第一拍 0.5s、尾 = 最后一拍 2.0s。
       await tapAutoEntry(tester, 'control_auto_seg_4');
-      expect(container.read(annotationTimelineProvider).rangeStart,
-          const Duration(milliseconds: 500));
-      expect(container.read(annotationTimelineProvider).rangeEnd,
-          const Duration(seconds: 2));
+      expect(
+        container.read(annotationTimelineProvider).rangeStart,
+        const Duration(milliseconds: 500),
+      );
+      expect(
+        container.read(annotationTimelineProvider).rangeEnd,
+        const Duration(seconds: 2),
+      );
     });
 
     testWidgets('未锁定时四钮外观与行为与现状一致（回归）', (tester) async {
@@ -3046,8 +3078,11 @@ Finder slotText(Key slot, String text) =>
         kToolSlotEnabledIconColor,
       );
       expect(slotEnabled(tester, 'control_segment'), isTrue);
-      expect(slotEnabled(tester, 'control_auto_range'), isTrue,
-          reason: '节拍就绪 + 未锁：自动首尾可点');
+      expect(
+        slotEnabled(tester, 'control_auto_range'),
+        isTrue,
+        reason: '节拍就绪 + 未锁：自动首尾可点',
+      );
       // 选中线后删除钮亮色可点（未锁行为现状一致）。
       await tapSegmentLineHandle(tester, 0);
       await tester.pumpAndSettle();
@@ -3072,9 +3107,11 @@ Finder slotText(Key slot, String text) =>
         'control_local_mirror',
         'control_half_beat',
       ]) {
-        expect(menuEntryTextColor(tester, key),
-            isNot(kToolMenuDisabledTextColor),
-            reason: '$key 不受锁定分段');
+        expect(
+          menuEntryTextColor(tester, key),
+          isNot(kToolMenuDisabledTextColor),
+          reason: '$key 不受锁定分段',
+        );
       }
       // 置灰仍可点（判定表：锁定 = 置灰、可点、弹原因）。
       expect(
@@ -3094,8 +3131,11 @@ Finder slotText(Key slot, String text) =>
         3,
         reason: 'flag 不置位（动作不发生）',
       );
-      expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget,
-          reason: '点灰着的条目弹「已锁定分段」');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsOneWidget,
+        reason: '点灰着的条目弹「已锁定分段」',
+      );
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
@@ -3147,9 +3187,7 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
     }
 
-    testWidgets('跨面一致性：对比态槽集声明的槽位 == 实际渲染出的槽键逐位相等', (
-      tester,
-    ) async {
+    testWidgets('跨面一致性：对比态槽集声明的槽位 == 实际渲染出的槽键逐位相等', (tester) async {
       await pumpCompareEditing(tester);
 
       final declared = ToolSlotTable.compare.slots.map((s) => s.key).toList();
@@ -3173,22 +3211,21 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('control_segment_flag')), findsNothing);
     });
 
-    testWidgets('逐槽可用性：删除置灰但按得动；无选中学习段时熟练度/重点置灰但按得动', (
-      tester,
-    ) async {
+    testWidgets('逐槽可用性：删除置灰但按得动；无选中学习段时熟练度/重点置灰但按得动', (tester) async {
       await pumpCompareEditing(tester);
 
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '无对象 → 置灰但按得动');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '无对象 → 置灰但按得动',
+      );
       // 对比工具区没有「截图排开」占位槽。
       expect(find.byKey(const Key('tool_screenshot')), findsNothing);
       expect(slotEnabled(tester, 'control_mastery'), isTrue);
       expect(slotEnabled(tester, 'control_emphasis'), isTrue);
     });
 
-    testWidgets('点学习段选中并激活（今天语义）后熟练度/重点可用；删除置灰但按得动', (
-      tester,
-    ) async {
+    testWidgets('点学习段选中并激活（今天语义）后熟练度/重点可用；删除置灰但按得动', (tester) async {
       final (_, container) = await pumpCompareEditing(tester);
 
       await tapLearningSegmentBody(tester, 1);
@@ -3226,17 +3263,18 @@ Finder slotText(Key slot, String text) =>
       );
     });
 
-    testWidgets('删除只认练习片段：分段线/半拍线在对比态删不掉（工具区无其编辑入口）', (
-      tester,
-    ) async {
+    testWidgets('删除只认练习片段：分段线/半拍线在对比态删不掉（工具区无其编辑入口）', (tester) async {
       await pumpCompareEditing(tester);
 
       // 对比槽集没有分段/标记等线编辑槽，删除槽也不读线选中——分段线与
       // 半拍线在对比态没有任何可达的删除路径。
       expect(find.byKey(const Key('control_segment_flag')), findsNothing);
       expect(find.byKey(const Key('control_segment')), findsNothing);
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '无对象 → 置灰但按得动');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '无对象 → 置灰但按得动',
+      );
     });
   });
 
@@ -3267,8 +3305,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(settlePump);
       await tester.pump();
 
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.framing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.framing,
+      );
       expect(controlLayer(), findsNothing);
       expect(find.byKey(const Key('framing_bar')), findsOneWidget);
       // 单画面取景条只有「复位」「完成」——没有「取景微调」替代路径菜单。
@@ -3278,15 +3318,15 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(settlePump);
       await tester.pump();
 
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.editing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.editing,
+      );
       expect(controlLayer(), findsOneWidget);
       expect(find.byKey(const Key('framing_bar')), findsNothing);
     });
 
-    testWidgets('对比-控制层点同一枚入口进分屏取景；「完成」回对比-控制层（两条路径共用一个入口）', (
-      tester,
-    ) async {
+    testWidgets('对比-控制层点同一枚入口进分屏取景；「完成」回对比-控制层（两条路径共用一个入口）', (tester) async {
       final container = await pumpEditingPlayer(tester);
       container
           .read(playerSessionProvider.notifier)
@@ -3299,8 +3339,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(settlePump);
       await tester.pump();
 
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.compareFraming);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.compareFraming,
+      );
       expect(find.byKey(const Key('framing_bar')), findsOneWidget);
       // 取景微调菜单在两条路径上整条退场。
       expect(find.byKey(const Key('framing_nudge')), findsNothing);
@@ -3309,13 +3351,13 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(settlePump);
       await tester.pump();
 
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.compareEditing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.compareEditing,
+      );
     });
 
-    testWidgets('装载未完成门：点「取景调整」被挡下并弹「正在装载」，模式一位不动', (
-      tester,
-    ) async {
+    testWidgets('装载未完成门：点「取景调整」被挡下并弹「正在装载」，模式一位不动', (tester) async {
       final container = await pumpEditingPlayer(tester);
       container.read(loadGateActiveProvider.notifier).begin();
       await tester.pump();
@@ -3324,15 +3366,15 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(settlePump);
       await tester.pump();
 
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.editing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.editing,
+      );
       expect(find.text('正在装载'), findsOneWidget);
       expect(find.byKey(const Key('framing_bar')), findsNothing);
     });
 
-    testWidgets('待命态点「取景调整」能进单画面取景；退出回编辑态（八拍锚点不丢）', (
-      tester,
-    ) async {
+    testWidgets('待命态点「取景调整」能进单画面取景；退出回编辑态（八拍锚点不丢）', (tester) async {
       final container = await pumpEditingPlayer(tester);
       container
           .read(playerSessionProvider.notifier)
@@ -3343,15 +3385,19 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('tool_framing_adjust')));
       await tester.pump(settlePump);
       await tester.pump();
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.framing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.framing,
+      );
 
       await tester.tap(find.byKey(const Key('framing_done')));
       await tester.pump(settlePump);
       await tester.pump();
       // 退出三同路一律回编辑态（待命态已退出；锚点状态归节拍域，不随退出丢）。
-      expect(container.read(playerSessionProvider).mode,
-          PlayerSessionMode.editing);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.editing,
+      );
     });
   });
 
@@ -3382,16 +3428,17 @@ Finder slotText(Key slot, String text) =>
       return container;
     }
 
-    testWidgets('开关槽落在标注工具区：练习侧镜像之前是删除（「取景」槽退役）', (
-      tester,
-    ) async {
+    testWidgets('开关槽落在标注工具区：练习侧镜像之前是删除（「取景」槽退役）', (tester) async {
       await pumpCompareEditingPlayer(tester);
 
       expect(find.byKey(const Key('control_practice_mirror')), findsOneWidget);
       // 次序：删除 < 练习侧镜像（x 严格递增）。
-      final xDelete = tester.getCenter(find.byKey(const Key('control_segment_delete'))).dx;
-      final xPractice =
-          tester.getCenter(find.byKey(const Key('control_practice_mirror'))).dx;
+      final xDelete = tester
+          .getCenter(find.byKey(const Key('control_segment_delete')))
+          .dx;
+      final xPractice = tester
+          .getCenter(find.byKey(const Key('control_practice_mirror')))
+          .dx;
       expect(xPractice, greaterThan(xDelete));
     });
 
@@ -3431,7 +3478,6 @@ Finder slotText(Key slot, String text) =>
       expect(container.read(effectivePracticeMirrorProvider), isTrue);
       expect(container.read(practiceMirrorOverrideProvider), isTrue);
     });
-
   });
 
   group('标注工具区固定槽位', () {
@@ -3458,11 +3504,11 @@ Finder slotText(Key slot, String text) =>
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
       ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-        listen: false,
-      ).read(playerSessionProvider.notifier).enter(
-            PlayerSessionMode.beatCorrectionStandby,
-          );
+            tester.element(find.byType(PlayerPage)),
+            listen: false,
+          )
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.beatCorrectionStandby);
       await tester.pumpAndSettle();
 
       final declared = ToolSlotTable.standby.slots.map((s) => s.key).toList();
@@ -3504,10 +3550,7 @@ Finder slotText(Key slot, String text) =>
           reason: '${slot.key} 置灰',
         );
         expect(
-          evaluateToolSlot([
-            ToolGateKind.loading,
-            ...slot.gates,
-          ]).tappable,
+          evaluateToolSlot([ToolGateKind.loading, ...slot.gates]).tappable,
           isTrue,
           reason: '${slot.key} 声明可点',
         );
@@ -3525,8 +3568,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationTimelineProvider).segmentLines,
-          hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).segmentLines,
+        hasLength(1),
+      );
     });
 
     testWidgets('装载未完成：待命态三个锚点写盘槽同门被挡、退出槽不声明本门', (tester) async {
@@ -3601,11 +3646,16 @@ Finder slotText(Key slot, String text) =>
       );
       await tester.tapAt(const Offset(20, 20));
       await tester.pumpAndSettle();
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '同上：置灰但按得动');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '同上：置灰但按得动',
+      );
       // 无对象种类唯一一条外观断言：置灰统一为同一 token。
-      expect(slotIconColor(tester, 'control_segment_delete'),
-          kToolSlotDisabledIconColor);
+      expect(
+        slotIconColor(tester, 'control_segment_delete'),
+        kToolSlotDisabledIconColor,
+      );
       // 标注工具区没有「截图排开」占位槽。
       expect(find.byKey(const Key('tool_screenshot')), findsNothing);
     });
@@ -3673,7 +3723,11 @@ Finder slotText(Key slot, String text) =>
   group('标注工具槽判定接线', () {
     testWidgets('行为修正：未锁定 + 预览线越界 → 分段槽置灰且不可点、不产生任何提示', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
-      await pumpPlayer(tester, engine: engine, beatPipeline: hangingBeatPipeline);
+      await pumpPlayer(
+        tester,
+        engine: engine,
+        beatPipeline: hangingBeatPipeline,
+      );
       await injectBeatState(tester, readyBeatState());
       await singleTapShow(tester);
       final container = ProviderScope.containerOf(
@@ -3685,27 +3739,40 @@ Finder slotText(Key slot, String text) =>
       await engine.seek(const Duration(seconds: 1));
       await tester.pump();
       await tapAutoEntry(tester, 'control_auto_seg_4');
-      expect(container.read(annotationTimelineProvider).rangeEnd,
-          const Duration(seconds: 2));
+      expect(
+        container.read(annotationTimelineProvider).rangeEnd,
+        const Duration(seconds: 2),
+      );
       // 预览线停在有效区间外（未锁定）。
       await engine.seek(const Duration(seconds: 10));
       await tester.pump();
 
       // 外观（预览线越界种类唯一一条外观断言）：置灰。
-      expect(slotIconColor(tester, 'control_segment'),
-          kToolSlotDisabledIconColor);
+      expect(
+        slotIconColor(tester, 'control_segment'),
+        kToolSlotDisabledIconColor,
+      );
       // 置灰且不可点（原「置灰可点、点击静默」路径不可达）。
       expect(slotEnabled(tester, 'control_segment'), isFalse);
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
       expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
-      expect(find.byKey(const Key('layout_lock_prompt')), findsNothing,
-          reason: '未锁定，不弹锁提示');
-      expect(find.byKey(const Key('beat_analyzing_prompt')), findsNothing,
-          reason: '越界静默，不弹原因提示');
-      expect(find.byKey(const Key('beat_no_data_prompt')), findsNothing,
-          reason: '越界静默，不弹原因提示');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsNothing,
+        reason: '未锁定，不弹锁提示',
+      );
+      expect(
+        find.byKey(const Key('beat_analyzing_prompt')),
+        findsNothing,
+        reason: '越界静默，不弹原因提示',
+      );
+      expect(
+        find.byKey(const Key('beat_no_data_prompt')),
+        findsNothing,
+        reason: '越界静默，不弹原因提示',
+      );
     });
 
     testWidgets('无障碍语义：正常态每槽都是按钮并报可点；熟练度选中后另报已选中', (tester) async {
@@ -3720,10 +3787,18 @@ Finder slotText(Key slot, String text) =>
       }
       // 可点与否按判定表报出：无对象 → 置灰但按得动；
       // 未就绪 → 置灰仍可点。
-      expectButtonSemantics(tester, const Key('control_mastery'),
-          enabled: true, reason: '未选中学习段 → 无对象 → 置灰但按得动');
-      expectButtonSemantics(tester, const Key('control_segment'),
-          enabled: true, reason: '网格未就绪 → 置灰仍可点');
+      expectButtonSemantics(
+        tester,
+        const Key('control_mastery'),
+        enabled: true,
+        reason: '未选中学习段 → 无对象 → 置灰但按得动',
+      );
+      expectButtonSemantics(
+        tester,
+        const Key('control_segment'),
+        enabled: true,
+        reason: '网格未就绪 → 置灰仍可点',
+      );
 
       // 建线后点选学习段：熟练度槽激活并报「已选中」（点选定法同前：
       // 点选段体左下 25%/75%，避开预览线命中柱与右上 dock）。
@@ -3732,14 +3807,23 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pumpAndSettle();
-      final segRect = tester.getRect(find.byKey(const Key('learning_segment_1')));
+      final segRect = tester.getRect(
+        find.byKey(const Key('learning_segment_1')),
+      );
       await tester.tapAt(
-        Offset(segRect.left + segRect.width * 0.25,
-            segRect.top + segRect.height * 0.75),
+        Offset(
+          segRect.left + segRect.width * 0.25,
+          segRect.top + segRect.height * 0.75,
+        ),
       );
       await tester.pumpAndSettle();
-      expectButtonSemantics(tester, const Key('control_mastery'),
-          enabled: true, selected: true, reason: '激活槽报已选中');
+      expectButtonSemantics(
+        tester,
+        const Key('control_mastery'),
+        enabled: true,
+        selected: true,
+        reason: '激活槽报已选中',
+      );
     });
 
     testWidgets('无障碍语义：待命态 4 槽都是按钮；退出槽恒可点', (tester) async {
@@ -3747,18 +3831,22 @@ Finder slotText(Key slot, String text) =>
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
       ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-        listen: false,
-      ).read(playerSessionProvider.notifier).enter(
-            PlayerSessionMode.beatCorrectionStandby,
-          );
+            tester.element(find.byType(PlayerPage)),
+            listen: false,
+          )
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.beatCorrectionStandby);
       await tester.pumpAndSettle();
 
       for (final slot in ToolSlotTable.standby.slots) {
         expectButtonSemantics(tester, Key(slot.key), reason: slot.key);
       }
-      expectButtonSemantics(tester, const Key('control_beat_correction_exit'),
-          enabled: true, reason: '无门槽恒可点');
+      expectButtonSemantics(
+        tester,
+        const Key('control_beat_correction_exit'),
+        enabled: true,
+        reason: '无门槽恒可点',
+      );
     });
   });
 
@@ -3791,11 +3879,19 @@ Finder slotText(Key slot, String text) =>
       final slotsBottom = tester
           .getBottomLeft(find.byKey(const Key('control_auto_range')))
           .dy;
-      final playTop = tester.getTopLeft(find.byKey(const Key('toolbar_play'))).dy;
-      expect(playTop, greaterThanOrEqualTo(slotsBottom), reason: '播放控制行在标注工具行之下');
+      final playTop = tester
+          .getTopLeft(find.byKey(const Key('toolbar_play')))
+          .dy;
+      expect(
+        playTop,
+        greaterThanOrEqualTo(slotsBottom),
+        reason: '播放控制行在标注工具行之下',
+      );
 
       // 轨道设置条与轨道行仍在两行工具行上方。
-      final bandBottom = tester.getBottomLeft(find.byKey(const Key('track_band'))).dy;
+      final bandBottom = tester
+          .getBottomLeft(find.byKey(const Key('track_band')))
+          .dy;
       final toolbarTop = tester
           .getTopLeft(find.byKey(const Key('control_layer_toolbar')))
           .dy;
@@ -3864,11 +3960,7 @@ Finder slotText(Key slot, String text) =>
       // 反向一枚同样走无障碍路径：从一帧处回退一帧。
       activateBySemantics(tester, back);
       await tester.pump(kScrubSeekMinInterval * 2);
-      expect(
-        engine.seekCalls.last,
-        start,
-        reason: '读屏双击「左移一步」回退恰好一帧',
-      );
+      expect(engine.seekCalls.last, start, reason: '读屏双击「左移一步」回退恰好一帧');
       handle.dispose();
     });
 
@@ -3899,111 +3991,109 @@ Finder slotText(Key slot, String text) =>
       expect(tester.widget<Text>(readout).style!.fontSize, 14);
       // 一行：播放钮与槽位垂直居中同带（y 中点重合）。
       final playY = tester.getCenter(find.byKey(const Key('toolbar_play'))).dy;
-      final slotY = tester.getCenter(find.byKey(const Key('control_mastery'))).dy;
+      final slotY = tester
+          .getCenter(find.byKey(const Key('control_mastery')))
+          .dy;
       expect(playY, closeTo(slotY, 0.5));
     });
   });
 
   group('标注工具区收进屏幕右缘', () {
-    testWidgets(
-      '窄视口下槽集全部槽收进屏幕右缘：最右「自动分段」右缘 ≤ 屏宽、不依赖横向滚动、时间读数收缩让位',
-      (tester) async {
-        // 模拟旋转前的窄竖屏帧（**合成档**，宽于真机 632dp）：旧布局时间读数 Expanded
-        // 占满一半宽度、工具区滚动视口被挤窄，「自动分段」被裁出右缘；新布局
-        // 时间读数收缩让位、工具区取剩余宽度，槽集固定宽度全部收进右缘。
-        setWidenedPortraitView(tester);
+    testWidgets('窄视口下槽集全部槽收进屏幕右缘：最右「自动分段」右缘 ≤ 屏宽、不依赖横向滚动、时间读数收缩让位', (
+      tester,
+    ) async {
+      // 模拟旋转前的窄竖屏帧（**合成档**，宽于真机 632dp）：旧布局时间读数 Expanded
+      // 占满一半宽度、工具区滚动视口被挤窄，「自动分段」被裁出右缘；新布局
+      // 时间读数收缩让位、工具区取剩余宽度，槽集固定宽度全部收进右缘。
+      setWidenedPortraitView(tester);
 
-        final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
-        final systemUi = FakeSystemUi();
-        await pumpPlayer(tester, engine: engine, systemUi: systemUi);
-        // 竖屏单击直接进编辑（进入前置为无）——布局仍处于旋转前
-        // 的窄竖屏帧，即不裁槽位的场景。
-        await tester.tap(find.byKey(const Key('player_surface')));
-        await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
-        await pumpPastMarquee(tester); // 标题滚动不停歇，pumpAndSettle 不收敛
+      final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
+      final systemUi = FakeSystemUi();
+      await pumpPlayer(tester, engine: engine, systemUi: systemUi);
+      // 竖屏单击直接进编辑（进入前置为无）——布局仍处于旋转前
+      // 的窄竖屏帧，即不裁槽位的场景。
+      await tester.tap(find.byKey(const Key('player_surface')));
+      await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
+      await pumpPastMarquee(tester); // 标题滚动不停歇，pumpAndSettle 不收敛
 
-        final slotKeys = normalSlotKeys();
-        // 工具区不依赖横向滚动（无横向 SingleChildScrollView）。
+      final slotKeys = normalSlotKeys();
+      // 工具区不依赖横向滚动（无横向 SingleChildScrollView）。
+      expect(
+        find
+            .descendant(
+              of: find.byKey(const Key('control_layer_toolbar')),
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is SingleChildScrollView &&
+                    w.scrollDirection == Axis.horizontal,
+              ),
+            )
+            .evaluate(),
+        isEmpty,
+      );
+      // 几何断言：每槽右缘都在屏幕右缘内，最右「自动分段」可见可点。
+      final screenWidth =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      for (final key in slotKeys) {
         expect(
-          find
-              .descendant(
-                of: find.byKey(const Key('control_layer_toolbar')),
-                matching: find.byWidgetPredicate(
-                  (w) =>
-                      w is SingleChildScrollView &&
-                      w.scrollDirection == Axis.horizontal,
-                ),
-              )
-              .evaluate(),
-          isEmpty,
+          tester.getTopRight(find.byKey(Key(key))).dx,
+          lessThanOrEqualTo(screenWidth),
+          reason: key,
         );
-        // 几何断言：每槽右缘都在屏幕右缘内，最右「自动分段」可见可点。
-        final screenWidth =
-            tester.view.physicalSize.width / tester.view.devicePixelRatio;
-        for (final key in slotKeys) {
-          expect(
-            tester.getTopRight(find.byKey(Key(key))).dx,
-            lessThanOrEqualTo(screenWidth),
-            reason: key,
-          );
-        }
-        // 槽位固定顺序不变（x 严格递增）。
-        var previous = -1.0;
-        for (final key in slotKeys) {
-          final x = tester.getCenter(find.byKey(Key(key))).dx;
-          expect(x, greaterThan(previous), reason: key);
-          previous = x;
-        }
-      },
-    );
+      }
+      // 槽位固定顺序不变（x 严格递增）。
+      var previous = -1.0;
+      for (final key in slotKeys) {
+        final x = tester.getCenter(find.byKey(Key(key))).dx;
+        expect(x, greaterThan(previous), reason: key);
+        previous = x;
+      }
+    });
   });
 
   group('底部工具组整体右对齐', () {
-    testWidgets(
-      '宽视口下工具组贴右缘：最右「自动首尾」右缘贴工具条右内缘、与时间读数之间留出空白、槽位顺序不变',
-      (tester) async {
-        // 刻意放宽的**合成档**宽视口（1368×632dp，非设备基准）：旧布局工具区紧跟时间读数左对
-        // 铺排、右侧留大片空；新布局固定槽位整体右对齐贴
-        // 右缘。留白独占弹性（若时间读数仍占 flex 份额，宽视口下工具组会
-        // 悬浮在中部、离右缘数百 dp——正是要修的观感）。
-        tester.view.physicalSize = const Size(2736, 1264);
-        tester.view.devicePixelRatio = 2.0;
-        addTearDown(tester.view.reset);
+    testWidgets('宽视口下工具组贴右缘：最右「自动首尾」右缘贴工具条右内缘、与时间读数之间留出空白、槽位顺序不变', (
+      tester,
+    ) async {
+      // 刻意放宽的**合成档**宽视口（1368×632dp，非设备基准）：旧布局工具区紧跟时间读数左对
+      // 铺排、右侧留大片空；新布局固定槽位整体右对齐贴
+      // 右缘。留白独占弹性（若时间读数仍占 flex 份额，宽视口下工具组会
+      // 悬浮在中部、离右缘数百 dp——正是要修的观感）。
+      tester.view.physicalSize = const Size(2736, 1264);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
 
-        final engine = FakePlaybackEngine(
-          duration: const Duration(minutes: 3),
-        );
-        await pumpPlayer(tester, engine: engine);
-        await singleTapShow(tester);
+      final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
+      await pumpPlayer(tester, engine: engine);
+      await singleTapShow(tester);
 
-        final slotKeys = normalSlotKeys();
-        // 整体贴右缘：最右「自动首尾」右缘 = 工具条右内缘（水平 padding 8）。
-        final toolbarRight = tester.getTopRight(
-          find.byKey(const Key('control_layer_toolbar')),
-        ).dx;
-        final setEndRight = tester.getTopRight(
-          find.byKey(const Key('control_auto_range')),
-        ).dx;
-        expect(setEndRight, closeTo(toolbarRight - 8, 1));
-        // 不越右缘（工具条右内缘之内）。
-        expect(setEndRight, lessThanOrEqualTo(toolbarRight - 8));
-        // 组左侧与时间读数之间留出宽幅可点空白（宽视口下显著大于固定间距）。
-        final masteryLeft = tester.getTopLeft(
-          find.byKey(const Key('control_mastery')),
-        ).dx;
-        final timeRight = tester.getTopRight(
-          find.byKey(const Key('toolbar_time')),
-        ).dx;
-        expect(masteryLeft - timeRight, greaterThan(100));
-        // 槽位固定顺序不变（x 严格递增）。
-        var previous = -1.0;
-        for (final key in slotKeys) {
-          final x = tester.getCenter(find.byKey(Key(key))).dx;
-          expect(x, greaterThan(previous), reason: key);
-          previous = x;
-        }
-      },
-    );
+      final slotKeys = normalSlotKeys();
+      // 整体贴右缘：最右「自动首尾」右缘 = 工具条右内缘（水平 padding 8）。
+      final toolbarRight = tester
+          .getTopRight(find.byKey(const Key('control_layer_toolbar')))
+          .dx;
+      final setEndRight = tester
+          .getTopRight(find.byKey(const Key('control_auto_range')))
+          .dx;
+      expect(setEndRight, closeTo(toolbarRight - 8, 1));
+      // 不越右缘（工具条右内缘之内）。
+      expect(setEndRight, lessThanOrEqualTo(toolbarRight - 8));
+      // 组左侧与时间读数之间留出宽幅可点空白（宽视口下显著大于固定间距）。
+      final masteryLeft = tester
+          .getTopLeft(find.byKey(const Key('control_mastery')))
+          .dx;
+      final timeRight = tester
+          .getTopRight(find.byKey(const Key('toolbar_time')))
+          .dx;
+      expect(masteryLeft - timeRight, greaterThan(100));
+      // 槽位固定顺序不变（x 严格递增）。
+      var previous = -1.0;
+      for (final key in slotKeys) {
+        final x = tester.getCenter(find.byKey(Key(key))).dx;
+        expect(x, greaterThan(previous), reason: key);
+        previous = x;
+      }
+    });
 
     testWidgets('窄视口下右对齐仍不越右缘：时间读数收缩让位、留白压缩但不为负', (tester) async {
       // 旋转前窄竖屏帧（刻意收窄的**合成档** 632×1368dp，非设备基准）：时间读数收缩、留白最小化为 0，
@@ -4015,34 +4105,29 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       await pumpPastMarquee(tester); // 标题滚动不停歇，pumpAndSettle 不收敛
 
-      final toolbarRight = tester.getTopRight(
-        find.byKey(const Key('control_layer_toolbar')),
-      ).dx;
-      final setEndRight = tester.getTopRight(
-        find.byKey(const Key('control_auto_range')),
-      ).dx;
+      final toolbarRight = tester
+          .getTopRight(find.byKey(const Key('control_layer_toolbar')))
+          .dx;
+      final setEndRight = tester
+          .getTopRight(find.byKey(const Key('control_auto_range')))
+          .dx;
       expect(setEndRight, closeTo(toolbarRight - 8, 1));
       expect(setEndRight, lessThanOrEqualTo(toolbarRight - 8));
     });
 
     testWidgets('工具组与时间读数之间的空白属工具条区域：点击不触发收起', (tester) async {
-      final engine = FakePlaybackEngine(
-        duration: const Duration(minutes: 3),
-      );
+      final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
 
       final masteryTop = tester.getTopLeft(
         find.byKey(const Key('control_mastery')),
       );
-      final timeRight = tester.getTopRight(
-        find.byKey(const Key('toolbar_time')),
-      ).dx;
+      final timeRight = tester
+          .getTopRight(find.byKey(const Key('toolbar_time')))
+          .dx;
       // 点击留白中点（工具条区域内部）。
-      final gapCenter = Offset(
-        (timeRight + masteryTop.dx) / 2,
-        masteryTop.dy,
-      );
+      final gapCenter = Offset((timeRight + masteryTop.dx) / 2, masteryTop.dy);
       await tester.tapAt(gapCenter);
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       await tester.pump();
@@ -4109,17 +4194,17 @@ Finder slotText(Key slot, String text) =>
       // 点一下弹做法，动作不发生）。
       expect(
         tester
-            .widget<Semantics>(
-              find.byKey(const Key('control_segment_delete')),
-            )
+            .widget<Semantics>(find.byKey(const Key('control_segment_delete')))
             .properties
             .enabled,
         isTrue,
         reason: '无对象 → 置灰但按得动',
       );
-      expect(slotIconColor(tester, 'control_segment_delete'),
-          kToolSlotDisabledIconColor,
-          reason: '删除槽仍置灰');
+      expect(
+        slotIconColor(tester, 'control_segment_delete'),
+        kToolSlotDisabledIconColor,
+        reason: '删除槽仍置灰',
+      );
 
       // 点「分段」：与既有内联同一条动作路径（一次点击 = 一条分段线）。
       // 先暂停定格到确定预览位（就近八拍点落点不受播放位置漂移影响）。
@@ -4132,7 +4217,10 @@ Finder slotText(Key slot, String text) =>
         tester.element(find.byType(PlayerPage)),
         listen: false,
       );
-      expect(container.read(annotationTimelineProvider).segmentLines, hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).segmentLines,
+        hasLength(1),
+      );
     });
 
     testWidgets('真机竖屏基准 + 待命态：4 槽全部内联、无溢出入口', (tester) async {
@@ -4141,11 +4229,11 @@ Finder slotText(Key slot, String text) =>
       await pumpPlayer(tester, engine: engine);
       await enterPortraitEdit(tester);
       ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-        listen: false,
-      ).read(playerSessionProvider.notifier).enter(
-            PlayerSessionMode.beatCorrectionStandby,
-          );
+            tester.element(find.byType(PlayerPage)),
+            listen: false,
+          )
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.beatCorrectionStandby);
       await pumpPastMarquee(tester);
 
       expect(tester.takeException(), isNull);
@@ -4169,11 +4257,11 @@ Finder slotText(Key slot, String text) =>
       );
       await enterPortraitEdit(tester);
       ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-        listen: false,
-      ).read(playerSessionProvider.notifier).enter(
-            PlayerSessionMode.compareEditing,
-          );
+            tester.element(find.byType(PlayerPage)),
+            listen: false,
+          )
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.compareEditing);
       await pumpPastMarquee(tester);
 
       expect(tester.takeException(), isNull);
@@ -4268,10 +4356,16 @@ Finder slotText(Key slot, String text) =>
       expect(renderedSlotKeys(tester), declared);
       for (final key in declared) {
         final hit = slotHitRect(tester, key);
-        expect(hit.width, greaterThanOrEqualTo(kHitTargetDenseMinSize),
-            reason: '$key 命中宽不足密集区兜底下限');
-        expect(hit.height, greaterThanOrEqualTo(kHitTargetDenseMinSize),
-            reason: '$key 命中高不足密集区兜底下限');
+        expect(
+          hit.width,
+          greaterThanOrEqualTo(kHitTargetDenseMinSize),
+          reason: '$key 命中宽不足密集区兜底下限',
+        );
+        expect(
+          hit.height,
+          greaterThanOrEqualTo(kHitTargetDenseMinSize),
+          reason: '$key 命中高不足密集区兜底下限',
+        );
       }
     });
 
@@ -4306,8 +4400,11 @@ Finder slotText(Key slot, String text) =>
           of: find.byKey(Key(key)),
           matching: find.byType(Icon),
         );
-        expect(tester.widget<Icon>(icon.first).size, kToolSlotIconSize,
-            reason: '$key 图标尺寸被外扩改变');
+        expect(
+          tester.widget<Icon>(icon.first).size,
+          kToolSlotIconSize,
+          reason: '$key 图标尺寸被外扩改变',
+        );
         expect(
           tester.getRect(icon.first).size,
           const Size(kToolSlotIconSize, kToolSlotIconSize),
@@ -4315,9 +4412,7 @@ Finder slotText(Key slot, String text) =>
         );
         final label = find.descendant(
           of: find.byKey(Key(key)),
-          matching: find.byWidgetPredicate(
-            (w) => w is Text && w.data != null,
-          ),
+          matching: find.byWidgetPredicate((w) => w is Text && w.data != null),
         );
         expect(
           tester.widget<Text>(label.first).style?.fontSize,
@@ -4348,7 +4443,9 @@ Finder slotText(Key slot, String text) =>
       expect(engine.isPlaying, isTrue);
     });
 
-    testWidgets('延迟播放按钮 = 收起控制层 + 触发延迟播放（同一次点按内，收起先于触发）；预备期无占位徽章', (tester) async {
+    testWidgets('延迟播放按钮 = 收起控制层 + 触发延迟播放（同一次点按内，收起先于触发）；预备期无占位徽章', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine();
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -4508,11 +4605,13 @@ Finder slotText(Key slot, String text) =>
           videoAspectRatio: 16 / 9,
         ),
       );
-      expect(area.height, closeTo(pictureAreaHeight, 0.5),
-          reason: '画面区 = 骨架给的那一块（比一行工具栏时矮 52dp）');
+      expect(
+        area.height,
+        closeTo(pictureAreaHeight, 0.5),
+        reason: '画面区 = 骨架给的那一块（比一行工具栏时矮 52dp）',
+      );
       final band = tester.getRect(videoPlaceholder());
-      expect(band.bottom, closeTo(area.bottom, 0.5),
-          reason: '未调过：画面带贴画面区下缘');
+      expect(band.bottom, closeTo(area.bottom, 0.5), reason: '未调过：画面带贴画面区下缘');
 
       // 进取景子态，拖动圈一块（画面带中段偏窄的一条）。
       await tester.tap(find.byKey(const Key('tool_framing_adjust')));
@@ -4540,10 +4639,16 @@ Finder slotText(Key slot, String text) =>
 
       final zoomed = tester.getRect(videoPlaceholder());
       expect(zoomed.height, greaterThan(band.height * 2), reason: '取景放大生效');
-      expect(zoomed.top, lessThanOrEqualTo(area.top),
-          reason: '放大后的画面件矩形盖上画面区上缘');
-      expect(zoomed.bottom, greaterThanOrEqualTo(area.bottom),
-          reason: '放大后的画面件矩形盖住画面区下缘');
+      expect(
+        zoomed.top,
+        lessThanOrEqualTo(area.top),
+        reason: '放大后的画面件矩形盖上画面区上缘',
+      );
+      expect(
+        zoomed.bottom,
+        greaterThanOrEqualTo(area.bottom),
+        reason: '放大后的画面件矩形盖住画面区下缘',
+      );
     });
 
     testWidgets('竖屏 + 横屏源：画面满宽、底边贴住画面区下缘，黑区留在画面上方', (tester) async {
@@ -4576,7 +4681,10 @@ Finder slotText(Key slot, String text) =>
       );
       expect(
         video.top,
-        closeTo(kEditorTopBarHeight + pictureAreaHeight - portraitWidth / ar, 0.5),
+        closeTo(
+          kEditorTopBarHeight + pictureAreaHeight - portraitWidth / ar,
+          0.5,
+        ),
         reason: '黑区留在画面上方（画面顶 = 顶栏之下 + 画面区高 − 画面高）',
       );
       expect(
@@ -4635,15 +4743,15 @@ Finder slotText(Key slot, String text) =>
         portraitWidth,
         portraitWidth / ar,
       );
-      expect(tester.getRect(videoPlaceholder()), expected, reason: '竖向源走观看态背景位');
+      expect(
+        tester.getRect(videoPlaceholder()),
+        expected,
+        reason: '竖向源走观看态背景位',
+      );
       // 工具带为正常骨架段（浮层分支退场），轨道带行高不变、可操作。
       final band = tester.getRect(trackBand());
       expect(band.height, normalTrackBandHeight, reason: '行高表不动、不随屏高压缩');
-      expect(
-        band.top,
-        lessThan(expected.bottom),
-        reason: '工具带以半透明黑压在背景位画面之上',
-      );
+      expect(band.top, lessThan(expected.bottom), reason: '工具带以半透明黑压在背景位画面之上');
       final seeksBefore = engine.seekCalls.length;
       final drag = await tester.startGesture(tester.getCenter(trackBand()));
       await tester.pump();
@@ -4678,7 +4786,11 @@ Finder slotText(Key slot, String text) =>
         listen: false,
       ).read(playerSessionProvider.notifier).collapse();
       await tester.pump();
-      expect(tester.getRect(videoPlaceholder()), expected, reason: '背景位收起/展开逐位相同');
+      expect(
+        tester.getRect(videoPlaceholder()),
+        expected,
+        reason: '背景位收起/展开逐位相同',
+      );
     });
 
     testWidgets('宽高比未知：先按观看态背景位出画，不闪错误布局', (tester) async {
@@ -4804,11 +4916,7 @@ Finder slotText(Key slot, String text) =>
         closeTo((portraitHeight - portraitWidth / ar) / 2, 0.5),
         reason: '收起＝整屏居中最大化',
       );
-      expect(
-        video,
-        isNot(expanded),
-        reason: '展开确实让位（与收起不同）',
-      );
+      expect(video, isNot(expanded), reason: '展开确实让位（与收起不同）');
       expect(
         tester
             .widget<NoteStickerOverlay>(find.byType(NoteStickerOverlay))
@@ -4874,7 +4982,10 @@ Finder slotText(Key slot, String text) =>
       expect(rotateButton(), findsNothing, reason: '横屏不出现竖屏转屏钮');
 
       // 再转回竖屏：位置、缩放窗口与选中同样一位不丢。
-      tester.view.physicalSize = const Size(1336, 2736); // 合成档 445.3×912.0dp（dpr 3），非设备基准。
+      tester.view.physicalSize = const Size(
+        1336,
+        2736,
+      ); // 合成档 445.3×912.0dp（dpr 3），非设备基准。
       await tester.pump();
       expect(controlLayer(), findsOneWidget);
       expect(engine.position, const Duration(seconds: 30));
@@ -4891,7 +5002,10 @@ Finder slotText(Key slot, String text) =>
     });
 
     testWidgets('横屏编辑面：本无提示行，视频仍居中', (tester) async {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0; // 逻辑 960×540（横屏）
       addTearDown(tester.view.reset);
       const ar = 16 / 9;
@@ -4923,11 +5037,11 @@ Finder slotText(Key slot, String text) =>
       );
       await openEditor(tester);
       ProviderScope.containerOf(
-        tester.element(find.byType(PlayerPage)),
-        listen: false,
-      ).read(playerSessionProvider.notifier).enter(
-            PlayerSessionMode.compareEditing,
-          );
+            tester.element(find.byType(PlayerPage)),
+            listen: false,
+          )
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.compareEditing);
       await pumpPastMarquee(tester);
 
       expect(tester.takeException(), isNull);
@@ -5031,7 +5145,10 @@ Finder slotText(Key slot, String text) =>
       await pumpControlLayer(tester);
       expect(tester.takeException(), isNull);
 
-      expect(inBar(find.byKey(const Key('control_layer_back'))), findsOneWidget);
+      expect(
+        inBar(find.byKey(const Key('control_layer_back'))),
+        findsOneWidget,
+      );
       expect(
         inBar(find.byKey(const Key('control_layer_title'))),
         findsOneWidget,
@@ -5066,15 +5183,27 @@ Finder slotText(Key slot, String text) =>
       );
       double centerX(String key) =>
           tester.getRect(inBar(find.byKey(Key(key)))).center.dx;
-      expect(centerX('tool_undo'), greaterThan(titleRect.right),
-          reason: '撤销在标题右侧');
-      expect(centerX('tool_redo'), greaterThan(centerX('tool_undo')),
-          reason: '重做在撤销右侧');
-      expect(centerX('tool_guide'), greaterThan(centerX('tool_redo')),
-          reason: '查看引导在重做右侧');
+      expect(
+        centerX('tool_undo'),
+        greaterThan(titleRect.right),
+        reason: '撤销在标题右侧',
+      );
+      expect(
+        centerX('tool_redo'),
+        greaterThan(centerX('tool_undo')),
+        reason: '重做在撤销右侧',
+      );
+      expect(
+        centerX('tool_guide'),
+        greaterThan(centerX('tool_redo')),
+        reason: '查看引导在重做右侧',
+      );
       // 槽填上，不再恒置灰。
-      expect(toolIconColor(tester, 'tool_guide'),
-          isNot(kToolSlotDisabledIconColor), reason: '查看引导不再恒置灰');
+      expect(
+        toolIconColor(tester, 'tool_guide'),
+        isNot(kToolSlotDisabledIconColor),
+        reason: '查看引导不再恒置灰',
+      );
       // 三枚与标题同一行（标题栏内，不在画面下方的视频播放工具栏）。
       for (final key in titleBarTools) {
         expect(
@@ -5092,24 +5221,26 @@ Finder slotText(Key slot, String text) =>
     testWidgets('长歌名：标题在标题栏内让位三枚工具、跑马字幕仍可用', (tester) async {
       setRealPortraitView(tester);
       const longName = 'dance-with-a-really-long-name-for-marquee-check.mp4';
-      await pumpControlLayer(
-        tester,
-        source: Uri.file('/videos/$longName'),
-      );
+      await pumpControlLayer(tester, source: Uri.file('/videos/$longName'));
 
       final title = find.descendant(
         of: topBar(),
         matching: find.byKey(const Key('control_layer_title')),
       );
       final titleRect = tester.getRect(title);
-      final undoRect = tester.getRect(inBar(find.byKey(const Key('tool_undo'))));
+      final undoRect = tester.getRect(
+        inBar(find.byKey(const Key('tool_undo'))),
+      );
       expect(
         titleRect.right,
         lessThanOrEqualTo(undoRect.left),
         reason: '标题让位标题栏右侧三枚工具',
       );
       // 溢出即跑马：文本双份循环并随时间左移（既有 [AutoScrollTitle] 行为）。
-      final marquee = find.descendant(of: topBar(), matching: find.text(longName));
+      final marquee = find.descendant(
+        of: topBar(),
+        matching: find.text(longName),
+      );
       expect(marquee, findsNWidgets(2), reason: '长歌名走既有跑马字幕');
       final before = tester.getTopLeft(marquee.first).dx;
       await tester.pump(const Duration(seconds: 1));
@@ -5133,8 +5264,11 @@ Finder slotText(Key slot, String text) =>
       Finder inToolbar(Finder matching) =>
           find.descendant(of: videoToolbar(), matching: matching);
       for (final key in titleBarTools) {
-        expect(inToolbar(find.byKey(Key(key))), findsNothing,
-            reason: '$key 不在视频播放工具栏');
+        expect(
+          inToolbar(find.byKey(Key(key))),
+          findsNothing,
+          reason: '$key 不在视频播放工具栏',
+        );
       }
 
       // 上排两枚同排、下排五枚同排（逐列居中：同排 = 竖直中心同一线）；上排
@@ -5142,15 +5276,24 @@ Finder slotText(Key slot, String text) =>
       double centerY(String key) =>
           tester.getRect(find.byKey(Key(key))).center.dy;
       for (final key in topRowTools) {
-        expect(centerY(key), closeTo(centerY(topRowTools.first), 0.5),
-            reason: '$key 在上排');
+        expect(
+          centerY(key),
+          closeTo(centerY(topRowTools.first), 0.5),
+          reason: '$key 在上排',
+        );
       }
       for (final key in bottomRowTools) {
-        expect(centerY(key), closeTo(centerY(bottomRowTools.first), 0.5),
-            reason: '$key 在下排');
+        expect(
+          centerY(key),
+          closeTo(centerY(bottomRowTools.first), 0.5),
+          reason: '$key 在下排',
+        );
       }
-      expect(centerY(topRowTools.first), lessThan(centerY(bottomRowTools.first)),
-          reason: '上排在下排之上');
+      expect(
+        centerY(topRowTools.first),
+        lessThan(centerY(bottomRowTools.first)),
+        reason: '上排在下排之上',
+      );
       expect(
         tester.getRect(find.byKey(Key(topRowTools.first))).bottom,
         lessThanOrEqualTo(
@@ -5185,8 +5328,11 @@ Finder slotText(Key slot, String text) =>
         final r = tester.getRect(find.byKey(Key(key)));
         expect(r.left, greaterThanOrEqualTo(0), reason: key);
         expect(r.right, lessThanOrEqualTo(screenWidth), reason: key);
-        expect(find.byKey(Key(key)).hitTestable(), findsOneWidget,
-            reason: '$key 可直接点到');
+        expect(
+          find.byKey(Key(key)).hitTestable(),
+          findsOneWidget,
+          reason: '$key 可直接点到',
+        );
       }
       expect(tester.getRect(videoToolbar()).left, 0);
       expect(tester.getRect(videoToolbar()).right, closeTo(screenWidth, 0.5));
@@ -5240,18 +5386,25 @@ Finder slotText(Key slot, String text) =>
       );
       final step = centers[1] - centers[0];
       for (var i = 2; i < centers.length; i++) {
-        expect(centers[i] - centers[i - 1], closeTo(step, 0.5),
-            reason: '列中心等距');
+        expect(
+          centers[i] - centers[i - 1],
+          closeTo(step, 0.5),
+          reason: '列中心等距',
+        );
       }
       // 整行铺满可用宽：列宽 = 可用宽 ÷ 5。
-      expect(column, closeTo(screenWidth / kPortraitVideoToolbarColumnCount, 0.5));
+      expect(
+        column,
+        closeTo(screenWidth / kPortraitVideoToolbarColumnCount, 0.5),
+      );
     });
 
     testWidgets('上排两枚对到最右两列列心（全局镜像在倍速设置正上方、局部镜像在对比练习正上方）', (tester) async {
       setRealPortraitView(tester);
       await pumpControlLayer(tester);
 
-      double centerX(String key) => tester.getRect(find.byKey(Key(key))).center.dx;
+      double centerX(String key) =>
+          tester.getRect(find.byKey(Key(key))).center.dx;
       expect(
         centerX('tool_mirror'),
         closeTo(centerX('tool_speed_settings'), 0.5),
@@ -5265,11 +5418,17 @@ Finder slotText(Key slot, String text) =>
       // 两枚与各自正下方那一枚同列心（整列竖直对齐）。
       expect(
         centerX('tool_mirror'),
-        closeTo(0.7 * tester.view.physicalSize.width / tester.view.devicePixelRatio, 0.5),
+        closeTo(
+          0.7 * tester.view.physicalSize.width / tester.view.devicePixelRatio,
+          0.5,
+        ),
       );
       expect(
         centerX('tool_local_mirror'),
-        closeTo(0.9 * tester.view.physicalSize.width / tester.view.devicePixelRatio, 0.5),
+        closeTo(
+          0.9 * tester.view.physicalSize.width / tester.view.devicePixelRatio,
+          0.5,
+        ),
       );
     });
 
@@ -5283,13 +5442,18 @@ Finder slotText(Key slot, String text) =>
         if (key == 'tool_speed_settings') continue;
         final r = tester.getRect(find.byKey(Key(key)));
         expect(r.width, closeTo(kFourCharToolWidth, 0.5), reason: '$key 零缩放');
-        expect(r.height, closeTo(kToolNaturalHeight, 0.5),
-            reason: '$key 命中盒 = 看片工具槽自然盒（缩放只发生在装不下的那一枚）');
+        expect(
+          r.height,
+          closeTo(kToolNaturalHeight, 0.5),
+          reason: '$key 命中盒 = 看片工具槽自然盒（缩放只发生在装不下的那一枚）',
+        );
       }
       // 倍速槽定宽 94 > 列宽 72.2：缩到列宽（放不下等比缩小兜底）。缩后命中盒
       // 随之变小是该兜底的既有代价（低于 48dp 通行下限），
       // 这里钉住的只有「等比」本身——宽高比与未缩放形态一致。
-      final speed = tester.getRect(find.byKey(const Key('tool_speed_settings')));
+      final speed = tester.getRect(
+        find.byKey(const Key('tool_speed_settings')),
+      );
       expect(speed.width, closeTo(column, 0.5), reason: '倍速槽缩到列宽');
       expect(
         speed.width / speed.height,
@@ -5313,9 +5477,7 @@ Finder slotText(Key slot, String text) =>
         expect(
           tester.getRect(find.byKey(Key(key))).width,
           closeTo(
-            key == 'tool_speed_settings'
-                ? kSpeedToolWidth
-                : kFourCharToolWidth,
+            key == 'tool_speed_settings' ? kSpeedToolWidth : kFourCharToolWidth,
             0.5,
           ),
           reason: '$key 零缩放',
@@ -5346,11 +5508,15 @@ Finder slotText(Key slot, String text) =>
           closeTo(column, 0.5),
           reason: '$key 缩到列宽',
         );
-        expect(find.byKey(Key(key)).hitTestable(), findsOneWidget,
-            reason: '$key 可直接点到');
+        expect(
+          find.byKey(Key(key)).hitTestable(),
+          findsOneWidget,
+          reason: '$key 可直接点到',
+        );
       }
       // 缩后仍两行、列心仍等距。
-      double centerX(String key) => tester.getRect(find.byKey(Key(key))).center.dx;
+      double centerX(String key) =>
+          tester.getRect(find.byKey(Key(key))).center.dx;
       for (var i = 0; i < bottomRowTools.length; i++) {
         expect(
           centerX(bottomRowTools[i]),
@@ -5387,8 +5553,11 @@ Finder slotText(Key slot, String text) =>
         closeTo(rows.top, 0.5),
         reason: '画面区下缘即视频播放工具栏两行上缘',
       );
-      expect(rows.height, closeTo(kEditorVideoToolbarHeight, 0.5),
-          reason: '两行栏名义高（52 × 2）');
+      expect(
+        rows.height,
+        closeTo(kEditorVideoToolbarHeight, 0.5),
+        reason: '两行栏名义高（52 × 2）',
+      );
       expect(rows.bottom, lessThanOrEqualTo(cluster.top), reason: '设置条在两行之下');
       expect(cluster.top, lessThanOrEqualTo(band.top), reason: '轨道行在设置条之下');
     });
@@ -5459,7 +5628,9 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('speed_step_preset_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+      );
       await tester.pumpAndSettle();
       expect(toolIconColor(tester, 'tool_speed_settings'), kHighlightAmber);
       expect(
@@ -5490,7 +5661,11 @@ Finder slotText(Key slot, String text) =>
       // 再点一次才开节拍提示面板。
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
       await pumpPastMarquee(tester);
-      expect(find.byKey(const Key('av_sync_bubble')), findsNothing, reason: '互斥单开');
+      expect(
+        find.byKey(const Key('av_sync_bubble')),
+        findsNothing,
+        reason: '互斥单开',
+      );
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
       await pumpPastMarquee(tester);
       final panel = tester.getRect(find.byKey(const Key('beat_prompt_panel')));
@@ -5507,8 +5682,7 @@ Finder slotText(Key slot, String text) =>
     testWidgets('普通态 / 待命态 / 对比态三种竖屏编辑面一致：标题栏三枚、视频工具栏两行', (tester) async {
       setRealPortraitView(tester);
       final (_, container, _, _) = await pumpControlLayer(tester);
-      final notifier =
-          container.read(playerSessionProvider.notifier);
+      final notifier = container.read(playerSessionProvider.notifier);
 
       void expectTwoRows() {
         expect(tester.takeException(), isNull);
@@ -5519,7 +5693,10 @@ Finder slotText(Key slot, String text) =>
         // 三枚看片通用工具三态都在标题栏，七枚画面/节拍设置工具
         // 三态都不在顶栏；视频工具栏三态同为两行
         // （上排两枚 + 下排五枚）。
-        expect(find.byKey(const Key('control_layer_video_toolbar')), findsOneWidget);
+        expect(
+          find.byKey(const Key('control_layer_video_toolbar')),
+          findsOneWidget,
+        );
         for (final key in titleBarTools) {
           expect(
             inBar(find.byKey(Key(key))),
@@ -5537,16 +5714,24 @@ Finder slotText(Key slot, String text) =>
         double centerY(String key) =>
             tester.getRect(find.byKey(Key(key))).center.dy;
         for (final key in topRowTools) {
-          expect(centerY(key), closeTo(centerY(topRowTools.first), 0.5),
-              reason: '$key 在上排');
+          expect(
+            centerY(key),
+            closeTo(centerY(topRowTools.first), 0.5),
+            reason: '$key 在上排',
+          );
         }
         for (final key in bottomRowTools) {
-          expect(centerY(key), closeTo(centerY(bottomRowTools.first), 0.5),
-              reason: '$key 在下排');
+          expect(
+            centerY(key),
+            closeTo(centerY(bottomRowTools.first), 0.5),
+            reason: '$key 在下排',
+          );
         }
-        expect(centerY(topRowTools.first),
-            lessThan(centerY(bottomRowTools.first)),
-            reason: '上排在下排之上');
+        expect(
+          centerY(topRowTools.first),
+          lessThan(centerY(bottomRowTools.first)),
+          reason: '上排在下排之上',
+        );
         // 普通/待命/对比三态一致：都没有提示行。
         expect(
           find.byKey(const Key('editor_landscape_prompt')),
@@ -5610,11 +5795,16 @@ Finder slotText(Key slot, String text) =>
           tester.view.physicalSize.width / tester.view.devicePixelRatio;
       for (final key in allTools) {
         expect(inBar(find.byKey(Key(key))), findsOneWidget, reason: '$key 在顶栏');
-        expect(find.byKey(Key(key)).hitTestable(), findsOneWidget,
-            reason: '$key 可直接点到');
-        expect(tester.getRect(find.byKey(Key(key))).right,
-            lessThanOrEqualTo(screenWidth),
-            reason: '$key 在屏宽内');
+        expect(
+          find.byKey(Key(key)).hitTestable(),
+          findsOneWidget,
+          reason: '$key 可直接点到',
+        );
+        expect(
+          tester.getRect(find.byKey(Key(key))).right,
+          lessThanOrEqualTo(screenWidth),
+          reason: '$key 在屏宽内',
+        );
       }
     });
   });
@@ -5868,7 +6058,8 @@ Finder slotText(Key slot, String text) =>
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(bandWidth / 2, 2.0),
-        reason: '锚 = 预览线：90s 保持窗内比例；放大后窗口起点 > 0，让位收回'
+        reason:
+            '锚 = 预览线：90s 保持窗内比例；放大后窗口起点 > 0，让位收回'
             '满带宽摊开，90s 仍在窗内 50% → 带宽中点',
       );
     });
@@ -5925,7 +6116,8 @@ Finder slotText(Key slot, String text) =>
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(bandWidth * 0.6, 6),
-        reason: '焦点（双指中点）右移 → 窗口平移、锚时间内容跟手；'
+        reason:
+            '焦点（双指中点）右移 → 窗口平移、锚时间内容跟手；'
             '窗口 [78s,98s] 起点 > 0 后让位收回，90s 在窗内 60%'
             '→ 0.6 × 带宽',
       );
@@ -6000,11 +6192,9 @@ Finder slotText(Key slot, String text) =>
         ),
         reason: '混区双指中点位移 → 平移窗口、内容跟手',
       );
-      expect(
-        engine.seekCalls,
-        [const Duration(seconds: 90)],
-        reason: '混区会话内不做进度 seek（仅保留测试预置的那次 seek）',
-      );
+      expect(engine.seekCalls, [
+        const Duration(seconds: 90),
+      ], reason: '混区会话内不做进度 seek（仅保留测试预置的那次 seek）');
       final container = ProviderScope.containerOf(
         tester.element(find.byKey(const Key('control_layer'))),
         listen: false,
@@ -6126,11 +6316,7 @@ Finder slotText(Key slot, String text) =>
       // 新容器：重新注入与首次同值的就绪节拍态（刻度计数口径一致）。
       await injectBeatState(tester, uniformReadyBeatState(seconds: 180));
       await singleTapShow(tester);
-      expect(
-        tickCount(tester),
-        361,
-        reason: '重新打开回全片（缩放态不持久化）',
-      );
+      expect(tickCount(tester), 361, reason: '重新打开回全片（缩放态不持久化）');
       String keysOf(Map<String, dynamic> json) =>
           (json.keys.toList()..sort()).join(',');
       final serialized =
@@ -6187,11 +6373,9 @@ Finder slotText(Key slot, String text) =>
         linePosBefore,
         reason: '双指会话激活 → 控制柄拖拽让位，线不被拖动',
       );
-      expect(
-        engine.seekCalls,
-        [const Duration(seconds: 90)],
-        reason: '线拖拽让位 → 无拖线预览 seek（仅保留预置 seek）',
-      );
+      expect(engine.seekCalls, [
+        const Duration(seconds: 90),
+      ], reason: '线拖拽让位 → 无拖线预览 seek（仅保留预置 seek）');
     });
 
     testWidgets('双指起手于学习段体：缩放生效、无选中副作用', (tester) async {
@@ -6401,7 +6585,9 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('delayed_play_indicator')), findsNothing);
     });
 
-    testWidgets('非轨道区（视频可见区）单指横滑 = 全屏式微调：在播即暂停、全程无进度浮层、松手从落点续播、不收起（无浮层）', (tester) async {
+    testWidgets('非轨道区（视频可见区）单指横滑 = 全屏式微调：在播即暂停、全程无进度浮层、松手从落点续播、不收起（无浮层）', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -6428,7 +6614,10 @@ Finder slotText(Key slot, String text) =>
       await g.moveBy(const Offset(40, 0));
       await tester.pump();
       // pause 先于首次 seek（同全屏 scrub 语义：先定格再逐帧预览）。
-      expect(engine.callLog.indexOf('pause'), lessThan(engine.callLog.indexOf('seek')));
+      expect(
+        engine.callLog.indexOf('pause'),
+        lessThan(engine.callLog.indexOf('seek')),
+      );
 
       await g.up();
       await tester.pumpAndSettle();
@@ -6470,9 +6659,13 @@ Finder slotText(Key slot, String text) =>
       expect(engine.position, expected);
       // 预览线随实际目标时间移动（非手指 x）：目标时间在内容区里的 x 位置
       //（内容区左缘让出轨道片头带）。
-      final screenWidth = tester.view.physicalSize.width /
-          tester.view.devicePixelRatio;
-      final expectedX = bandX(expected.inMilliseconds / 1000, total: 180, width: screenWidth);
+      final screenWidth =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      final expectedX = bandX(
+        expected.inMilliseconds / 1000,
+        total: 180,
+        width: screenWidth,
+      );
       expect(
         tester.getCenter(find.byKey(const Key('preview_line'))).dx,
         closeTo(expectedX, 2.0),
@@ -6533,7 +6726,9 @@ Finder slotText(Key slot, String text) =>
         reason: '编辑态带内空白横滑全程不出现进度浮层',
       );
       // 预览线随目标时间移动（不贴手指）：目标 = 定格基准 + 累计位移。
-      final previewX = tester.getCenter(find.byKey(const Key('preview_line'))).dx;
+      final previewX = tester
+          .getCenter(find.byKey(const Key('preview_line')))
+          .dx;
       expect(previewX, lessThan(start.dx + 60), reason: '预览线不贴手指');
       await g.moveBy(const Offset(40, 0));
       await tester.pump();
@@ -6546,16 +6741,14 @@ Finder slotText(Key slot, String text) =>
         engine.seekCalls.first + seekDeltaFor(40, 1),
         reason: '目标按累计位移走（灵敏度同全屏单指）',
       );
-      expect(
-        engine.callLog,
-        contains('pause'),
-        reason: '带内空白横滑起手定格（微调语义）',
-      );
+      expect(engine.callLog, contains('pause'), reason: '带内空白横滑起手定格（微调语义）');
       await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
       expect(controlLayer(), findsOneWidget, reason: '带内拖动不收起');
     });
 
-    testWidgets('设备等效视口（2736×1264 @3.5）下编辑态两类横滑全程无 RenderFlex 溢出', (tester) async {
+    testWidgets('设备等效视口（2736×1264 @3.5）下编辑态两类横滑全程无 RenderFlex 溢出', (
+      tester,
+    ) async {
       useNamedViewport(tester, ViewportTier.compact, landscape: true);
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
@@ -6608,7 +6801,10 @@ Finder slotText(Key slot, String text) =>
     testWidgets('备注轨/局部镜像轨空白横滑全程无进度浮层；对比行集下备注轨同样', (tester) async {
       // 钉住视口（其余用例可能遗留 tester.view 状态）：x=400 为 800 逻辑宽
       // 的正中，备注/镜像轨该处为空白。
-      tester.view.physicalSize = const Size(1600, 900); // 合成档 800.0×450.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        900,
+      ); // 合成档 800.0×450.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
@@ -6732,9 +6928,13 @@ Finder slotText(Key slot, String text) =>
       await g.up();
       await tester.pumpAndSettle();
 
-      expect(engine.seekCalls, [const Duration(seconds: 0)],
-          reason: '段体上横滑 = 清空后只选中这一段：'
-              '只剩选中即循环的跳段首 seek，无空白横滑 scrub seek');
+      expect(
+        engine.seekCalls,
+        [const Duration(seconds: 0)],
+        reason:
+            '段体上横滑 = 清空后只选中这一段：'
+            '只剩选中即循环的跳段首 seek，无空白横滑 scrub seek',
+      );
       expect(controlLayer(), findsOneWidget);
     });
 
@@ -6812,8 +7012,7 @@ Finder slotText(Key slot, String text) =>
       );
     });
 
-    testWidgets('编辑态近右缘（倍速设置图标）：合并气泡完整进屏、右缘留边',
-        (tester) async {
+    testWidgets('编辑态近右缘（倍速设置图标）：合并气泡完整进屏、右缘留边', (tester) async {
       await pumpControlLayer(tester);
 
       // 短按倍速设置图标即开合并气泡（左倍速栏 + 右步进栏）。
@@ -6832,14 +7031,10 @@ Finder slotText(Key slot, String text) =>
     Future<String> pausedToolbarTime(WidgetTester tester) async {
       await tester.tap(find.byKey(const Key('toolbar_play')));
       await tester.pump();
-      return tester.widget<Text>(
-        find.byKey(const Key('toolbar_time')),
-      ).data!;
+      return tester.widget<Text>(find.byKey(const Key('toolbar_time'))).data!;
     }
 
-    testWidgets('时间读数显示 mm:ss:ff（帧号自 0，默认 30fps，无旧十分位残留）', (
-      tester,
-    ) async {
+    testWidgets('时间读数显示 mm:ss:ff（帧号自 0，默认 30fps，无旧十分位残留）', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -6849,14 +7044,11 @@ Finder slotText(Key slot, String text) =>
       expect(text.contains('.'), isFalse, reason: '不得残留 mm:ss.d 旧格式');
       // 帧号自 0、按默认 30fps 换算（独立于实现重算）。
       final frame = int.parse(text.split(' / ').first.split(':').last);
-      final expectedFrame =
-          engine.position.inMilliseconds % 1000 * 30 ~/ 1000;
+      final expectedFrame = engine.position.inMilliseconds % 1000 * 30 ~/ 1000;
       expect(frame, expectedFrame);
     });
 
-    testWidgets('引擎可暴露 demux-fps 时以其换算（25fps，区别于默认 30fps）', (
-      tester,
-    ) async {
+    testWidgets('引擎可暴露 demux-fps 时以其换算（25fps，区别于默认 30fps）', (tester) async {
       final engine = FakePlaybackEngine(
         duration: const Duration(minutes: 3),
         videoFps: 25,
@@ -7013,10 +7205,12 @@ Finder slotText(Key slot, String text) =>
         find.byKey(const Key('toolbar_frame_step_forward')),
         findsOneWidget,
       );
-      final delayedDx =
-          tester.getCenter(find.byKey(const Key('toolbar_delayed_play'))).dx;
-      final backDx =
-          tester.getCenter(find.byKey(const Key('toolbar_frame_step_back'))).dx;
+      final delayedDx = tester
+          .getCenter(find.byKey(const Key('toolbar_delayed_play')))
+          .dx;
+      final backDx = tester
+          .getCenter(find.byKey(const Key('toolbar_frame_step_back')))
+          .dx;
       final forwardDx = tester
           .getCenter(find.byKey(const Key('toolbar_frame_step_forward')))
           .dx;
@@ -7027,13 +7221,17 @@ Finder slotText(Key slot, String text) =>
     testWidgets('无选中暂停时右移一帧 = 预览进度 +1/30s（默认 30fps），不入撤销', (tester) async {
       final (engine, container) = await pumpPausedWithLines(tester);
 
-      final historyLengthBefore =
-          container.read(annotationEditHistoryProvider).length;
+      final historyLengthBefore = container
+          .read(annotationEditHistoryProvider)
+          .length;
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pump();
 
-      expect(engine.seekCalls.last, const Duration(seconds: 5) + kDefaultFrameDuration);
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 5) + kDefaultFrameDuration,
+      );
       // 预览步进不新增撤销命令（建线等既有历史不计）。
       expect(
         container.read(annotationEditHistoryProvider).length,
@@ -7056,7 +7254,10 @@ Finder slotText(Key slot, String text) =>
 
       expect(engine.isPlaying, isFalse);
       expect(engine.callLog.sublist(logBefore), ['pause', 'seek']);
-      expect(engine.seekCalls.last, const Duration(seconds: 5) + kDefaultFrameDuration);
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 5) + kDefaultFrameDuration,
+      );
     });
 
     testWidgets('左移一帧在起点附近钳制到 0（不越界）', (tester) async {
@@ -7097,7 +7298,9 @@ Finder slotText(Key slot, String text) =>
 
     testWidgets('选中半拍线：右移跳相邻半拍格点（10.25s → 10.75s）', (tester) async {
       final (engine, container) = await pumpPausedWithLines(tester);
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await tester.pumpAndSettle();
@@ -7115,8 +7318,11 @@ Finder slotText(Key slot, String text) =>
         const Duration(seconds: 10, milliseconds: 750),
         reason: '强制对齐：线步进跳相邻半拍格点',
       );
-      expect(container.read(selectedHalfBeatLineIndexProvider), 0,
-          reason: '步进针对选中线，不清选中');
+      expect(
+        container.read(selectedHalfBeatLineIndexProvider),
+        0,
+        reason: '步进针对选中线，不清选中',
+      );
     });
 
     testWidgets('无选中预览步进：引擎暴露 demux-fps 时步长按其换算（25fps → 40ms）', (tester) async {
@@ -7154,8 +7360,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('video_range_start_marker')));
       await tester.pumpAndSettle();
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
@@ -7164,8 +7372,10 @@ Finder slotText(Key slot, String text) =>
         container.read(annotationTimelineProvider).rangeStart,
         kDefaultFrameDuration,
       );
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
     });
 
     testWidgets('选中首线端标（就绪网格）：右移到相邻真实拍点（0 → 0.5s）', (tester) async {
@@ -7174,8 +7384,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('video_range_start_marker')));
       await tester.pumpAndSettle();
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
@@ -7184,13 +7396,17 @@ Finder slotText(Key slot, String text) =>
         container.read(annotationTimelineProvider).rangeStart,
         const Duration(milliseconds: 500),
       );
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
     });
 
     testWidgets('锁定分段开启：选中半拍线步进照常（半拍线不受锁）；无选中步进预览不受锁', (tester) async {
       final (engine, container) = await pumpPausedWithLines(tester);
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await tester.pumpAndSettle();
@@ -7223,8 +7439,11 @@ Finder slotText(Key slot, String text) =>
         greaterThan(const Duration(seconds: 5)),
         reason: '无选中 → 帧步进推进预览位置',
       );
-      expect(find.byKey(const Key('layout_lock_prompt')), findsNothing,
-          reason: '预览步进不触发锁提示');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsNothing,
+        reason: '预览步进不触发锁提示',
+      );
     });
 
     testWidgets('锁定分段开启：选中端标步进被阻止并提示（范围覆盖首尾线）', (tester) async {
@@ -7256,8 +7475,9 @@ Finder slotText(Key slot, String text) =>
     testWidgets('临时衔接段中心线选中时步进：线与临时段都不动（目标链已移除分段线）', (tester) async {
       final (engine, container) = await pumpPausedWithLines(tester);
       // 学习轨行内点线身（线 0 @12s）激活临时衔接段（同时选中该线）。
-      final lineDx =
-          tester.getCenter(find.byKey(const Key('segment_line_0'))).dx;
+      final lineDx = tester
+          .getCenter(find.byKey(const Key('segment_line_0')))
+          .dx;
       await tester.tapAt(
         Offset(lineDx, trackRowCenterY(tester, 'track_learning')),
       );
@@ -7269,8 +7489,11 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
 
-      expect(container.read(transitionSegmentProvider), transition,
-          reason: '分段线几何未变，临时段保留');
+      expect(
+        container.read(transitionSegmentProvider),
+        transition,
+        reason: '分段线几何未变，临时段保留',
+      );
       expect(
         container.read(annotationTimelineProvider).segmentLines[0].position,
         const Duration(seconds: 12),
@@ -7282,8 +7505,9 @@ Finder slotText(Key slot, String text) =>
       final (engine, container) = await pumpPausedWithLines(tester);
       // 学习轨行内点线身（线 0 @12s）激活临时衔接段（同时选中该线；激活
       // seek 到临时段起点 8s）。
-      final lineDx =
-          tester.getCenter(find.byKey(const Key('segment_line_0'))).dx;
+      final lineDx = tester
+          .getCenter(find.byKey(const Key('segment_line_0')))
+          .dx;
       await tester.tapAt(
         Offset(lineDx, trackRowCenterY(tester, 'track_learning')),
       );
@@ -7310,11 +7534,18 @@ Finder slotText(Key slot, String text) =>
       await g.up();
       await tester.pumpAndSettle();
 
-      expect(engine.seekCalls.last, const Duration(seconds: 26),
-          reason: '微调目标越出临时段范围');
-      expect(container.read(transitionSegmentProvider), isNull,
-          reason: '微调 seek 越出与其他 seek 入口同一「越出即取消激活」判定'
-              '（临时衔接段一并清除）');
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 26),
+        reason: '微调目标越出临时段范围',
+      );
+      expect(
+        container.read(transitionSegmentProvider),
+        isNull,
+        reason:
+            '微调 seek 越出与其他 seek 入口同一「越出即取消激活」判定'
+            '（临时衔接段一并清除）',
+      );
     });
   });
 
@@ -7332,7 +7563,9 @@ Finder slotText(Key slot, String text) =>
       );
       await singleTapShow(tester);
       await engine.pause();
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await tester.pumpAndSettle();
@@ -7355,11 +7588,9 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
 
-      expect(
-        engine.seekCalls.sublist(seeksBefore),
-        [const Duration(seconds: 10, milliseconds: 750)],
-        reason: '跳步移线后播放头同步到线新位置',
-      );
+      expect(engine.seekCalls.sublist(seeksBefore), [
+        const Duration(seconds: 10, milliseconds: 750),
+      ], reason: '跳步移线后播放头同步到线新位置');
       expect(engine.isPlaying, isFalse);
     });
 
@@ -7377,13 +7608,15 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(engine.callLog.sublist(logBefore), ['pause', 'seek']);
-      expect(
-        engine.seekCalls.sublist(seeksBefore),
-        [const Duration(seconds: 10, milliseconds: 750)],
-      );
+      expect(engine.seekCalls.sublist(seeksBefore), [
+        const Duration(seconds: 10, milliseconds: 750),
+      ]);
       expect(engine.isPlaying, isFalse, reason: '同步后定格，不自动续播');
-      expect(container.read(selectedHalfBeatLineIndexProvider), 0,
-          reason: '同步不清选中');
+      expect(
+        container.read(selectedHalfBeatLineIndexProvider),
+        0,
+        reason: '同步不清选中',
+      );
     });
 
     testWidgets('连续步进两步：latest-wins，播放头停在线 11.25s', (tester) async {
@@ -7401,14 +7634,10 @@ Finder slotText(Key slot, String text) =>
         container.read(annotationTimelineProvider).halfBeatLines[0].position,
         const Duration(seconds: 11, milliseconds: 250),
       );
-      expect(
-        engine.seekCalls.sublist(seeksBefore),
-        [
-          const Duration(seconds: 10, milliseconds: 750),
-          const Duration(seconds: 11, milliseconds: 250),
-        ],
-        reason: '连续步进逐步同步预览',
-      );
+      expect(engine.seekCalls.sublist(seeksBefore), [
+        const Duration(seconds: 10, milliseconds: 750),
+        const Duration(seconds: 11, milliseconds: 250),
+      ], reason: '连续步进逐步同步预览');
     });
 
     testWidgets('选中首线端标步进：播放头同步到 rangeStart 新位置', (tester) async {
@@ -7420,11 +7649,9 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
 
-      expect(
-        engine.seekCalls.sublist(seeksBefore),
-        [const Duration(milliseconds: 500)],
-        reason: '端标步进后播放头同步到首线新位置',
-      );
+      expect(engine.seekCalls.sublist(seeksBefore), [
+        const Duration(milliseconds: 500),
+      ], reason: '端标步进后播放头同步到首线新位置');
     });
 
     testWidgets('钳制 no-op 步进（线未动）不触发同步 seek', (tester) async {
@@ -7437,8 +7664,7 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('toolbar_frame_step_back')));
       await tester.pumpAndSettle();
 
-      expect(engine.seekCalls.length, seeksBefore,
-          reason: '线未移动时不做播放头同步');
+      expect(engine.seekCalls.length, seeksBefore, reason: '线未移动时不做播放头同步');
     });
   });
 
@@ -7558,12 +7784,14 @@ Finder slotText(Key slot, String text) =>
       // 目标（latest-wins 收敛语义，最终目标必达），不得再触发新的步进。
       await tester.pump(const Duration(milliseconds: 50));
       final afterRelease = engine.seekCalls.length - base;
-      expect(afterRelease, inInclusiveRange(beforeRelease, beforeRelease + 1),
-          reason: '松开瞬间不补触发新的单步');
+      expect(
+        afterRelease,
+        inInclusiveRange(beforeRelease, beforeRelease + 1),
+        reason: '松开瞬间不补触发新的单步',
+      );
 
       await tester.pump(const Duration(milliseconds: 800));
-      expect(engine.seekCalls.length - base, afterRelease,
-          reason: '松开后停止重复');
+      expect(engine.seekCalls.length - base, afterRelease, reason: '松开后停止重复');
     });
 
     testWidgets('其它按钮行为不变：播放按钮点击只切换一次，无重复', (tester) async {
@@ -7605,7 +7833,9 @@ Finder slotText(Key slot, String text) =>
       );
       await singleTapShow(tester);
       await engine.pause();
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await tester.pumpAndSettle();
@@ -7627,9 +7857,13 @@ Finder slotText(Key slot, String text) =>
 
     testWidgets('选中半拍线 + 吸附开：右移到相邻半拍格点（10.25s → 10.75s）', (tester) async {
       var haptics = 0;
-      final (engine, container) = await pumpPausedWithLine(tester, gridStepHaptic: () => haptics++);
-      final historyBefore =
-          container.read(annotationEditHistoryProvider).length;
+      final (engine, container) = await pumpPausedWithLine(
+        tester,
+        gridStepHaptic: () => haptics++,
+      );
+      final historyBefore = container
+          .read(annotationEditHistoryProvider)
+          .length;
       await selectHalfBeat(tester, engine);
       expect(container.read(selectedHalfBeatLineIndexProvider), 0);
 
@@ -7641,8 +7875,11 @@ Finder slotText(Key slot, String text) =>
         const Duration(seconds: 10, milliseconds: 750),
         reason: '半拍格点跳步：右移到下一中点（仅相邻拍点中点 0.25 倍数）',
       );
-      expect(engine.seekCalls.last, const Duration(seconds: 10, milliseconds: 750),
-          reason: '播放头同步到线新位置');
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 10, milliseconds: 750),
+        reason: '播放头同步到线新位置',
+      );
       // 单击单步入史。
       expect(
         container.read(annotationEditHistoryProvider).length,
@@ -7650,19 +7887,24 @@ Finder slotText(Key slot, String text) =>
       );
       // 轻震一次。
       expect(haptics, 1);
-      expect(container.read(selectedHalfBeatLineIndexProvider), 0,
-          reason: '格点跳步不清选中');
+      expect(
+        container.read(selectedHalfBeatLineIndexProvider),
+        0,
+        reason: '格点跳步不清选中',
+      );
     });
 
     testWidgets('线不在半拍格点上：右移严格越过当前位置（10.4s → 10.75s，不回头）', (tester) async {
       final (engine, container) = await pumpPausedWithLine(tester);
       // 模块写入把线移到格点之间（10.25s+150ms，非中点）。
-      container.read(annotationEditorProvider).submit(
-        const MoveHalfBeatLine(
-          index: 0,
-          to: Duration(seconds: 10, milliseconds: 400),
-        ),
-      );
+      container
+          .read(annotationEditorProvider)
+          .submit(
+            const MoveHalfBeatLine(
+              index: 0,
+              to: Duration(seconds: 10, milliseconds: 400),
+            ),
+          );
       await tester.pumpAndSettle();
       await selectHalfBeat(tester, engine);
 
@@ -7687,7 +7929,10 @@ Finder slotText(Key slot, String text) =>
         container.read(annotationTimelineProvider).halfBeatLines[0].position,
         const Duration(seconds: 9, milliseconds: 750),
       );
-      expect(engine.seekCalls.last, const Duration(seconds: 9, milliseconds: 750));
+      expect(
+        engine.seekCalls.last,
+        const Duration(seconds: 9, milliseconds: 750),
+      );
     });
 
     testWidgets('无相邻半拍格点：线在末中点之后右移 no-op（线不动、不入史、无轻震）', (tester) async {
@@ -7701,7 +7946,9 @@ Finder slotText(Key slot, String text) =>
       // 把半拍线放到末中点（3.75s）之后：交互提交经模块落点
       // 解析、线不可能停在末中点之外，off-grid 旧数据经恢复装载（免吸附
       // 路径）就位。
-      container.read(annotationEditorProvider).restoreDocument(
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
             AnnotationRestoreDocument(
               timeline: AnnotationTimeline.normalized(
                 videoDuration: const Duration(seconds: 30),
@@ -7718,8 +7965,9 @@ Finder slotText(Key slot, String text) =>
           );
       await tester.pumpAndSettle();
       await selectHalfBeat(tester, engine);
-      final historyBefore =
-          container.read(annotationEditHistoryProvider).length;
+      final historyBefore = container
+          .read(annotationEditHistoryProvider)
+          .length;
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pumpAndSettle();
@@ -7739,7 +7987,10 @@ Finder slotText(Key slot, String text) =>
 
     testWidgets('选中半拍线 + 吸附开：按住不连续快进（1s 长按只移一格）', (tester) async {
       var haptics = 0;
-      final (engine, container) = await pumpPausedWithLine(tester, gridStepHaptic: () => haptics++);
+      final (engine, container) = await pumpPausedWithLine(
+        tester,
+        gridStepHaptic: () => haptics++,
+      );
       await selectHalfBeat(tester, engine);
 
       final gesture = await tester.startGesture(
@@ -7770,14 +8021,18 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('video_range_start_marker')));
       await tester.pumpAndSettle();
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.start);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.start,
+      );
 
       // 首拍点（0s）左移无前一拍点：no-op。
       await tester.tap(find.byKey(const Key('toolbar_frame_step_back')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationTimelineProvider).rangeStart,
-          Duration.zero);
+      expect(
+        container.read(annotationTimelineProvider).rangeStart,
+        Duration.zero,
+      );
       expect(haptics, 0);
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
@@ -7802,8 +8057,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.tap(find.byKey(const Key('video_range_end_marker')));
       await tester.pumpAndSettle();
-      expect(container.read(selectedVideoRangeBoundaryProvider),
-          VideoRangeBoundary.end);
+      expect(
+        container.read(selectedVideoRangeBoundaryProvider),
+        VideoRangeBoundary.end,
+      );
 
       await tester.tap(find.byKey(const Key('toolbar_frame_step_back')));
       await tester.pumpAndSettle();
@@ -7880,8 +8137,6 @@ Finder slotText(Key slot, String text) =>
       expect(restored.rangeEnd, engine.duration);
       expect(restored.segmentLines, isEmpty);
     });
-
-
   });
 
   group('自动分段档位菜单', () {
@@ -7916,16 +8171,19 @@ Finder slotText(Key slot, String text) =>
       expect(find.text('清空分段'), findsOneWidget);
       expect(find.text('4 个八拍/段'), findsOneWidget);
       expect(find.text('8 个八拍/段'), findsOneWidget);
-      expect(renderedAutoEntryKeys(tester),
-          AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList(),
-          reason: '条目表声明 == 菜单实际渲染（逐位相等）');
+      expect(
+        renderedAutoEntryKeys(tester),
+        AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList(),
+        reason: '条目表声明 == 菜单实际渲染（逐位相等）',
+      );
 
       // 向上弹出：条目整体在槽上缘之上（工具区在屏幕底部）。
-      final slotTop =
-          tester.getTopLeft(find.byKey(const Key('control_auto_range'))).dy;
-      final itemTop = tester.getTopLeft(
-        find.byKey(const Key('control_auto_clear')),
-      ).dy;
+      final slotTop = tester
+          .getTopLeft(find.byKey(const Key('control_auto_range')))
+          .dy;
+      final itemTop = tester
+          .getTopLeft(find.byKey(const Key('control_auto_clear')))
+          .dy;
       expect(itemTop, lessThan(slotTop), reason: '菜单锚定槽位向上弹出');
 
       // 收起菜单（点外部）。
@@ -7947,26 +8205,39 @@ Finder slotText(Key slot, String text) =>
       // 菜单那条持有（锁定 + 选中分段线 → 「标记分段线」置灰）。
       await tester.tap(find.byKey(const Key('control_auto_range')));
       await tester.pumpAndSettle();
-      expect(renderedAutoEntryKeys(tester), isEmpty,
-          reason: '锁定压倒菜单展开：条目不可用的自动分段菜单形态不可达');
+      expect(
+        renderedAutoEntryKeys(tester),
+        isEmpty,
+        reason: '锁定压倒菜单展开：条目不可用的自动分段菜单形态不可达',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget);
     });
 
-    testWidgets('「8 个八拍/段」提交：自动首尾 + 按档位划分切割线（4 拍网格不足 8 档 → 无切割线）', (tester) async {
+    testWidgets('「8 个八拍/段」提交：自动首尾 + 按档位划分切割线（4 拍网格不足 8 档 → 无切割线）', (
+      tester,
+    ) async {
       final (engine, container) = await pumpAutoReady(tester);
       final before = container.read(annotationEditHistoryProvider).length;
 
       await tapAutoEntry(tester, 'control_auto_seg_8');
 
       final timeline = container.read(annotationTimelineProvider);
-      expect(timeline.rangeStart, const Duration(milliseconds: 500),
-          reason: '首 = 网格首拍');
-      expect(timeline.rangeEnd, const Duration(seconds: 2),
-          reason: '尾 = 网格末拍');
-      expect(timeline.segmentLines, isEmpty,
-          reason: '4 拍网格不足 8 个整八拍：无切割线、整段一段');
-      expect(container.read(annotationEditHistoryProvider).length,
-          before + 1, reason: '一次提交 = 一步标注编辑');
+      expect(
+        timeline.rangeStart,
+        const Duration(milliseconds: 500),
+        reason: '首 = 网格首拍',
+      );
+      expect(timeline.rangeEnd, const Duration(seconds: 2), reason: '尾 = 网格末拍');
+      expect(
+        timeline.segmentLines,
+        isEmpty,
+        reason: '4 拍网格不足 8 个整八拍：无切割线、整段一段',
+      );
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        before + 1,
+        reason: '一次提交 = 一步标注编辑',
+      );
 
       // 一步撤销回整片范围。
       container.read(annotationEditorProvider).undo();
@@ -7995,7 +8266,9 @@ Finder slotText(Key slot, String text) =>
 
       container.read(annotationEditorProvider).undo();
       expect(
-        container.read(annotationTimelineProvider).segmentLines
+        container
+            .read(annotationTimelineProvider)
+            .segmentLines
             .map((l) => l.position),
         before.segmentLines.map((l) => l.position),
         reason: '一步撤销恢复',
@@ -8006,8 +8279,7 @@ Finder slotText(Key slot, String text) =>
       await pumpAutoReady(tester);
 
       await openAddMenu(tester);
-      expect(renderedAddEntryKeys(tester), isNotEmpty,
-          reason: '前置：「添加」菜单开着');
+      expect(renderedAddEntryKeys(tester), isNotEmpty, reason: '前置：「添加」菜单开着');
 
       // 菜单外点击（含另一枚菜单槽）先被点外收起遮罩承接：收「添加」菜单，
       // 不直接开新菜单——任意时刻至多一个工具菜单开着。
@@ -8018,8 +8290,10 @@ Finder slotText(Key slot, String text) =>
 
       // 再点一次才打开「自动分段」菜单。
       await openAutoMenu(tester);
-      expect(renderedAutoEntryKeys(tester),
-          AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList());
+      expect(
+        renderedAutoEntryKeys(tester),
+        AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList(),
+      );
     });
 
     testWidgets('对比态：自动分段槽在册、同一菜单形态可用（提交走同一条目路径）', (tester) async {
@@ -8034,9 +8308,11 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('control_auto_range')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(renderedAutoEntryKeys(tester),
-          AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList(),
-          reason: '前置：对比态菜单开着');
+      expect(
+        renderedAutoEntryKeys(tester),
+        AutoSegmentEntryTable.normal.entries.map((e) => e.key).toList(),
+        reason: '前置：对比态菜单开着',
+      );
       // 条目置灰观感（可用性 token）仍可点（锁定 / 未就绪同款判定）。
       await tester.tap(find.byKey(const Key('control_auto_seg_4')));
       await tester.pump(const Duration(milliseconds: 50));
@@ -8073,8 +8349,10 @@ Finder slotText(Key slot, String text) =>
       await injectBeatState(tester, readyBeatState());
       await tester.pump();
       await tapAutoEntry(tester, 'control_auto_seg_4');
-      expect(container.read(annotationTimelineProvider).rangeStart,
-          const Duration(milliseconds: 500));
+      expect(
+        container.read(annotationTimelineProvider).rangeStart,
+        const Duration(milliseconds: 500),
+      );
     });
 
     testWidgets('锁定 + 网格未就绪：单击只弹「已锁定分段」（锁定压倒未就绪）、菜单不开、不改状态', (tester) async {
@@ -8095,13 +8373,22 @@ Finder slotText(Key slot, String text) =>
 
       await tester.tap(find.byKey(const Key('control_auto_range')));
       await tester.pumpAndSettle();
-      expect(renderedAutoEntryKeys(tester), isEmpty,
-          reason: '锁定压倒未就绪：单击只弹原因、菜单不开');
-      expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget,
-          reason: '锁定原因优先于网格未就绪');
+      expect(
+        renderedAutoEntryKeys(tester),
+        isEmpty,
+        reason: '锁定压倒未就绪：单击只弹原因、菜单不开',
+      );
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsOneWidget,
+        reason: '锁定原因优先于网格未就绪',
+      );
       expect(find.byKey(const Key('beat_analyzing_prompt')), findsNothing);
-      expect(container.read(annotationTimelineProvider).rangeStart,
-          Duration.zero, reason: '不改任何状态');
+      expect(
+        container.read(annotationTimelineProvider).rangeStart,
+        Duration.zero,
+        reason: '不改任何状态',
+      );
     });
 
     testWidgets('网格未就绪：槽单击弹既有原因提示、菜单不开', (tester) async {
@@ -8112,8 +8399,11 @@ Finder slotText(Key slot, String text) =>
       await engine.pause();
       await tester.pump();
 
-      expect(slotEnabled(tester, 'control_auto_range'), isTrue,
-          reason: '网格未就绪置灰仍可点（既有判定表）');
+      expect(
+        slotEnabled(tester, 'control_auto_range'),
+        isTrue,
+        reason: '网格未就绪置灰仍可点（既有判定表）',
+      );
       await tester.tap(find.byKey(const Key('control_auto_range')));
       await tester.pumpAndSettle();
 
@@ -8123,7 +8413,9 @@ Finder slotText(Key slot, String text) =>
   });
 
   group('「添加」槽与添加条目菜单', () {
-    testWidgets('正常态渲染「添加」槽（原两创建类槽不再渲染）；跨面一致性：条目表声明的条目键 == 菜单实际渲染逐位相等；菜单向上弹出', (tester) async {
+    testWidgets('正常态渲染「添加」槽（原两创建类槽不再渲染）；跨面一致性：条目表声明的条目键 == 菜单实际渲染逐位相等；菜单向上弹出', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -8164,10 +8456,12 @@ Finder slotText(Key slot, String text) =>
       ], reason: '菜单渲染次序 = 条目表声明次序');
 
       // 向上弹出：条目整体在「添加」槽上缘之上（工具区在屏幕底部）。
-      final slotTop = tester.getTopLeft(find.byKey(const Key('control_add'))).dy;
-      final itemTop = tester.getTopLeft(
-        find.byKey(const Key('control_half_beat')),
-      ).dy;
+      final slotTop = tester
+          .getTopLeft(find.byKey(const Key('control_add')))
+          .dy;
+      final itemTop = tester
+          .getTopLeft(find.byKey(const Key('control_half_beat')))
+          .dy;
       expect(itemTop, lessThan(slotTop), reason: '菜单锚定槽位向上弹出');
 
       // 收起菜单（点外部）。
@@ -8200,7 +8494,11 @@ Finder slotText(Key slot, String text) =>
 
     testWidgets('门逐位一致：预览线越界 → 菜单照常打开、半拍线置灰不可点、局部镜像片段照常可点', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
-      await pumpPlayer(tester, engine: engine, beatPipeline: hangingBeatPipeline);
+      await pumpPlayer(
+        tester,
+        engine: engine,
+        beatPipeline: hangingBeatPipeline,
+      );
       await injectBeatState(tester, readyBeatState());
       await singleTapShow(tester);
       final container = ProviderScope.containerOf(
@@ -8220,27 +8518,33 @@ Finder slotText(Key slot, String text) =>
       await openAddMenu(tester);
       // 半拍线条目置灰且不可点；局部镜像片段条目照常可点。
       expect(
-        (tester.widget(find.byKey(const Key('control_half_beat'))) as dynamic)
-            .enabled,
+        (tester.widget(
+          find.byKey(const Key('control_half_beat')),
+        ) as dynamic).enabled,
         isFalse,
         reason: '越界只挡半拍线条目',
       );
       expect(
         (tester.widget(
           find.byKey(const Key('control_local_mirror')),
-        ) as dynamic)
-            .enabled,
+        ) as dynamic).enabled,
         isTrue,
       );
       // 半拍线不可点 → 点击不插入、菜单保持打开；局部镜像片段可选 → 提交片段插入。
       await tester.tap(find.byKey(const Key('control_half_beat')));
       await tester.pump();
-      expect(container.read(annotationTimelineProvider).halfBeatLines, isEmpty,
-          reason: '置灰条目不可点');
+      expect(
+        container.read(annotationTimelineProvider).halfBeatLines,
+        isEmpty,
+        reason: '置灰条目不可点',
+      );
       await tester.tap(find.byKey(const Key('control_local_mirror')));
       await tester.pumpAndSettle();
-      expect(container.read(localMirrorFragmentsProvider), hasLength(1),
-          reason: '局部镜像片段不受越界约束');
+      expect(
+        container.read(localMirrorFragmentsProvider),
+        hasLength(1),
+        reason: '局部镜像片段不受越界约束',
+      );
     });
 
     testWidgets('门逐位一致：锁定分段不受「添加」/半拍线约束——钮正常色、菜单照开、选条目照常插入', (tester) async {
@@ -8258,16 +8562,17 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
 
       // 「添加」钮不受锁：正常色、可点，菜单照常打开。
-      expect(slotIconColor(tester, 'control_add'),
-          kToolSlotEnabledIconColor);
+      expect(slotIconColor(tester, 'control_add'), kToolSlotEnabledIconColor);
       expect(slotEnabled(tester, 'control_add'), isTrue);
       await openAddMenu(tester);
       expect(find.text('半拍标记'), findsOneWidget);
       // 选「半拍线」→ 照常插入（锁只护分段结构），不弹锁提示。
       await tester.tap(find.byKey(const Key('control_half_beat')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationTimelineProvider).halfBeatLines,
-          hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).halfBeatLines,
+        hasLength(1),
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
     });
 
@@ -8346,8 +8651,9 @@ Finder slotText(Key slot, String text) =>
         contains(badgeThreeFingerJumpUnitId),
       );
       expect(
-        container.read(guideSessionProvider).artifactIndexes[
-            badgeThreeFingerJumpUnitId],
+        container
+            .read(guideSessionProvider)
+            .artifactIndexes[badgeThreeFingerJumpUnitId],
         flaggedIndex,
       );
     });
@@ -8368,9 +8674,9 @@ Finder slotText(Key slot, String text) =>
       container
           .read(annotationEditorProvider)
           .submit(AddSegmentLine(at: const Duration(seconds: 8)));
-      container.read(annotationEditorProvider).submit(
-            const ToggleSegmentFlag(index: 0),
-          );
+      container
+          .read(annotationEditorProvider)
+          .submit(const ToggleSegmentFlag(index: 0));
       await tester.pumpAndSettle();
       await tapSegmentLineHandle(tester, 0);
       await tester.pumpAndSettle();
@@ -8395,15 +8701,20 @@ Finder slotText(Key slot, String text) =>
         reason: '「标记分段线」同规：取消不触发也不消耗',
       );
       expect(
-        container.read(guideSessionProvider).artifactIndexes[
-            badgeThreeFingerJumpUnitId],
+        container
+            .read(guideSessionProvider)
+            .artifactIndexes[badgeThreeFingerJumpUnitId],
         isNull,
       );
     });
 
     testWidgets('入口不可用（预览线越界）：点条目动作不发生 → 不触达、不记序号', (tester) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
-      await pumpPlayer(tester, engine: engine, beatPipeline: hangingBeatPipeline);
+      await pumpPlayer(
+        tester,
+        engine: engine,
+        beatPipeline: hangingBeatPipeline,
+      );
       await injectBeatState(tester, readyBeatState());
       await singleTapShow(tester);
       final container = ProviderScope.containerOf(
@@ -8438,7 +8749,8 @@ Finder slotText(Key slot, String text) =>
       );
       expect(
         container
-            .read(guideSessionProvider).artifactIndexes
+            .read(guideSessionProvider)
+            .artifactIndexes
             .containsKey(badgeHalfBeatUnitId),
         isFalse,
       );
@@ -8478,15 +8790,18 @@ Finder slotText(Key slot, String text) =>
 
       // 同一格点上再落一次 = 无净变化（EditNoop）：没落成，不触达不消耗。
       await tapAddEntry(tester, 'control_half_beat');
-      expect(container.read(annotationTimelineProvider).halfBeatLines,
-          hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).halfBeatLines,
+        hasLength(1),
+      );
       expect(
         container.read(guideSessionProvider).triggered,
         isNot(contains(badgeHalfBeatUnitId)),
       );
       expect(
         container
-            .read(guideSessionProvider).artifactIndexes
+            .read(guideSessionProvider)
+            .artifactIndexes
             .containsKey(badgeHalfBeatUnitId),
         isFalse,
       );
@@ -8524,13 +8839,17 @@ Finder slotText(Key slot, String text) =>
       // 编辑器立即弹出，文本区为空（新建即弹）。
       expect(find.byKey(const Key('note_text_editor')), findsOneWidget);
       expect(
-        tester.widget<TextField>(
-          find.byKey(const Key('note_text_editor_field')),
-        ).controller!.text,
+        tester
+            .widget<TextField>(find.byKey(const Key('note_text_editor_field')))
+            .controller!
+            .text,
         '',
       );
-      expect(container.read(annotationEditHistoryProvider).length, 1,
-          reason: '创建为一个独立撤销步');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        1,
+        reason: '创建为一个独立撤销步',
+      );
 
       // 写入文本、收起即存：文本命令入史、编辑器面收起。
       await tester.enterText(
@@ -8542,8 +8861,11 @@ Finder slotText(Key slot, String text) =>
 
       expect(find.byKey(const Key('note_text_editor')), findsNothing);
       expect(container.read(noteStickersProvider).single.text, '这里注意手');
-      expect(container.read(annotationEditHistoryProvider).length, 2,
-          reason: '文本命令为第二个独立撤销步');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        2,
+        reason: '文本命令为第二个独立撤销步',
+      );
     });
 
     testWidgets('收起时文本未变不产生额外撤销步', (tester) async {
@@ -8555,20 +8877,25 @@ Finder slotText(Key slot, String text) =>
       );
       await tester.tap(find.byKey(const Key('note_editor_done')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationEditHistoryProvider).length, 2,
-          reason: '创建 + 写文本各一步');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        2,
+        reason: '创建 + 写文本各一步',
+      );
 
       // 预览线停在窗内（10s..14s）：再点条目转编辑、载入既有文本，
       // 原样收起 = 无净变化 → 不产生额外撤销步。
       await engine.seek(const Duration(seconds: 13));
       await tester.pump();
-      final stepsBefore =
-          container.read(annotationEditHistoryProvider).length;
+      final stepsBefore = container.read(annotationEditHistoryProvider).length;
       await tapAddEntry(tester, 'control_note_sticker');
       await tester.tap(find.byKey(const Key('note_editor_done')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationEditHistoryProvider).length, stepsBefore,
-          reason: '文本未变，收起不入史');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        stepsBefore,
+        reason: '文本未变，收起不入史',
+      );
     });
 
     testWidgets('建出备注后一个字没写就收起：片段不留（空文本不是可保存状态）', (tester) async {
@@ -8606,10 +8933,16 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
-      expect(container.read(noteStickersProvider), isEmpty,
-          reason: '空文本 = 删除备注，锁定分段不挡备注删除');
-      expect(find.byKey(const Key('note_text_editor')), findsNothing,
-          reason: '收起照常发生');
+      expect(
+        container.read(noteStickersProvider),
+        isEmpty,
+        reason: '空文本 = 删除备注，锁定分段不挡备注删除',
+      );
+      expect(
+        find.byKey(const Key('note_text_editor')),
+        findsNothing,
+        reason: '收起照常发生',
+      );
     });
 
     testWidgets('编辑目标失效（备注被撤销移除）时编辑器面收起、不残留空面板', (tester) async {
@@ -8634,8 +8967,7 @@ Finder slotText(Key slot, String text) =>
       expect(
         (tester.widget(
           find.byKey(const Key('control_note_sticker')),
-        ) as dynamic)
-            .enabled,
+        ) as dynamic).enabled,
         isTrue,
         reason: '备注贴纸不受锁定分段',
       );
@@ -8666,15 +8998,22 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tapAddEntry(tester, 'control_note_sticker');
 
-      expect(container.read(noteStickersProvider), hasLength(1),
-          reason: '落点已占不新建');
-      expect(container.read(annotationEditHistoryProvider).length, 2,
-          reason: '转编辑不入史（建 1 + 文本 1）');
+      expect(
+        container.read(noteStickersProvider),
+        hasLength(1),
+        reason: '落点已占不新建',
+      );
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        2,
+        reason: '转编辑不入史（建 1 + 文本 1）',
+      );
       expect(find.byKey(const Key('note_text_editor')), findsOneWidget);
       expect(
-        tester.widget<TextField>(
-          find.byKey(const Key('note_text_editor_field')),
-        ).controller!.text,
+        tester
+            .widget<TextField>(find.byKey(const Key('note_text_editor_field')))
+            .controller!
+            .text,
         '这里注意手',
         reason: '打开的是既有备注的编辑器',
       );
@@ -8711,9 +9050,9 @@ Finder slotText(Key slot, String text) =>
       );
       await tester.tap(find.byKey(const Key('note_editor_done')));
       await tester.pumpAndSettle();
-      container.read(annotationEditorProvider).submit(
-        const SetNoteGeometry(index: 0, geometry: inherited),
-      );
+      container
+          .read(annotationEditorProvider)
+          .submit(const SetNoteGeometry(index: 0, geometry: inherited));
       await tester.pump();
 
       // 预览线移到 20s 的空档再建一条：它落在左邻的位置与大小上。
@@ -8726,7 +9065,6 @@ Finder slotText(Key slot, String text) =>
       expect(notes.last.startMs, 20000);
       expect(notes.last.geometry, inherited);
     });
-
   });
 
   group('局部镜像槽与片段删除', () {
@@ -8779,12 +9117,12 @@ Finder slotText(Key slot, String text) =>
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '选中片段后删除可用');
       expect(
-        container.read(selectedLocalMirrorFragmentIndexProvider),
-        0,
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '选中片段后删除可用',
       );
+      expect(container.read(selectedLocalMirrorFragmentIndexProvider), 0);
 
       // 删除经模块 verb：片段移除 + 选中清除。
       await tester.tap(find.byKey(const Key('control_segment_delete')));
@@ -8850,13 +9188,15 @@ Finder slotText(Key slot, String text) =>
       container.read(localMirrorEnabledProvider.notifier).replace(true);
       await tester.pump();
       await freezePlayheadAt(tester, engine, Duration(milliseconds: f.startMs));
-      expect(surfaceMirrored(tester), isTrue,
-          reason: '总开关重开 → 同位置又翻转（翻转随总开关）');
+      expect(surfaceMirrored(tester), isTrue, reason: '总开关重开 → 同位置又翻转（翻转随总开关）');
 
       // ④ 删除：单击选中（点选只选中）后删除可用，经模块 verb 移除。
       await tapFragment(tester, 0);
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '选中片段后删除可用');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '选中片段后删除可用',
+      );
       await tester.tap(find.byKey(const Key('control_segment_delete')));
       await tester.pumpAndSettle();
       expect(container.read(localMirrorFragmentsProvider), isEmpty);
@@ -8894,8 +9234,11 @@ Finder slotText(Key slot, String text) =>
       );
       await tester.tap(find.byKey(const Key('control_local_mirror')));
       await tester.pumpAndSettle();
-      expect(container.read(localMirrorFragmentsProvider), hasLength(2),
-          reason: '锁下局部镜像条目照常建片段');
+      expect(
+        container.read(localMirrorFragmentsProvider),
+        hasLength(2),
+        reason: '锁下局部镜像条目照常建片段',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
 
       // 删除：局部镜像片段不受锁，照常删除。
@@ -8909,14 +9252,20 @@ Finder slotText(Key slot, String text) =>
       // 撤销/重做照常回放。
       await tester.tap(find.byKey(const Key('tool_undo')));
       await tester.pumpAndSettle();
-      expect(container.read(localMirrorFragmentsProvider), hasLength(2),
-          reason: '撤销仍回放删除步');
+      expect(
+        container.read(localMirrorFragmentsProvider),
+        hasLength(2),
+        reason: '撤销仍回放删除步',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
 
       await tester.tap(find.byKey(const Key('tool_redo')));
       await tester.pumpAndSettle();
-      expect(container.read(localMirrorFragmentsProvider), hasLength(1),
-          reason: '重做仍回放删除步');
+      expect(
+        container.read(localMirrorFragmentsProvider),
+        hasLength(1),
+        reason: '重做仍回放删除步',
+      );
       expect(find.byKey(const Key('layout_lock_prompt')), findsNothing);
     });
   });
@@ -8928,19 +9277,13 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
     }
 
-    testWidgets('两槽几何：「局部镜像」紧邻「全局镜像」右侧、同一分隔段内（槽文案与次序归表直测）', (
-      tester,
-    ) async {
+    testWidgets('两槽几何：「局部镜像」紧邻「全局镜像」右侧、同一分隔段内（槽文案与次序归表直测）', (tester) async {
       await pumpControlLayer(tester);
 
       final global = tester.getRect(find.byKey(const Key('tool_mirror')));
       final local = tester.getRect(find.byKey(const Key('tool_local_mirror')));
       expect(local.top, global.top, reason: '两槽同排（同一分隔段内）');
-      expect(
-        local.left,
-        closeTo(global.right, 0.5),
-        reason: '紧邻右侧、中间无分隔线',
-      );
+      expect(local.left, closeTo(global.right, 0.5), reason: '紧邻右侧、中间无分隔线');
     });
 
     testWidgets('有片段：点一下标黄、总开关即生效；再点取消', (tester) async {
@@ -8964,8 +9307,11 @@ Finder slotText(Key slot, String text) =>
         toolIconColor(tester, 'tool_local_mirror'),
         isNot(kHighlightAmber),
       );
-      expect(container.read(localMirrorEnabledProvider), isFalse,
-          reason: '一点即生效');
+      expect(
+        container.read(localMirrorEnabledProvider),
+        isFalse,
+        reason: '一点即生效',
+      );
 
       // 三点再开：立即恢复生效。
       await tester.tap(find.byKey(const Key('tool_local_mirror')));
@@ -8989,11 +9335,20 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
 
       expect(find.text('请添加局部镜像片段'), findsOneWidget);
-      expect(find.byKey(const Key('local_mirror_empty_prompt')), findsOneWidget);
-      expect(container.read(localMirrorEnabledProvider), valueBefore,
-          reason: '软门点击不产生状态变化');
-      expect(container.read(annotationEditHistoryProvider).length, depthBefore,
-          reason: '不入撤销/重做史');
+      expect(
+        find.byKey(const Key('local_mirror_empty_prompt')),
+        findsOneWidget,
+      );
+      expect(
+        container.read(localMirrorEnabledProvider),
+        valueBefore,
+        reason: '软门点击不产生状态变化',
+      );
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        depthBefore,
+        reason: '不入撤销/重做史',
+      );
       expect(docs.markersSnapshot, isEmpty, reason: '不写盘');
 
       // 居中轻提示短暂后自动消失（时长取模块表值，不再 import 生产常量）。
@@ -9029,8 +9384,11 @@ Finder slotText(Key slot, String text) =>
         kToolSlotDisabledIconColor,
         reason: '删掉最后一条 → 按钮回置灰',
       );
-      expect(container.read(localMirrorEnabledProvider), isFalse,
-          reason: '取值保留（不自我打开）');
+      expect(
+        container.read(localMirrorEnabledProvider),
+        isFalse,
+        reason: '取值保留（不自我打开）',
+      );
 
       // 再加片段：沿用上次取值之上，按「创建即生效」自动打开新建那一条。
       await addFragment(tester);
@@ -9051,12 +9409,21 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('tool_local_mirror')));
       await tester.pump();
 
-      expect(container.read(localMirrorEnabledProvider), isFalse,
-          reason: '锁定期间照常生效');
-      expect(find.byKey(const Key('layout_lock_prompt')), findsNothing,
-          reason: '视图开关不走标注门禁，不弹「已锁定分段」');
-      expect(container.read(annotationEditHistoryProvider).length, depth,
-          reason: '切换前后撤销栈深度不变（不入史）');
+      expect(
+        container.read(localMirrorEnabledProvider),
+        isFalse,
+        reason: '锁定期间照常生效',
+      );
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsNothing,
+        reason: '视图开关不走标注门禁，不弹「已锁定分段」',
+      );
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        depth,
+        reason: '切换前后撤销栈深度不变（不入史）',
+      );
     });
 
     testWidgets('切换即写盘：公开标记文件里读得到该字段；本机缓存（视频索引）同步回写', (tester) async {
@@ -9083,9 +9450,9 @@ Finder slotText(Key slot, String text) =>
       );
       final index = await container.read(videoIndexStoreProvider).load();
       expect(
-        index.findByFilePath(
-          Uri.file('/videos/a.mp4').toFilePath(),
-        )!.localMirrorEnabled,
+        index
+            .findByFilePath(Uri.file('/videos/a.mp4').toFilePath())!
+            .localMirrorEnabled,
         isFalse,
         reason: '本机缓存同步回写',
       );
@@ -9107,8 +9474,11 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await addFragment(tester);
 
-      expect(container.read(localMirrorFragmentsProvider), hasLength(2),
-          reason: '局部镜像片段不受锁定分段');
+      expect(
+        container.read(localMirrorFragmentsProvider),
+        hasLength(2),
+        reason: '局部镜像片段不受锁定分段',
+      );
       expect(
         container.read(localMirrorEnabledProvider),
         isTrue,
@@ -9134,11 +9504,13 @@ Finder slotText(Key slot, String text) =>
       );
 
       // 杀进程重开：新挂载（新 ProviderScope / 新容器）、同一持久化文档。
-      final (_, reopened, _, _) =
-          await pumpControlLayer(tester, docs: docs);
+      final (_, reopened, _, _) = await pumpControlLayer(tester, docs: docs);
 
-      expect(reopened.read(localMirrorEnabledProvider), isFalse,
-          reason: '重开按标记文件真值恢复，不回到缺省');
+      expect(
+        reopened.read(localMirrorEnabledProvider),
+        isFalse,
+        reason: '重开按标记文件真值恢复，不回到缺省',
+      );
     });
   });
 
@@ -9203,95 +9575,136 @@ Finder slotText(Key slot, String text) =>
       );
     }
 
-    testWidgets('主路径：添加菜单建片段（总开关自动打开）→ 顶栏变黄 → 区间内反相/离开恢复 → 取消（画面恢复且轨道全灰）→ 再开（恢复琥珀且反相）', (
-      tester,
-    ) async {
-      // 与模块 verb / provider 直写的两组不同：那条链上「建」与「启停」
-      // provider 直写，轨道块颜色与顶栏琥珀态分属两组；本用例把「添加菜单
-      // → 顶栏开关 → 轨道块颜色 → 画面翻转」收成一条全程经真实 PlayerPage
-      // UI 的链，并断言落盘真值。
-      // 播放头位置经 [FakePlaybackEngine]（生产 [PlaybackEngine] 契约的测试
-      // 实现）建立，不直写任何 provider/私有状态；UI 通路改位置另由本组的
-      // 步进与拖动定格两用例覆盖。
-      // 起点是升级后真实存在的状态：标记文件里总开关为关（用户上次关过）、
-      // 没有任何片段。
-      final (engine, container, docs) = await pumpMirrorPlayer(tester, markers: {
-        'version': 8,
-        'meta': {'mirrored': false, 'localMirrorEnabled': false},
-      });
-      expect(container.read(localMirrorEnabledProvider), isFalse,
-          reason: '打开读到 markers 真值');
-      expect(container.read(localMirrorFragmentsProvider), isEmpty,
-          reason: '起点无片段');
-      expect(
-        toolIconColor(tester, 'tool_local_mirror'),
-        kToolSlotDisabledIconColor,
-        reason: '无片段 → 顶栏「局部镜像」置灰',
-      );
-      expect(surfaceMirrored(tester), isFalse, reason: '起点画面不翻转');
+    testWidgets(
+      '主路径：添加菜单建片段（总开关自动打开）→ 顶栏变黄 → 区间内反相/离开恢复 → 取消（画面恢复且轨道全灰）→ 再开（恢复琥珀且反相）',
+      (tester) async {
+        // 与模块 verb / provider 直写的两组不同：那条链上「建」与「启停」
+        // provider 直写，轨道块颜色与顶栏琥珀态分属两组；本用例把「添加菜单
+        // → 顶栏开关 → 轨道块颜色 → 画面翻转」收成一条全程经真实 PlayerPage
+        // UI 的链，并断言落盘真值。
+        // 播放头位置经 [FakePlaybackEngine]（生产 [PlaybackEngine] 契约的测试
+        // 实现）建立，不直写任何 provider/私有状态；UI 通路改位置另由本组的
+        // 步进与拖动定格两用例覆盖。
+        // 起点是升级后真实存在的状态：标记文件里总开关为关（用户上次关过）、
+        // 没有任何片段。
+        final (engine, container, docs) = await pumpMirrorPlayer(
+          tester,
+          markers: {
+            'version': 8,
+            'meta': {'mirrored': false, 'localMirrorEnabled': false},
+          },
+        );
+        expect(
+          container.read(localMirrorEnabledProvider),
+          isFalse,
+          reason: '打开读到 markers 真值',
+        );
+        expect(
+          container.read(localMirrorFragmentsProvider),
+          isEmpty,
+          reason: '起点无片段',
+        );
+        expect(
+          toolIconColor(tester, 'tool_local_mirror'),
+          kToolSlotDisabledIconColor,
+          reason: '无片段 → 顶栏「局部镜像」置灰',
+        );
+        expect(surfaceMirrored(tester), isFalse, reason: '起点画面不翻转');
 
-      // ① 「添加 → 局部镜像片段」在播放头 8s（就绪网格八拍点）建默认一
-      // 「八拍」宽的片段；总开关此刻为关 → 创建即生效、自动打开。
-      final fragment = await addFragmentViaMenu(
-        tester,
-        engine,
-        container,
-        const Duration(seconds: 8),
-      );
-      expect(fragment.startMs, 8000, reason: '创建起点吸八拍点');
-      expect(fragment.endMs, 12000, reason: '默认宽一个「八拍」');
-      final start = Duration(milliseconds: fragment.startMs);
-      final end = Duration(milliseconds: fragment.endMs);
-      expect(container.read(localMirrorEnabledProvider), isTrue,
-          reason: '总开关自动打开');
-      expect(slotAmber(tester, 'tool_local_mirror'), isTrue,
-          reason: '顶栏「局部镜像」变黄');
-      expect(
-        marker_doc.MarkersDocument.fromJson(docs.markersSnapshot)
-            .localMirrorEnabled,
-        isTrue,
-        reason: '自动打开即写盘',
-      );
-      expect(fragmentFillColor(tester, 0), kLocalMirrorEnabledFill,
-          reason: '总开关开 → 轨道片段琥珀填充');
-      expect(fragmentIconColor(tester, 0), kLocalMirrorEnabledIconColor,
-          reason: '总开关开 → 片段图标琥珀');
+        // ① 「添加 → 局部镜像片段」在播放头 8s（就绪网格八拍点）建默认一
+        // 「八拍」宽的片段；总开关此刻为关 → 创建即生效、自动打开。
+        final fragment = await addFragmentViaMenu(
+          tester,
+          engine,
+          container,
+          const Duration(seconds: 8),
+        );
+        expect(fragment.startMs, 8000, reason: '创建起点吸八拍点');
+        expect(fragment.endMs, 12000, reason: '默认宽一个「八拍」');
+        final start = Duration(milliseconds: fragment.startMs);
+        final end = Duration(milliseconds: fragment.endMs);
+        expect(
+          container.read(localMirrorEnabledProvider),
+          isTrue,
+          reason: '总开关自动打开',
+        );
+        expect(
+          slotAmber(tester, 'tool_local_mirror'),
+          isTrue,
+          reason: '顶栏「局部镜像」变黄',
+        );
+        expect(
+          marker_doc.MarkersDocument.fromJson(docs.markersSnapshot)
+              .localMirrorEnabled,
+          isTrue,
+          reason: '自动打开即写盘',
+        );
+        expect(
+          fragmentFillColor(tester, 0),
+          kLocalMirrorEnabledFill,
+          reason: '总开关开 → 轨道片段琥珀填充',
+        );
+        expect(
+          fragmentIconColor(tester, 0),
+          kLocalMirrorEnabledIconColor,
+          reason: '总开关开 → 片段图标琥珀',
+        );
 
-      // ② 播放头进入片段区间 → 画面反相；离开（半开右端外）→ 恢复。
-      await freezePlayheadAt(tester, engine, start);
-      expect(surfaceMirrored(tester), isTrue, reason: '区间内（含起点）反相');
-      await freezePlayheadAt(tester, engine, end);
-      expect(surfaceMirrored(tester), isFalse, reason: '半开右端外 → 恢复全局镜像');
+        // ② 播放头进入片段区间 → 画面反相；离开（半开右端外）→ 恢复。
+        await freezePlayheadAt(tester, engine, start);
+        expect(surfaceMirrored(tester), isTrue, reason: '区间内（含起点）反相');
+        await freezePlayheadAt(tester, engine, end);
+        expect(surfaceMirrored(tester), isFalse, reason: '半开右端外 → 恢复全局镜像');
 
-      // ③ 顶栏点一下取消：画面不再反相，轨道片段全灰。
-      await tester.tap(find.byKey(const Key('tool_local_mirror')));
-      await tester.pump();
-      expect(container.read(localMirrorEnabledProvider), isFalse,
-          reason: '一点即生效（无「保存」步）');
-      expect(slotAmber(tester, 'tool_local_mirror'), isFalse,
-          reason: '顶栏「局部镜像」熄灭');
-      await freezePlayheadAt(tester, engine, start);
-      expect(surfaceMirrored(tester), isFalse, reason: '取消后区间内也不反相');
-      expect(fragmentFillColor(tester, 0), kLocalMirrorDisabledFill,
-          reason: '总开关关 → 轨道片段全灰填充');
-      expect(fragmentIconColor(tester, 0), kLocalMirrorDisabledIconColor,
-          reason: '总开关关 → 片段图标灰');
+        // ③ 顶栏点一下取消：画面不再反相，轨道片段全灰。
+        await tester.tap(find.byKey(const Key('tool_local_mirror')));
+        await tester.pump();
+        expect(
+          container.read(localMirrorEnabledProvider),
+          isFalse,
+          reason: '一点即生效（无「保存」步）',
+        );
+        expect(
+          slotAmber(tester, 'tool_local_mirror'),
+          isFalse,
+          reason: '顶栏「局部镜像」熄灭',
+        );
+        await freezePlayheadAt(tester, engine, start);
+        expect(surfaceMirrored(tester), isFalse, reason: '取消后区间内也不反相');
+        expect(
+          fragmentFillColor(tester, 0),
+          kLocalMirrorDisabledFill,
+          reason: '总开关关 → 轨道片段全灰填充',
+        );
+        expect(
+          fragmentIconColor(tester, 0),
+          kLocalMirrorDisabledIconColor,
+          reason: '总开关关 → 片段图标灰',
+        );
 
-      // ④ 再点开：恢复琥珀且画面反相（位置不变、立即生效）。
-      await tester.tap(find.byKey(const Key('tool_local_mirror')));
-      await tester.pump();
-      expect(slotAmber(tester, 'tool_local_mirror'), isTrue,
-          reason: '顶栏「局部镜像」恢复琥珀');
-      expect(surfaceMirrored(tester), isTrue, reason: '同位置又反相');
-      expect(fragmentFillColor(tester, 0), kLocalMirrorEnabledFill,
-          reason: '轨道片段恢复琥珀填充');
-      expect(fragmentIconColor(tester, 0), kLocalMirrorEnabledIconColor,
-          reason: '轨道片段恢复琥珀图标');
-    });
+        // ④ 再点开：恢复琥珀且画面反相（位置不变、立即生效）。
+        await tester.tap(find.byKey(const Key('tool_local_mirror')));
+        await tester.pump();
+        expect(
+          slotAmber(tester, 'tool_local_mirror'),
+          isTrue,
+          reason: '顶栏「局部镜像」恢复琥珀',
+        );
+        expect(surfaceMirrored(tester), isTrue, reason: '同位置又反相');
+        expect(
+          fragmentFillColor(tester, 0),
+          kLocalMirrorEnabledFill,
+          reason: '轨道片段恢复琥珀填充',
+        );
+        expect(
+          fragmentIconColor(tester, 0),
+          kLocalMirrorEnabledIconColor,
+          reason: '轨道片段恢复琥珀图标',
+        );
+      },
+    );
 
-    testWidgets('四种组合各抽查一次：全局镜像 × 总开关，片段内与片段外各判（两个开关全程经顶栏槽驱动）', (
-      tester,
-    ) async {
+    testWidgets('四种组合各抽查一次：全局镜像 × 总开关，片段内与片段外各判（两个开关全程经顶栏槽驱动）', (tester) async {
       final (engine, container, docs) = await pumpMirrorPlayer(tester);
       final fragment = await addFragmentViaMenu(
         tester,
@@ -9313,8 +9726,11 @@ Finder slotText(Key slot, String text) =>
         await alignGlobalMirror(tester, global);
         await alignLocalMirror(tester, local);
         // 两个开关的绝对锚点：值道 + 公开标记文件真值（不只靠槽的琥珀态）。
-        expect(container.read(localMirrorEnabledProvider), local,
-            reason: '值道 = 总开关 $local');
+        expect(
+          container.read(localMirrorEnabledProvider),
+          local,
+          reason: '值道 = 总开关 $local',
+        );
         expect(
           marker_doc.MarkersDocument.fromJson(docs.markersSnapshot)
               .localMirrorEnabled,
@@ -9353,10 +9769,8 @@ Finder slotText(Key slot, String text) =>
       final start = Duration(milliseconds: fragment.startMs);
 
       // 前置：全局镜像关、总开关开（创建即生效）→ 区间内反相。
-      expect(slotAmber(tester, 'tool_mirror'), isFalse,
-          reason: '前置：全局镜像关');
-      expect(slotAmber(tester, 'tool_local_mirror'), isTrue,
-          reason: '前置：总开关开');
+      expect(slotAmber(tester, 'tool_mirror'), isFalse, reason: '前置：全局镜像关');
+      expect(slotAmber(tester, 'tool_local_mirror'), isTrue, reason: '前置：总开关开');
       await freezePlayheadAt(tester, engine, start);
       expect(surfaceMirrored(tester), isTrue, reason: '前置：区间内反相');
 
@@ -9386,8 +9800,7 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(kScrubSeekMinInterval * 2);
       await tester.pump();
       expect(engine.position, lessThan(start), reason: '左移一帧落到区间外');
-      expect(surfaceMirrored(tester), isTrue,
-          reason: '全局开 + 区间外 → 按全局镜像（反相）');
+      expect(surfaceMirrored(tester), isTrue, reason: '全局开 + 区间外 → 按全局镜像（反相）');
       await tester.tap(find.byKey(const Key('toolbar_frame_step_forward')));
       await tester.pump();
       await tester.pump(kScrubSeekMinInterval * 2);
@@ -9412,8 +9825,7 @@ Finder slotText(Key slot, String text) =>
       Future<Set<bool>> sweep({required bool global}) async {
         await alignGlobalMirror(tester, global);
         await freezePlayheadAt(tester, engine, Duration.zero);
-        expect(surfaceMirrored(tester), global,
-            reason: '扫之前停在区间外 → 按全局镜像');
+        expect(surfaceMirrored(tester), global, reason: '扫之前停在区间外 → 按全局镜像');
 
         final gesture = await tester.startGesture(const Offset(400, 150));
         await tester.pump();
@@ -9431,15 +9843,15 @@ Finder slotText(Key slot, String text) =>
           expect(
             mirrored,
             expected,
-            reason: '全局=$global 拖动定格在 ${positionMs}ms：覆盖=$covered →'
+            reason:
+                '全局=$global 拖动定格在 ${positionMs}ms：覆盖=$covered →'
                 '反相=$expected',
           );
           observed.add(mirrored);
         }
         await gesture.up();
         await tester.pump();
-        expect(observed, {true, false},
-            reason: '扫过区间边界：入区间与出区间的两种画面态都出现过');
+        expect(observed, {true, false}, reason: '扫过区间边界：入区间与出区间的两种画面态都出现过');
 
         // 松手停在落点（原为暂停 → 不续播），画面与该落点一致。
         expect(engine.isPlaying, isFalse, reason: '微调松手停在落点');
@@ -9466,7 +9878,11 @@ Finder slotText(Key slot, String text) =>
         container,
         const Duration(seconds: 8),
       );
-      await freezePlayheadAt(tester, engine, Duration(milliseconds: fragment.startMs));
+      await freezePlayheadAt(
+        tester,
+        engine,
+        Duration(milliseconds: fragment.startMs),
+      );
       expect(surfaceMirrored(tester), isTrue, reason: '全局关 + 总开关开 → 反相');
 
       await tester.tap(find.byKey(const Key('layout_lock_toggle')));
@@ -9478,28 +9894,39 @@ Finder slotText(Key slot, String text) =>
       // 且不弹「已锁定分段」——推进到提示驻留时长之后再看，否定断言不靠单帧。
       await tester.tap(find.byKey(const Key('tool_local_mirror')));
       await tester.pump();
-      expect(slotAmber(tester, 'tool_local_mirror'), isFalse,
-          reason: '锁下总开关熄灭');
+      expect(
+        slotAmber(tester, 'tool_local_mirror'),
+        isFalse,
+        reason: '锁下总开关熄灭',
+      );
       expect(surfaceMirrored(tester), isFalse, reason: '锁下总开关照常生效');
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
-      expect(find.byKey(const Key('layout_lock_prompt')), findsNothing,
-          reason: '视图开关不走标注门禁（整个提示驻留窗口内都无提示）');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsNothing,
+        reason: '视图开关不走标注门禁（整个提示驻留窗口内都无提示）',
+      );
 
       // 全局镜像：锁下点一下照常生效（全局开 + 总开关关 → 全片镜像）。
       await tester.tap(find.byKey(const Key('tool_mirror')));
       await tester.pump();
-      expect(slotAmber(tester, 'tool_mirror'), isTrue,
-          reason: '锁下全局镜像变琥珀');
+      expect(slotAmber(tester, 'tool_mirror'), isTrue, reason: '锁下全局镜像变琥珀');
       expect(surfaceMirrored(tester), isTrue, reason: '锁下全局镜像照常生效');
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
       await tester.pump();
-      expect(find.byKey(const Key('layout_lock_prompt')), findsNothing,
-          reason: '全局镜像同为视图开关，不弹锁提示');
+      expect(
+        find.byKey(const Key('layout_lock_prompt')),
+        findsNothing,
+        reason: '全局镜像同为视图开关，不弹锁提示',
+      );
 
       // 两个开关都不入撤销/重做史，切换后落盘真值随之更新。
-      expect(container.read(annotationEditHistoryProvider).length, depth,
-          reason: '两个镜像开关均不入史');
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        depth,
+        reason: '两个镜像开关均不入史',
+      );
       expect(
         marker_doc.MarkersDocument.fromJson(docs.markersSnapshot)
             .localMirrorEnabled,
@@ -9510,8 +9937,7 @@ Finder slotText(Key slot, String text) =>
   });
 
   group('音画同步入口（直接挂载控制层）', () {
-    testWidgets('点开音画同步气泡：含设备名、读数、−/＋、重置',
-        (tester) async {
+    testWidgets('点开音画同步气泡：含设备名、读数、−/＋、重置', (tester) async {
       await pumpControlLayer(tester);
 
       // 点开：气泡含设备名、读数、−/＋、重置（与节拍提示的相邻几何归表直测）。
@@ -9655,17 +10081,19 @@ Finder slotText(Key slot, String text) =>
     /// 装载；测试容器里 videoId 不会随署名解析，显式设定）。
     Future<void> seedMaterial(ProviderContainer container) async {
       container.read(currentVideoIdProvider.notifier).set('vid_test');
-      await container.read(materialManifestStoreProvider).append(
-        MaterialRecord(
-          id: 'mat_a',
-          videoId: 'vid_test',
-          createdAt: DateTime(2026, 9, 13, 14, 30),
-          durationMs: 8000,
-          sourceStartMs: 10000,
-          fileName: 'rec_1.mp4',
-          sizeBytes: 1,
-        ),
-      );
+      await container
+          .read(materialManifestStoreProvider)
+          .append(
+            MaterialRecord(
+              id: 'mat_a',
+              videoId: 'vid_test',
+              createdAt: DateTime(2026, 9, 13, 14, 30),
+              durationMs: 8000,
+              sourceStartMs: 10000,
+              fileName: 'rec_1.mp4',
+              sizeBytes: 1,
+            ),
+          );
     }
 
     testWidgets('播放器内不再有素材库入口：顶栏无「文件」，全树无「练习素材库」', (tester) async {
@@ -9684,8 +10112,11 @@ Finder slotText(Key slot, String text) =>
       await openMaterialSheet(tester);
 
       expect(find.byKey(const Key('material_library_page')), findsOneWidget);
-      expect(find.text('00:10 - 00:18'), findsOneWidget,
-          reason: '录制区间 = 源起点 + 素材时长');
+      expect(
+        find.text('00:10 - 00:18'),
+        findsOneWidget,
+        reason: '录制区间 = 源起点 + 素材时长',
+      );
       expect(find.text('时长 00:08'), findsOneWidget);
       expect(find.text('录制于 2026-09-13 14:30'), findsOneWidget);
       expect(find.byKey(const Key('material_library_empty')), findsNothing);
@@ -9716,8 +10147,10 @@ Finder slotText(Key slot, String text) =>
       // 点删除 → 确认弹窗提示连带删除。
       await tester.tap(find.byKey(const Key('material_library_delete_0')));
       await pumpSheetFrames(tester);
-      expect(find.byKey(const Key('material_library_delete_dialog')),
-          findsOneWidget);
+      expect(
+        find.byKey(const Key('material_library_delete_dialog')),
+        findsOneWidget,
+      );
       expect(find.text('将连其全部轨道引用一并删除'), findsOneWidget);
 
       // 确认：条目消失、轨道引用连带删除。
@@ -9813,9 +10246,7 @@ Finder slotText(Key slot, String text) =>
       expect(container.read(selectedPracticeClipIdProvider), isNull);
     });
 
-    testWidgets('删除只把选中片段移出轨道：素材与清单保留、选中整清、一步撤销可回退', (
-      tester,
-    ) async {
+    testWidgets('删除只把选中片段移出轨道：素材与清单保留、选中整清、一步撤销可回退', (tester) async {
       final (_, container) = await pumpClipReady(tester);
       // 夹具已预置选中 c1。
       expect(container.read(selectedPracticeClipIdProvider), 'c1');
@@ -9839,9 +10270,7 @@ Finder slotText(Key slot, String text) =>
       expect(container.read(practiceClipsProvider), hasLength(1));
     });
 
-    testWidgets('对比态：分段线选中残留不点亮删除槽', (
-      tester,
-    ) async {
+    testWidgets('对比态：分段线选中残留不点亮删除槽', (tester) async {
       final (_, container) = await pumpClipReady(tester);
       // 从无片段选中起测（夹具预置了选中 c1）：本用例只钉线选中残留。
       container.read(selectedPracticeClipIdProvider.notifier).select(null);
@@ -9857,50 +10286,68 @@ Finder slotText(Key slot, String text) =>
           .read(annotationSelectionDomainProvider)
           .select(SegmentLineSelection(0));
       await tester.pumpAndSettle();
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '编辑态：选中分段线删除可用');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '编辑态：选中分段线删除可用',
+      );
       container
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareEditing);
       await tester.pumpAndSettle();
-      expect(container.read(selectedSegmentLineIndexProvider), 0,
-          reason: '前置：分段线选中跨模式残留');
+      expect(
+        container.read(selectedSegmentLineIndexProvider),
+        0,
+        reason: '前置：分段线选中跨模式残留',
+      );
       // 对比态删除只认选中的练习片段：残留的线选中不得点亮删除槽
       // （无对象 → 置灰，起置灰仍按得动 = 弹做法、不放行动作）。
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '对比态两类线删不掉，线选中残留不放行删除');
-      expect(slotIconColor(tester, 'control_segment_delete'),
-          kToolSlotDisabledIconColor,
-          reason: '删除槽仍置灰');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '对比态两类线删不掉，线选中残留不放行删除',
+      );
+      expect(
+        slotIconColor(tester, 'control_segment_delete'),
+        kToolSlotDisabledIconColor,
+        reason: '删除槽仍置灰',
+      );
     });
 
-    testWidgets('编辑态：练习片段选中残留不点亮删除槽', (
-      tester,
-    ) async {
+    testWidgets('编辑态：练习片段选中残留不点亮删除槽', (tester) async {
       final (_, container) = await pumpClipReady(tester);
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '对比态：选中片段删除可用');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '对比态：选中片段删除可用',
+      );
       container
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.editing);
       await tester.pumpAndSettle();
-      expect(container.read(selectedPracticeClipIdProvider), 'c1',
-          reason: '前置：片段选中跨模式残留');
+      expect(
+        container.read(selectedPracticeClipIdProvider),
+        'c1',
+        reason: '前置：片段选中跨模式残留',
+      );
       // 编辑态删除不认练习片段：残留的片段选中不得点亮删除槽
       // （无对象 → 置灰，起置灰仍按得动 = 弹做法、不放行动作）。
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '编辑态删除只认线与局部镜像片段');
-      expect(slotIconColor(tester, 'control_segment_delete'),
-          kToolSlotDisabledIconColor,
-          reason: '删除槽仍置灰');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '编辑态删除只认线与局部镜像片段',
+      );
+      expect(
+        slotIconColor(tester, 'control_segment_delete'),
+        kToolSlotDisabledIconColor,
+        reason: '删除槽仍置灰',
+      );
     });
   });
 
   group('控制层语义档文本随系统字号', () {
     for (final scale in [1.3, 1.6]) {
-      testWidgets('textScaler $scale：槽标签与时间读数随字号、无溢出', (
-        tester,
-      ) async {
+      testWidgets('textScaler $scale：槽标签与时间读数随字号、无溢出', (tester) async {
         tester.platformDispatcher.textScaleFactorTestValue = scale;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         final engine = FakePlaybackEngine(duration: const Duration(minutes: 3));
@@ -9961,8 +10408,9 @@ Finder slotText(Key slot, String text) =>
 
       expect(find.byKey(const Key('beat_analyzing_prompt')), findsOneWidget);
       expect(container.read(guideSessionProvider).triggered, isEmpty);
-      final storage = container.read(privateJsonStorageProvider)
-          as InMemoryPrivateJsonStorage;
+      final storage = container.read(
+        privateJsonStorageProvider,
+      ) as InMemoryPrivateJsonStorage;
       expect(storage.snapshot['onboarding'], isNull);
     });
 
@@ -9976,8 +10424,9 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(container.read(guideSessionProvider).triggered, isEmpty);
-      final storage = container.read(privateJsonStorageProvider)
-          as InMemoryPrivateJsonStorage;
+      final storage = container.read(
+        privateJsonStorageProvider,
+      ) as InMemoryPrivateJsonStorage;
       expect(storage.snapshot['onboarding'], isNull);
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
@@ -10055,19 +10504,21 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pumpAndSettle();
     });
-
   });
 
   group('灰钮给做法', () {
     /// 无对象提示浮层（胶囊键）里的一句文案。
     Finder noSubjectPrompt(String text) => find.descendant(
-          of: find.byKey(const Key('no_subject_prompt')),
-          matching: find.text(text),
-        );
+      of: find.byKey(const Key('no_subject_prompt')),
+      matching: find.text(text),
+    );
 
     /// 落一条分段线（这支舞因此有分段），并把线的选中留在线上
     /// （熟练度 / 重点此刻没有作用对象——学习段没被选中）。
-    Future<void> landOneLine(FakePlaybackEngine engine, WidgetTester tester) async {
+    Future<void> landOneLine(
+      FakePlaybackEngine engine,
+      WidgetTester tester,
+    ) async {
       await engine.pause();
       await engine.seek(const Duration(seconds: 10));
       await tester.pump();
@@ -10085,7 +10536,9 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
     }
 
-    testWidgets('删除：已有分段但没选中 → 置灰、按得动、弹「先选中一条分段线或片段，再点这里删除」、动作不发生', (tester) async {
+    testWidgets('删除：已有分段但没选中 → 置灰、按得动、弹「先选中一条分段线或片段，再点这里删除」、动作不发生', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -10095,24 +10548,28 @@ Finder slotText(Key slot, String text) =>
       );
       await landOneLine(engine, tester);
       await selectLearningSegmentBody(tester);
-      final linesBefore =
-          container.read(annotationTimelineProvider).segmentLines.length;
+      final linesBefore = container
+          .read(annotationTimelineProvider)
+          .segmentLines
+          .length;
       expect(linesBefore, 1, reason: '这支舞已有一条分段线');
 
-      expect(slotEnabled(tester, 'control_segment_delete'), isTrue,
-          reason: '无对象 → 置灰但按得动');
-      expect(slotIconColor(tester, 'control_segment_delete'),
-          kToolSlotDisabledIconColor,
-          reason: '仍置灰（只是按得动）');
+      expect(
+        slotEnabled(tester, 'control_segment_delete'),
+        isTrue,
+        reason: '无对象 → 置灰但按得动',
+      );
+      expect(
+        slotIconColor(tester, 'control_segment_delete'),
+        kToolSlotDisabledIconColor,
+        reason: '仍置灰（只是按得动）',
+      );
 
       await tester.tap(find.byKey(const Key('control_segment_delete')));
       await tester.pump();
       await tester.pump();
 
-      expect(
-        noSubjectPrompt('先选中一条分段线或片段，再点这里删除'),
-        findsOneWidget,
-      );
+      expect(noSubjectPrompt('先选中一条分段线或片段，再点这里删除'), findsOneWidget);
       expect(
         container.read(annotationTimelineProvider).segmentLines.length,
         linesBefore,
@@ -10153,7 +10610,9 @@ Finder slotText(Key slot, String text) =>
       expect(container.read(annotationTimelineProvider).segmentLines, isEmpty);
     });
 
-    testWidgets('熟练度 / 重点：已有分段但没选中学习段 → 置灰可点、弹「先点一段再点这里」、不打开档位菜单、不写盘', (tester) async {
+    testWidgets('熟练度 / 重点：已有分段但没选中学习段 → 置灰可点、弹「先点一段再点这里」、不打开档位菜单、不写盘', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -10163,14 +10622,20 @@ Finder slotText(Key slot, String text) =>
       );
       await landOneLine(engine, tester);
 
-      expect(slotEnabled(tester, 'control_mastery'), isTrue,
-          reason: '无对象 → 置灰但按得动');
+      expect(
+        slotEnabled(tester, 'control_mastery'),
+        isTrue,
+        reason: '无对象 → 置灰但按得动',
+      );
       await tester.tap(find.byKey(const Key('control_mastery')));
       await tester.pump();
       await tester.pump();
       expect(noSubjectPrompt('先点一段再点这里'), findsOneWidget);
-      expect(find.byKey(const Key('control_mastery_unlearned')), findsNothing,
-          reason: '档位菜单不打开（那是动作）');
+      expect(
+        find.byKey(const Key('control_mastery_unlearned')),
+        findsNothing,
+        reason: '档位菜单不打开（那是动作）',
+      );
       expect(container.read(learningMasteryProvider), isEmpty);
 
       await tester.pump(noticeTimingOf(NoticeId.noSubject).hold);
@@ -10186,7 +10651,9 @@ Finder slotText(Key slot, String text) =>
       );
     });
 
-    testWidgets('「标记分段线」条目：没选中分段线 → 置灰可点、弹「先选中一条分段线，再点这里标记」、flag 不变', (tester) async {
+    testWidgets('「标记分段线」条目：没选中分段线 → 置灰可点、弹「先选中一条分段线，再点这里标记」、flag 不变', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -10235,10 +10702,15 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('control_mastery_learning')), findsOneWidget);
       await tester.tap(find.byKey(const Key('control_mastery_learning')));
       await tester.pumpAndSettle();
-      expect(container.read(learningMasteryProvider)[1],
-          LearningMastery.learning);
-      expect(find.byKey(const Key('no_subject_prompt')), findsNothing,
-          reason: '有作用对象时不弹任何东西');
+      expect(
+        container.read(learningMasteryProvider)[1],
+        LearningMastery.learning,
+      );
+      expect(
+        find.byKey(const Key('no_subject_prompt')),
+        findsNothing,
+        reason: '有作用对象时不弹任何东西',
+      );
 
       // 选中分段线：删除照常执行。
       await tapSegmentLineHandle(tester, 0);
@@ -10253,8 +10725,10 @@ Finder slotText(Key slot, String text) =>
       await selectLearningSegmentBody(tester);
       await tester.tap(find.byKey(const Key('control_emphasis')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('learning_segment_1_emphasis')),
-          findsOneWidget);
+      expect(
+        find.byKey(const Key('learning_segment_1_emphasis')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('no_subject_prompt')), findsNothing);
 
       // 「标记分段线」：选中分段线 → 照常切换 flag、不弹任何东西。
@@ -10270,7 +10744,9 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('no_subject_prompt')), findsNothing);
     });
 
-    testWidgets('其余门的原因文案与点击语义逐位不变：锁定 → 「已锁定分段」、装载未完成 → 「正在装载」', (tester) async {
+    testWidgets('其余门的原因文案与点击语义逐位不变：锁定 → 「已锁定分段」、装载未完成 → 「正在装载」', (
+      tester,
+    ) async {
       final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
       await pumpPlayer(tester, engine: engine);
       await singleTapShow(tester);
@@ -10289,8 +10765,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       expect(find.byKey(const Key('layout_lock_prompt')), findsOneWidget);
       expect(noSubjectPrompt('先选中一条分段线或片段，再点这里删除'), findsNothing);
-      expect(container.read(annotationTimelineProvider).segmentLines,
-          hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).segmentLines,
+        hasLength(1),
+      );
 
       // 装载未完成压倒一切：仍弹「正在装载」、线不动。
       await tester.pump(noticeTimingOf(NoticeId.layoutLock).hold);
@@ -10301,8 +10779,10 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       await tester.pump();
       expect(find.text('正在装载'), findsOneWidget);
-      expect(container.read(annotationTimelineProvider).segmentLines,
-          hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).segmentLines,
+        hasLength(1),
+      );
     });
   });
 
@@ -10337,7 +10817,11 @@ Finder slotText(Key slot, String text) =>
       await dropHalfBeat(tester);
 
       expect(
-        container.read(annotationTimelineProvider).halfBeatLines.single.position,
+        container
+            .read(annotationTimelineProvider)
+            .halfBeatLines
+            .single
+            .position,
         const Duration(seconds: 10, milliseconds: 250),
         reason: '前置：线落在就近半拍格点',
       );
@@ -10349,7 +10833,11 @@ Finder slotText(Key slot, String text) =>
       );
       expect(
         session.window!.contains(
-          container.read(annotationTimelineProvider).halfBeatLines.single.position,
+          container
+              .read(annotationTimelineProvider)
+              .halfBeatLines
+              .single
+              .position,
         ),
         isTrue,
       );
@@ -10405,7 +10893,10 @@ Finder slotText(Key slot, String text) =>
       // 落分段线。
       await tester.tap(find.byKey(const Key('control_segment')));
       await tester.pumpAndSettle();
-      expect(container.read(annotationTimelineProvider).segmentLines, hasLength(1));
+      expect(
+        container.read(annotationTimelineProvider).segmentLines,
+        hasLength(1),
+      );
       expectWindow(
         windowAfter(),
         start: const Duration(seconds: 8),
@@ -10553,8 +11044,11 @@ Finder slotText(Key slot, String text) =>
       await tapEntryPlaying(tester, 'control_note_sticker');
       expect(engine.isPlaying, isFalse);
       expect(container.read(noteStickersProvider), hasLength(1));
-      expect(container.read(noteTextEditorTargetProvider), isNotNull,
-          reason: '新建那支弹出编辑器');
+      expect(
+        container.read(noteTextEditorTargetProvider),
+        isNotNull,
+        reason: '新建那支弹出编辑器',
+      );
     });
 
     testWidgets('播放中落备注贴纸而落点已占：转开既有备注编辑器，同样停', (tester) async {
@@ -10564,8 +11058,7 @@ Finder slotText(Key slot, String text) =>
           .read(annotationEditorProvider)
           .submit(InsertNote(at: const Duration(seconds: 10)));
       await tester.pump();
-      final existingStart =
-          container.read(noteStickersProvider).single.startMs;
+      final existingStart = container.read(noteStickersProvider).single.startMs;
       await engine.play();
       await tester.pump();
 
@@ -10573,8 +11066,7 @@ Finder slotText(Key slot, String text) =>
       await tapEntryPlaying(tester, 'control_note_sticker');
 
       expect(engine.isPlaying, isFalse, reason: '转编辑那一支同样停');
-      expect(container.read(noteStickersProvider), hasLength(1),
-          reason: '没新建');
+      expect(container.read(noteStickersProvider), hasLength(1), reason: '没新建');
       expect(
         container.read(noteTextEditorTargetProvider),
         existingStart,
@@ -10598,13 +11090,12 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(const Duration(milliseconds: 30));
 
       expect(engine.isPlaying, isTrue, reason: '没落成不停');
+      expect(engine.callLog.length, logBefore, reason: '没有暂停/播放/seek 调用');
       expect(
-        engine.callLog.length,
-        logBefore,
-        reason: '没有暂停/播放/seek 调用',
+        container.read(annotationTimelineProvider).halfBeatLines,
+        isEmpty,
+        reason: '不留产物',
       );
-      expect(container.read(annotationTimelineProvider).halfBeatLines, isEmpty,
-          reason: '不留产物');
       // 收尾停播：不悬跨 pending 周期定时器（断言已毕，不算播放动作）。
       await engine.pause();
       await tester.pump();
@@ -10614,7 +11105,9 @@ Finder slotText(Key slot, String text) =>
       final (engine, _, container) = await pumpPlayingWithSession(tester);
       await engine.pause();
       await tester.pump();
-      container.read(annotationEditorProvider).submit(
+      container
+          .read(annotationEditorProvider)
+          .submit(
             const AddHalfBeatLine(at: Duration(seconds: 10, milliseconds: 250)),
           );
       await tester.pump();
@@ -10630,11 +11123,7 @@ Finder slotText(Key slot, String text) =>
       await tester.pump(const Duration(milliseconds: 30));
 
       expect(engine.isPlaying, isTrue, reason: '没落成不停');
-      expect(
-        engine.callLog.length,
-        logBefore,
-        reason: '没有暂停/播放/seek 调用',
-      );
+      expect(engine.callLog.length, logBefore, reason: '没有暂停/播放/seek 调用');
       expect(
         container.read(annotationTimelineProvider).halfBeatLines,
         hasLength(1),
@@ -10684,13 +11173,12 @@ Finder slotText(Key slot, String text) =>
       await tester.pumpAndSettle();
 
       expect(engine.isPlaying, isFalse, reason: '暂停保持停');
+      expect(engine.callLog.length, logBefore, reason: '没有多出来的播放/暂停/seek 调用');
       expect(
-        engine.callLog.length,
-        logBefore,
-        reason: '没有多出来的播放/暂停/seek 调用',
+        container.read(noteStickersProvider),
+        hasLength(1),
+        reason: '前置：四条都真实发生（备注是转编辑、未新建）',
       );
-      expect(container.read(noteStickersProvider), hasLength(1),
-          reason: '前置：四条都真实发生（备注是转编辑、未新建）');
       expect(container.read(noteTextEditorTargetProvider), isNotNull);
       expect(
         container.read(annotationTimelineProvider).halfBeatLines,
@@ -10836,10 +11324,12 @@ Finder slotText(Key slot, String text) =>
       // 第一步：停靠式待办条，高亮框落在刚落那条线的控制柄上。
       expect(find.byKey(const Key('drill_task_bar')), findsOneWidget);
       expect(find.text('1/2'), findsOneWidget);
-      expect(find.text(guideStepMessage('badge_segment_select')), findsOneWidget);
       expect(
-        container
-            .read(guideAnchorRectsProvider)['segment_line_0_handle'],
+        find.text(guideStepMessage('badge_segment_select')),
+        findsOneWidget,
+      );
+      expect(
+        container.read(guideAnchorRectsProvider)['segment_line_0_handle'],
         isNotNull,
       );
 
@@ -10851,15 +11341,16 @@ Finder slotText(Key slot, String text) =>
       await tester.pump();
       expect(container.read(selectedSegmentLineIndexProvider), 0);
       expect(
-        tester
-            .widget<Icon>(find.byKey(const Key('drill_task_checkbox')))
-            .icon,
+        tester.widget<Icon>(find.byKey(const Key('drill_task_checkbox'))).icon,
         Icons.check_box,
       );
       await pumpPastHold(tester);
 
       // 第二步：就地讲解指住编辑态那枚「删除」槽。
-      expect(find.text(guideStepMessage('badge_segment_delete')), findsOneWidget);
+      expect(
+        find.text(guideStepMessage('badge_segment_delete')),
+        findsOneWidget,
+      );
       expect(find.text('2/2'), findsOneWidget);
       expect(
         container.read(guideAnchorRectsProvider)[segmentDeleteSlotAnchorKey],
@@ -10915,9 +11406,7 @@ Finder slotText(Key slot, String text) =>
       );
       expect(find.text('1/2'), findsOneWidget);
       expect(
-        tester
-            .widget<Icon>(find.byKey(const Key('drill_task_checkbox')))
-            .icon,
+        tester.widget<Icon>(find.byKey(const Key('drill_task_checkbox'))).icon,
         Icons.check_box_outline_blank,
         reason: '刚落的新线还没被选中：不打勾',
       );
@@ -10949,7 +11438,10 @@ Finder slotText(Key slot, String text) =>
         reason: '线身那一行点中它也算「选中过一次」',
       );
       await pumpPastHold(tester);
-      expect(find.text(guideStepMessage('badge_segment_delete')), findsOneWidget);
+      expect(
+        find.text(guideStepMessage('badge_segment_delete')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('收起控制层两步都退场；重新展开接着演、已做过的步不重来', (tester) async {
@@ -10992,7 +11484,10 @@ Finder slotText(Key slot, String text) =>
       container.read(playerSessionProvider.notifier).openEditor();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('drill_task_bar')), findsNothing);
-      expect(find.text(guideStepMessage('badge_segment_delete')), findsOneWidget);
+      expect(
+        find.text(guideStepMessage('badge_segment_delete')),
+        findsOneWidget,
+      );
     });
   });
 
@@ -11043,11 +11538,7 @@ Finder slotText(Key slot, String text) =>
               reason: '${slot.key} 声明承载锚点：矩形板上报的就是这枚槽自己的矩形',
             );
           } else {
-            expect(
-              rect,
-              isNull,
-              reason: '${slot.key} 未声明承载引导锚点，不包包装器、不上报',
-            );
+            expect(rect, isNull, reason: '${slot.key} 未声明承载引导锚点，不包包装器、不上报');
           }
         }
       }
@@ -11158,94 +11649,84 @@ Finder slotText(Key slot, String text) =>
       ('竖屏视频工具栏', Size(1336, 2736), 2.0),
     ]) {
       final (label, size, ratio) = view;
-      testWidgets(
-        '$label：第一步框住刚落的那块（1/2）→ 下一步框住那枚开关（2/2）→ 走完才置位',
-        (tester) async {
-          tester.view.physicalSize = size;
-          tester.view.devicePixelRatio = ratio;
-          addTearDown(tester.view.reset);
-          final engine = FakePlaybackEngine(
-            duration: const Duration(seconds: 30),
-          );
-          final storage = _localMirrorGuideStorage();
-          await pumpPlayer(
-            tester,
-            engine: engine,
-            wrapGuideHost: true,
-            guideStorage: storage,
-          );
-          await singleTapShow(tester);
-          final container = ProviderScope.containerOf(
-            tester.element(find.byType(PlayerPage)),
-            listen: false,
-          );
-          await tapAddEntry(tester, 'control_local_mirror');
-          await tester.pumpAndSettle();
+      testWidgets('$label：第一步框住刚落的那块（1/2）→ 下一步框住那枚开关（2/2）→ 走完才置位', (
+        tester,
+      ) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = ratio;
+        addTearDown(tester.view.reset);
+        final engine = FakePlaybackEngine(
+          duration: const Duration(seconds: 30),
+        );
+        final storage = _localMirrorGuideStorage();
+        await pumpPlayer(
+          tester,
+          engine: engine,
+          wrapGuideHost: true,
+          guideStorage: storage,
+        );
+        await singleTapShow(tester);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(PlayerPage)),
+          listen: false,
+        );
+        await tapAddEntry(tester, 'control_local_mirror');
+        await tester.pumpAndSettle();
 
-          // 第一步：指刚刚落成的那块镜像片段，1/2。
-          expect(
-            find.text(guideStepMessage('badge_local_mirror_step')),
-            findsOneWidget,
-          );
-          expect(find.text('1/2'), findsOneWidget);
-          expectGuidePointsAt(
-            tester,
-            find.byKey(const Key('mirror_fragment_0')),
-          );
+        // 第一步：指刚刚落成的那块镜像片段，1/2。
+        expect(
+          find.text(guideStepMessage('badge_local_mirror_step')),
+          findsOneWidget,
+        );
+        expect(find.text('1/2'), findsOneWidget);
+        expectGuidePointsAt(tester, find.byKey(const Key('mirror_fragment_0')));
 
-          await tester.tap(find.byKey(const Key('guide_next')));
-          await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('guide_next')));
+        await tester.pumpAndSettle();
 
-          // 第二步：指顶栏（竖屏是视频工具栏）那枚「局部镜像」开关，2/2。
-          expect(
-            find.text(guideStepMessage('badge_local_mirror_switch')),
-            findsOneWidget,
-          );
-          expect(find.text('2/2'), findsOneWidget);
-          expectGuidePointsAt(
-            tester,
-            find.byKey(const Key('tool_local_mirror')),
-          );
-          // 这句话讲的是事实：落成这块的那一刻总开关被自动打开（不是用户开
-          // 的），故走到第二步时开关读数是「已经开着」。
-          expect(
-            container.read(localMirrorEnabledProvider),
-            isTrue,
-            reason: '刚落这块时总开关已被自动打开',
-          );
-          // 两步走完才置位：第二步还在场时状态位仍未置。
-          expect(
-            (storage.snapshot['onboarding'] as Map)['badgeLocalMirror'] ??
-                false,
-            isFalse,
-          );
+        // 第二步：指顶栏（竖屏是视频工具栏）那枚「局部镜像」开关，2/2。
+        expect(
+          find.text(guideStepMessage('badge_local_mirror_switch')),
+          findsOneWidget,
+        );
+        expect(find.text('2/2'), findsOneWidget);
+        expectGuidePointsAt(tester, find.byKey(const Key('tool_local_mirror')));
+        // 这句话讲的是事实：落成这块的那一刻总开关被自动打开（不是用户开
+        // 的），故走到第二步时开关读数是「已经开着」。
+        expect(
+          container.read(localMirrorEnabledProvider),
+          isTrue,
+          reason: '刚落这块时总开关已被自动打开',
+        );
+        // 两步走完才置位：第二步还在场时状态位仍未置。
+        expect(
+          (storage.snapshot['onboarding'] as Map)['badgeLocalMirror'] ?? false,
+          isFalse,
+        );
 
-          await tester.tap(find.byKey(const Key('guide_next')));
-          await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('guide_next')));
+        await tester.pumpAndSettle();
 
-          expect(find.byKey(const Key('guide_highlight')), findsNothing);
-          expect(find.byKey(const Key('guide_bubble')), findsNothing);
-          expect(
-            (storage.snapshot['onboarding'] as Map)['badgeLocalMirror'],
-            isTrue,
-          );
+        expect(find.byKey(const Key('guide_highlight')), findsNothing);
+        expect(find.byKey(const Key('guide_bubble')), findsNothing);
+        expect(
+          (storage.snapshot['onboarding'] as Map)['badgeLocalMirror'],
+          isTrue,
+        );
 
-          // 置位后此后再落一块：不再出现（走完两步的路径，非仅「跳过」）。
-          await tapAddEntry(tester, 'control_local_mirror');
-          await tester.pumpAndSettle();
-          expect(find.byKey(const Key('guide_highlight')), findsNothing);
-          expect(find.byKey(const Key('guide_bubble')), findsNothing);
-        },
-      );
+        // 置位后此后再落一块：不再出现（走完两步的路径，非仅「跳过」）。
+        await tapAddEntry(tester, 'control_local_mirror');
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('guide_highlight')), findsNothing);
+        expect(find.byKey(const Key('guide_bubble')), findsNothing);
+      });
     }
 
     for (final (label, applyView) in <(String, void Function(WidgetTester))>[
       ('横屏', setWideView),
       ('竖屏', setWidenedPortraitView),
     ]) {
-      testWidgets('$label：控制层收起时第二步不出场、不被消耗；再展开从没做完的那一步接着演', (
-        tester,
-      ) async {
+      testWidgets('$label：控制层收起时第二步不出场、不被消耗；再展开从没做完的那一步接着演', (tester) async {
         applyView(tester);
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),

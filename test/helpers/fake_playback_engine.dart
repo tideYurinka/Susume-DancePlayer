@@ -16,11 +16,8 @@ import 'video_surface.dart';
 /// 调用，scrub 暂停/恢复顺序断言用）。
 /// [videoAspectRatio] 可构造时指定，供播放器 contain 布局测试用。
 class FakePlaybackEngine implements PlaybackEngine {
-  FakePlaybackEngine({
-    Duration? duration,
-    this.videoAspectRatio,
-    this.videoFps,
-  }) : _duration = duration ?? const Duration(minutes: 3);
+  FakePlaybackEngine({Duration? duration, this.videoAspectRatio, this.videoFps})
+    : _duration = duration ?? const Duration(minutes: 3);
 
   /// 推进节拍：每拍推进 100ms × rate。
   static const Duration tick = Duration(milliseconds: 100);

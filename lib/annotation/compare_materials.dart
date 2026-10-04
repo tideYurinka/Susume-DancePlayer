@@ -142,15 +142,14 @@ class PracticeClip {
   }
 
   /// 端点截取后的新引用（只改截取范围，素材不动）。
-  PracticeClip trim({required int inMs, required int outMs}) =>
-      PracticeClip(
-        id: id,
-        materialId: materialId,
-        materialSourceStartMs: materialSourceStartMs,
-        inMs: inMs,
-        outMs: outMs,
-        materialDurationMs: materialDurationMs,
-      );
+  PracticeClip trim({required int inMs, required int outMs}) => PracticeClip(
+    id: id,
+    materialId: materialId,
+    materialSourceStartMs: materialSourceStartMs,
+    inMs: inMs,
+    outMs: outMs,
+    materialDurationMs: materialDurationMs,
+  );
 
   /// 元素自身的 JSON 读写（「元素类型自带读写」；随舞
   /// 私密 `prefs.practiceClips` 段字段的元素编解码收口在此）。
@@ -160,8 +159,7 @@ class PracticeClip {
     'materialSourceStartMs': materialSourceStartMs,
     'inMs': inMs,
     'outMs': outMs,
-    if (materialDurationMs != null)
-      'materialDurationMs': materialDurationMs,
+    if (materialDurationMs != null) 'materialDurationMs': materialDurationMs,
   };
 
   /// 结构读取：字段缺失或类型不符返回 null（调用方整条跳过）。
@@ -204,13 +202,17 @@ class PracticeClip {
       other.materialDurationMs == materialDurationMs;
 
   @override
-  int get hashCode =>
-      Object.hash(id, materialId, materialSourceStartMs, inMs, outMs,
-          materialDurationMs);
+  int get hashCode => Object.hash(
+    id,
+    materialId,
+    materialSourceStartMs,
+    inMs,
+    outMs,
+    materialDurationMs,
+  );
 
   @override
-  String toString() =>
-      'PracticeClip($id, $materialId, $inMs..$outMs)';
+  String toString() => 'PracticeClip($id, $materialId, $inMs..$outMs)';
 }
 
 /// 每舞「自动删除」预留设置：默认关；策略 = 保留最近
@@ -260,17 +262,13 @@ List<PracticeClip> pruneClipsOverlappedBy(
   IntervalSpan newSourceSpan,
 ) {
   return [
-    for (final clip in clips)
-      ?pruneClipOverlappedBy(clip, newSourceSpan),
+    for (final clip in clips) ?pruneClipOverlappedBy(clip, newSourceSpan),
   ];
 }
 
 /// 单条引用对 [newSpan] 的重叠清理（表规范化经它逐条复用入轨的
 /// 同一套口径，不另造判据）。
-PracticeClip? pruneClipOverlappedBy(
-  PracticeClip clip,
-  IntervalSpan newSpan,
-) {
+PracticeClip? pruneClipOverlappedBy(PracticeClip clip, IntervalSpan newSpan) {
   final cs = clip.sourceStartMs;
   final ce = clip.sourceEndMs;
   if (ce <= newSpan.startMs || cs >= newSpan.endMs) return clip; // 无重叠
@@ -281,13 +279,13 @@ PracticeClip? pruneClipOverlappedBy(
   }
   if (cs < newSpan.startMs) {
     // 左悬：右端裁到新片段起点。
-    return clip.trim(inMs: clip.inMs, outMs: clip.outMs - (ce - newSpan.startMs));
+    return clip.trim(
+      inMs: clip.inMs,
+      outMs: clip.outMs - (ce - newSpan.startMs),
+    );
   }
   // 右悬：左端裁到新片段终点。
-  return clip.trim(
-    inMs: clip.inMs + (newSpan.endMs - cs),
-    outMs: clip.outMs,
-  );
+  return clip.trim(inMs: clip.inMs + (newSpan.endMs - cs), outMs: clip.outMs);
 }
 
 /// 截取端点吸附：素材内偏移换算到源时间轴后经**相位值
@@ -303,9 +301,9 @@ int snapTrimOffsetMs({
 }) {
   final snapped =
       phase.nearest(
-          Duration(milliseconds: materialSourceStartMs + offsetInMaterialMs),
-        ) ??
-        Duration(milliseconds: materialSourceStartMs + offsetInMaterialMs);
+        Duration(milliseconds: materialSourceStartMs + offsetInMaterialMs),
+      ) ??
+      Duration(milliseconds: materialSourceStartMs + offsetInMaterialMs);
   final offset = snapped.inMilliseconds - materialSourceStartMs;
   if (offset < 0) return 0;
   if (offset > materialDurationMs) return materialDurationMs;

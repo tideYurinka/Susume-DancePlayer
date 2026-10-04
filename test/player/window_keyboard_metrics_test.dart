@@ -27,7 +27,10 @@ void main() {
   testWidgets('取值正确：builder 收到窗口真实键盘下沿 inset 与视口尺寸', (tester) async {
     addTearDown(tester.view.reset);
     tester.view.viewInsets = const FakeViewPadding(bottom: 900);
-    tester.view.physicalSize = const Size(1170, 1800); // 合成档 390.0×600.0dp（dpr 3），非设备基准。
+    tester.view.physicalSize = const Size(
+      1170,
+      1800,
+    ); // 合成档 390.0×600.0dp（dpr 3），非设备基准。
     await tester.pumpWidget(probe());
 
     expect(latestInset, 300);

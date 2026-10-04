@@ -3,7 +3,8 @@ import 'package:dance_learning_app/annotation/half_beat_line.dart';
 import 'package:dance_learning_app/annotation/segment_line.dart';
 import 'package:dance_learning_app/core/beat_grid.dart';
 import 'package:dance_learning_app/core/eight_beat_phase.dart';
-import 'package:dance_learning_app/persistence/marker_document.dart' as marker_doc;
+import 'package:dance_learning_app/persistence/marker_document.dart'
+    as marker_doc;
 import 'package:dance_learning_app/player/beat_presentation.dart';
 import 'package:dance_learning_app/player/calibration_session_grid.dart';
 import 'package:dance_learning_app/player/metronome_source_registry.dart';
@@ -42,7 +43,9 @@ void main() {
       phase: phase ?? BeatPhase(grid: resolvedGrid),
       timeline:
           timeline ??
-          AnnotationTimeline.normalized(videoDuration: const Duration(minutes: 1)),
+          AnnotationTimeline.normalized(
+            videoDuration: const Duration(minutes: 1),
+          ),
       recordingAnchor: recordingAnchor,
       delayAnchor: delayAnchor,
       activeLoopStart: activeLoopStart,
@@ -130,8 +133,11 @@ void main() {
       );
       expect(fallback.gridError, isTrue);
       expect(
-        assembleBeatPresentationContext(facts(), rate: 1, playing: true)
-            .gridError,
+        assembleBeatPresentationContext(
+          facts(),
+          rate: 1,
+          playing: true,
+        ).gridError,
         isFalse,
       );
     });
@@ -324,7 +330,10 @@ void main() {
       // 基线（无锚点）：拍 3（1.5s）非重音。
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid)),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+          ),
           const Duration(milliseconds: 1200),
           from: const Duration(seconds: 1),
           to: const Duration(seconds: 2),
@@ -351,7 +360,10 @@ void main() {
       // 删锚还原基线口径：拍 14（7.0s）回重音。
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid)),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+          ),
           const Duration(milliseconds: 6200),
           from: const Duration(seconds: 7),
           to: const Duration(seconds: 7),
@@ -366,7 +378,10 @@ void main() {
       // 基线：拍 4（2.0s）重音。
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid)),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+          ),
           const Duration(milliseconds: 1200),
           from: const Duration(seconds: 2),
           to: const Duration(seconds: 2),
@@ -408,7 +423,10 @@ void main() {
       // 锚复位：拍 12（6.0s）回基线非重音。
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid)),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+          ),
           const Duration(milliseconds: 5200),
           from: const Duration(seconds: 6),
           to: const Duration(seconds: 6),
@@ -423,7 +441,11 @@ void main() {
       const to = Duration(seconds: 2);
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid), sourceId: 'vocal'),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+            sourceId: 'vocal',
+          ),
           const Duration(milliseconds: 1200),
           from: from,
           to: to,
@@ -433,7 +455,10 @@ void main() {
       );
       expect(
         await slotsAt(
-          () => facts(grid: grid, phase: BeatPhase(grid: grid)),
+          () => facts(
+            grid: grid,
+            phase: BeatPhase(grid: grid),
+          ),
           const Duration(milliseconds: 1200),
           from: from,
           to: to,

@@ -24,10 +24,7 @@ void main() {
           segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
         ),
         local: const LocalDocument(
-          mastery: {
-            0: LearningMastery.mastered,
-            1: LearningMastery.keepingUp,
-          },
+          mastery: {0: LearningMastery.mastered, 1: LearningMastery.keepingUp},
         ),
         practice: DancePracticeTotals(
           total: const Duration(minutes: 3),
@@ -155,7 +152,12 @@ void main() {
 
     test('整库入口按就绪比例逐舞标记：就绪给图片比例，未就绪 3:4', () {
       final snapshot = composeDanceLibrarySnapshot(
-        index: VideoIndex(entries: [_entry(videoId: 'v1'), _entry(videoId: 'v2')]),
+        index: VideoIndex(
+          entries: [
+            _entry(videoId: 'v1'),
+            _entry(videoId: 'v2'),
+          ],
+        ),
         markersByVideoId: const {},
         localByVideoId: const {},
         practiceByVideoId: const {},
@@ -201,9 +203,7 @@ void main() {
         entry: _entry(),
         importOrder: 0,
         markers: _markers(rangeEndMs: 120000),
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.mastered},
-        ),
+        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
         practice: const DancePracticeTotals(),
       );
 
@@ -218,9 +218,7 @@ void main() {
           rangeEndMs: 120000,
           segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
         ),
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.mastered},
-        ),
+        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
         practice: const DancePracticeTotals(),
       );
 
@@ -254,10 +252,7 @@ void main() {
           segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
         ),
         local: const LocalDocument(
-          mastery: {
-            0: LearningMastery.mastered,
-            1: LearningMastery.mastered,
-          },
+          mastery: {0: LearningMastery.mastered, 1: LearningMastery.mastered},
         ),
         practice: const DancePracticeTotals(),
       );
@@ -271,9 +266,7 @@ void main() {
         entry: _entry(),
         importOrder: 0,
         markers: _markers(rangeEndMs: 120000),
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.mastered},
-        ),
+        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
         practice: const DancePracticeTotals(),
       );
 
@@ -288,9 +281,7 @@ void main() {
           rangeEndMs: 120000,
           segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
         ),
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.mastered},
-        ),
+        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
         practice: const DancePracticeTotals(),
       );
 
@@ -356,9 +347,7 @@ void main() {
           rangeEndMs: 130000,
           segmentLines: const [SegmentLine(position: Duration(seconds: 70))],
         ),
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.mastered},
-        ),
+        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
         practice: const DancePracticeTotals(),
       );
 
@@ -426,11 +415,7 @@ void main() {
         _markers(
           rangeEndMs: 24000,
           segmentLines: const [SegmentLine(position: Duration(seconds: 8))],
-          beat: BeatGrid(
-            model: 'm',
-            fps: 100,
-            generatedAt: DateTime.utc(2024),
-          ),
+          beat: BeatGrid(model: 'm', fps: 100, generatedAt: DateTime.utc(2024)),
         ),
       ]) {
         final snapshot = composeDanceSnapshot(
@@ -441,10 +426,9 @@ void main() {
           practice: const DancePracticeTotals(),
         );
 
-        expect(
-          [for (final segment in snapshot.segments) segment.eightBeatRange],
-          everyElement(isNull),
-        );
+        expect([
+          for (final segment in snapshot.segments) segment.eightBeatRange,
+        ], everyElement(isNull));
       }
     });
 
@@ -488,17 +472,18 @@ void main() {
         importOrder: 0,
         markers: _markers(
           rangeEndMs: 1000,
-          segmentLines: const [SegmentLine(position: Duration(milliseconds: 500))],
+          segmentLines: const [
+            SegmentLine(position: Duration(milliseconds: 500)),
+          ],
           beat: pickup,
         ),
         local: const LocalDocument.empty(),
         practice: const DancePracticeTotals(),
       );
 
-      expect(
-        [for (final segment in before.segments) segment.eightBeatRange],
-        everyElement(isNull),
-      );
+      expect([
+        for (final segment in before.segments) segment.eightBeatRange,
+      ], everyElement(isNull));
     });
 
     test('八拍锚点重定相：区间经相位源重算（不自行实现相位）', () {
@@ -664,9 +649,7 @@ void main() {
         markersByVideoId: const {},
         localByVideoId: const {},
         practiceByVideoId: const {},
-        planGoalByVideoId: {
-          'v1': (DateTime(2026, 10, 1), false),
-        },
+        planGoalByVideoId: {'v1': (DateTime(2026, 10, 1), false)},
         now: now,
       );
 

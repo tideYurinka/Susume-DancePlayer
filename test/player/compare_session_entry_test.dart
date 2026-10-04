@@ -9,7 +9,8 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
-import 'package:dance_learning_app/help/guide_anchor.dart' show GuideAnchor, GuideBadgeTrigger;
+import 'package:dance_learning_app/help/guide_anchor.dart'
+    show GuideAnchor, GuideBadgeTrigger;
 import 'package:dance_learning_app/help/guide_state.dart'
     show guideSessionProvider;
 import 'package:dance_learning_app/player/annotation_edit.dart'
@@ -34,16 +35,19 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show annotationEditorProvider, localMirrorFragmentsProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player/visual_tokens.dart';
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
-import '../helpers/video_surface.dart'
-    show videoSurfacePlaceholderKey;
+
+import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import '../helpers/beat_test_seam.dart';
 
 import '../helpers/fake_camera_capture_service.dart';
@@ -72,14 +76,20 @@ void main() {
     late FakeCameraCaptureService camera;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
 
     /// 竖屏逻辑尺寸（800 × 1400）：分屏上下断言用。
     void setPortraitView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1600, 2800); // 合成档 800.0×1400.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        2800,
+      ); // 合成档 800.0×1400.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -378,16 +388,10 @@ void main() {
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareEditing);
       await tester.pumpAndSettle();
-      expect(
-        systemUi.lockLandscapeCount,
-        locksBefore,
-        reason: '进编辑面不锁方向',
-      );
+      expect(systemUi.lockLandscapeCount, locksBefore, reason: '进编辑面不锁方向');
 
       // 收起控制层不再有任何方向副作用：对比-控制层收起退到对比-播放态。
-      containerOf(tester)
-          .read(playerSessionProvider.notifier)
-          .collapse();
+      containerOf(tester).read(playerSessionProvider.notifier).collapse();
       await tester.pumpAndSettle();
       expect(modeOf(tester), PlayerSessionMode.compareWatching);
       expect(systemUi.lockLandscapeCount, locksBefore);
@@ -489,9 +493,7 @@ void main() {
             at ?? tester.getRect(find.byType(MetronomeOverlay)).center;
         final gesture = await tester.startGesture(point);
         await gesture.up();
-        await tester.pump(
-          kDoubleTapTimeout + const Duration(milliseconds: 30),
-        );
+        await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
         await tester.pump();
         expect(
           find.byKey(const Key('metronome_overlay_selected')),
@@ -533,8 +535,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      testWidgets('横屏：钳制盒 = 播放页整屏；四格默认位同款（贴左、视口高 12%）',
-          (tester) async {
+      testWidgets('横屏：钳制盒 = 播放页整屏；四格默认位同款（贴左、视口高 12%）', (tester) async {
         setWideView(tester);
         await pumpPlayer(tester);
         final view = viewOf(tester);
@@ -570,17 +571,20 @@ void main() {
         expect(injectedClampBoxOf(tester), view);
       });
 
-      testWidgets('已保存位按格分离：进对比态取对比格（未自定义 = 默认位）、普通格值不变',
-          (tester) async {
+      testWidgets('已保存位按格分离：进对比态取对比格（未自定义 = 默认位）、普通格值不变', (tester) async {
         setWideView(tester);
         await pumpPlayer(tester);
         final view = viewOf(tester);
         // 恢复路径的会话态写入（= 既有已保存位）：落在横屏·普通格。
         containerOf(tester)
             .read(overlayPlacementProvider.notifier)
-            .set(const OverlayPlacements(offsets: {
-              OverlayPlacementCell.landscapeNormal: Offset(500, 300),
-            }));
+            .set(
+              const OverlayPlacements(
+                offsets: {
+                  OverlayPlacementCell.landscapeNormal: Offset(500, 300),
+                },
+              ),
+            );
         await tester.pumpAndSettle();
 
         await selectOverlay(tester);
@@ -679,8 +683,9 @@ void main() {
         expect(pendulum.height / pendulum.width, closeTo(120 / 220, 0.001));
       });
 
-      testWidgets('尺寸上限按整屏推导：矩形钳到 2.5×（800 宽）、摆锤钳到 2.5×（550×300）',
-          (tester) async {
+      testWidgets('尺寸上限按整屏推导：矩形钳到 2.5×（800 宽）、摆锤钳到 2.5×（550×300）', (
+        tester,
+      ) async {
         setWideView(tester);
         await pumpPlayer(tester);
         await enterCompare(tester);
@@ -709,8 +714,7 @@ void main() {
         expect(overlayRect(tester).height, closeTo(300, 0.001));
       });
 
-      testWidgets('浮层压到录制钮上时，录制钮仍可点（命中不被浮层吃掉）',
-          (tester) async {
+      testWidgets('浮层压到录制钮上时，录制钮仍可点（命中不被浮层吃掉）', (tester) async {
         setWideView(tester);
         await pumpPlayer(tester);
         await enterCompare(tester);
@@ -731,11 +735,7 @@ void main() {
           delta: (recordRect.center - overlayCenter) / steps.toDouble(),
         );
         final rect = overlayRect(tester);
-        expect(
-          rect.contains(recordRect.center),
-          isTrue,
-          reason: '前置：浮层压住录制钮',
-        );
+        expect(rect.contains(recordRect.center), isTrue, reason: '前置：浮层压住录制钮');
 
         // 点录制钮：命中真落到钮上（离开待录态），且没被浮层吃掉、也没误开
         // 对比-控制层。
@@ -756,7 +756,10 @@ void main() {
     late FakeSystemUi systemUi;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -840,7 +843,9 @@ void main() {
       await enterCompareEditing(tester);
 
       final bandTop = tester.getTopLeft(find.byKey(const Key('track_band'))).dy;
-      final notesTop = tester.getTopLeft(find.byKey(const Key('track_notes'))).dy;
+      final notesTop = tester
+          .getTopLeft(find.byKey(const Key('track_notes')))
+          .dy;
       final practiceTop = tester
           .getTopLeft(find.byKey(const Key('track_practice')))
           .dy;
@@ -856,17 +861,14 @@ void main() {
       expect(find.byKey(const Key('track_handle_strip_row')), findsNothing);
     });
 
-    testWidgets('跨面一致性：对比-控制层实际渲染的行键 == 对比行集声明逐位相等',
-        (tester) async {
+    testWidgets('跨面一致性：对比-控制层实际渲染的行键 == 对比行集声明逐位相等', (tester) async {
       setWideView(tester);
       await pumpPlayer(tester);
       await enterCompareEditing(tester);
 
       // 声明 = 实际渲染：次序即声明次序（构造点映射 compareEditing →
       // compare 行集，渲染行不可能漏项或乱序）。
-      final declared = [
-        for (final row in TrackRowTable.compare.rows) row.key,
-      ];
+      final declared = [for (final row in TrackRowTable.compare.rows) row.key];
       final rendered = find
           .descendant(
             of: find.byKey(const Key('track_band')),

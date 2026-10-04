@@ -33,16 +33,16 @@ void main() {
     seeks = <Duration>[];
     indicator = indicatorOverride ?? ValueNotifier(Duration.zero);
     feedback = feedbackOverride ?? GestureFeedbackController();
-    final seek = seekOverride ??
+    final seek =
+        seekOverride ??
         SeekSubmitter(
           engineSeek: (t) {
             seeks.add(t);
             return engine.seek(t);
           },
           total: total ?? () => engine.duration,
-          timeline: () => AnnotationTimeline.wholeVideo(
-            engine.duration ?? Duration.zero,
-          ),
+          timeline: () =>
+              AnnotationTimeline.wholeVideo(engine.duration ?? Duration.zero),
           clearLoops: (_, _) {},
         );
     return ScrubSession(
@@ -60,8 +60,7 @@ void main() {
   }
 
   group('begin（幂等；pause 先于任何 seek）', () {
-    test('在播 begin：先 pause 再可 seek（callLog 序），基准 = 定格点快照',
-        () async {
+    test('在播 begin：先 pause 再可 seek（callLog 序），基准 = 定格点快照', () async {
       final s = build();
       await engine.play();
       await engine.seek(const Duration(seconds: 5));
@@ -71,8 +70,11 @@ void main() {
       expect(await s.begin(), isTrue);
       expect(s.isActive, isTrue);
       expect(engine.isPlaying, isFalse, reason: '在播起手即暂停定格');
-      expect(indicator.value, const Duration(seconds: 5),
-          reason: 'indicator = 基准快照');
+      expect(
+        indicator.value,
+        const Duration(seconds: 5),
+        reason: 'indicator = 基准快照',
+      );
 
       s.moveBy(const Duration(seconds: 1));
       await pumpEventQueue();
@@ -106,8 +108,11 @@ void main() {
       expect(engine.callLog.where((c) => c == 'pause'), hasLength(1));
       s.moveBy(const Duration(seconds: 1));
       await pumpEventQueue();
-      expect(seeks.last, const Duration(seconds: 7),
-          reason: '基准未被重置：累计仍基于同一快照');
+      expect(
+        seeks.last,
+        const Duration(seconds: 7),
+        reason: '基准未被重置：累计仍基于同一快照',
+      );
     });
 
     test('时长未知：begin 返回 false 且静默（无相位、无暂停、无 seek）', () async {
@@ -128,8 +133,7 @@ void main() {
       expect(await s.begin(), isFalse);
     });
 
-    test('requireKnownDuration=false（player 差分）：时长未知照常起会话',
-        () async {
+    test('requireKnownDuration=false（player 差分）：时长未知照常起会话', () async {
       final s = build(total: () => null, requireKnownDuration: false);
       await engine.play();
       engine.callLog.clear();
@@ -138,8 +142,9 @@ void main() {
       expect(engine.callLog, contains('pause'), reason: '在播照常暂停定格');
       s.moveBy(const Duration(seconds: 1));
       await pumpEventQueue();
-      expect(seeks, [const Duration(seconds: 1)],
-          reason: '时长未知：只钳 ≥0、照常入队（submitter 兜底）');
+      expect(seeks, [
+        const Duration(seconds: 1),
+      ], reason: '时长未知：只钳 ≥0、照常入队（submitter 兜底）');
     });
   });
 
@@ -187,7 +192,8 @@ void main() {
 
     test('wasPlaying && 界外：不 play（区间外暂停查看态）', () async {
       final s = build(
-        resumeRange: (t) => t >= Duration.zero && t <= const Duration(seconds: 4),
+        resumeRange: (t) =>
+            t >= Duration.zero && t <= const Duration(seconds: 4),
       );
       await engine.play();
       await engine.seek(const Duration(seconds: 3));
@@ -233,8 +239,7 @@ void main() {
       expect(feedback.isScrubbing, isFalse);
     });
 
-    test('cancel：单发基准回退（latest-wins）再续播，indicator 不写回退值',
-        () async {
+    test('cancel：单发基准回退（latest-wins）再续播，indicator 不写回退值', () async {
       final s = build(cancelZoneEnabled: true);
       await engine.play();
       await engine.seek(const Duration(seconds: 5));
@@ -245,13 +250,21 @@ void main() {
       engine.callLog.clear();
       await s.end(cancel: true);
       await pumpEventQueue();
-      expect(seeks, [const Duration(seconds: 7), const Duration(seconds: 5)],
-          reason: '回退单发：拖动 seek 后只追加一次基准回退（latest-wins 收敛）');
+      expect(seeks, [
+        const Duration(seconds: 7),
+        const Duration(seconds: 5),
+      ], reason: '回退单发：拖动 seek 后只追加一次基准回退（latest-wins 收敛）');
       expect(engine.callLog.contains('play'), isTrue, reason: '按守卫续播');
-      expect(engine.position, const Duration(seconds: 5),
-          reason: '最终落点收敛到回退基准');
-      expect(indicator.value, const Duration(seconds: 7),
-          reason: '回退经 submit 单发，不写 indicator（player 现状同源）');
+      expect(
+        engine.position,
+        const Duration(seconds: 5),
+        reason: '最终落点收敛到回退基准',
+      );
+      expect(
+        indicator.value,
+        const Duration(seconds: 7),
+        reason: '回退经 submit 单发，不写 indicator（player 现状同源）',
+      );
     });
 
     test('cancelZoneEnabled=false：cancel 无害（不回退）', () async {
@@ -278,87 +291,87 @@ void main() {
     });
   });
 
+  /// player/blank 整配置差分参数化：同一生命周期序列分别以 player
+  /// 完整配置（cancelZoneEnabled + 守卫 + 无时长门）与 blank 配置（无取消角、
+  /// 时长门、effective 界内守卫）驱动，断言同序列下两配置的可观察差异仅在
+  /// 注入轴上。
+  group('player/blank 整配置差分参数化', () {
+    // 同一驱动序列：在播起手 → 拖两帧 → end（可选 cancel）。
+    Future<void> drive(
+      ScrubSession s,
+      FakePlaybackEngine engine, {
+      bool cancel = false,
+    }) async {
+      await engine.play();
+      await engine.seek(const Duration(seconds: 5));
+      engine.callLog.clear();
+      await s.begin();
+      s.moveBy(const Duration(seconds: 1));
+      s.moveBy(const Duration(seconds: -3));
+      await pumpEventQueue();
+      await s.end(cancel: cancel);
+      await pumpEventQueue();
+    }
 
-/// player/blank 整配置差分参数化：同一生命周期序列分别以 player
-/// 完整配置（cancelZoneEnabled + 守卫 + 无时长门）与 blank 配置（无取消角、
-/// 时长门、effective 界内守卫）驱动，断言同序列下两配置的可观察差异仅在
-/// 注入轴上。
-group('player/blank 整配置差分参数化', () {
-  // 同一驱动序列：在播起手 → 拖两帧 → end（可选 cancel）。
-  Future<void> drive(
-    ScrubSession s,
-    FakePlaybackEngine engine, {
-    bool cancel = false,
-  }) async {
-    await engine.play();
-    await engine.seek(const Duration(seconds: 5));
-    engine.callLog.clear();
-    await s.begin();
-    s.moveBy(const Duration(seconds: 1));
-    s.moveBy(const Duration(seconds: -3));
-    await pumpEventQueue();
-    await s.end(cancel: cancel);
-    await pumpEventQueue();
-  }
-
-  test('player 配置：cancel 回退到定格基准再续播', () async {
-    final s = build(
-      cancelZoneEnabled: true,
-      requireKnownDuration: false,
-      resumeRange: (t) => t >= Duration.zero && t <= const Duration(seconds: 10),
-    );
-    await drive(s, engine, cancel: true);
-    expect(
-      seeks,
-      [
+    test('player 配置：cancel 回退到定格基准再续播', () async {
+      final s = build(
+        cancelZoneEnabled: true,
+        requireKnownDuration: false,
+        resumeRange: (t) =>
+            t >= Duration.zero && t <= const Duration(seconds: 10),
+      );
+      await drive(s, engine, cancel: true);
+      expect(seeks, [
         const Duration(seconds: 6),
         const Duration(seconds: 3),
         const Duration(seconds: 5),
-      ],
-      reason: '逐帧累计（6s、3s）后 cancel 单发定格点回退（基准 5s）',
-    );
-    expect(engine.position, const Duration(seconds: 5));
-    expect(engine.callLog.contains('play'), isTrue, reason: '界内续播');
-    expect(feedback.isScrubbing, isFalse);
+      ], reason: '逐帧累计（6s、3s）后 cancel 单发定格点回退（基准 5s）');
+      expect(engine.position, const Duration(seconds: 5));
+      expect(engine.callLog.contains('play'), isTrue, reason: '界内续播');
+      expect(feedback.isScrubbing, isFalse);
+    });
+
+    test('blank 配置：cancel 无害、守卫界外不续播', () async {
+      final s = build(
+        cancelZoneEnabled: false,
+        requireKnownDuration: true,
+        resumeRange: (t) =>
+            t >= Duration.zero && t <= const Duration(seconds: 2),
+      );
+      await drive(s, engine); // 拖到 6s-3s=3s，越出 [0, 2s]
+      expect(seeks, [
+        const Duration(seconds: 6),
+        const Duration(seconds: 3),
+      ], reason: '无取消角：cancel 分支不发回退，落点 3s');
+      expect(engine.callLog.contains('play'), isFalse, reason: '越出有效区间不续播');
+      expect(feedback.isScrubbing, isFalse);
+    });
+
+    test('两配置同序列（不 cancel、界内）：生命周期轨迹一致', () async {
+      final player = build(
+        cancelZoneEnabled: true,
+        requireKnownDuration: false,
+        resumeRange: (t) =>
+            t >= Duration.zero && t <= const Duration(seconds: 10),
+      );
+      final playerSeeks = seeks;
+      final playerCallLog = engine.callLog;
+      await drive(player, engine);
+
+      final blank = build(
+        cancelZoneEnabled: false,
+        requireKnownDuration: true,
+        resumeRange: (t) =>
+            t >= Duration.zero && t <= const Duration(seconds: 10),
+      );
+      await drive(blank, engine);
+
+      expect(seeks, playerSeeks, reason: '同序列下落点轨迹一致');
+      expect(
+        engine.callLog.where((c) => c != 'seek'),
+        playerCallLog.where((c) => c != 'seek'),
+        reason: 'play/pause 序一致（守卫差异仅由 resumeRange 注入轴决定）',
+      );
+    });
   });
-
-  test('blank 配置：cancel 无害、守卫界外不续播', () async {
-    final s = build(
-      cancelZoneEnabled: false,
-      requireKnownDuration: true,
-      resumeRange: (t) => t >= Duration.zero && t <= const Duration(seconds: 2),
-    );
-    await drive(s, engine); // 拖到 6s-3s=3s，越出 [0, 2s]
-    expect(seeks, [const Duration(seconds: 6), const Duration(seconds: 3)],
-        reason: '无取消角：cancel 分支不发回退，落点 3s');
-    expect(engine.callLog.contains('play'), isFalse, reason: '越出有效区间不续播');
-    expect(feedback.isScrubbing, isFalse);
-  });
-
-  test('两配置同序列（不 cancel、界内）：生命周期轨迹一致', () async {
-    final player = build(
-      cancelZoneEnabled: true,
-      requireKnownDuration: false,
-      resumeRange: (t) => t >= Duration.zero && t <= const Duration(seconds: 10),
-    );
-    final playerSeeks = seeks;
-    final playerCallLog = engine.callLog;
-    await drive(player, engine);
-
-    final blank = build(
-      cancelZoneEnabled: false,
-      requireKnownDuration: true,
-      resumeRange: (t) => t >= Duration.zero && t <= const Duration(seconds: 10),
-    );
-    await drive(blank, engine);
-
-    expect(seeks, playerSeeks, reason: '同序列下落点轨迹一致');
-    expect(
-      engine.callLog.where((c) => c != 'seek'),
-      playerCallLog.where((c) => c != 'seek'),
-      reason: 'play/pause 序一致（守卫差异仅由 resumeRange 注入轴决定）',
-    );
-  });
-});
-
 }

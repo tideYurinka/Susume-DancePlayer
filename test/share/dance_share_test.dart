@@ -26,10 +26,7 @@ void main() {
         907,
       );
       // 未勾选的媒体不计入：7 + 700。
-      expect(
-        estimateSusumeSizeBytes(markers: markers, media: [video]),
-        707,
-      );
+      expect(estimateSusumeSizeBytes(markers: markers, media: [video]), 707);
     });
 
     test('估算达到阈值提示、阈值之下不提示；提示不阻止（无开关）', () {

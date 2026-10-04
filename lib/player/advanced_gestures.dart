@@ -302,7 +302,11 @@ class _TapRecord {
 /// 拖动语义必须与既有完全一致（「缩放范围/钳制/滑条规则不变」），
 /// 故在 scale 会话边界之上以纯状态机实现同一判定。
 class BlankTapArbiter {
-  BlankTapArbiter({this.onSingleTap, this.onDoubleTap, this.onTwoFingerDoubleTap});
+  BlankTapArbiter({
+    this.onSingleTap,
+    this.onDoubleTap,
+    this.onTwoFingerDoubleTap,
+  });
 
   /// 孤立单指单击（约 300ms 窗口后）：收起。
   final VoidCallback? onSingleTap;
@@ -354,7 +358,8 @@ class BlankTapArbiter {
     }
     final pending = _pendingFingerCount;
     if (pending != null) {
-      final isSecondTap = pending == pointerCount &&
+      final isSecondTap =
+          pending == pointerCount &&
           (position - _pendingPosition).distance <= kDoubleTapSlop;
       cancel();
       if (isSecondTap) {
@@ -430,7 +435,8 @@ class PointerBurstTracker {
     }
     _downPositions[pointer] = position;
     _burstPositions.add(position);
-    if (_downPositions.length > _maxPointers) _maxPointers = _downPositions.length;
+    if (_downPositions.length > _maxPointers)
+      _maxPointers = _downPositions.length;
     return ended;
   }
 

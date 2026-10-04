@@ -6,7 +6,6 @@ library;
 
 import 'document_codec.dart';
 
-
 /// 局部镜像片段字段 id（元素类型自带字段单一声明）。
 enum LocalMirrorFragmentField { startMs, endMs }
 
@@ -52,8 +51,7 @@ class LocalMirrorFragment {
   int get hashCode => codec.hash(this);
 
   @override
-  String toString() =>
-      'LocalMirrorFragment(startMs: $startMs, endMs: $endMs)';
+  String toString() => 'LocalMirrorFragment(startMs: $startMs, endMs: $endMs)';
 
   /// 片段自带编解码（键名/读/写/相等在同一处声明）。
   static const RecordCodec<LocalMirrorFragment, LocalMirrorFragmentField>
@@ -63,7 +61,10 @@ class LocalMirrorFragment {
     build: _build,
     extraOf: _extraOf,
     withExtra: _withExtra,
-    required: {LocalMirrorFragmentField.startMs, LocalMirrorFragmentField.endMs},
+    required: {
+      LocalMirrorFragmentField.startMs,
+      LocalMirrorFragmentField.endMs,
+    },
   );
 
   /// 写出（元素层保底区先展开，已登记字段后写）。

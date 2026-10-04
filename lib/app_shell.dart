@@ -124,11 +124,7 @@ class _AppShellState extends ConsumerState<AppShell>
                 tab.built ? tab.page : const SizedBox.shrink(),
             ],
           ),
-          const Positioned(
-            left: 16,
-            bottom: 16,
-            child: UpdatePromptBar(),
-          ),
+          const Positioned(left: 16, bottom: 16, child: UpdatePromptBar()),
         ],
       ),
       bottomNavigationBar: NavigationBar(

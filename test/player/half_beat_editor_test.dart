@@ -70,7 +70,10 @@ void main() {
         const HalfBeatLine(position: tenLanded),
       ]);
       expect(sink.saved.length, 1);
-      expect(sink.saved.single.annotations?.halfBeatLines.single.position, tenLanded);
+      expect(
+        sink.saved.single.annotations?.halfBeatLines.single.position,
+        tenLanded,
+      );
       expect(sink.saved.single.corrections, isNull);
       expect(sink.saved.single.session, isNull);
     });
@@ -131,7 +134,10 @@ void main() {
         const HalfBeatLine(position: twentyLanded),
       ]);
       expect(sink.saved.length, 1);
-      expect(sink.saved.single.annotations?.halfBeatLines.single.position, twentyLanded);
+      expect(
+        sink.saved.single.annotations?.halfBeatLines.single.position,
+        twentyLanded,
+      );
       expect(sink.saved.single.corrections, isNull);
       expect(sink.saved.single.session, isNull);
     });
@@ -153,10 +159,7 @@ void main() {
     test('删后清选中（半拍线单选槽）', () {
       editor().submit(AddHalfBeatLine(at: ten));
       domain().toggle(HalfBeatLineSelection(0));
-      expect(
-        container.read(selectedHalfBeatLineIndexProvider),
-        isNotNull,
-      );
+      expect(container.read(selectedHalfBeatLineIndexProvider), isNotNull);
 
       editor().submit(const RemoveHalfBeatLine(index: 0));
       expect(container.read(selectedHalfBeatLineIndexProvider), isNull);

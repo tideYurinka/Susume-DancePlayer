@@ -80,12 +80,10 @@ class InMemoryVideoDocumentStorage implements VideoDocumentStorage {
   Future<Map<String, dynamic>> loadLocal() => _storage.loadLocal();
 
   @override
-  Future<Map<String, dynamic>?> loadLocalOrNull() =>
-      _storage.loadLocalOrNull();
+  Future<Map<String, dynamic>?> loadLocalOrNull() => _storage.loadLocalOrNull();
 
   @override
-  Future<void> saveLocal(Map<String, dynamic> json) =>
-      _storage.saveLocal(json);
+  Future<void> saveLocal(Map<String, dynamic> json) => _storage.saveLocal(json);
 
   @override
   Future<void> delete() => _storage.delete();
@@ -119,8 +117,7 @@ class InMemoryVideoDocumentStorage implements VideoDocumentStorage {
   static Future<void> _enqueue(
     Future<void>? previous,
     Future<void> Function() run,
-  ) =>
-      previous == null ? run() : previous.then((_) => run());
+  ) => previous == null ? run() : previous.then((_) => run());
 
   Future<void> _mutateMarkers(
     FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
@@ -156,8 +153,8 @@ class _InMemoryDocumentKernel implements VideoDocumentStorageKernel {
     required bool present,
     required this.documentName,
     required this.quarantined,
-  })  : _content = Map.of(content),
-        _present = present; // ignore: prefer_initializing_formals
+  }) : _content = Map.of(content),
+       _present = present; // ignore: prefer_initializing_formals
 
   /// 旁路文件命名用的文档名。
   final String documentName;

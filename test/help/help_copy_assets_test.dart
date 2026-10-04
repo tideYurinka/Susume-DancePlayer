@@ -24,9 +24,7 @@ void main() {
   });
 
   test('引导步的文案一条不缺（含手势演练步与末步子勾片）', () {
-    final subChecks = [
-      for (final step in helpDrillSteps) ...step.subChecks,
-    ];
+    final subChecks = [for (final step in helpDrillSteps) ...step.subChecks];
     // 24 条引导步 + 3 条手势演练步 + 3 枚末步子勾片。
     expect(
       helpGuideSteps.length + helpDrillSteps.length + subChecks.length,
@@ -75,10 +73,7 @@ void main() {
     final step = copy.step('editor_intro_segment')!;
     expect(step.title!.contains('激活'), isFalse);
     expect(step.message.contains('长按'), isTrue);
-    expect(
-      copy.unit(editorIntroUnitId)!.description!.contains('激活'),
-      isFalse,
-    );
+    expect(copy.unit(editorIntroUnitId)!.description!.contains('激活'), isFalse);
     // 使用手册：点一下与长按拖动各做什么。
     final manual = await rootBundle.loadString(
       '$helpGuideAssetDirectory/00-Susume使用概览/Susume使用概览.md',

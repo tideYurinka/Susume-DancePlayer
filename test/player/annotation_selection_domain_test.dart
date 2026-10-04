@@ -48,7 +48,8 @@ void main() {
     halfBeatLines: halfBeatLines,
   );
 
-  SegmentLine line(int seconds) => SegmentLine(position: Duration(seconds: seconds));
+  SegmentLine line(int seconds) =>
+      SegmentLine(position: Duration(seconds: seconds));
 
   HalfBeatLine half(int seconds) =>
       HalfBeatLine(position: Duration(seconds: seconds));
@@ -92,10 +93,16 @@ void main() {
       domain.toggle(const HalfBeatLineSelection(0));
       expect(selection(), isNull);
 
-      domain.toggle(const VideoRangeBoundarySelection(VideoRangeBoundary.start));
-      domain.toggle(const VideoRangeBoundarySelection(VideoRangeBoundary.start));
+      domain.toggle(
+        const VideoRangeBoundarySelection(VideoRangeBoundary.start),
+      );
+      domain.toggle(
+        const VideoRangeBoundarySelection(VideoRangeBoundary.start),
+      );
       expect(selection(), isNull);
-      domain.toggle(const VideoRangeBoundarySelection(VideoRangeBoundary.start));
+      domain.toggle(
+        const VideoRangeBoundarySelection(VideoRangeBoundary.start),
+      );
       domain.toggle(const VideoRangeBoundarySelection(VideoRangeBoundary.end));
       expect(selection()!.asVideoRangeBoundary, VideoRangeBoundary.end);
 
@@ -119,7 +126,9 @@ void main() {
       domain.clear();
       expect(selection(), isNull);
 
-      domain.select(const VideoRangeBoundarySelection(VideoRangeBoundary.start));
+      domain.select(
+        const VideoRangeBoundarySelection(VideoRangeBoundary.start),
+      );
       domain.clear();
       expect(selection(), isNull);
     });
@@ -148,11 +157,7 @@ void main() {
       expect(
         () => domain.toggle(const HalfBeatLineSelection(-1)),
         throwsA(
-          isA<RangeError>().having(
-            (e) => e.message,
-            'message',
-            '半拍线索引不能为负',
-          ),
+          isA<RangeError>().having((e) => e.message, 'message', '半拍线索引不能为负'),
         ),
       );
     });
@@ -172,11 +177,7 @@ void main() {
       expect(
         () => domain.select(const LocalMirrorFragmentSelection(-1)),
         throwsA(
-          isA<RangeError>().having(
-            (e) => e.message,
-            'message',
-            '局部镜像片段索引越界',
-          ),
+          isA<RangeError>().having((e) => e.message, 'message', '局部镜像片段索引越界'),
         ),
       );
       expect(selection(), isNull);
@@ -203,7 +204,9 @@ void main() {
       domain.select(const SegmentLineSelection(0));
       domain.remapLineSelection(
         timeline(segmentLines: [line(10)]),
-        timeline(segmentLines: [SegmentLine(position: const Duration(seconds: 12))]),
+        timeline(
+          segmentLines: [SegmentLine(position: const Duration(seconds: 12))],
+        ),
       );
       expect(selection()!.asSegmentLineIndex, 0);
     });
@@ -249,7 +252,9 @@ void main() {
       );
       expect(selection()!.asHalfBeatLineIndex, 2);
 
-      domain.select(const VideoRangeBoundarySelection(VideoRangeBoundary.start));
+      domain.select(
+        const VideoRangeBoundarySelection(VideoRangeBoundary.start),
+      );
       domain.remapLineSelection(
         timeline(segmentLines: [line(10)]),
         timeline(segmentLines: [line(10), line(20)]),

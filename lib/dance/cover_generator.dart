@@ -61,9 +61,7 @@ class FfmpegCoverGenerator implements CoverGenerator {
       // ffmpeg 能以成功返回码结束却一帧不写——那仍是「取不到帧」，按失败
       // 处理（渲染占位图），不把空图当封面发布。
       final produced =
-          extracted &&
-          await tempFile.exists() &&
-          await tempFile.length() > 0;
+          extracted && await tempFile.exists() && await tempFile.length() > 0;
       if (!produced) {
         _failedThisSession.add(videoId);
         return false;

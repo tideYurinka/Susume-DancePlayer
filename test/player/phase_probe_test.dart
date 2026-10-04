@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+
 import '../../tool/phase_probe.dart';
 
 const int sr = 22050;
@@ -19,13 +20,17 @@ void addBurst(
   final onset = (atMs * sampleRate / 1000).round();
   for (var j = 0; j < n && onset + j < samples.length; j++) {
     final env = math.pow(math.e, -4.0 * j / n).toDouble();
-    samples[onset + j] += amp * env * math.sin(2 * math.pi * hz * j / sampleRate);
+    samples[onset + j] +=
+        amp * env * math.sin(2 * math.pi * hz * j / sampleRate);
   }
 }
 
 /// 等拍网格拍点（毫秒）：`60000/bpm` 算术均匀，与夹具口径一致。
-List<double> gridMs({required int bpm, required int beats, double offsetMs = 0}) =>
-    List.generate(beats, (i) => offsetMs + i * 60000 / bpm);
+List<double> gridMs({
+  required int bpm,
+  required int beats,
+  double offsetMs = 0,
+}) => List.generate(beats, (i) => offsetMs + i * 60000 / bpm);
 
 Float32List synthRecording({
   required double beatLatencyMs,
@@ -64,13 +69,23 @@ void main() {
       for (final g in gridMs(bpm: 120, beats: 8)) {
         addBurst(musicOnly, sr, atMs: g, hz: 1500, amp: 0.6);
       }
-      final separatedMusicOnly = detectSeparatedOnsets(musicOnly, sr,
-          beatHz: 880, musicHz: 1500, minGapMs: 250);
+      final separatedMusicOnly = detectSeparatedOnsets(
+        musicOnly,
+        sr,
+        beatHz: 880,
+        musicHz: 1500,
+        minGapMs: 250,
+      );
       expect(separatedMusicOnly.beat, isEmpty);
       expect(separatedMusicOnly.music, hasLength(8));
       final both = synthRecording(beatLatencyMs: 37, musicLatencyMs: 0);
-      final separated = detectSeparatedOnsets(both, sr,
-          beatHz: 880, musicHz: 1500, minGapMs: 250);
+      final separated = detectSeparatedOnsets(
+        both,
+        sr,
+        beatHz: 880,
+        musicHz: 1500,
+        minGapMs: 250,
+      );
       expect(separated.beat, hasLength(8));
       expect(separated.music, hasLength(8));
       expect(separated.beat.first, closeTo(37, 5));
@@ -157,39 +172,47 @@ void main() {
 
     test('排程判定：提前量在 [0, 前瞻窗] 为正常，越窗或负值报异常', () {
       expect(
-        classifyScheduling(const SchedulingTraceStats(
-          count: 3,
-          medianLeadMs: 100,
-          minLeadMs: 90,
-          maxLeadMs: 120,
-        )),
+        classifyScheduling(
+          const SchedulingTraceStats(
+            count: 3,
+            medianLeadMs: 100,
+            minLeadMs: 90,
+            maxLeadMs: 120,
+          ),
+        ),
         SchedulingVerdict.onTime,
       );
       expect(
-        classifyScheduling(const SchedulingTraceStats(
-          count: 3,
-          medianLeadMs: -20,
-          minLeadMs: -30,
-          maxLeadMs: -10,
-        )),
+        classifyScheduling(
+          const SchedulingTraceStats(
+            count: 3,
+            medianLeadMs: -20,
+            minLeadMs: -30,
+            maxLeadMs: -10,
+          ),
+        ),
         SchedulingVerdict.behindEstimate,
       );
       expect(
-        classifyScheduling(const SchedulingTraceStats(
-          count: 3,
-          medianLeadMs: 400,
-          minLeadMs: 390,
-          maxLeadMs: 410,
-        )),
+        classifyScheduling(
+          const SchedulingTraceStats(
+            count: 3,
+            medianLeadMs: 400,
+            minLeadMs: 390,
+            maxLeadMs: 410,
+          ),
+        ),
         SchedulingVerdict.aheadOfLookahead,
       );
       expect(
-        classifyScheduling(const SchedulingTraceStats(
-          count: 0,
-          medianLeadMs: 0,
-          minLeadMs: 0,
-          maxLeadMs: 0,
-        )),
+        classifyScheduling(
+          const SchedulingTraceStats(
+            count: 0,
+            medianLeadMs: 0,
+            minLeadMs: 0,
+            maxLeadMs: 0,
+          ),
+        ),
         SchedulingVerdict.noTrace,
       );
     });

@@ -211,8 +211,9 @@ const Object _unsetFirstRunChoice = Object();
 
 /// 本会话引导事实集的唯一属主：置位、步进度、副作用、触达、实物序号、首启
 /// 分支、演练进行中、判据闩与取值的全部读写都归这里。
-final guideSessionProvider =
-    NotifierProvider<GuideSession, GuideSessionState>(GuideSession.new);
+final guideSessionProvider = NotifierProvider<GuideSession, GuideSessionState>(
+  GuideSession.new,
+);
 
 class GuideSession extends Notifier<GuideSessionState> {
   @override
@@ -484,8 +485,9 @@ class GuideReset {
 /// 组合根（播放页）在挂载时把自己的「收起控制层」动作挂进来（幂等；控制层
 /// 未展开时是 no-op），引导宿主在推进到三指跳转单元第二步的那一帧经它请求。
 /// 引导域只经本注入点拿闭包，对播放域保持零 import 依赖方向。
-final guideEnterWatchingRequestProvider =
-    Provider<GuideEnterWatchingRequest>((ref) => GuideEnterWatchingRequest());
+final guideEnterWatchingRequestProvider = Provider<GuideEnterWatchingRequest>(
+  (ref) => GuideEnterWatchingRequest(),
+);
 
 class GuideEnterWatchingRequest {
   /// 组合根挂进来的收起动作（未挂时请求为 no-op，如播放页不在场）。

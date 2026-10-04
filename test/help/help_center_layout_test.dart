@@ -50,7 +50,10 @@ void main() {
     testWidgets('入口卡 → 教程分组 → 使用手册分组，组内按数字前缀序', (tester) async {
       await pumpHelpCenter(tester);
 
-      expect(topOf(tester, entryCard()).dy, lessThan(topOf(tester, tutorialGroup()).dy));
+      expect(
+        topOf(tester, entryCard()).dy,
+        lessThan(topOf(tester, tutorialGroup()).dy),
+      );
       expect(
         topOf(tester, tutorialGroup()).dy,
         lessThan(topOf(tester, manualGroup()).dy),
@@ -271,9 +274,7 @@ void main() {
 
       expect(entryCard(), findsOneWidget);
       final card = tester.widget<Card>(entryCard());
-      final primary = Theme.of(
-        tester.element(entryCard()),
-      ).colorScheme.primary;
+      final primary = Theme.of(tester.element(entryCard())).colorScheme.primary;
       expect(card.color, primary, reason: '入口卡是主色卡，颜色取自主题');
 
       expect(

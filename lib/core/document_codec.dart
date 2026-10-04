@@ -166,9 +166,7 @@ class RecordCodec<V, F extends Enum> {
   /// 相同 JSON 值（含 [omitField] 对齐），否则 [hash] 与 [equals] 失配。
   int hash(V value) => value == null
       ? 0
-      : jsonDeepHash([
-          for (final id in ids) decl(id).write(value),
-        ]);
+      : jsonDeepHash([for (final id in ids) decl(id).write(value)]);
 }
 
 /// 把 JSON 对象中不属于已知键的项收进保底区（原样带回）。
@@ -259,10 +257,7 @@ class DocumentCodec<D, S extends Enum> {
     final upgrade = policy.upgrade(json);
     if (upgrade.json.isEmpty) return empty();
     final effective = upgrade.json;
-    final known = {
-      'version',
-      for (final id in ids) decl(id).key,
-    };
+    final known = {'version', for (final id in ids) decl(id).key};
     final extra = _collectExtra(effective, known);
     final sections = <S, Object?>{
       for (final id in ids)
@@ -380,9 +375,8 @@ class ListDocumentCodec<D, E, F extends Enum> {
   }
 
   /// 哈希：由各元素哈希派生（保底区不参与）。
-  int hash(D doc) => Object.hashAll([
-    for (final e in listOf(doc)) elementCodec.hash(e),
-  ]);
+  int hash(D doc) =>
+      Object.hashAll([for (final e in listOf(doc)) elementCodec.hash(e)]);
 
   /// 反序列化（版本政策）：政策 [DocumentVersionPolicy.upgrade]
   /// 把盘上 JSON 升到本版再读——低于地板 → 空态兜底；在链上（含中间版本）

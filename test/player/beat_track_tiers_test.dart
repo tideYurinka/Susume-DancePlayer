@@ -21,8 +21,7 @@ void main() {
       );
 
       Duration at(int beat) => Duration(milliseconds: beat * 500);
-      tierOf(Duration t) =>
-          ticks.firstWhere((tick) => tick.time == t).tier;
+      tierOf(Duration t) => ticks.firstWhere((tick) => tick.time == t).tier;
 
       // 八拍区间（8 拍 = 4s）的第 1 条 downbeat = 大线、第 2 条 = 中线。
       expect(tierOf(at(0)), BeatTickTier.eightBar);
@@ -125,8 +124,12 @@ void main() {
         final start = Duration(milliseconds: cutMs);
         const end = Duration(seconds: 20);
         final tierEightBars = [
-          for (final tick in beatTrackTicks(grid, start, end,
-              phase: BeatPhase(grid: grid)))
+          for (final tick in beatTrackTicks(
+            grid,
+            start,
+            end,
+            phase: BeatPhase(grid: grid),
+          ))
             if (tick.tier == BeatTickTier.eightBar) tick.time,
         ];
         expect(
@@ -135,8 +138,12 @@ void main() {
           reason: '窗口切断于 ${cutMs}ms 时大线集合须与相位源一致',
         );
         final ticksByTime = {
-          for (final tick in beatTrackTicks(grid, start, end,
-              phase: BeatPhase(grid: grid)))
+          for (final tick in beatTrackTicks(
+            grid,
+            start,
+            end,
+            phase: BeatPhase(grid: grid),
+          ))
             tick.time: tick,
         };
         // 其余 downbeat（含相位原点后的偶数序）= 四拍中线；弱起/非 downbeat
@@ -149,8 +156,8 @@ void main() {
             expect(
               tick.tier,
               BeatPhase(grid: grid)
-                  .pointsInWindow(tick.time, tick.time)
-                  .contains(tick.time)
+                      .pointsInWindow(tick.time, tick.time)
+                      .contains(tick.time)
                   ? BeatTickTier.eightBar
                   : BeatTickTier.fourBar,
               reason: '窗口切断于 ${cutMs}ms',
@@ -229,10 +236,12 @@ void main() {
         final next = b + 1 < barMs.length ? barMs[b + 1] : start + 400;
         beats.add(marker_doc.BeatPoint(t: start / 1000, down: true));
         for (var k = 1; k < 4; k++) {
-          beats.add(marker_doc.BeatPoint(
-            t: (start + k * (next - start) / 4) / 1000,
-            down: false,
-          ));
+          beats.add(
+            marker_doc.BeatPoint(
+              t: (start + k * (next - start) / 4) / 1000,
+              down: false,
+            ),
+          );
         }
       }
       return documentGridOf(
@@ -353,13 +362,16 @@ void main() {
           ),
         ],
       );
-      expect(result.first, const BeatEightCountLabel(
-        time: Duration(seconds: 12), count: 1,
-      ));
       expect(
-        result.where((l) =>
-            l.time == const Duration(seconds: 4) ||
-            l.time == const Duration(seconds: 8)),
+        result.first,
+        const BeatEightCountLabel(time: Duration(seconds: 12), count: 1),
+      );
+      expect(
+        result.where(
+          (l) =>
+              l.time == const Duration(seconds: 4) ||
+              l.time == const Duration(seconds: 8),
+        ),
         isEmpty,
       );
     });
@@ -401,7 +413,11 @@ void main() {
       ];
       // 恰 32.0px：µsPerPx = 4e6µs / 32px → minGap == 32 全显。
       expect(
-        labels(grid: uniformReadyGrid(), segments: seg, microsecondsPerPixel: 125000),
+        labels(
+          grid: uniformReadyGrid(),
+          segments: seg,
+          microsecondsPerPixel: 125000,
+        ),
         const [
           BeatEightCountLabel(time: Duration(seconds: 4), count: 2),
           BeatEightCountLabel(time: Duration(seconds: 8), count: 3),
@@ -745,10 +761,8 @@ void _anchorRephasingTierTests() {
         for (final t in without)
           if (t.tier == BeatTickTier.eightBar) t.time,
       ],
-      BeatPhase(grid: derived).pointsInWindow(
-        Duration.zero,
-        const Duration(seconds: 36),
-      ),
+      BeatPhase(grid: derived)
+          .pointsInWindow(Duration.zero, const Duration(seconds: 36)),
     );
   });
 }

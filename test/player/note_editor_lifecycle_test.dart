@@ -14,7 +14,8 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/persistence/annotation_save_orchestrator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,9 +39,7 @@ class _NopSaveSink implements AnnotationSaveSink {
 
 void main() {
   group('编辑面生命周期', () {
-    testWidgets('删除备注后即时清编辑目标：两处入口同经模块，删完面板收起且目标为空', (
-      tester,
-    ) async {
+    testWidgets('删除备注后即时清编辑目标：两处入口同经模块，删完面板收起且目标为空', (tester) async {
       final container = noteEditorContainer();
       await pumpNoteEditorPanel(tester, container);
       seedAndOpenNoteEditor(container);
@@ -137,9 +136,7 @@ void main() {
         ProviderScope(
           overrides: [
             playbackEngineProvider.overrideWithValue(engine),
-            beatAnalysisPipelineProvider.overrideWithValue(
-              hangingBeatPipeline,
-            ),
+            beatAnalysisPipelineProvider.overrideWithValue(hangingBeatPipeline),
             privateJsonStorageProvider.overrideWithValue(
               InMemoryPrivateJsonStorage(),
             ),
@@ -149,10 +146,7 @@ void main() {
               InMemoryVideoIndexStorage(
                 initial: VideoIndex(
                   entries: [
-                    historyEntry(
-                      filePath: '/videos/a.mp4',
-                      mirrored: false,
-                    ),
+                    historyEntry(filePath: '/videos/a.mp4', mirrored: false),
                   ],
                 ),
               ),

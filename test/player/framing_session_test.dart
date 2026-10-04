@@ -301,7 +301,10 @@ void main() {
 
       // 框中心按下并拖动：整体平移（形状不变），不是控制点调形。
       host.begin(focal: at(left + w / 2, top + h / 2), pointerCount: 1);
-      host.adjust(focal: at(left + w / 2 + 20 / picture.width, top + h / 2), pointerCount: 1);
+      host.adjust(
+        focal: at(left + w / 2 + 20 / picture.width, top + h / 2),
+        pointerCount: 1,
+      );
       expect(applied!.width, closeTo(small.width, 1e-9), reason: '不调形');
       expect(applied!.height, closeTo(small.height, 1e-9));
       expect(applied!.left, closeTo(left + 20 / picture.width, 1e-9));
@@ -314,10 +317,7 @@ void main() {
         pointerCount: 1,
       );
       host.adjust(
-        focal: at(
-          left + 16 / picture.width,
-          top + 16 / picture.height,
-        ),
+        focal: at(left + 16 / picture.width, top + 16 / picture.height),
         pointerCount: 1,
       );
       expect(applied!.width, closeTo(small.width, 1e-9), reason: '小框上角点外仍是平移');
@@ -328,7 +328,10 @@ void main() {
   group('松手：是否成框', () {
     test('不足最小边：不成框，保留手势前状态（原未调过）', () {
       host.begin(focal: at(0.5, 0.5), pointerCount: 1);
-      host.adjust(focal: at(0.5 + minEdge / 2, 0.5 + minEdge / 2), pointerCount: 1);
+      host.adjust(
+        focal: at(0.5 + minEdge / 2, 0.5 + minEdge / 2),
+        pointerCount: 1,
+      );
       final tooSmall = applied;
       expect(tooSmall, isNotNull, reason: '跟手期间照常画橡皮筋');
 
@@ -463,7 +466,8 @@ void main() {
       ).allMatches(code).map((m) => m.group(1)!).toList();
       expect(imports, isNotEmpty, reason: sourcePath);
       for (final import in imports) {
-        final allowed = import == 'dart:ui' ||
+        final allowed =
+            import == 'dart:ui' ||
             import == '../annotation/framing_selection.dart' ||
             import == '../core/hit_target.dart' ||
             import == 'framing_session_state.dart' ||
@@ -479,7 +483,10 @@ void main() {
     test('播放页单向依赖本模块；本模块反向不 import 播放页', () {
       final source = File(sourcePath).readAsStringSync();
       expect(
-        RegExp(r"^import .*player_page\.dart", multiLine: true).hasMatch(source),
+        RegExp(
+          r"^import .*player_page\.dart",
+          multiLine: true,
+        ).hasMatch(source),
         isFalse,
       );
       final page = File('lib/player/player_page.dart').readAsStringSync();

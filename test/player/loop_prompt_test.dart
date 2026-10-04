@@ -13,8 +13,14 @@ void main() {
     });
 
     test('BPM 可配置换算', () {
-      expect(const UniformBeatGrid(bpm: 60).eightBeatNominal, const Duration(seconds: 8));
-      expect(const UniformBeatGrid(bpm: 240).eightBeatNominal, const Duration(seconds: 2));
+      expect(
+        const UniformBeatGrid(bpm: 60).eightBeatNominal,
+        const Duration(seconds: 8),
+      );
+      expect(
+        const UniformBeatGrid(bpm: 240).eightBeatNominal,
+        const Duration(seconds: 2),
+      );
     });
   });
 
@@ -22,7 +28,10 @@ void main() {
     test('播放到尾进入 countdown，一个八拍后自动从头循环播放', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -47,7 +56,10 @@ void main() {
     test('「不循环」停留于结尾，本次播放会话不再自动循环', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -82,7 +94,10 @@ void main() {
     test('countdown 中再次到尾不重复触发（防御）', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -103,7 +118,10 @@ void main() {
     test('dispose 取消倒计时与订阅，不再自动循环', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
 
         engine.open(Uri.file('/videos/a.mp4'), play: true);
         async.elapse(const Duration(seconds: 1));
@@ -124,11 +142,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -156,9 +175,7 @@ void main() {
 
     test('节拍异常态秒制兜底：注入不可用网格，提示延迟一个八拍 = 固定 4s', () {
       fakeAsync((async) {
-        final engine = FakePlaybackEngine(
-          duration: const Duration(seconds: 1),
-        );
+        final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
         final controller = LoopPromptController(
           engine,
           gridOf: () => const UnavailableBeatGrid(),
@@ -189,11 +206,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         engine.seek(const Duration(seconds: 19));
@@ -202,7 +220,9 @@ void main() {
         expect(controller.phase, LoopPromptPhase.countdown);
 
         controller.dismiss();
-        async.elapse(placeholderBeatGrid.eightBeatNominal + const Duration(seconds: 1));
+        async.elapse(
+          placeholderBeatGrid.eightBeatNominal + const Duration(seconds: 1),
+        );
         expect(controller.phase, LoopPromptPhase.dismissed);
         expect(engine.isPlaying, isFalse);
         expect(engine.position, const Duration(seconds: 20));
@@ -214,7 +234,10 @@ void main() {
     test('未自定义边界时物理完成保持既有行为', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
         engine.open(Uri.file('/videos/a.mp4'), play: true);
         async.elapse(const Duration(seconds: 1));
 
@@ -231,11 +254,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -247,7 +271,10 @@ void main() {
         engine.play();
         async.elapse(const Duration(seconds: 3));
         expect(engine.isPlaying, isTrue);
-        expect(engine.position, greaterThanOrEqualTo(const Duration(seconds: 28)));
+        expect(
+          engine.position,
+          greaterThanOrEqualTo(const Duration(seconds: 28)),
+        );
         expect(controller.phase, LoopPromptPhase.idle);
         expect(autoLoopStarted, 0);
 
@@ -260,11 +287,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
 
         // 续播/自动 seek 到尾线右侧（25s，无放行标记）：起播停在新尾线。
         engine.open(Uri.file('/videos/a.mp4'));
@@ -284,11 +312,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         async.elapse(Duration.zero); // 排空 open 的挂起位置事件
@@ -309,11 +338,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 2),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 2),
+                end: const Duration(seconds: 20),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         engine.seek(const Duration(seconds: 15));
@@ -342,11 +372,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 2),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 2),
+                end: const Duration(seconds: 20),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         engine.seek(const Duration(seconds: 15));
@@ -371,11 +402,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
         engine.open(Uri.file('/videos/a.mp4'));
 
         // 段循环接管期间（播放头 25s 在段外）：视频尾拦截被抑制。
@@ -408,11 +440,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
         engine.open(Uri.file('/videos/a.mp4'));
 
         // 恢复（不 seek）就位段循环激活：起播边沿不钳回（段循环接管）。
@@ -450,11 +483,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
         engine.open(Uri.file('/videos/a.mp4'));
         engine.seek(const Duration(seconds: 15));
         engine.play();
@@ -475,11 +509,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         engine.seek(const Duration(seconds: 15));
@@ -491,7 +526,10 @@ void main() {
 
         async.elapse(placeholderBeatGrid.eightBeatNominal);
         expect(engine.isPlaying, isTrue);
-        expect(engine.position, greaterThanOrEqualTo(const Duration(seconds: 10)));
+        expect(
+          engine.position,
+          greaterThanOrEqualTo(const Duration(seconds: 10)),
+        );
         expect(engine.position, lessThan(const Duration(seconds: 20)));
 
         controller.dispose();
@@ -503,11 +541,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: Duration.zero,
-            end: const Duration(seconds: 10),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: Duration.zero,
+                end: const Duration(seconds: 10),
+              );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -544,11 +583,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: Duration.zero,
-            end: const Duration(seconds: 10),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: Duration.zero,
+                end: const Duration(seconds: 10),
+              );
 
         engine.open(Uri.file('/videos/a.mp4'));
         engine.play();
@@ -575,7 +615,10 @@ void main() {
     test('录制期物理完成事件同样不进入倒计时（收尾由录制会话负责）', () {
       fakeAsync((async) {
         final engine = FakePlaybackEngine(duration: const Duration(seconds: 1));
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid);
+        final controller = LoopPromptController(
+          engine,
+          gridOf: () => placeholderBeatGrid,
+        );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -597,11 +640,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: Duration.zero,
-            end: const Duration(seconds: 10),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: Duration.zero,
+                end: const Duration(seconds: 10),
+              );
         var autoLoopStarted = 0;
         controller.onAutoLoopStarted = () => autoLoopStarted++;
 
@@ -630,11 +674,12 @@ void main() {
         final engine = FakePlaybackEngine(
           duration: const Duration(seconds: 30),
         );
-        final controller = LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
-          ..updateVideoRange(
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 20),
-          );
+        final controller =
+            LoopPromptController(engine, gridOf: () => placeholderBeatGrid)
+              ..updateVideoRange(
+                start: const Duration(seconds: 10),
+                end: const Duration(seconds: 20),
+              );
 
         // 手动拖到旧尾线右侧（25s）打放行标记后起播。
         engine.open(Uri.file('/videos/a.mp4'));

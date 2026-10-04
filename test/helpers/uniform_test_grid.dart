@@ -38,8 +38,7 @@ class UniformTestGrid implements BeatGrid {
   }
 
   @override
-  bool isDownbeat(int index) =>
-      (index - firstDownbeatIndex) % beatsPerBar == 0;
+  bool isDownbeat(int index) => (index - firstDownbeatIndex) % beatsPerBar == 0;
 
   @override
   int? get lastBeatIndex => beatCount - 1;

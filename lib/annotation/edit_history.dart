@@ -68,8 +68,11 @@ class EditHistory<T> {
       dropped = kept.length - capacity;
       kept.removeRange(0, dropped);
     }
-    return EditHistory._(List.unmodifiable(kept), _cursor + 1 - dropped,
-        capacity,);
+    return EditHistory._(
+      List.unmodifiable(kept),
+      _cursor + 1 - dropped,
+      capacity,
+    );
   }
 
   /// 撤销一步（快照对缝）：返回（新历史, 被撤销条目的前后快照对）；

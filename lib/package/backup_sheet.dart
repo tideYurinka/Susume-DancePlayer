@@ -46,9 +46,8 @@ class _BackupSheetState extends ConsumerState<BackupSheet> {
     } on Object {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('备份失败，包未递出')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('备份失败，包未递出')));
     }
   }
 
@@ -103,8 +102,9 @@ class _BackupSheetState extends ConsumerState<BackupSheet> {
               children: [
                 TextButton(
                   key: const Key('backup_sheet_cancel'),
-                  onPressed:
-                      _sending ? null : () => Navigator.of(context).pop(),
+                  onPressed: _sending
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   child: const Text('取消'),
                 ),
                 const SizedBox(width: 8),

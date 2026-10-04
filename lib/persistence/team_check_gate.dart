@@ -49,9 +49,7 @@ DanceGateStatus danceGateStatus({
   if (requirement == null || segmentMasteries.isEmpty) {
     return DanceGateStatus.notJudged;
   }
-  return segmentMasteries.every(
-    (mastery) => mastery.index >= requirement.index,
-  )
+  return segmentMasteries.every((mastery) => mastery.index >= requirement.index)
       ? DanceGateStatus.met
       : DanceGateStatus.unmet;
 }
@@ -62,9 +60,7 @@ enum TeamCheckEventStatus { met, unmet, notJudged }
 /// 事件级达标汇总：全部参与判定的舞都达标即事件达标，
 /// 有一段未达标即未达标；没有任何舞参与判定（全是不设 / 零段，或无关联
 /// 舞）时不判达标——不拿空数据冒充达标。
-TeamCheckEventStatus eventGateStatus(
-  Map<String, DanceGateStatus> statuses,
-) {
+TeamCheckEventStatus eventGateStatus(Map<String, DanceGateStatus> statuses) {
   final judged = statuses.values
       .where((status) => status != DanceGateStatus.notJudged)
       .toList();

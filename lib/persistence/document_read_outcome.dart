@@ -55,8 +55,10 @@ sealed class DocumentReadOutcome<D> {
 
 /// 可写读结局：文件不在（可创建）或听懂了（可整份替换）。
 sealed class WritableDocumentReadOutcome<D> extends DocumentReadOutcome<D> {
-  const WritableDocumentReadOutcome(super.document, DocumentWriteExecutor<D> writeBack)
-    : _write = writeBack;
+  const WritableDocumentReadOutcome(
+    super.document,
+    DocumentWriteExecutor<D> writeBack,
+  ) : _write = writeBack;
 
   final DocumentWriteExecutor<D> _write;
 
@@ -86,10 +88,9 @@ final class DocumentReadOnly<D> extends DocumentReadOutcome<D> {
 }
 
 /// 写回执行器：由文件层给出（链内重读最新、再判可写、整份替换）。
-typedef DocumentWriteExecutor<D> =
-    Future<DocumentWriteOutcome<D>> Function(
-      FutureOr<D> Function(DocumentWriteContext<D> context) mutate,
-    );
+typedef DocumentWriteExecutor<D> = Future<DocumentWriteOutcome<D>> Function(
+  FutureOr<D> Function(DocumentWriteContext<D> context) mutate,
+);
 
 /// 写回上下文：链内读到的最新文档 + 盘上是否真有这份文件。
 ///

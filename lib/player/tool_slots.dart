@@ -97,22 +97,13 @@ enum ToolSlotId {
 /// 条目不是槽——不进槽集、不参与工具排的宽度分配；条目键沿用原两槽的
 /// 槽键字符串（同一件事换了个落点，键不换）。[segmentFlag] 的键沿用
 /// `control_segment_flag`。
-enum AddEntryId {
-  halfBeat,
-  localMirror,
-  noteSticker,
-  segmentFlag,
-}
+enum AddEntryId { halfBeat, localMirror, noteSticker, segmentFlag }
 
 /// 自动分段条目标识：「自动分段」槽弹出菜单里的三档动作。
 ///
 /// 条目不是槽——不进槽集、不参与工具排的宽度分配；条目键是渲染层与
 /// 测试共同的定位手段。
-enum AutoSegmentEntryId {
-  clearSegments,
-  fourBeats,
-  eightBeats,
-}
+enum AutoSegmentEntryId { clearSegments, fourBeats, eightBeats }
 
 /// 工具槽的门种类：槽声明「我这个动作有哪些门」。
 enum ToolGateKind {
@@ -209,11 +200,7 @@ const ToolSlot _emphasisSlot = ToolSlot(
 const ToolSlot _autoRangeSlot = ToolSlot(
   id: ToolSlotId.autoRange,
   key: 'control_auto_range',
-  gates: [
-    ToolGateKind.loading,
-    ToolGateKind.locked,
-    ToolGateKind.gridNotReady,
-  ],
+  gates: [ToolGateKind.loading, ToolGateKind.locked, ToolGateKind.gridNotReady],
   writesDocument: true,
 );
 
@@ -717,9 +704,7 @@ ToolSlotVerdict evaluateDeclaredGates(
       ToolGateKind.loading,
     if (declared.contains(ToolGateKind.noSubject) && !hasSubject)
       ToolGateKind.noSubject,
-    if (declared.contains(ToolGateKind.locked) &&
-        facts.locked &&
-        lockApplies)
+    if (declared.contains(ToolGateKind.locked) && facts.locked && lockApplies)
       ToolGateKind.locked,
     if (declared.contains(ToolGateKind.gridNotReady) && facts.gridNotReady)
       ToolGateKind.gridNotReady,
@@ -748,11 +733,11 @@ ToolSlotVerdict evaluateDeclaredGates(
 /// 不声明无对象门的条目恒返回 true——它们没有「无对象」前提，本 switch 的
 /// 取值不会被消费。
 bool addEntryHasSubject(AddEntryId id, ToolFacts facts) => switch (id) {
-      AddEntryId.segmentFlag => facts.selectedSegmentLine,
-      AddEntryId.halfBeat ||
-      AddEntryId.localMirror ||
-      AddEntryId.noteSticker => true,
-    };
+  AddEntryId.segmentFlag => facts.selectedSegmentLine,
+  AddEntryId.halfBeat ||
+  AddEntryId.localMirror ||
+  AddEntryId.noteSticker => true,
+};
 
 /// 求值入口：「声明 + 事实 → verdict」。
 ///
@@ -781,32 +766,30 @@ ToolSlotVerdict evaluateToolEntry(ToolSlot slot, ToolFacts facts) =>
 ///
 /// 门清单里**没有**声明 [ToolGateKind.locked] 的入口恒返回 false——它们
 /// 的动作不属于本锁覆盖的族，本 switch 的取值不会被消费。
-bool toolEntryLayoutLockApplies(ToolSlotId id, ToolFacts facts) =>
-    switch (id) {
-      // 删除：锁只覆盖「选中的是分段线」这一种作用对象。`selectedSegmentLine`
-      // 由事实面按选中槽填、不区分播放态；对比态的删除对象是练习片段，故
-      // 显式排除 `selectedPracticeClip`——对比态里残留的分段线选中不得把
-      // 练习片段删除误判进锁内。
-      ToolSlotId.delete =>
-        facts.selectedSegmentLine && !facts.selectedPracticeClip,
-      // 分段槽（落分段线）与自动分段槽在锁内。
-      ToolSlotId.segment || ToolSlotId.autoRange => true,
-      // 其余入口的动作不属于分段结构族。
-      ToolSlotId.mastery ||
-      ToolSlotId.emphasis ||
-      ToolSlotId.add ||
-      ToolSlotId.beatAnchorAdd ||
-      ToolSlotId.beatAnchorRemove ||
-      ToolSlotId.beatAnchorsClear ||
-      ToolSlotId.beatCorrectionExit ||
-      ToolSlotId.segmentDensityFaster ||
-      ToolSlotId.segmentDensitySlower ||
-      ToolSlotId.segmentDensityReset ||
-      ToolSlotId.segmentDensityExit => false,
+bool toolEntryLayoutLockApplies(ToolSlotId id, ToolFacts facts) => switch (id) {
+  // 删除：锁只覆盖「选中的是分段线」这一种作用对象。`selectedSegmentLine`
+  // 由事实面按选中槽填、不区分播放态；对比态的删除对象是练习片段，故
+  // 显式排除 `selectedPracticeClip`——对比态里残留的分段线选中不得把
+  // 练习片段删除误判进锁内。
+  ToolSlotId.delete => facts.selectedSegmentLine && !facts.selectedPracticeClip,
+  // 分段槽（落分段线）与自动分段槽在锁内。
+  ToolSlotId.segment || ToolSlotId.autoRange => true,
+  // 其余入口的动作不属于分段结构族。
+  ToolSlotId.mastery ||
+  ToolSlotId.emphasis ||
+  ToolSlotId.add ||
+  ToolSlotId.beatAnchorAdd ||
+  ToolSlotId.beatAnchorRemove ||
+  ToolSlotId.beatAnchorsClear ||
+  ToolSlotId.beatCorrectionExit ||
+  ToolSlotId.segmentDensityFaster ||
+  ToolSlotId.segmentDensitySlower ||
+  ToolSlotId.segmentDensityReset ||
+  ToolSlotId.segmentDensityExit => false,
 
-      // 取景入口统一到顶栏「取景调整」；练习侧镜像的动作不属于分段结构族。
-      ToolSlotId.practiceMirror => false,
-    };
+  // 取景入口统一到顶栏「取景调整」；练习侧镜像的动作不属于分段结构族。
+  ToolSlotId.practiceMirror => false,
+};
 
 /// 按槽解析「此刻有没有作用对象」（穷尽 switch）：
 /// 加一个 [ToolSlotId] 取值而漏补事实即编译报错。
@@ -815,27 +798,25 @@ bool toolEntryLayoutLockApplies(ToolSlotId id, ToolFacts facts) =>
 /// 承载（分段槽 = 网格未就绪 / 预览线越界；添加与两个对比开关槽没有
 /// 「无对象」前提），本 switch 的取值不会被消费。
 bool toolEntryHasSubject(ToolSlotId id, ToolFacts facts) => switch (id) {
-      ToolSlotId.mastery => facts.selectedLearningSegmentInInterval,
-      ToolSlotId.emphasis => facts.selectedLearningSegmentInInterval,
-      ToolSlotId.segment => true,
-      ToolSlotId.add => true,
-      // 删除：选中任一线（分段线 / 半拍线 / 局部镜像片段——编辑态装配点
-      // 折进同一谓词），或选中的练习片段（对比态）。
-      ToolSlotId.delete =>
-        facts.anyLineSelected || facts.selectedPracticeClip,
-      ToolSlotId.autoRange => true,
-      ToolSlotId.beatAnchorAdd => facts.anchorAddable,
-      ToolSlotId.beatAnchorRemove => facts.anchorRemovable,
-      ToolSlotId.beatAnchorsClear => facts.hasAnchors,
-      ToolSlotId.beatCorrectionExit => true,
-      // 段内倍频三钮的作用对象 = 选中的学习段（与熟练度/重点同一事实）。
-      ToolSlotId.segmentDensityFaster ||
-      ToolSlotId.segmentDensitySlower ||
-      ToolSlotId.segmentDensityReset =>
-        facts.selectedLearningSegmentInInterval,
-      ToolSlotId.segmentDensityExit => true,
-      ToolSlotId.practiceMirror => true,
-    };
+  ToolSlotId.mastery => facts.selectedLearningSegmentInInterval,
+  ToolSlotId.emphasis => facts.selectedLearningSegmentInInterval,
+  ToolSlotId.segment => true,
+  ToolSlotId.add => true,
+  // 删除：选中任一线（分段线 / 半拍线 / 局部镜像片段——编辑态装配点
+  // 折进同一谓词），或选中的练习片段（对比态）。
+  ToolSlotId.delete => facts.anyLineSelected || facts.selectedPracticeClip,
+  ToolSlotId.autoRange => true,
+  ToolSlotId.beatAnchorAdd => facts.anchorAddable,
+  ToolSlotId.beatAnchorRemove => facts.anchorRemovable,
+  ToolSlotId.beatAnchorsClear => facts.hasAnchors,
+  ToolSlotId.beatCorrectionExit => true,
+  // 段内倍频三钮的作用对象 = 选中的学习段（与熟练度/重点同一事实）。
+  ToolSlotId.segmentDensityFaster ||
+  ToolSlotId.segmentDensitySlower ||
+  ToolSlotId.segmentDensityReset => facts.selectedLearningSegmentInInterval,
+  ToolSlotId.segmentDensityExit => true,
+  ToolSlotId.practiceMirror => true,
+};
 
 /// 命中的门 → 可点性：预览线越界不可点（静默），其余四种门置灰仍可点
 /// （按下去只解释原因）。

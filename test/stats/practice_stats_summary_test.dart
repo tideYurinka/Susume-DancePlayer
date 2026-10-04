@@ -82,10 +82,9 @@ void main() {
     });
 
     test('昨天为止连续：今天没练不断，缺今天即 0', () {
-      final summary = summarizePracticeStats(
-        [_session(DateTime(2026, 9, 12, 10), 60)],
-        now: now,
-      );
+      final summary = summarizePracticeStats([
+        _session(DateTime(2026, 9, 12, 10), 60),
+      ], now: now);
       expect(summary.currentStreakDays, 0);
     });
 

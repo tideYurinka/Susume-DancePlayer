@@ -157,9 +157,7 @@ void main() {
   });
 
   group('片段块体处处可点：设备等效视口下的三处单击', () {
-    testWidgets('左端 14dp 内 / 正中 / 右端 14dp 内三处单击都激活，结果一致', (
-      tester,
-    ) async {
+    testWidgets('左端 14dp 内 / 正中 / 右端 14dp 内三处单击都激活，结果一致', (tester) async {
       setDeviceView(tester);
       final container = await pumpBand(tester);
       final block = blockRect(tester);
@@ -198,10 +196,7 @@ void main() {
     testWidgets('真机手指容差下点偏几 dp 仍激活、不把控制层收起来', (tester) async {
       setDeviceView(tester);
       var collapses = 0;
-      final container = await pumpBand(
-        tester,
-        onCollapse: () => collapses++,
-      );
+      final container = await pumpBand(tester, onCollapse: () => collapses++);
       final block = blockRect(tester);
 
       // 首端带内按下 → 滚了约 6dp → 抬起：真机平台上这仍是点按（8dp slop）。
@@ -221,15 +216,10 @@ void main() {
       expect(collapses, 0, reason: '块体上的点按不是空白单击');
     });
 
-    testWidgets('越过 8dp 容差的偏移不再是点按，但也不是空白单击（布景真按设备容差在跑）', (
-      tester,
-    ) async {
+    testWidgets('越过 8dp 容差的偏移不再是点按，但也不是空白单击（布景真按设备容差在跑）', (tester) async {
       setDeviceView(tester);
       var collapses = 0;
-      final container = await pumpBand(
-        tester,
-        onCollapse: () => collapses++,
-      );
+      final container = await pumpBand(tester, onCollapse: () => collapses++);
       final block = blockRect(tester);
 
       // 块体正中按下 → 滚 12dp：真机 8dp 容差下**已经不是点按**（若测试视图
@@ -254,9 +244,7 @@ void main() {
       expect(collapses, 0, reason: '也不是空白单击（块体是编辑内容）');
     });
 
-    testWidgets('端点带按下后横向移动 18–36px 仍是截取拖动：不激活、不改选中', (
-      tester,
-    ) async {
+    testWidgets('端点带按下后横向移动 18–36px 仍是截取拖动：不激活、不改选中', (tester) async {
       setDeviceView(tester);
       final container = await pumpBand(tester);
       final block = blockRect(tester);
@@ -303,11 +291,7 @@ void main() {
       );
       final block = blockRect(tester);
       var line = tester.getCenter(find.byKey(const Key('preview_line')));
-      expect(
-        line.dx,
-        closeTo(block.left, 1),
-        reason: '播放头正压在块首',
-      );
+      expect(line.dx, closeTo(block.left, 1), reason: '播放头正压在块首');
 
       await tapAt(tester, Offset(line.dx, block.center.dy));
       expectActivated(tester, container);
@@ -386,9 +370,7 @@ void main() {
       expect(collapses, 0);
     });
 
-    testWidgets('块体与学习段体 x 区间重叠时仍算编辑内容（段体命中不得吃掉块）', (
-      tester,
-    ) async {
+    testWidgets('块体与学习段体 x 区间重叠时仍算编辑内容（段体命中不得吃掉块）', (tester) async {
       setDeviceView(tester);
       var collapses = 0;
       var twoFingerDoubleTaps = 0;

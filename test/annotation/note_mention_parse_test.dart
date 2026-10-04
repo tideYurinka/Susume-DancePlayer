@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   /// 可见文本拼接（点名段以「[名]」标记）。
   String visible(NoteMentionParse parse) => [
-        for (final segment in parse.segments)
-          segment.name == null ? segment.text : '[${segment.text}]',
-      ].join();
+    for (final segment in parse.segments)
+      segment.name == null ? segment.text : '[${segment.text}]',
+  ].join();
 
   test('基本单元：@果 走位偏左 → 「果」着名、「@」与紧随空格隐藏', () {
     final parse = parseNoteMentions('@果 走位偏左', const {'果'});
@@ -19,19 +19,16 @@ void main() {
       NoteMentionSegment('走位偏左'),
     ]);
     // 隐藏区间 = 「@」（0..1）与紧随的第一个空格（2..3）。
-    expect(
-      parse.hiddenRanges.map((r) => (r.start, r.end)),
-      const [(0, 1), (2, 3)],
-    );
+    expect(parse.hiddenRanges.map((r) => (r.start, r.end)), const [
+      (0, 1),
+      (2, 3),
+    ]);
   });
 
   test('单元末尾无空格：@果 在文本末尾 → 只隐藏「@」', () {
     final parse = parseNoteMentions('走位@果', const {'果'});
     expect(visible(parse), '走位[果]');
-    expect(
-      parse.hiddenRanges.map((r) => (r.start, r.end)),
-      const [(2, 3)],
-    );
+    expect(parse.hiddenRanges.map((r) => (r.start, r.end)), const [(2, 3)]);
   });
 
   test('最长优先：名册同时有「果」与「果果」→ @果果 识别为「果果」', () {

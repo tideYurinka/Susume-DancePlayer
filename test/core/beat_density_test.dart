@@ -129,20 +129,23 @@ void main() {
     test('×2 后八拍标称只覆盖原来一半时长', () {
       final normal = gridOf(baseBeats(), density: 1);
       final doubled = gridOf(baseBeats(), density: 2);
-      expect(
-        doubled.eightBeatNominal,
-        normal.eightBeatNominal * 0.5,
-      );
+      expect(doubled.eightBeatNominal, normal.eightBeatNominal * 0.5);
       expect(doubled.eightBeatNominal, const Duration(milliseconds: 2000));
     });
 
     test('开窗取拍随档位', () {
       final grid = gridOf(baseBeats(), density: 2);
-      expect(grid.beatsInWindow(const Duration(milliseconds: 900), const Duration(milliseconds: 1600)), [
-        const Duration(milliseconds: 1000),
-        const Duration(milliseconds: 1250),
-        const Duration(milliseconds: 1500),
-      ]);
+      expect(
+        grid.beatsInWindow(
+          const Duration(milliseconds: 900),
+          const Duration(milliseconds: 1600),
+        ),
+        [
+          const Duration(milliseconds: 1000),
+          const Duration(milliseconds: 1250),
+          const Duration(milliseconds: 1500),
+        ],
+      );
       final slow = gridOf(baseBeats(), density: 0.5);
       expect(slow.beatsInWindow(Duration.zero, const Duration(seconds: 3)), [
         const Duration(milliseconds: 500),
@@ -160,13 +163,21 @@ void main() {
 
   group('派生是「原始拍点 + 平移量 + 倍频」的纯函数', () {
     test('可不经文档字段按任意档位求值（统计投影重建记录时桶格的入口）', () {
-      final points = deriveBeatPoints(beats: baseBeats(), shiftMs: 100, density: 2);
+      final points = deriveBeatPoints(
+        beats: baseBeats(),
+        shiftMs: 100,
+        density: 2,
+      );
       expect(points.first.$1, 600);
       expect(points.length, 15);
       expect(points[1].$1, 850);
-      expect([for (var i = 0; i < points.length; i++) if (points[i].$2) i], [
-        0, 4, 8, 12,
-      ]);
+      expect(
+        [
+          for (var i = 0; i < points.length; i++)
+            if (points[i].$2) i,
+        ],
+        [0, 4, 8, 12],
+      );
     });
 
     test('平移量与倍频可交换：先平移后重采样 = 先重采样后平移', () {
@@ -179,7 +190,11 @@ void main() {
     });
 
     test('缺省倍频 = 原样：派生拍点与原拍点（加平移）逐位一致', () {
-      final points = deriveBeatPoints(beats: baseBeats(), shiftMs: 0, density: 1);
+      final points = deriveBeatPoints(
+        beats: baseBeats(),
+        shiftMs: 0,
+        density: 1,
+      );
       expect(points.length, 8);
       expect(points[0].$1, 500);
       expect(points[0].$2, isTrue);

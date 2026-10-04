@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -23,7 +22,11 @@ BeatScheduleCommand commandOf(
   int segmentId, {
   Duration at = const Duration(seconds: 1),
   double volume = 0.5,
-}) => BeatScheduleCommand(beatMediaTime: at, segmentId: segmentId, volume: volume);
+}) => BeatScheduleCommand(
+  beatMediaTime: at,
+  segmentId: segmentId,
+  volume: volume,
+);
 
 void main() {
   // 渲染器注入点经平台通道读设备音频输出流；本套件无 widget 用例，显式初始化绑定。
@@ -60,8 +63,11 @@ void main() {
     expect(await renderer.schedule(commandOf(1)), isTrue);
 
     sink.acceptEnqueue = false;
-    expect(await renderer.schedule(commandOf(1)), isFalse,
-        reason: '原生未接受（丢弃/拒绝）时消费侧必须可见，不再静默');
+    expect(
+      await renderer.schedule(commandOf(1)),
+      isFalse,
+      reason: '原生未接受（丢弃/拒绝）时消费侧必须可见，不再静默',
+    );
   });
 
   test('注册表三段（含段内拍点标记）随首次消费惰性加载且只加载一次', () async {
@@ -99,21 +105,20 @@ void main() {
         loadAsset: realAssetLoader,
       );
       await renderer.schedule(commandOf(1));
-      final expected = MetronomeSegmentTable.of(entry)
-          .loads
+      final expected = MetronomeSegmentTable.of(entry).loads
           .where((spec) => spec.asset.isNotEmpty)
           .length;
       expect(sink.loads.length, expected, reason: entry.id);
-      expect(sink.loads.length, lessThanOrEqualTo(sink.segmentCapacity),
-          reason: entry.id);
+      expect(
+        sink.loads.length,
+        lessThanOrEqualTo(sink.segmentCapacity),
+        reason: entry.id,
+      );
     }
 
     // 容量不足 = 装载越界被拒（容量不足只会在 CI 失败，不在真机静默）。
     final tight = FakeBeatAudioSink()..segmentCapacity = 2;
-    final renderer = BeatAudioRenderer(
-      sink: tight,
-      loadAsset: realAssetLoader,
-    );
+    final renderer = BeatAudioRenderer(sink: tight, loadAsset: realAssetLoader);
     await renderer.schedule(commandOf(1));
     expect(tight.loads.length, 2);
   });
@@ -128,8 +133,7 @@ void main() {
       const MediaClockSync(mediaTimeMs: 5000, rate: 1.0, playing: false),
     );
 
-    expect(sink.syncs.single,
-        (mediaTimeMs: 5000.0, rate: 1.0, playing: false));
+    expect(sink.syncs.single, (mediaTimeMs: 5000.0, rate: 1.0, playing: false));
   });
 
   test('倍速与播放态随同一份下推转发；重复同值幂等无害', () async {
@@ -155,8 +159,11 @@ void main() {
     final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
 
     // 起手无锚：0，且不下推、不伪造锚。
-    expect(renderer.estimatedMediaNow(), Duration.zero,
-        reason: '无下推即无锚：不把 0 伪造成锚');
+    expect(
+      renderer.estimatedMediaNow(),
+      Duration.zero,
+      reason: '无下推即无锚：不把 0 伪造成锚',
+    );
     await renderer.rebuildTransport();
     expect(sink.syncs, isEmpty, reason: '无锚时重建流对象也不下推伪造锚');
 
@@ -166,12 +173,18 @@ void main() {
     expect(renderer.estimatedMediaNow(), const Duration(seconds: 5));
 
     sink.advanceMonotonicMs(1000);
-    expect(renderer.estimatedMediaNow(), const Duration(seconds: 5),
-        reason: '渲染器不外推：墙钟前进不改变回答');
+    expect(
+      renderer.estimatedMediaNow(),
+      const Duration(seconds: 5),
+      reason: '渲染器不外推：墙钟前进不改变回答',
+    );
 
     await renderer.flush();
-    expect(renderer.estimatedMediaNow(), Duration.zero,
-        reason: 'flush = 显式不连续：清配对，重立由呈现的下一次下推承担');
+    expect(
+      renderer.estimatedMediaNow(),
+      Duration.zero,
+      reason: 'flush = 显式不连续：清配对，重立由呈现的下一次下推承担',
+    );
   });
 
   test('flush 直接透传 sink（seek/暂停纪律）', () async {
@@ -212,19 +225,24 @@ void main() {
   group('校准会话模式：锚接线；流常开由深模块收口', () {
     test('进入会话：flush 旧锚 + 启用会话时钟源（会话锚 sync）；开流归深模块', () async {
       final sink = FakeBeatAudioSink()..advanceMonotonicMs(1234);
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
 
       await renderer.onCalibrationSession(true);
 
       expect(sink.flushCount, 1);
-      expect(sink.syncs.single,
-          (mediaTimeMs: 0.0, rate: 1.0, playing: true));
+      expect(sink.syncs.single, (mediaTimeMs: 0.0, rate: 1.0, playing: true));
       expect(sink.startCount, 0, reason: '开流策略在深模块，渲染器只管锚');
     });
 
     test('会话期间呈现下推不覆写会话时钟锚', () async {
       final sink = FakeBeatAudioSink();
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
       await renderer.onCalibrationSession(true);
 
       renderer.onMediaNow(
@@ -236,7 +254,10 @@ void main() {
 
     test('退出会话：flush + 清会话锚；停流归深模块', () async {
       final sink = FakeBeatAudioSink();
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
       await renderer.onCalibrationSession(true);
 
       await renderer.onCalibrationSession(false);
@@ -253,7 +274,10 @@ void main() {
 
     test('dispose 后会话进出安全无行为', () async {
       final sink = FakeBeatAudioSink();
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
       renderer.dispose();
 
       await renderer.onCalibrationSession(true);
@@ -265,22 +289,33 @@ void main() {
   group('流生命周期 seam：哑操作转发原生 sink', () {
     test('streamLost/openStream/stopStream 逐条转发；开流前段资产就位', () async {
       final sink = FakeBeatAudioSink();
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
 
       expect(renderer.streamLost(), isFalse);
       await renderer.openStream();
       expect(sink.startCount, 1);
-      expect(sink.loads.map((l) => l.segmentId).toList(), [0, 1, 2],
-          reason: '开流含段资产就位');
+      expect(sink.loads.map((l) => l.segmentId).toList(), [
+        0,
+        1,
+        2,
+      ], reason: '开流含段资产就位');
 
       renderer.stopStream();
-      expect(sink.calls.sublist(sink.calls.length - 2), ['flush', 'stop'],
-          reason: '停流 = flush 未消费 + 停流');
+      expect(sink.calls.sublist(sink.calls.length - 2), [
+        'flush',
+        'stop',
+      ], reason: '停流 = flush 未消费 + 停流');
     });
 
     test('rebuildTransport：换新流对象并按最近下推的配对重推同步对', () async {
       final sink = FakeBeatAudioSink()..advanceMonotonicMs(500);
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
       renderer.onMediaNow(
         const MediaClockSync(mediaTimeMs: 5000, rate: 1.0, playing: true),
       );
@@ -289,14 +324,20 @@ void main() {
       await renderer.rebuildTransport();
 
       expect(sink.recoverCount, 1);
-      expect(sink.syncs.length, greaterThan(syncsBefore),
-          reason: '新流对象不带锚：重建后必须重推同步对，第一拍才落得下去');
+      expect(
+        sink.syncs.length,
+        greaterThan(syncsBefore),
+        reason: '新流对象不带锚：重建后必须重推同步对，第一拍才落得下去',
+      );
       expect(sink.syncs.last.mediaTimeMs, 5000.0);
     });
 
     test('重建时无锚不下推（不伪造锚）', () async {
       final sink = FakeBeatAudioSink();
-      final renderer = BeatAudioRenderer(sink: sink, loadAsset: realAssetLoader);
+      final renderer = BeatAudioRenderer(
+        sink: sink,
+        loadAsset: realAssetLoader,
+      );
 
       await renderer.rebuildTransport();
 

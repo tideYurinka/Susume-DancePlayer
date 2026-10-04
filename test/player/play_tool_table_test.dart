@@ -130,8 +130,11 @@ void main() {
       expect(kPlayToolUndo.gates, isEmpty);
       expect(kPlayToolRedo.gates, isEmpty);
       expect(kPlayToolAvSync.gates, isEmpty);
-      expect(kPlayToolFramingAdjust.gates, isEmpty,
-          reason: '取景调整的装载未完成门归页面级声明（loadGateBlocksWrite），本表不重复声明');
+      expect(
+        kPlayToolFramingAdjust.gates,
+        isEmpty,
+        reason: '取景调整的装载未完成门归页面级声明（loadGateBlocksWrite），本表不重复声明',
+      );
       expect(kPlayToolBeatPrompt.gates, isEmpty);
       expect(kPlayToolMirror.gates, isEmpty);
       expect(kPlayToolLocalMirror.gates, [ToolGateKind.noSubject]);
@@ -211,9 +214,7 @@ void main() {
     test('同一条槽出现在多份行集时是同一份声明（identical）', () {
       final landscape = kPlayToolRowLandscapeTopBar.slots;
       final titleBar = kPlayToolRowPortraitTitleBar.slots;
-      final video = [
-        for (final row in portraitVideoToolbarRows) ...row.slots,
-      ];
+      final video = [for (final row in portraitVideoToolbarRows) ...row.slots];
       // 撤销/重做/查看引导：横屏与标题栏。
       bool sameSlot(Iterable<PlayToolSlot> row, PlayToolSlot slot) =>
           row.any((s) => identical(s, slot));
@@ -270,14 +271,16 @@ void main() {
 
     test('软门两态都可点：无片段置灰仍可点（点了自己解释原因），有片段正常', () {
       expect(
-        playToolTappable(kPlayToolLocalMirror,
-            hasSubject: false, enabled: false),
+        playToolTappable(
+          kPlayToolLocalMirror,
+          hasSubject: false,
+          enabled: false,
+        ),
         isTrue,
         reason: '软门：置灰但仍可点',
       );
       expect(
-        playToolTappable(kPlayToolLocalMirror,
-            hasSubject: true, enabled: true),
+        playToolTappable(kPlayToolLocalMirror, hasSubject: true, enabled: true),
         isTrue,
       );
     });
@@ -285,13 +288,19 @@ void main() {
 
   group('可点性派生', () {
     test('无门命中时随硬启用位（撤销/重做：置灰即不可点）', () {
-      expect(playToolTappable(kPlayToolUndo, hasSubject: true, enabled: true),
-          isTrue);
-      expect(playToolTappable(kPlayToolUndo, hasSubject: true, enabled: false),
-          isFalse);
+      expect(
+        playToolTappable(kPlayToolUndo, hasSubject: true, enabled: true),
+        isTrue,
+      );
+      expect(
+        playToolTappable(kPlayToolUndo, hasSubject: true, enabled: false),
+        isFalse,
+      );
       // 「查看引导」恒置灰硬门：即使声明 enabled 也走硬启用位入参。
-      expect(playToolTappable(kPlayToolGuide, hasSubject: true, enabled: false),
-          isFalse);
+      expect(
+        playToolTappable(kPlayToolGuide, hasSubject: true, enabled: false),
+        isFalse,
+      );
     });
 
     test('有门命中时随判定结果：无对象门（第②行）可点，软门与硬门同向', () {

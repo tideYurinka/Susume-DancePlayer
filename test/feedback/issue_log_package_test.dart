@@ -51,14 +51,8 @@ void main() {
     expect(decoded, testDeviceSnapshot.toJson());
     expect((decoded as Map).keys, hasLength(5));
     // 日志按目录原文进包，上一份存在才放。
-    expect(
-      utf8.decode(entries['logs/log.txt']!),
-      contains('[节拍] 第一行'),
-    );
-    expect(
-      utf8.decode(entries['logs/log.1.txt']!),
-      contains('旧行'),
-    );
+    expect(utf8.decode(entries['logs/log.txt']!), contains('[节拍] 第一行'));
+    expect(utf8.decode(entries['logs/log.1.txt']!), contains('旧行'));
   });
 
   test('只填问题描述时 issue.txt 的产出逐字相同', () async {
@@ -133,10 +127,7 @@ void main() {
 
     final entries = readZipEntries(output.path);
     expect(entries.containsKey(kIssueDancesEntry), isFalse);
-    expect(
-      utf8.decode(entries['issue.txt']!),
-      isNot(contains('附带的数据')),
-    );
+    expect(utf8.decode(entries['issue.txt']!), isNot(contains('附带的数据')));
   });
 
   test('勾了舞且不附标记文件：dances.json 逐项含标题与视频标识，issue.txt 末节列出两者', () async {
@@ -186,7 +177,10 @@ void main() {
           videoId: 'v1',
           markers: {
             'version': 8,
-            'meta': {'mirrored': true, 'signature': {'song': '真值名'}},
+            'meta': {
+              'mirrored': true,
+              'signature': {'song': '真值名'},
+            },
           },
         ),
         // 没有公开标记文件的舞：不内联空壳。
@@ -194,15 +188,18 @@ void main() {
       ],
     );
 
-    final decoded =
-        jsonDecode(utf8.decode(readZipEntries(output.path)[kIssueDancesEntry]!))
-            as List;
+    final decoded = jsonDecode(
+      utf8.decode(readZipEntries(output.path)[kIssueDancesEntry]!),
+    ) as List;
     expect(decoded, hasLength(2));
     expect((decoded[0] as Map)['title'], 'A');
     expect((decoded[0] as Map)['videoId'], 'v1');
     expect((decoded[0] as Map)['markers'], {
       'version': 8,
-      'meta': {'mirrored': true, 'signature': {'song': '真值名'}},
+      'meta': {
+        'mirrored': true,
+        'signature': {'song': '真值名'},
+      },
     });
     expect((decoded[1] as Map)['title'], 'B');
     expect((decoded[1] as Map)['videoId'], 'v2');
@@ -224,9 +221,9 @@ void main() {
       ],
     );
 
-    final decoded =
-        jsonDecode(utf8.decode(readZipEntries(output.path)[kIssueDancesEntry]!))
-            as List;
+    final decoded = jsonDecode(
+      utf8.decode(readZipEntries(output.path)[kIssueDancesEntry]!),
+    ) as List;
     expect((decoded.single as Map).containsKey('markers'), isFalse);
   });
 

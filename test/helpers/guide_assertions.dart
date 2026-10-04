@@ -28,7 +28,8 @@ void expectGuidePointsAt(WidgetTester tester, Finder anchor) {
   );
 
   // 箭头夹在气泡与锚点之间，而不是飘在别处。
-  final between = (arrowRect.top >= cardRect.bottom - 1 &&
+  final between =
+      (arrowRect.top >= cardRect.bottom - 1 &&
           arrowRect.bottom <= anchorRect.top + 1) ||
       (arrowRect.top >= anchorRect.bottom - 1 &&
           arrowRect.bottom <= cardRect.top + 1);
@@ -65,14 +66,16 @@ void expectDrillBarAnchoredTo(WidgetTester tester, Rect highlightRect) {
     expect(
       block.top - highlightRect.bottom,
       closeTo(gapAndArrow, 1),
-      reason: '框在屏幕上半，条子应放在框下方且间距 = 12 + 10'
+      reason:
+          '框在屏幕上半，条子应放在框下方且间距 = 12 + 10'
           '（框 $highlightRect / 条块 $block）',
     );
   } else {
     expect(
       highlightRect.top - block.bottom,
       closeTo(gapAndArrow, 1),
-      reason: '框在屏幕下半，条子应放在框上方且间距 = 12 + 10'
+      reason:
+          '框在屏幕下半，条子应放在框上方且间距 = 12 + 10'
           '（框 $highlightRect / 条块 $block）',
     );
   }
@@ -86,7 +89,8 @@ void expectDrillBarAnchoredTo(WidgetTester tester, Rect highlightRect) {
   expect(barRect.right, lessThanOrEqualTo(screen.width - margin + 0.5));
   // 未触发钳位时以框中心为中心；触发钳位时条子贴住那一侧的边距。
   final unclampedLeft = highlightRect.center.dx - barRect.width / 2;
-  final clamped = unclampedLeft < margin - 0.5 ||
+  final clamped =
+      unclampedLeft < margin - 0.5 ||
       unclampedLeft > screen.width - margin - barRect.width + 0.5;
   if (clamped) {
     expect(

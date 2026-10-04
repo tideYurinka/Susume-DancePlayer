@@ -556,12 +556,8 @@ void main() {
       PlanMarkKind? kindOf({
         DanceDdl? ddl,
         List<PlanEvent> events = const [],
-      }) => danceGoalMarkKind(
-        ddl: ddl,
-        events: events,
-        videoId: 'v1',
-        now: now,
-      );
+      }) =>
+          danceGoalMarkKind(ddl: ddl, events: events, videoId: 'v1', now: now);
 
       // 有活跃 DDL 即 DDL，即使事件日期更近。
       expect(kindOf(ddl: ddl, events: [teamCheck, social]), PlanMarkKind.ddl);

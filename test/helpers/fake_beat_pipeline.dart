@@ -48,8 +48,7 @@ class FakeBeatPipeline implements BeatAnalysisPipeline {
     try {
       if (hangUntilCancelled) {
         // 挂起直到被取消或解除挂起（字段实时读取，测试可中途解除）。
-        while (hangUntilCancelled &&
-            !(request.isCancelled?.call() ?? false)) {
+        while (hangUntilCancelled && !(request.isCancelled?.call() ?? false)) {
           await Future<void>.delayed(const Duration(milliseconds: 1));
         }
         if (request.isCancelled?.call() ?? false) {

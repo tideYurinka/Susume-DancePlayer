@@ -73,13 +73,23 @@ abstract interface class BeatAudioSink {
 /// dart:ffi 绑定（libaudio_native.so）。加载失败（非 Android 平台/宿主
 /// 单测）[instance] 为 null，调用方回退哑 sink（不发声，播放链路不受阻）。
 class BeatAudioNative {
-  BeatAudioNative._(this._create, this._loadSegment, this._sync, this._enqueue,
-      this._flush, this._start, this._stop, this._streamLost, this._destroy,
-      this._monotonicMs, this._recoverTransport);
+  BeatAudioNative._(
+    this._create,
+    this._loadSegment,
+    this._sync,
+    this._enqueue,
+    this._flush,
+    this._start,
+    this._stop,
+    this._streamLost,
+    this._destroy,
+    this._monotonicMs,
+    this._recoverTransport,
+  );
 
   final Pointer<Void> Function(int) _create;
   final int Function(Pointer<Void>, int, Pointer<Float>, int, int, int)
-      _loadSegment;
+  _loadSegment;
   final int Function(Pointer<Void>, double, double, int) _sync;
   final int Function(Pointer<Void>, double, int, double) _enqueue;
   final int Function(Pointer<Void>) _flush;
@@ -97,38 +107,59 @@ class BeatAudioNative {
   static BeatAudioNative? _tryLoad() {
     try {
       final lib = DynamicLibrary.open('libaudio_native.so');
-      final Pointer<Void> Function(int) create = lib.lookupFunction<
-          Pointer<Void> Function(Int32),
-          Pointer<Void> Function(int)>('beat_audio_create');
+      final Pointer<Void> Function(int) create = lib
+          .lookupFunction<
+            Pointer<Void> Function(Int32),
+            Pointer<Void> Function(int)
+          >('beat_audio_create');
       return BeatAudioNative._(
         create,
         lib.lookupFunction<
-            Int32 Function(Pointer<Void>, Int32, Pointer<Float>, Int32, Int32,
-                Int32),
-            int Function(Pointer<Void>, int, Pointer<Float>, int, int,
-                int)>('beat_audio_load_segment'),
+          Int32 Function(
+            Pointer<Void>,
+            Int32,
+            Pointer<Float>,
+            Int32,
+            Int32,
+            Int32,
+          ),
+          int Function(Pointer<Void>, int, Pointer<Float>, int, int, int)
+        >('beat_audio_load_segment'),
         lib.lookupFunction<
-            Int32 Function(Pointer<Void>, Double, Double, Int32),
-            int Function(Pointer<Void>, double, double, int)>(
-            'beat_audio_sync'),
+          Int32 Function(Pointer<Void>, Double, Double, Int32),
+          int Function(Pointer<Void>, double, double, int)
+        >('beat_audio_sync'),
         lib.lookupFunction<
-            Int32 Function(Pointer<Void>, Double, Int32, Float),
-            int Function(Pointer<Void>, double, int, double)>(
-            'beat_audio_enqueue'),
-        lib.lookupFunction<Int32 Function(Pointer<Void>),
-            int Function(Pointer<Void>)>('beat_audio_flush'),
-        lib.lookupFunction<Int32 Function(Pointer<Void>),
-            int Function(Pointer<Void>)>('beat_audio_start'),
-        lib.lookupFunction<Int32 Function(Pointer<Void>),
-            int Function(Pointer<Void>)>('beat_audio_stop'),
-        lib.lookupFunction<Int32 Function(Pointer<Void>),
-            int Function(Pointer<Void>)>('beat_audio_stream_lost'),
-        lib.lookupFunction<Void Function(Pointer<Void>),
-            void Function(Pointer<Void>)>('beat_audio_destroy'),
+          Int32 Function(Pointer<Void>, Double, Int32, Float),
+          int Function(Pointer<Void>, double, int, double)
+        >('beat_audio_enqueue'),
+        lib.lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('beat_audio_flush'),
+        lib.lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('beat_audio_start'),
+        lib.lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('beat_audio_stop'),
+        lib.lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('beat_audio_stream_lost'),
+        lib.lookupFunction<
+          Void Function(Pointer<Void>),
+          void Function(Pointer<Void>)
+        >('beat_audio_destroy'),
         lib.lookupFunction<Int64 Function(), int Function()>(
-            'beat_audio_monotonic_ms'),
-        lib.lookupFunction<Int32 Function(Pointer<Void>),
-            int Function(Pointer<Void>)>('beat_audio_recover_transport'),
+          'beat_audio_monotonic_ms',
+        ),
+        lib.lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('beat_audio_recover_transport'),
       );
     } on Object {
       return null;
@@ -166,12 +197,9 @@ class _NativeSink implements BeatAudioSink {
     required bool playing,
   }) {
     if (_disposed) return;
-    BeatAudioNative._check(_native._sync(
-      _handle,
-      mediaTimeMs,
-      rate,
-      playing ? 1 : 0,
-    ));
+    BeatAudioNative._check(
+      _native._sync(_handle, mediaTimeMs, rate, playing ? 1 : 0),
+    );
   }
 
   @override
@@ -234,14 +262,16 @@ class _NativeSink implements BeatAudioSink {
     final Pointer<Float> buffer = malloc<Float>(pcm.length);
     try {
       buffer.asTypedList(pcm.length).setAll(0, pcm);
-      BeatAudioNative._check(_native._loadSegment(
-        _handle,
-        segmentId,
-        buffer,
-        pcm.length,
-        sampleRate,
-        markerMs,
-      ));
+      BeatAudioNative._check(
+        _native._loadSegment(
+          _handle,
+          segmentId,
+          buffer,
+          pcm.length,
+          sampleRate,
+          markerMs,
+        ),
+      );
     } finally {
       malloc.free(buffer);
     }
@@ -318,12 +348,15 @@ WavMono decodeWavMono(Uint8List bytes) {
       final at = frame * frameBytes + ch * (bitsPerSample ~/ 8);
       switch ((audioFormat, bitsPerSample)) {
         case (1, 16):
-          sum += data.getInt16(payload.offsetInBytes + at, Endian.little) / 32768.0;
+          sum +=
+              data.getInt16(payload.offsetInBytes + at, Endian.little) /
+              32768.0;
         case (3, 32):
           sum += data.getFloat32(payload.offsetInBytes + at, Endian.little);
         default:
           throw ArgumentError(
-              '不支持的 WAV 编码（format=$audioFormat bits=$bitsPerSample）');
+            '不支持的 WAV 编码（format=$audioFormat bits=$bitsPerSample）',
+          );
       }
     }
     samples[frame] = sum / channels;

@@ -100,7 +100,7 @@ void main() {
   Future<void> dropLine(WidgetTester tester, int index) async {
     containerOf(tester)
       ..read(guideSessionProvider.notifier)
-      .clearCriterion(HandsOnCriterion.badgeSegmentLineSelected)
+          .clearCriterion(HandsOnCriterion.badgeSegmentLineSelected)
       ..read(guideSessionProvider.notifier)
           .recordArtifact(badgeSegmentUnitId, index)
       ..read(guideSessionProvider.notifier).trigger(badgeSegmentUnitId);

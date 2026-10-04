@@ -18,7 +18,8 @@ import 'package:dance_learning_app/player/practice_clip_playback.dart';
 import 'package:dance_learning_app/player/practice_mirror.dart';
 import 'package:dance_learning_app/player/surface_basis_key.dart'
     show liveSurfaceBaselinesProvider, surfaceBasisKeyProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/surface_direction/surface_direction.dart'
     show FaceDirection, SurfaceDirection, SurfaceFace, SurfaceMoment;
 import 'package:flutter/material.dart';
@@ -75,7 +76,10 @@ void main() {
   });
 
   void setWideView(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+    tester.view.physicalSize = const Size(
+      1920,
+      1080,
+    ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
   }

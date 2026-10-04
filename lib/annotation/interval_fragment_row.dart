@@ -90,8 +90,7 @@ IntervalBlockRect? intervalBlockRect({
   if (clippedStart >= clippedEnd) return null;
   final windowSpanMs = (window.endMs - window.startMs).toDouble();
   final left =
-      contentLeft +
-      (clippedStart - window.startMs) / windowSpanMs * trackWidth;
+      contentLeft + (clippedStart - window.startMs) / windowSpanMs * trackWidth;
   final right =
       contentLeft + (clippedEnd - window.startMs) / windowSpanMs * trackWidth;
   final width = right - left;

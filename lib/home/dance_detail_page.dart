@@ -58,10 +58,8 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
   Future<void> _openPlayer(DanceSnapshot dance, SchemeOpen scheme) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PlayerPage(
-          source: File(dance.entry.filePath).uri,
-          scheme: scheme,
-        ),
+        builder: (_) =>
+            PlayerPage(source: File(dance.entry.filePath).uri, scheme: scheme),
       ),
     );
     if (!mounted) return;
@@ -75,9 +73,8 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
         .read(danceLibraryWritesProvider)
         .setSegmentsMastery(videoId: videoId, values: values);
     if (!written && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('改档失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('改档失败')));
     }
     return written;
   }
@@ -136,9 +133,8 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
       await ref.read(shareChannelProvider).shareFile(_sourceVideoFile(dance));
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('分享失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('分享失败')));
     }
   }
 
@@ -164,16 +160,14 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
       ),
     );
     if (!mounted || result == null || !result.confirmed) return;
-    final renamed = await ref.read(danceLibraryWritesProvider).rename(
-          entry: dance.entry,
-          input: result.signature,
-        );
+    final renamed = await ref
+        .read(danceLibraryWritesProvider)
+        .rename(entry: dance.entry, input: result.signature);
     if (!mounted) return;
     if (!renamed) {
       // 署名真值没写成 = 改名不成立，落盘内容原样：如实告知，不重算读面。
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('改名失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('改名失败')));
       return;
     }
     invalidateDanceLibraryFrom(ref);
@@ -205,9 +199,7 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
       context: context,
       builder: (context) => AlertDialog(
         key: const Key('scheme_delete_dialog'),
-        content: Text(
-          '删除「${memberDisplayName(scheme)}」的方案？只删这一条，我的标注不受影响',
-        ),
+        content: Text('删除「${memberDisplayName(scheme)}」的方案？只删这一条，我的标注不受影响'),
         actions: [
           TextButton(
             key: const Key('scheme_delete_cancel'),
@@ -224,12 +216,13 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
     );
     if (confirmed != true || !mounted) return;
     try {
-      await ref.read(memberSchemeStoreProvider(videoId)).remove(scheme.schemeId);
+      await ref
+          .read(memberSchemeStoreProvider(videoId))
+          .remove(scheme.schemeId);
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('删除失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('删除失败')));
       return;
     }
     if (!mounted) return;
@@ -263,9 +256,8 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
       await deleteDanceFrom(ref, dance.videoId);
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('删除失败')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('删除失败')));
       return;
     }
     if (!mounted) return;
@@ -303,8 +295,7 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
               itemBuilder: (_) {
                 // 存在性门：源视频副本不在时置灰并说明原因。在菜单展开时
                 // 判定（本机文件存在性检查，代价可忽略）。
-                final sourceExists =
-                    _sourceVideoFile(snapshot).existsSync();
+                final sourceExists = _sourceVideoFile(snapshot).existsSync();
                 return [
                   PopupMenuItem<String>(
                     key: const Key('dance_detail_share'),
@@ -568,9 +559,7 @@ class _DanceDetailBodyState extends ConsumerState<_DanceDetailBody> {
         children: [
           FilledButton.icon(
             key: const Key('dance_detail_master_all'),
-            onPressed: dance.segments.isEmpty
-                ? null
-                : widget.onMarkAllMastered,
+            onPressed: dance.segments.isEmpty ? null : widget.onMarkAllMastered,
             icon: const Icon(Icons.done_all, size: 18),
             label: const Text('一键完全掌握'),
           ),
@@ -600,10 +589,7 @@ class _DistributionNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Text(text),
-    ),
+    child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
   );
 }
 
@@ -631,9 +617,7 @@ class _CoverBanner extends ConsumerWidget {
       height: _coverBannerHeight,
       width: double.infinity,
       child: !dance.coverReady || cache == null
-          ? const CoverPlaceholder(
-              key: Key('dance_detail_cover_placeholder'),
-            )
+          ? const CoverPlaceholder(key: Key('dance_detail_cover_placeholder'))
           : FutureBuilder<File>(
               future: cache.fileFor(dance.videoId),
               builder: (context, snapshot) {

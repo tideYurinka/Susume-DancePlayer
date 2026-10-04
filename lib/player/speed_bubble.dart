@@ -83,16 +83,12 @@ extension SpeedBubbleModeBeatSide on SpeedBubbleMode {
 /// 倍速气泡在可用宽不足时整泡等比缩小（下限 [bubbleMinScale]）；其余非
 /// 节拍侧模式只做水平钳制。
 extension SpeedBubbleModeScaleFallback on SpeedBubbleMode {
-  bool get usesScaleFallback =>
-      isBeatSide || this == SpeedBubbleMode.speed;
+  bool get usesScaleFallback => isBeatSide || this == SpeedBubbleMode.speed;
 }
 
 /// 气泡会话内状态（不落盘，78）。
 class SpeedBubbleSessionState {
-  const SpeedBubbleSessionState({
-    this.open,
-    this.rateSnapshot,
-  });
+  const SpeedBubbleSessionState({this.open, this.rateSnapshot});
 
   /// 当前展开的气泡（null = 全部收起）；单值保证倍速/步进互斥。
   final SpeedBubbleMode? open;
@@ -171,11 +167,11 @@ class SpeedBubbleSession extends Notifier<SpeedBubbleSessionState> {
   /// 气泡模式 → 逐栏走查单元 id；不在走查范围的模式（节拍对齐 / 节拍
   /// 倍频）返回 null。
   static String? _guideUnitIdOf(SpeedBubbleMode? mode) => switch (mode) {
-        SpeedBubbleMode.speed => badgeSpeedUnitId,
-        SpeedBubbleMode.beat => badgeBeatPromptUnitId,
-        SpeedBubbleMode.avSync => badgeAvSyncUnitId,
-        _ => null,
-      };
+    SpeedBubbleMode.speed => badgeSpeedUnitId,
+    SpeedBubbleMode.beat => badgeBeatPromptUnitId,
+    SpeedBubbleMode.avSync => badgeAvSyncUnitId,
+    _ => null,
+  };
 
   /// 收起气泡（展开区状态保留——关闭再开一致）。
   void close() {
@@ -293,27 +289,27 @@ class _SpeedBubbleHostState extends ConsumerState<SpeedBubbleHost> {
                 onTap: ref.read(speedBubbleSessionProvider.notifier).close,
               ),
             ),
-          Positioned(
-            left: 0,
-            top: 0,
-            child: CompositedTransformFollower(
-              link: widget.linkFor(open),
-              targetAnchor: widget.targetAnchor,
-              followerAnchor: widget.followerAnchor,
-              offset: widget.offset,
-              showWhenUnlinked: false,
-              // 水平钳制：居中矩形超屏时水平
-              // 平移进屏——观看态胶囊与编辑态近右缘工具图标统一走此路径。
-              // 非 const：宿主重建（模式/锚点变化）时经 didUpdateWidget
-              // 重算钳制。+ ：节拍侧气泡与倍速气泡
-              // （[SpeedBubbleModeScaleFallback]）叠加兜底等比缩小（下限
-              // 0.8×）；avSync 仍只平移。
-              child: _BubbleClamp(
-                scaleFallback: open.usesScaleFallback,
-                child: const SpeedBubble(),
+            Positioned(
+              left: 0,
+              top: 0,
+              child: CompositedTransformFollower(
+                link: widget.linkFor(open),
+                targetAnchor: widget.targetAnchor,
+                followerAnchor: widget.followerAnchor,
+                offset: widget.offset,
+                showWhenUnlinked: false,
+                // 水平钳制：居中矩形超屏时水平
+                // 平移进屏——观看态胶囊与编辑态近右缘工具图标统一走此路径。
+                // 非 const：宿主重建（模式/锚点变化）时经 didUpdateWidget
+                // 重算钳制。+ ：节拍侧气泡与倍速气泡
+                // （[SpeedBubbleModeScaleFallback]）叠加兜底等比缩小（下限
+                // 0.8×）；avSync 仍只平移。
+                child: _BubbleClamp(
+                  scaleFallback: open.usesScaleFallback,
+                  child: const SpeedBubble(),
+                ),
               ),
             ),
-          ),
           ],
         ),
       ),
@@ -554,11 +550,7 @@ class _BubbleClampState extends State<_BubbleClamp>
 /// [RenderFollowerLayer] 一致）。布局尺寸仍取子树原尺寸（钳制不改布局，
 /// follower 锚点几何不受影响）。
 class _BubbleClampShift extends SingleChildRenderObjectWidget {
-  const _BubbleClampShift({
-    required this.dx,
-    required this.dy,
-    super.child,
-  });
+  const _BubbleClampShift({required this.dx, required this.dy, super.child});
 
   final double dx;
   final double dy;
@@ -632,7 +624,6 @@ class _RenderBubbleClampShift extends RenderProxyBox {
   }
 }
 
-
 /// 倍速气泡组件（内容组件；锚定与开关由 [SpeedBubbleHost] 接线）。
 class SpeedBubble extends ConsumerWidget {
   const SpeedBubble({super.key});
@@ -647,7 +638,10 @@ class SpeedBubble extends ConsumerWidget {
         // 两栏并排或上下堆叠、中间一条满高分隔线（方向随排布）。内容宽由
         // [_MergedSpeedContent] 的两栏几何自身决定，故 maxWidth 不设兜底上限
         //（不再另处量测，几何单源）。
-        return _scaffold(const _MergedSpeedContent(), maxWidth: double.infinity);
+        return _scaffold(
+          const _MergedSpeedContent(),
+          maxWidth: double.infinity,
+        );
       case SpeedBubbleMode.beat:
         // 节拍提示气泡：三段并排横屏重排——内容宽超过共享
         // maxWidth（300）上限，需放宽气泡内容 maxWidth 兜底
@@ -949,10 +943,7 @@ const double rateOptionWidthSlack = 1;
 /// 历史列宽度不由历史内容推导。纯函数测试锚定。[baseStyle] 传入
 /// 调用处的 [DefaultTextStyle]（实际渲染会与主题样式合并，字距等影响
 /// 量测——不传则按裸字号量测）。
-double rateOptionColumnWidth(
-  Iterable<String> labels, {
-  TextStyle? baseStyle,
-}) {
+double rateOptionColumnWidth(Iterable<String> labels, {TextStyle? baseStyle}) {
   var widest = 0.0;
   for (final label in labels) {
     final width = measureTextExtent(
@@ -1026,7 +1017,10 @@ double measureRateTitleWidth({
     );
     if (w > widestValue) widestValue = w;
   }
-  return labelWidth + _rateTitleLabelGap + widestValue + _rateTitleDropdownChrome;
+  return labelWidth +
+      _rateTitleLabelGap +
+      widestValue +
+      _rateTitleDropdownChrome;
 }
 
 /// 刻度尺单个刻度（纯函数 seam）。
@@ -1117,19 +1111,15 @@ Rect speedRulerTickRect({required double rulerWidth, required double top}) {
   BuildContext context,
 ) {
   final measuringStyle = DefaultTextStyle.of(context).style;
-  final residentNeeded = rateOptionColumnWidth(
-    [for (final rate in commonSpeeds) '${formatRate(rate)}x'],
-    baseStyle: measuringStyle,
-  );
+  final residentNeeded = rateOptionColumnWidth([
+    for (final rate in commonSpeeds) '${formatRate(rate)}x',
+  ], baseStyle: measuringStyle);
   final titleWidth = measureRateTitleWidth(
     baseStyle: measuringStyle,
     textScaler: MediaQuery.textScalerOf(context),
   );
   final bodyWidth = math.max(titleWidth, 2 * residentNeeded + speedGroupGap);
-  return (
-    bodyWidth: bodyWidth,
-    columnWidth: (bodyWidth - speedGroupGap) / 2,
-  );
+  return (bodyWidth: bodyWidth, columnWidth: (bodyWidth - speedGroupGap) / 2);
 }
 
 /// 倍速栏（左栏）自然宽 = 左区宽 + 列距 + 滑条列宽（倍速气泡几何左栏取此值）。
@@ -1187,7 +1177,11 @@ class _MergedSpeedContent extends ConsumerWidget {
         direction: layout.stacked ? Axis.vertical : Axis.horizontal,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [first, _MergedBubbleSeparator(layout: layout), second],
+        children: [
+          first,
+          _MergedBubbleSeparator(layout: layout),
+          second,
+        ],
       ),
     );
   }
@@ -1229,11 +1223,7 @@ class _MergedBubbleSeparator extends StatelessWidget {
 /// 滚动），气泡几何恒定；为 true（堆叠）时栏随内容自然高，超高由气泡整体
 /// 滚动兜底。
 class _StepColumn extends ConsumerWidget {
-  const _StepColumn({
-    super.key,
-    required this.width,
-    required this.stacked,
-  });
+  const _StepColumn({super.key, required this.width, required this.stacked});
 
   /// 栏宽（并排 = 左栏定宽；堆叠 = 两栏共同内容宽）。
   final double width;
@@ -1251,57 +1241,57 @@ class _StepColumn extends ConsumerWidget {
         key: const Key('speed_step_column'),
         width: width,
         height: stacked ? null : mergedBubbleColumnHeight,
-      child: Column(
-        mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: mergedStepHeaderHeight,
-            child: Row(
-              key: const Key('speed_step_column_header'),
-              children: [
-                const Text(
-                  '倍速步进',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                if (stepEnabled)
-                  Container(
-                    key: const Key('speed_step_enabled_badge'),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: kHighlightAmber.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      '已启用',
-                      style: TextStyle(color: kHighlightAmber, fontSize: 11),
+        child: Column(
+          mainAxisSize: stacked ? MainAxisSize.min : MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: mergedStepHeaderHeight,
+              child: Row(
+                key: const Key('speed_step_column_header'),
+                children: [
+                  const Text(
+                    '倍速步进',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-              ],
+                  const Spacer(),
+                  if (stepEnabled)
+                    Container(
+                      key: const Key('speed_step_enabled_badge'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: kHighlightAmber.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '已启用',
+                        style: TextStyle(color: kHighlightAmber, fontSize: 11),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Flexible(
-            // 并排：吃满栏内剩余高（栏内滚动）；堆叠：随内容自然高（整泡
-            // 滚动归 [_scaffold]）。
-            fit: stacked ? FlexFit.loose : FlexFit.tight,
-            child: SingleChildScrollView(
-              key: const Key('speed_step_column_scroll'),
-              // 堆叠时栏高不受限 → 滚动视口随内容收缩、无滚动余量；并排时
-              // 栏内滚动（左栏不随之滚动）。
-              physics: stacked ? const NeverScrollableScrollPhysics() : null,
-              child: const _StepContent(),
+            Flexible(
+              // 并排：吃满栏内剩余高（栏内滚动）；堆叠：随内容自然高（整泡
+              // 滚动归 [_scaffold]）。
+              fit: stacked ? FlexFit.loose : FlexFit.tight,
+              child: SingleChildScrollView(
+                key: const Key('speed_step_column_scroll'),
+                // 堆叠时栏高不受限 → 滚动视口随内容收缩、无滚动余量；并排时
+                // 栏内滚动（左栏不随之滚动）。
+                physics: stacked ? const NeverScrollableScrollPhysics() : null,
+                child: const _StepContent(),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -1367,11 +1357,12 @@ class _SpeedContent extends ConsumerWidget {
     // 兜底：单气泡不滚动；模型历史照常累积、语义不变。展示子集沿用最近
     // 在前 + 条数上限。渲染序按倍速值降序（忽略最近先后，与常驻列、竖向
     // 滑条同向）。
-    final history = control.history
-        .where((r) => !commonSpeeds.contains(r))
-        .take(speedHistoryDisplayLimit)
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    final history =
+        control.history
+            .where((r) => !commonSpeeds.contains(r))
+            .take(speedHistoryDisplayLimit)
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
     // 步进启用时两处倍速面板
     // （观看态与编辑态同一组件）不再置灰/禁用——面板始终可操作。面板「当前
     // 生效倍速」以 [SpeedControlState.effectiveRate] 为准：步进停用时即
@@ -1397,15 +1388,15 @@ class _SpeedContent extends ConsumerWidget {
     }
 
     Widget rateOption(double rate, {required Key key}) => SizedBox(
-          width: columnWidth,
-          height: speedRateButtonHeight,
-          child: _RateOption(
-            key: key,
-            label: '${formatRate(rate)}x',
-            selected: roundRate(currentRate) == rate,
-            onTap: () => selectRate(rate),
-          ),
-        );
+      width: columnWidth,
+      height: speedRateButtonHeight,
+      child: _RateOption(
+        key: key,
+        label: '${formatRate(rate)}x',
+        selected: roundRate(currentRate) == rate,
+        onTap: () => selectRate(rate),
+      ),
+    );
 
     // 命中层：每个档位一枚透明 [kHitTargetMinSize]
     // 高命中层，位置与视觉列同源（常驻列 pitch 由列高与档位数派生，历史列
@@ -1421,8 +1412,10 @@ class _SpeedContent extends ConsumerWidget {
       String keyPrefix,
       double pitch,
     ) {
-      final maxTop = (speedColumnsBlockHeight - kHitTargetMinSize)
-          .clamp(0.0, double.infinity);
+      final maxTop = (speedColumnsBlockHeight - kHitTargetMinSize).clamp(
+        0.0,
+        double.infinity,
+      );
       return [
         for (var i = 0; i < rates.length; i++)
           Positioned(
@@ -1491,7 +1484,11 @@ class _SpeedContent extends ConsumerWidget {
             )
           : Stack(
               children: [
-                ...rateHitLayers(history, 'speed_history', speedRateButtonHeight),
+                ...rateHitLayers(
+                  history,
+                  'speed_history',
+                  speedRateButtonHeight,
+                ),
                 Positioned.fill(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1522,10 +1519,7 @@ class _SpeedContent extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // 标题条：高 24、单行不折行、随内容伸缩并居中。
-                SizedBox(
-                  height: speedTitleHeight,
-                  child: _RateTitleSelect(),
-                ),
+                SizedBox(height: speedTitleHeight, child: _RateTitleSelect()),
                 const SizedBox(height: speedTitleColumnGap),
                 // 双列块：定高 212（= 6×32 + 5×g，g=4），两列均分左区宽。
                 SizedBox(
@@ -1664,12 +1658,13 @@ class _VerticalRateSlider extends StatelessWidget {
                       // 标签中心精确落在该取值的线性映射纵位（与拇指中心
                       // 一致）：top = 顶部起算比例 × 定高 − 半个标签高；
                       // 比例经 [speedRulerTopFraction]（与刻度线绘制同源）。
-                      top: speedRulerTopFraction(
-                            value: tick.value,
-                            min: min,
-                            max: max,
-                          ) *
-                          speedSliderColumnHeight -
+                      top:
+                          speedRulerTopFraction(
+                                value: tick.value,
+                                min: min,
+                                max: max,
+                              ) *
+                              speedSliderColumnHeight -
                           _rulerLabelHeight / 2,
                       child: SizedBox(
                         height: _rulerLabelHeight,
@@ -1764,11 +1759,8 @@ class _RulerTicksPainter extends CustomPainter {
     for (final tick in ticks) {
       // 纵位经 [speedRulerTopFraction]——与标签 Positioned 同一映射实现
       //（防两处公式漂移）。
-      final y = speedRulerTopFraction(
-        value: tick.value,
-        min: min,
-        max: max,
-      ) *
+      final y =
+          speedRulerTopFraction(value: tick.value, min: min, max: max) *
           size.height;
       // 线 6×2、贴尺右缘、线中心 = 分度值位置（几何经
       // [speedRulerTickRect] 纯函数，含 1px 线高补偿）。
@@ -1973,7 +1965,10 @@ class _StepContentState extends ConsumerState<_StepContent> {
 
   /// 删除预设的二次确认弹窗（内置与自定义同一枚删除钮、同一个弹窗）；
   /// 确认即删——内置删除不可恢复，被删内置的「恢复默认」入口随行消失。
-  Future<void> _confirmDelete(BuildContext context, SpeedStepPreset preset) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    SpeedStepPreset preset,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -2007,9 +2002,11 @@ class _StepContentState extends ConsumerState<_StepContent> {
       return _StepPresetEditor(
         key: const ValueKey('step_editor_new'),
         creating: true,
-        initialName: defaultCustomPresetName([for (final p in doc.presets) p.name]),
-        initialParams: presetById(doc, doc.selectedId)?.params ??
-            const SpeedStepParams(),
+        initialName: defaultCustomPresetName([
+          for (final p in doc.presets) p.name,
+        ]),
+        initialParams:
+            presetById(doc, doc.selectedId)?.params ?? const SpeedStepParams(),
         onClose: () => setState(() => _editingId = null),
       );
     }
@@ -2210,18 +2207,12 @@ class _DashedBorderPainter extends CustomPainter {
     const gap = 3.0;
     final path = Path()
       ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          const Radius.circular(8),
-        ),
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
       );
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(distance, distance + dash),
-          paint,
-        );
+        canvas.drawPath(metric.extractPath(distance, distance + dash), paint);
         distance += dash + gap;
       }
     }
@@ -2241,8 +2232,10 @@ class _StepPresetEditor extends ConsumerStatefulWidget {
     this.preset,
     this.initialName,
     this.initialParams,
-  }) : assert(creating ? preset == null : preset != null,
-            '新建不传 preset，编辑必传 preset');
+  }) : assert(
+         creating ? preset == null : preset != null,
+         '新建不传 preset，编辑必传 preset',
+       );
 
   final bool creating;
   final SpeedStepPreset? preset;
@@ -2404,7 +2397,8 @@ class _StepPresetEditorState extends ConsumerState<_StepPresetEditor> {
                 value: params.startRate,
                 candidates: rateCandidates(),
                 format: formatRate,
-                onChanged: (v) => setState(() => _params = params.copyWith(startRate: v)),
+                onChanged: (v) =>
+                    setState(() => _params = params.copyWith(startRate: v)),
               ),
             ),
             const SizedBox(width: speedCompactGap),
@@ -2415,7 +2409,8 @@ class _StepPresetEditorState extends ConsumerState<_StepPresetEditor> {
                 value: params.maxRate,
                 candidates: rateCandidates(),
                 format: formatRate,
-                onChanged: (v) => setState(() => _params = params.copyWith(maxRate: v)),
+                onChanged: (v) =>
+                    setState(() => _params = params.copyWith(maxRate: v)),
               ),
             ),
             const SizedBox(width: speedCompactGap),
@@ -2426,7 +2421,8 @@ class _StepPresetEditorState extends ConsumerState<_StepPresetEditor> {
                 value: params.lapsPerRate,
                 candidates: lapsPerRateCandidates,
                 format: (v) => '$v',
-                onChanged: (v) => setState(() => _params = params.copyWith(lapsPerRate: v)),
+                onChanged: (v) =>
+                    setState(() => _params = params.copyWith(lapsPerRate: v)),
               ),
             ),
             const SizedBox(width: speedCompactGap),
@@ -2437,7 +2433,8 @@ class _StepPresetEditorState extends ConsumerState<_StepPresetEditor> {
                 value: params.rateIncrement,
                 candidates: rateIncrementCandidates,
                 format: formatRate,
-                onChanged: (v) => setState(() => _params = params.copyWith(rateIncrement: v)),
+                onChanged: (v) =>
+                    setState(() => _params = params.copyWith(rateIncrement: v)),
               ),
             ),
           ],
@@ -2466,6 +2463,7 @@ class _StepPresetEditorState extends ConsumerState<_StepPresetEditor> {
     );
   }
 }
+
 class _ParamDropdown<T extends num> extends StatelessWidget {
   const _ParamDropdown({
     super.key,

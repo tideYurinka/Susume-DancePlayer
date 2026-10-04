@@ -87,10 +87,7 @@ void main() {
               input: TrackBandInput(
                 session:
                     session ??
-                    buildTrackBandSession(
-                      engine: engine,
-                      container: container,
-                    ),
+                    buildTrackBandSession(engine: engine, container: container),
                 rowTable: TrackRowTable.normal,
               ),
             ),
@@ -157,11 +154,7 @@ void main() {
         find.byKey(const Key('mirror_fragment_1_icon')),
       );
       expect(f0.color, kLocalMirrorEnabledIconColor, reason: '总开关开 = 琥珀图标');
-      expect(
-        f1.color,
-        kLocalMirrorEnabledIconColor,
-        reason: '总开关开 = 全部琥珀',
-      );
+      expect(f1.color, kLocalMirrorEnabledIconColor, reason: '总开关开 = 全部琥珀');
       container.dispose();
     });
 
@@ -748,8 +741,11 @@ void main() {
 
       final bandRect = tester.getRect(find.byKey(const Key('track_band')));
       // 窗口起点 > 0 时让位收回，期望口径与渲染同读一份几何。
-      final geometry =
-          bandGeometryOf(total: total, window: win, width: bandRect.width);
+      final geometry = bandGeometryOf(
+        total: total,
+        window: win,
+        width: bandRect.width,
+      );
       const windowMs = IntervalSpan(startMs: 20000, endMs: 40000);
       const spans = [
         IntervalSpan(startMs: 10000, endMs: 25000),
@@ -817,8 +813,11 @@ void main() {
       );
       // 同源口径：两轨渲染像素都与共用件毫秒截断窗求值一致（< 0.5px）；
       // 内容区口径与渲染同读一份几何。
-      final geometry =
-          bandGeometryOf(total: total, window: win, width: bandRect.width);
+      final geometry = bandGeometryOf(
+        total: total,
+        window: win,
+        width: bandRect.width,
+      );
       final expected = intervalBlockRect(
         span: const IntervalSpan(startMs: 25000, endMs: 30000),
         window: const IntervalSpan(startMs: 20000, endMs: 40000),

@@ -67,10 +67,8 @@ const _sourceVideoEntry = SusumeMediaEntry(
 
 const _markers = {'version': 3, 'segmentLines': <Object?>[]};
 
-PickedVideo _pickedFor(File file) => PickedVideo(
-  name: '测试歌.susume',
-  sourceUri: file.uri,
-);
+PickedVideo _pickedFor(File file) =>
+    PickedVideo(name: '测试歌.susume', sourceUri: file.uri);
 
 /// 包解析是真实文件 IO：在真实事件循环里等页面弹出对应确认面。
 Future<void> _awaitDialog(WidgetTester tester, Key key) =>

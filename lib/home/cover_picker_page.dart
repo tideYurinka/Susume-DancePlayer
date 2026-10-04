@@ -179,19 +179,20 @@ class _CoverPickerPageState extends ConsumerState<CoverPickerPage> {
 
   /// 「用这一帧」：按当前预览线时刻写入封面位置。
   Future<void> _confirmFrame() => _apply(
-    () => ref.read(danceLibraryWritesProvider).setCoverPosition(
-      videoId: widget.videoId,
-      positionMs: _preview.value.inMilliseconds,
-    ),
+    () => ref
+        .read(danceLibraryWritesProvider)
+        .setCoverPosition(
+          videoId: widget.videoId,
+          positionMs: _preview.value.inMilliseconds,
+        ),
   );
 
   /// 「恢复为默认」：清空封面位置字段（回到跟随首线），按写路径回答的生效
   /// 首线位置重新生成封面。
   Future<void> _resetToDefault() => _apply(
-    () => ref.read(danceLibraryWritesProvider).setCoverPosition(
-      videoId: widget.videoId,
-      positionMs: null,
-    ),
+    () => ref
+        .read(danceLibraryWritesProvider)
+        .setCoverPosition(videoId: widget.videoId, positionMs: null),
   );
 
   /// 一次封面提交：先写（[write] 返回写后生效的封面位置毫秒，null = 写未
@@ -208,9 +209,8 @@ class _CoverPickerPageState extends ConsumerState<CoverPickerPage> {
       if (!mounted) return;
       if (positionMs == null) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('换封面失败')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('换封面失败')));
         }
         return;
       }
@@ -229,9 +229,8 @@ class _CoverPickerPageState extends ConsumerState<CoverPickerPage> {
       if (!generated) {
         // 位置已落盘但这一帧取不出来（或本会话该舞已失败过、不再重试）：
         // 详情与首页按占位图显示，如实告知，不假装封面已换好。
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('封面生成失败')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('封面生成失败')));
       }
       Navigator.of(context).pop();
     } finally {

@@ -33,8 +33,14 @@ void main() {
     lastOpenedAt: DateTime(2026, 9, 1, 12),
   );
 
-  Future<void> pumpPlayer(WidgetTester tester, {required void Function() onSync}) async {
-    tester.view.physicalSize = const Size(1336, 720); // 合成档 668.0×360.0dp（dpr 2），非设备基准。
+  Future<void> pumpPlayer(
+    WidgetTester tester, {
+    required void Function() onSync,
+  }) async {
+    tester.view.physicalSize = const Size(
+      1336,
+      720,
+    ); // 合成档 668.0×360.0dp（dpr 2），非设备基准。
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(

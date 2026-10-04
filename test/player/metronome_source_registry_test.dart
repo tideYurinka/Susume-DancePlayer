@@ -15,8 +15,9 @@ void main() {
       expect(normal.label, '普通');
       expect(normal.available, isTrue);
       // 段内拍点标记：短敲击采样段首即拍点（波形 onset 实测 <1ms，取 0）。
-      expect([for (final s in normal.speedGroups.single.slots) s.markerMs],
-          List.filled(9, 0));
+      expect([
+        for (final s in normal.speedGroups.single.slots) s.markerMs,
+      ], List.filled(9, 0));
     });
 
     test('人声/歌姬 available:false（待支持置灰占位，无资产）', () {
@@ -25,8 +26,11 @@ void main() {
         expect(entry.available, isFalse, reason: id);
         expect(entry.label, isNotEmpty, reason: id);
         // 占位项 9 槽落位齐备（采样内容属内容侧另期），available:false 门控。
-        expect([for (final s in entry.speedGroups.single.slots) s.asset],
-            List.filled(9, ''), reason: id);
+        expect(
+          [for (final s in entry.speedGroups.single.slots) s.asset],
+          List.filled(9, ''),
+          reason: id,
+        );
       }
       // 占位段无资产，不入预载清单；清单按（资产+标记）去重、首次出现定序。
       expect(
@@ -84,8 +88,9 @@ void main() {
     });
 
     test('段表：「普通」9 槽去重压平为 3 段，顺序与今天逐位相同', () {
-      final table =
-          MetronomeSegmentTable.of(metronomeSourceEntryOfId('normal'));
+      final table = MetronomeSegmentTable.of(
+        metronomeSourceEntryOfId('normal'),
+      );
       expect(table.loads.map((s) => s.asset).toList(), [
         'assets/sounds/metronome_strong.wav',
         'assets/sounds/metronome_beat.wav',
@@ -119,14 +124,34 @@ void main() {
         available: true,
         mode: MetronomeSlotMode.effect,
         speedGroups: [
-          MetronomeSpeedGroup(standardMs: 100, slots: [
-            shared, marked, shared, shared, shared, shared, shared, shared,
-            other,
-          ]),
-          MetronomeSpeedGroup(standardMs: 200, slots: [
-            shared, shared, marked, other, shared, shared, shared, shared,
-            shared,
-          ]),
+          MetronomeSpeedGroup(
+            standardMs: 100,
+            slots: [
+              shared,
+              marked,
+              shared,
+              shared,
+              shared,
+              shared,
+              shared,
+              shared,
+              other,
+            ],
+          ),
+          MetronomeSpeedGroup(
+            standardMs: 200,
+            slots: [
+              shared,
+              shared,
+              marked,
+              other,
+              shared,
+              shared,
+              shared,
+              shared,
+              shared,
+            ],
+          ),
         ],
       );
       final table = MetronomeSegmentTable.of(entry);
@@ -140,8 +165,7 @@ void main() {
       expect(table.idOf(1, MetronomeSegmentSlot.count5), 0);
     });
 
-    test('注册表不变量：每组恒 9 项、同源组身份互异、声明长度==组内最长段实测长度、最坏音源所需段数 ≤ 原生容量',
-        () async {
+    test('注册表不变量：每组恒 9 项、同源组身份互异、声明长度==组内最长段实测长度、最坏音源所需段数 ≤ 原生容量', () async {
       // 原生段槽容量由注册表派生（单份事实源；原生按此容量校验）。
       final nativeCapacity = kMetronomeNativeSegmentCapacity;
 
@@ -168,8 +192,11 @@ void main() {
         expect(standards.length, entry.speedGroups.length, reason: entry.id);
 
         final table = MetronomeSegmentTable.of(entry);
-        expect(table.loads.length, lessThanOrEqualTo(nativeCapacity),
-            reason: entry.id);
+        expect(
+          table.loads.length,
+          lessThanOrEqualTo(nativeCapacity),
+          reason: entry.id,
+        );
         // 声明长度 == 组内最长段实测长度（资产随包内置，逐段实测）。
         if (!entry.available) continue;
         for (final group in entry.speedGroups) {
@@ -179,10 +206,9 @@ void main() {
             final data = await rootBundle.load(spec.asset);
             longest = max(
               longest,
-              measuredMs(data.buffer.asUint8List(
-                data.offsetInBytes,
-                data.lengthInBytes,
-              )),
+              measuredMs(
+                data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+              ),
             );
           }
           expect(group.standardMs, longest, reason: entry.id);

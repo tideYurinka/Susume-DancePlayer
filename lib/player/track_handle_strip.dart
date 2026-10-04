@@ -183,7 +183,6 @@ class TrackHandleStripInput {
   /// 首/尾线控制柄键盘微调。
   final void Function(VideoRangeBoundary boundary, int direction)
   onRangeHandleNudge;
-
 }
 
 /// 轨道手柄带域：三类控制柄的槽位求值与摆位 + 手势接线 + 键盘替代路径。
@@ -314,10 +313,8 @@ class _TrackHandleStripState extends State<TrackHandleStrip> {
 
   /// 分段线逐帧更新：只经本族句柄（跨族覆盖由域的世代守卫吸收；无会话或
   /// 预览线接管时为空操作）。
-  void _updateSegmentLineDrag(Offset globalPosition) =>
-      _segmentLineDragHandle?.moveTo(
-        widget.input.bandLocalX(globalPosition) ?? 0,
-      );
+  void _updateSegmentLineDrag(Offset globalPosition) => _segmentLineDragHandle
+      ?.moveTo(widget.input.bandLocalX(globalPosition) ?? 0);
 
   /// 分段线拖动收口：句柄收口（幂等；onDragEnd 与取消同走 end）——模块会话、
   /// 视觉清除与实时预览收尾都经域与声明钩子。起手被门禁拒或被预览线接管时
@@ -351,9 +348,8 @@ class _TrackHandleStripState extends State<TrackHandleStrip> {
   }
 
   /// 首尾端标拖动更新：逐帧只经本族句柄（换算、钳制与实时预览钩子在域内）。
-  void _updateRangeDrag(Offset globalPosition) => _rangeDragHandle?.moveTo(
-    widget.input.bandLocalX(globalPosition) ?? 0,
-  );
+  void _updateRangeDrag(Offset globalPosition) =>
+      _rangeDragHandle?.moveTo(widget.input.bandLocalX(globalPosition) ?? 0);
 
   /// 首/尾线拖动结束：句柄收口（幂等；无净变化不入史）；无会话（起手被拒）
   /// 时也收一次实时预览。
@@ -532,8 +528,9 @@ class _TrackHandleStripState extends State<TrackHandleStrip> {
                                     ),
                                     child: Stack(
                                       children: [
-                                        for (final groove
-                                            in plan.grooves.map(snapGroove))
+                                        for (final groove in plan.grooves.map(
+                                          snapGroove,
+                                        ))
                                           Positioned(
                                             left: groove.left,
                                             top: groove.top,
@@ -571,8 +568,7 @@ class _TrackHandleStripState extends State<TrackHandleStrip> {
           barKey: const Key('video_range_start_marker'),
           focusRingKey: const Key('video_range_start_focus_ring'),
           barColor: kVideoRangeStartLineColor,
-          onTapUp: (_) =>
-              input.onRangeHandleTap(VideoRangeBoundary.start),
+          onTapUp: (_) => input.onRangeHandleTap(VideoRangeBoundary.start),
           onDragStart: (_) => _beginRangeDrag(VideoRangeBoundary.start),
           onDragUpdate: (details) => _updateRangeDrag(details.globalPosition),
           onDragEnd: _endRangeDrag,
@@ -621,10 +617,8 @@ class _TrackHandleStripState extends State<TrackHandleStrip> {
             onTapUp: (details) => input.onSegmentHandleTap(
               input.resolveSegmentLineIndex(details.globalPosition) ?? i,
             ),
-            onDragStart: (details) => _beginSegmentLineDrag(
-              i,
-              details.globalPosition,
-            ),
+            onDragStart: (details) =>
+                _beginSegmentLineDrag(i, details.globalPosition),
             onDragUpdate: (details) =>
                 _updateSegmentLineDrag(details.globalPosition),
             onDragEnd: _endSegmentLineDrag,
@@ -649,9 +643,8 @@ Color _segmentLineBarColor(SegmentLine line, {required bool selected}) {
 
 /// 非空锚点 key 时给 [child] 包一层锚点包装器（null 原样返回）——菜单类角标
 /// 只在实物就是刚落成的那一个时才包，其余时刻被包内容逐位不变。
-Widget _guideAnchored(String? anchorKey, Widget child) => anchorKey == null
-    ? child
-    : GuideAnchor(anchorKey: anchorKey, child: child);
+Widget _guideAnchored(String? anchorKey, Widget child) =>
+    anchorKey == null ? child : GuideAnchor(anchorKey: anchorKey, child: child);
 
 /// 多个锚点 key 逐层包住 [child]（顺序即嵌套序，被包内容逐位不变）：同一个
 /// 实物（如一根分段线控制柄）可以同时承载两枚角标锚点，各报各的矩形、互不
@@ -723,10 +716,7 @@ class _EndpointKeyboardHandleState extends State<_EndpointKeyboardHandle> {
         onPointerDown: (_) => _focusNode.requestFocus(),
         child: Stack(
           clipBehavior: Clip.none,
-          children: [
-            widget.child,
-            if (_focused) widget.focusRing,
-          ],
+          children: [widget.child, if (_focused) widget.focusRing],
         ),
       ),
     );

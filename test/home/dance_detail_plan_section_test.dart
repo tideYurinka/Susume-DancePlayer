@@ -15,7 +15,8 @@ import 'package:dance_learning_app/player/level_control.dart'
     show
         screenBrightnessControllerProvider,
         systemMediaVolumeControllerProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_providers.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_store.dart';
@@ -47,7 +48,6 @@ import '../helpers/semantics_assertions.dart';
 /// 与清单打勾后读面随之变化、无 DDL 时的入口态；落盘口径归存储层直测。
 void main() {
   late InMemoryPracticePlanStorage planStorage;
-
 
   setUp(() {
     planStorage = InMemoryPracticePlanStorage();
@@ -112,9 +112,7 @@ void main() {
     expect(find.byKey(const Key('dance_plan_date')), findsNothing);
   });
 
-  testWidgets('设「提前 N 天」提醒：首次保存时请求通知权限，权限被拒仍保存', (
-    tester,
-  ) async {
+  testWidgets('设「提前 N 天」提醒：首次保存时请求通知权限，权限被拒仍保存', (tester) async {
     final pushPort = InMemoryPushPort()..requestPermissionResult = false;
     await pumpSection(tester, pushPort: pushPort);
     await scrollTo(tester, 'dance_plan_set');

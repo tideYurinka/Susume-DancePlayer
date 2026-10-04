@@ -275,10 +275,10 @@ void main() {
 
       final markers = MarkersDocument.fromJson(documents.markersSnapshot);
       expect(markers.coverPositionMs, 42000);
-      expect(documents.markersSnapshot['meta'], containsPair(
-        'coverPositionMs',
-        42000,
-      ));
+      expect(
+        documents.markersSnapshot['meta'],
+        containsPair('coverPositionMs', 42000),
+      );
     });
 
     test('写入不丢同文档其它字段：署名 / 首尾 / 分段线 / meta 未知键原样保留', () async {
@@ -319,10 +319,10 @@ void main() {
       expect(markers.segmentLines, const [
         SegmentLine(position: Duration(seconds: 60), flagged: true),
       ]);
-      expect(documents.markersSnapshot['meta'], containsPair(
-        'metaFuture',
-        'keep-me',
-      ));
+      expect(
+        documents.markersSnapshot['meta'],
+        containsPair('metaFuture', 'keep-me'),
+      );
     });
 
     test('恢复为默认：传 null 清除字段（回到跟随首线），同文档其它字段不动', () async {
@@ -389,14 +389,12 @@ void main() {
         storage: documents,
       );
 
-      expect(
-        await writes.setCoverPosition(videoId: 'v1', positionMs: null),
-        0,
-      );
+      expect(await writes.setCoverPosition(videoId: 'v1', positionMs: null), 0);
     });
   });
 
-  group('逐段改档与一键完全掌握', () {    test('逐段改档：落盘值按段序对齐，同文档其它字段原样保留', () async {
+  group('逐段改档与一键完全掌握', () {
+    test('逐段改档：落盘值按段序对齐，同文档其它字段原样保留', () async {
       final documents = InMemoryVideoDocumentStorage(
         local: {
           'version': 3,
@@ -419,10 +417,7 @@ void main() {
         videoId: 'v1',
         values: const DanceMasteryValues(
           orders: [0, 1],
-          mastery: {
-            0: LearningMastery.mastered,
-            1: LearningMastery.keepingUp,
-          },
+          mastery: {0: LearningMastery.mastered, 1: LearningMastery.keepingUp},
         ),
       );
 
@@ -448,10 +443,7 @@ void main() {
     test('改到「未练」：显式未练不入 Map（稀疏存储，段序键被清出）', () async {
       final documents = InMemoryVideoDocumentStorage(
         local: const LocalDocument(
-          mastery: {
-            0: LearningMastery.familiar,
-            1: LearningMastery.mastered,
-          },
+          mastery: {0: LearningMastery.familiar, 1: LearningMastery.mastered},
         ).toJson(),
       );
       final writes = _writes(
@@ -497,9 +489,8 @@ void main() {
 
     test('撤销：回写快照回到点击前的值（原为未练的段清出 Map）', () async {
       final documents = InMemoryVideoDocumentStorage(
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.familiar},
-        ).toJson(),
+        local: const LocalDocument(mastery: {0: LearningMastery.familiar})
+            .toJson(),
       );
       final writes = _writes(
         indexStore: InMemoryVideoIndexStorage(
@@ -533,9 +524,8 @@ void main() {
 
     test('local 写失败：返回 false、文件原样（零副作用）', () async {
       final documents = InMemoryVideoDocumentStorage(
-        local: const LocalDocument(
-          mastery: {0: LearningMastery.familiar},
-        ).toJson(),
+        local: const LocalDocument(mastery: {0: LearningMastery.familiar})
+            .toJson(),
       );
       final writes = _writes(
         indexStore: InMemoryVideoIndexStorage(
@@ -575,18 +565,17 @@ VideoIndexEntry _entry(
   bool mirrored = false,
   bool localMirrorEnabled = true,
   SongSignature? signatureCache,
-}) =>
-    VideoIndexEntry(
-      videoId: videoId,
-      displayName: '$videoId.mp4',
-      filePath: '/videos/$videoId.mp4',
-      sizeBytes: 1,
-      fastKey: 'k-$videoId',
-      mirrored: mirrored,
-      localMirrorEnabled: localMirrorEnabled,
-      lastOpenedAt: DateTime(2026, 9, 1),
-      signatureCache: signatureCache,
-    );
+}) => VideoIndexEntry(
+  videoId: videoId,
+  displayName: '$videoId.mp4',
+  filePath: '/videos/$videoId.mp4',
+  sizeBytes: 1,
+  fastKey: 'k-$videoId',
+  mirrored: mirrored,
+  localMirrorEnabled: localMirrorEnabled,
+  lastOpenedAt: DateTime(2026, 9, 1),
+  signatureCache: signatureCache,
+);
 
 /// 索引写失败：真值已落盘、缓存保持原样断言用。
 class _FailingIndexStorage implements VideoIndexStorage {
@@ -600,6 +589,5 @@ class _FailingIndexStorage implements VideoIndexStorage {
   @override
   Future<VideoIndex> update(
     FutureOr<VideoIndex> Function(VideoIndex current) mutate,
-  ) async =>
-      throw StateError('索引不可写');
+  ) async => throw StateError('索引不可写');
 }

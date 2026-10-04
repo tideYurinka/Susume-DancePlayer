@@ -43,7 +43,8 @@ class NoticeBadge extends StatelessWidget {
       elevation: kNoticeElevation,
       borderRadius: BorderRadius.circular(kNoticeRadius),
       child: Padding(
-        padding: padding ??
+        padding:
+            padding ??
             const EdgeInsets.symmetric(
               horizontal: kNoticePaddingH,
               vertical: kNoticePaddingV,

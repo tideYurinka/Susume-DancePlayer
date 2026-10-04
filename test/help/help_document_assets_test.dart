@@ -30,9 +30,8 @@ void main() {
   });
 
   test('真资产：装载拿到的正文与磁盘文件一字不差（不加工原文）', () {
-    final onDisk = File(
-      '$downloadVideoTutorialDirectory/下载视频.md',
-    ).readAsStringSync();
+    final onDisk = File('$downloadVideoTutorialDirectory/下载视频.md')
+        .readAsStringSync();
 
     expect(content.document(downloadVideoTutorialId)!.markdown, onDisk);
   });

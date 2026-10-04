@@ -123,11 +123,10 @@ void main() {
           .set(FaceDirection.mirrored);
 
       expect(container.read(surfaceBasisKeyProvider), FaceDirection.mirrored);
-      expect(
-        privateJson.snapshot,
-        {'practiceMirrorDefault': false, 'surfaceBasisKey': true},
-        reason: '并列扩键：与设备级镜像默认键同文件同形状，不改动同文件其它键',
-      );
+      expect(privateJson.snapshot, {
+        'practiceMirrorDefault': false,
+        'surfaceBasisKey': true,
+      }, reason: '并列扩键：与设备级镜像默认键同文件同形状，不改动同文件其它键');
     });
 
     test('写：清除（null = 恢复默认）后键从文件里退场，取值回到兜底', () async {
@@ -155,11 +154,9 @@ void main() {
         FaceDirection.mirrored,
         reason: '读不到键 ⇒ 判定：producer 标志读不到、机型规则无此平台 ⇒ 兜底镜像',
       );
-      expect(
-        privateJson.snapshot,
-        {'surfaceBasisKey': true},
-        reason: '判定结果落进设备级键（「自动判定一次并记住」）',
-      );
+      expect(privateJson.snapshot, {
+        'surfaceBasisKey': true,
+      }, reason: '判定结果落进设备级键（「自动判定一次并记住」）');
       final baselines = container.read(liveSurfaceBaselinesProvider);
       expect(baselines.platformPreviewBasis, platformPreviewBasisFallback);
       expect(baselines.basisKey, FaceDirection.mirrored);
@@ -175,11 +172,9 @@ void main() {
       addTearDown(container.dispose);
 
       expect(await restored(), FaceDirection.original);
-      expect(
-        privateJson.snapshot,
-        {'surfaceBasisKey': false},
-        reason: '读到的 producer 标志 = 原相 ⇒ 记住原相（顶层布尔键 false）',
-      );
+      expect(privateJson.snapshot, {
+        'surfaceBasisKey': false,
+      }, reason: '读到的 producer 标志 = 原相 ⇒ 记住原相（顶层布尔键 false）');
     });
 
     test('缺失：判定到机型规则推导时记住推导值（Android ⇒ 镜像）', () async {
@@ -199,16 +194,8 @@ void main() {
       first.dispose();
       addTearDown(container.dispose);
 
-      expect(
-        await restored(),
-        FaceDirection.mirrored,
-        reason: '第二次启动直接读回判定结果',
-      );
-      expect(
-        privateJson.snapshot,
-        persisted,
-        reason: '键已落定 ⇒ 不再走判定链、不重写',
-      );
+      expect(await restored(), FaceDirection.mirrored, reason: '第二次启动直接读回判定结果');
+      expect(privateJson.snapshot, persisted, reason: '键已落定 ⇒ 不再走判定链、不重写');
     });
 
     test('读：键读得到就不改写文件（判定链不参与）', () async {
@@ -219,11 +206,9 @@ void main() {
       addTearDown(container.dispose);
 
       expect(await restored(), FaceDirection.original);
-      expect(
-        privateJson.snapshot,
-        {'surfaceBasisKey': false},
-        reason: '键读得到 ⇒ 直接用它，不重写、也不被 Android 规则（镜像）覆盖',
-      );
+      expect(privateJson.snapshot, {
+        'surfaceBasisKey': false,
+      }, reason: '键读得到 ⇒ 直接用它，不重写、也不被 Android 规则（镜像）覆盖');
     });
 
     test('损坏：键值类型损坏 ⇒ 当作读不到，判定一次并就地修复为合法键', () async {
@@ -233,11 +218,9 @@ void main() {
       addTearDown(container.dispose);
 
       expect(await restored(), FaceDirection.mirrored);
-      expect(
-        privateJson.snapshot,
-        {'surfaceBasisKey': true},
-        reason: '损坏值被判定结果就地替换为合法布尔键',
-      );
+      expect(privateJson.snapshot, {
+        'surfaceBasisKey': true,
+      }, reason: '损坏值被判定结果就地替换为合法布尔键');
       expect(
         container.read(liveSurfaceBaselinesProvider).basisKey,
         FaceDirection.mirrored,
@@ -295,11 +278,10 @@ void main() {
         FaceDirection.original,
         reason: '设备级基准键不随该支舞的覆盖改变',
       );
-      expect(
-        privateJson.snapshot,
-        {'surfaceBasisKey': false, 'practiceMirrorDefault': true},
-        reason: '随舞写入落在 local 私密文件，设备级文件原样',
-      );
+      expect(privateJson.snapshot, {
+        'surfaceBasisKey': false,
+        'practiceMirrorDefault': true,
+      }, reason: '随舞写入落在 local 私密文件，设备级文件原样');
       final prefs = localDoc.localSnapshot['prefs'] as Map<String, dynamic>;
       expect(
         prefs['practiceMirror'],
@@ -325,6 +307,7 @@ class _ThrowingPrivateJsonStorage implements PrivateJsonStorage {
 
   @override
   Future<void> mutate(
-    FutureOr<void> Function(Map<String, dynamic> json, {required bool present}) mutate,
+    FutureOr<void> Function(Map<String, dynamic> json, {required bool present})
+    mutate,
   ) async {}
 }

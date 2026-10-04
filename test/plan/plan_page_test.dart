@@ -201,7 +201,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('plan_month_grid')), findsOneWidget);
-    expect(find.byKey(Key('plan_day_dot_ddl_${_dayKey(_ddlDay)}')), findsOneWidget);
+    expect(
+      find.byKey(Key('plan_day_dot_ddl_${_dayKey(_ddlDay)}')),
+      findsOneWidget,
+    );
     // 无计划的日子没有标记。
     final plain = now.add(const Duration(days: 1));
     expect(find.byKey(Key('plan_day_dot_ddl_${_dayKey(plain)}')), findsNothing);

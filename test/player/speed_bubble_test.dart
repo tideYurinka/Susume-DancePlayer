@@ -37,22 +37,22 @@ double _textWidth(String text, double fontSize, [TextStyle? baseStyle]) {
 void main() {
   group('气泡族取值集合', () {
     test('SpeedBubbleMode 取值集合：步进并入倍速气泡后无独立步进取值', () {
-      expect(
-        SpeedBubbleMode.values.toSet(),
-        const {
-          SpeedBubbleMode.speed,
-          SpeedBubbleMode.beat,
-          SpeedBubbleMode.beatAlign,
-          SpeedBubbleMode.beatDensity,
-          SpeedBubbleMode.avSync,
-        },
-      );
+      expect(SpeedBubbleMode.values.toSet(), const {
+        SpeedBubbleMode.speed,
+        SpeedBubbleMode.beat,
+        SpeedBubbleMode.beatAlign,
+        SpeedBubbleMode.beatDensity,
+        SpeedBubbleMode.avSync,
+      });
     });
 
     test('两栏几何纯函数：列距 17、分隔线在左栏右缘 + 8、内容宽单源累计', () {
       // 列距口径与节拍提示气泡共用（8 + 1px 线 + 8 = 17）。
       expect(mergedBubbleColumnGap, 17);
-      expect(mergedBubbleColumnGap, mergedBubbleColumnGapSide * 2 + mergedBubbleColumnSeparatorWidth);
+      expect(
+        mergedBubbleColumnGap,
+        mergedBubbleColumnGapSide * 2 + mergedBubbleColumnSeparatorWidth,
+      );
 
       final layout = mergedSpeedBubbleColumns(speedColumnNaturalWidth: 171);
       expect(layout.stepWidth, mergedStepColumnWidth);
@@ -99,9 +99,7 @@ void main() {
     });
 
     test('两栏几何纯函数：断点按气泡外宽（含盒边距）判定', () {
-      final horizontal = mergedSpeedBubbleColumns(
-        speedColumnNaturalWidth: 171,
-      );
+      final horizontal = mergedSpeedBubbleColumns(speedColumnNaturalWidth: 171);
       final horizontalBubbleWidth =
           horizontal.width + speedBubblePaddingLeft + speedBubblePaddingRight;
       expect(
@@ -259,8 +257,11 @@ void main() {
 
       // 常驻/历史两列等宽，各列 = (左区宽 − 列距)/2（列宽只由左区宽决定，
       // 与内容/历史有无无关；此处历史为空亦与常驻列同宽、不收缩）。
-      expect(find.byKey(const Key('speed_history_empty')), findsOneWidget,
-          reason: '无历史时显示「暂无历史」占位');
+      expect(
+        find.byKey(const Key('speed_history_empty')),
+        findsOneWidget,
+        reason: '无历史时显示「暂无历史」占位',
+      );
       expect(
         (resident.size.width - history.size.width).abs(),
         lessThan(0.5),
@@ -304,7 +305,8 @@ void main() {
       final history = tester.renderObject<RenderBox>(
         find.byKey(const Key('speed_history_column')),
       );
-      final gap = history.localToGlobal(Offset.zero).dx -
+      final gap =
+          history.localToGlobal(Offset.zero).dx -
           (quick.localToGlobal(Offset.zero).dx + quick.size.width);
       expect((gap - speedGroupGap).abs(), lessThan(0.5), reason: '两列间实际间距 6dp');
     });
@@ -384,7 +386,9 @@ void main() {
       expect(session().open, isNull, reason: '速选档点选即生效并收起');
     });
 
-    testWidgets('合并两栏：左步进栏 280 | 列距 17（满高竖分隔线）| 右倍速栏；气泡宽 = 内容宽 + 盒边距', (tester) async {
+    testWidgets('合并两栏：左步进栏 280 | 列距 17（满高竖分隔线）| 右倍速栏；气泡宽 = 内容宽 + 盒边距', (
+      tester,
+    ) async {
       await pumpBubble(tester);
       open(SpeedBubbleMode.speed);
       await tester.pumpAndSettle();
@@ -402,7 +406,8 @@ void main() {
       // 左栏（步进栏）定宽 280。
       expect(step.size.width, mergedStepColumnWidth);
       // 列距 = 17（8 + 1px 线 + 8）；分隔线画在列距中央（纯函数口径）。
-      final gap = rate.localToGlobal(Offset.zero).dx -
+      final gap =
+          rate.localToGlobal(Offset.zero).dx -
           (step.localToGlobal(Offset.zero).dx + step.size.width);
       expect(gap, closeTo(mergedBubbleColumnGap, 0.5));
       // 气泡宽 = 左栏宽 + 列距 + 右栏宽 + 盒边距（派生关系，不写死）。
@@ -485,15 +490,11 @@ void main() {
       await container
           .read(speedStepPresetProvider.notifier)
           .select('builtin_review');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('speed_step_enabled_badge')), findsOneWidget);
 
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(false);
+      await container.read(speedControlProvider.notifier).setStepEnabled(false);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('speed_step_enabled_badge')), findsNothing);
       expect(
@@ -710,8 +711,7 @@ void main() {
       final track = tester.renderObject<RenderBox>(
         find.byKey(const Key('speed_rate_slider_track')),
       );
-      expect(ruler.size.height, speedSliderColumnHeight,
-          reason: '刻度尺列显式定高');
+      expect(ruler.size.height, speedSliderColumnHeight, reason: '刻度尺列显式定高');
       expect(track.size.height, speedSliderColumnHeight, reason: '竖轨同高');
       expect(ruler.size.height, greaterThan(0));
 
@@ -742,20 +742,34 @@ void main() {
           find.byKey(Key('speed_rate_ruler_label_$label')),
         );
         final top = box.localToGlobal(Offset.zero).dy;
-        expect(top, greaterThanOrEqualTo(bubbleTop - 1),
-            reason: '标签 $label 顶部在气泡内');
-        expect(top + box.size.height, lessThanOrEqualTo(bubbleBottom + 1),
-            reason: '标签 $label 底部在气泡内');
+        expect(
+          top,
+          greaterThanOrEqualTo(bubbleTop - 1),
+          reason: '标签 $label 顶部在气泡内',
+        );
+        expect(
+          top + box.size.height,
+          lessThanOrEqualTo(bubbleBottom + 1),
+          reason: '标签 $label 底部在气泡内',
+        );
       }
     });
 
     test('刻度尺纵位映射纯函数——min 在下比例 1、max 在上比例 0、中间线性、越界钳制', () {
       expect(
-        speedRulerTopFraction(value: speedRateMin, min: speedRateMin, max: speedSliderMax),
+        speedRulerTopFraction(
+          value: speedRateMin,
+          min: speedRateMin,
+          max: speedSliderMax,
+        ),
         1,
       );
       expect(
-        speedRulerTopFraction(value: speedSliderMax, min: speedRateMin, max: speedSliderMax),
+        speedRulerTopFraction(
+          value: speedSliderMax,
+          min: speedRateMin,
+          max: speedSliderMax,
+        ),
         0,
       );
       final mid = speedRulerTopFraction(
@@ -770,7 +784,11 @@ void main() {
         1,
       );
       expect(
-        speedRulerTopFraction(value: 99, min: speedRateMin, max: speedSliderMax),
+        speedRulerTopFraction(
+          value: 99,
+          min: speedRateMin,
+          max: speedSliderMax,
+        ),
         0,
       );
     });
@@ -937,9 +955,8 @@ void main() {
       final shown = find.byWidgetPredicate(
         (w) =>
             w.key is ValueKey<String> &&
-            RegExp(r'^speed_history_\d').hasMatch(
-              (w.key as ValueKey<String>).value,
-            ),
+            RegExp(r'^speed_history_\d')
+                .hasMatch((w.key as ValueKey<String>).value),
       );
       expect(
         tester.widgetList(shown).length,
@@ -976,10 +993,12 @@ void main() {
       // 步进栏（预设列表 + 编辑器）在上限内同样完整显示、无滚动。
       double stepMaxScrollExtent() => tester
           .state<ScrollableState>(
-            find.descendant(
-              of: find.byKey(const Key('speed_step_column_scroll')),
-              matching: find.byType(Scrollable),
-            ).first,
+            find
+                .descendant(
+                  of: find.byKey(const Key('speed_step_column_scroll')),
+                  matching: find.byType(Scrollable),
+                )
+                .first,
           )
           .position
           .maxScrollExtent;
@@ -1045,9 +1064,11 @@ void main() {
       // 去重：同值只渲染一次。
       for (final r in const [0.3, 1.8]) {
         expect(
-          find.byWidgetPredicate((w) =>
-              w.key is ValueKey<String> &&
-              (w.key as ValueKey<String>).value == 'speed_history_$r'),
+          find.byWidgetPredicate(
+            (w) =>
+                w.key is ValueKey<String> &&
+                (w.key as ValueKey<String>).value == 'speed_history_$r',
+          ),
           findsOneWidget,
           reason: '$r 同值历史去重、不重复渲染',
         );
@@ -1257,7 +1278,8 @@ void main() {
         reason: '倍速栏宽 = 双列块 + 组距 6 + 滑条区',
       );
       // 气泡宽 = 左盒边距 8 + 左栏 280 + 列距 17 + 右栏自然宽 + 右盒边距 12。
-      final expected = speedBubblePaddingLeft +
+      final expected =
+          speedBubblePaddingLeft +
           step.size.width +
           mergedBubbleColumnGap +
           rate.size.width +
@@ -1269,7 +1291,8 @@ void main() {
       );
       // 整高 = 上边距 8 + 内容 240（标题 24 + 间距 4 + 列高 212）+ 下边距
       // 12 = 260。
-      final expectedHeight = speedBubblePaddingTop +
+      final expectedHeight =
+          speedBubblePaddingTop +
           speedTitleHeight +
           speedTitleColumnGap +
           speedColumnsBlockHeight +
@@ -1290,7 +1313,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // 高 24（单行不折行）。
-      expect(boxOf(const Key('speed_rate_title')).size.height, speedTitleHeight);
+      expect(
+        boxOf(const Key('speed_rate_title')).size.height,
+        speedTitleHeight,
+      );
 
       // 标题居中于左区：容器中点 = 双列块中点。
       double assertAligned() {
@@ -1369,14 +1395,21 @@ void main() {
       final contentLeft =
           bubble.localToGlobal(Offset.zero).dx + speedBubblePaddingLeft;
       final titleLeft = title.localToGlobal(Offset.zero).dx;
-      final titleRight =
-          title.localToGlobal(title.size.topRight(Offset.zero)).dx;
+      final titleRight = title
+          .localToGlobal(title.size.topRight(Offset.zero))
+          .dx;
       final columnsRight =
           columnsRow.localToGlobal(Offset.zero).dx + columnsRow.size.width;
-      expect(titleLeft, greaterThanOrEqualTo(contentLeft - 0.5),
-          reason: '缩放下标题仍不越出气泡左缘');
-      expect(titleRight, lessThanOrEqualTo(columnsRight + 0.5),
-          reason: '缩放下标题仍不越出双列块右缘');
+      expect(
+        titleLeft,
+        greaterThanOrEqualTo(contentLeft - 0.5),
+        reason: '缩放下标题仍不越出气泡左缘',
+      );
+      expect(
+        titleRight,
+        lessThanOrEqualTo(columnsRight + 0.5),
+        reason: '缩放下标题仍不越出双列块右缘',
+      );
     });
 
     testWidgets('常驻列按倍速值降序渲染（1.5x 顶 → 0.25x 底）；下拉候选顺序不变', (tester) async {
@@ -1452,7 +1485,8 @@ void main() {
         '1.5': 1.5,
       }.entries) {
         final value = entry.value;
-        final expectedTop = (speedSliderMax - value) /
+        final expectedTop =
+            (speedSliderMax - value) /
             (speedSliderMax - speedRateMin) *
             rulerHeight;
         final box = tester.renderObject<RenderBox>(
@@ -1754,7 +1788,10 @@ void main() {
     testWidgets('窄屏（竖屏 360 逻辑宽）：锚点贴右缘气泡完整进屏、倍速栏可达', (tester) async {
       // 竖屏可用宽不足以并排 → 上下堆叠，气泡宽回到 300 上限，
       // 水平钳制后完整进屏（左右留边）。
-      tester.view.physicalSize = const Size(720, 1440); // 合成档 360.0×720.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        720,
+        1440,
+      ); // 合成档 360.0×720.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
 
@@ -2001,7 +2038,10 @@ void main() {
 
     testWidgets('观看态：气泡超高屏时才被钳回（顶部贴留边、底缘尽力）', (tester) async {
       // 视口压到 120 高：气泡自然高超过可用高 → 贴顶留边、底缘尽力。
-      tester.view.physicalSize = const Size(800, 120); // 合成档 800.0×120.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        800,
+        120,
+      ); // 合成档 800.0×120.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -2167,12 +2207,13 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('beat 模式：竖屏堆叠宽仍超屏 → 整泡缩到恰好进屏（有效宽 = 屏宽 − 16）', (
-      tester,
-    ) async {
+    testWidgets('beat 模式：竖屏堆叠宽仍超屏 → 整泡缩到恰好进屏（有效宽 = 屏宽 − 16）', (tester) async {
       // beat 气泡放不下并排即三段堆叠（内容宽 312 + 盒边距 = 332）——
       // 屏取 300 才超可用宽 284，此时仍走兜底等比缩小（缩小口径不变）。
-      tester.view.physicalSize = const Size(300, 600); // 合成档 300.0×600.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        300,
+        600,
+      ); // 合成档 300.0×600.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -2194,7 +2235,10 @@ void main() {
     testWidgets('beat 模式：0.8 下限钳到左留边（允许裁切，不崩溃）', (tester) async {
       // 堆叠宽 332；屏 270 → 可用 254 < 堆叠宽 × 0.8 = 265.6 →
       // 触发下限钳制。
-      tester.view.physicalSize = const Size(270, 600); // 合成档 270.0×600.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        270,
+        600,
+      ); // 合成档 270.0×600.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -2212,7 +2256,10 @@ void main() {
     testWidgets('倍速气泡（speed）参与兜底缩放：可用宽不足时整泡缩到恰好进屏', (tester) async {
       // 屏 300、留边 8：可用宽 284 < 竖屏堆叠自然外宽（内容 300 + 盒边距
       // 20 = 320）→ 整泡缩到 284 恰好进屏（不裁切）。
-      tester.view.physicalSize = const Size(300, 600); // 合成档 300.0×600.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        300,
+        600,
+      ); // 合成档 300.0×600.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final link = LayerLink();
@@ -2325,7 +2372,10 @@ void main() {
       );
       // 一次完整放下（左/右各留边）。
       expect(rect.left, greaterThanOrEqualTo(speedBubbleScreenMargin - 0.5));
-      expect(rect.right, lessThanOrEqualTo(782 - speedBubbleScreenMargin + 0.5));
+      expect(
+        rect.right,
+        lessThanOrEqualTo(782 - speedBubbleScreenMargin + 0.5),
+      );
       // 零缩放：宽即两栏内容宽 + 盒边距（派生，不写死字体相关魔法数）。
       expect(
         rect.width,
@@ -2360,8 +2410,13 @@ void main() {
         tester.renderObject<RenderBox>(find.byKey(key));
 
     /// 分隔线可见几何：并排为竖线（高 > 宽）、堆叠为横线（宽 > 高）。
-    void expectSeparatorOrientation(WidgetTester tester, {required bool stacked}) {
-      final rect = tester.getRect(find.byKey(const Key('speed_merged_separator')));
+    void expectSeparatorOrientation(
+      WidgetTester tester, {
+      required bool stacked,
+    }) {
+      final rect = tester.getRect(
+        find.byKey(const Key('speed_merged_separator')),
+      );
       if (stacked) {
         expect(rect.width, greaterThan(rect.height), reason: '堆叠分隔线为横线');
       } else {
@@ -2386,11 +2441,7 @@ void main() {
       expectSeparatorOrientation(tester, stacked: true);
 
       // 气泡宽回到既有 300 内容上限（不超过）；竖排零缩放。
-      expect(
-        left.size.width,
-        speedBubbleMaxWidth,
-        reason: '内容宽取纯函数给出的 300 上限',
-      );
+      expect(left.size.width, speedBubbleMaxWidth, reason: '内容宽取纯函数给出的 300 上限');
       final bubble = bubbleGlobalRect(boxOf(tester, const Key('speed_bubble')));
       expect(
         bubble.width,
@@ -2400,10 +2451,7 @@ void main() {
         ),
       );
       // 完整进屏（左右留边、不越屏）。
-      expect(
-        bubble.left,
-        greaterThanOrEqualTo(speedBubbleScreenMargin - 0.5),
-      );
+      expect(bubble.left, greaterThanOrEqualTo(speedBubbleScreenMargin - 0.5));
       expect(
         bubble.right,
         lessThanOrEqualTo(390 - speedBubbleScreenMargin + 0.5),
@@ -2447,9 +2495,7 @@ void main() {
         orElse: () => fail('应有可滚动的整泡滚动容器'),
       );
       expect(
-        scrollables
-            .where((s) => s.position.maxScrollExtent > 0)
-            .length,
+        scrollables.where((s) => s.position.maxScrollExtent > 0).length,
         1,
         reason: '堆叠时只有整泡外层可滚，栏内滚无余量',
       );
@@ -2457,10 +2503,12 @@ void main() {
       // 整泡滚动：拖动后倍速栏随之上移（并排时倍速栏固定不动）。
       final rateTopBefore = bubbleGlobalRect(rateBefore).top;
       await tester.drag(
-        find.descendant(
-          of: find.byKey(const Key('speed_bubble')),
-          matching: find.byType(Scrollable),
-        ).first,
+        find
+            .descendant(
+              of: find.byKey(const Key('speed_bubble')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
         const Offset(0, -120),
       );
       await tester.pumpAndSettle();
@@ -2504,9 +2552,7 @@ void main() {
       await container
           .read(speedStepPresetProvider.notifier)
           .select('builtin_review');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('speed_step_edit_builtin_review')));
       await tester.pumpAndSettle();
@@ -2536,7 +2582,10 @@ void main() {
       }
 
       // 竖 → 横：重排为并排，两类状态与编辑器保持。
-      tester.view.physicalSize = const Size(844, 390); // 合成档 281.3×130.0dp（dpr 3），非设备基准。
+      tester.view.physicalSize = const Size(
+        844,
+        390,
+      ); // 合成档 281.3×130.0dp（dpr 3），非设备基准。
       await tester.pumpAndSettle();
       expectLayout(stacked: false);
       expect(
@@ -2549,15 +2598,24 @@ void main() {
         findsOneWidget,
         reason: '已启用不丢',
       );
-      expect(container.read(speedStepPresetProvider).selectedId, 'builtin_review');
+      expect(
+        container.read(speedStepPresetProvider).selectedId,
+        'builtin_review',
+      );
 
       // 横 → 竖：重排回堆叠，状态仍在。
-      tester.view.physicalSize = const Size(390, 844); // 合成档 130.0×281.3dp（dpr 3），非设备基准。
+      tester.view.physicalSize = const Size(
+        390,
+        844,
+      ); // 合成档 130.0×281.3dp（dpr 3），非设备基准。
       await tester.pumpAndSettle();
       expectLayout(stacked: true);
       expect(find.byKey(const Key('speed_step_editor')), findsOneWidget);
       expect(find.byKey(const Key('speed_step_enabled_badge')), findsOneWidget);
-      expect(container.read(speedStepPresetProvider).selectedId, 'builtin_review');
+      expect(
+        container.read(speedStepPresetProvider).selectedId,
+        'builtin_review',
+      );
     });
   });
 
@@ -2598,9 +2656,7 @@ void main() {
           ),
         );
         expect(box, findsOneWidget, reason: '$key 由 Expanded 等分');
-        widths.add(
-          tester.renderObject<RenderBox>(find.byKey(key)).size.width,
-        );
+        widths.add(tester.renderObject<RenderBox>(find.byKey(key)).size.width);
       }
       expect(widths.toSet().length, 1, reason: '四参数列等宽（均匀分布）');
     });
@@ -2647,10 +2703,7 @@ void main() {
       expect(find.byKey(const Key('speed_step_switch')), findsNothing);
       expect(find.byKey(const Key('speed_step_settings_toggle')), findsNothing);
       // 列表尾「＋ 新增预设」占位整行存在。
-      expect(
-        find.byKey(const Key('speed_step_add_preset')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('speed_step_add_preset')), findsOneWidget);
       expect(find.text('新增预设'), findsOneWidget);
     });
 
@@ -2678,9 +2731,7 @@ void main() {
       await container
           .read(speedStepPresetProvider.notifier)
           .select('builtin_first');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       await pumpOpenStep(tester);
       expect(find.byKey(const Key('speed_step_enabled_badge')), findsOneWidget);
 
@@ -2692,16 +2743,14 @@ void main() {
       expect(container.read(speedControlProvider).stepEnabled, isFalse);
       expect(engine.rate, 1.0, reason: '停用回到手动倍率');
       expect(session().open, isNull, reason: '三态都收起气泡');
-      expect(
-        doc().selectedId,
-        'builtin_first',
-        reason: '停用只撤「已启用」，「选中」保留',
-      );
+      expect(doc().selectedId, 'builtin_first', reason: '停用只撤「已启用」，「选中」保留');
     });
 
     testWidgets('点行三态·已启用点别的行：切换（旧的跑停、按新预设起跑），不重走三选一、收起气泡', (tester) async {
       // 让「复习」首档与「初见」不同以观察起跑。
-      await container.read(speedStepPresetProvider.notifier).updatePreset(
+      await container
+          .read(speedStepPresetProvider.notifier)
+          .updatePreset(
             id: 'builtin_review',
             params: const SpeedStepParams(
               startRate: 0.8,
@@ -2713,9 +2762,7 @@ void main() {
       await container
           .read(speedStepPresetProvider.notifier)
           .select('builtin_first');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       expect(engine.rate, 0.5, reason: '内置 first 首档 0.5');
 
       await pumpOpenStep(tester);
@@ -2818,14 +2865,8 @@ void main() {
       await openEditor(tester, 'builtin_first');
 
       expect(find.byType(AlertDialog), findsNothing, reason: '就地编辑器非模态');
-      expect(
-        find.byKey(const Key('speed_step_editor_back')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('speed_step_editor_name')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('speed_step_editor_back')), findsOneWidget);
+      expect(find.byKey(const Key('speed_step_editor_name')), findsOneWidget);
       for (final fieldKey in const [
         Key('speed_step_editor_start_rate'),
         Key('speed_step_editor_max_rate'),
@@ -2839,10 +2880,7 @@ void main() {
         find.byKey(const Key('speed_step_restore_default')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const Key('speed_step_editor_save')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('speed_step_editor_save')), findsOneWidget);
     });
 
     testWidgets('编辑子视图返回箭头报出中文名', (tester) async {
@@ -2881,8 +2919,10 @@ void main() {
       expect(edited.params.startRate, 0.6);
       expect(doc().selectedId, 'builtin_first', reason: '保存不改选中');
       // 已回到列表视图。
-      expect(find.byKey(const Key('speed_step_preset_builtin_first')),
-          findsOneWidget);
+      expect(
+        find.byKey(const Key('speed_step_preset_builtin_first')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('speed_step_editor')), findsNothing);
     });
 
@@ -2950,7 +2990,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // 遍数候选 ⊆ 1–20。
-      await tester.tap(find.byKey(const Key('speed_step_editor_laps_per_rate')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_editor_laps_per_rate')),
+      );
       await tester.pumpAndSettle();
       final lapItems = tester
           .widgetList<DropdownMenuItem<int>>(
@@ -2962,16 +3004,14 @@ void main() {
           .map((item) => item.value)
           .toSet();
       expect(lapItems, isNotEmpty);
-      expect(
-        lapItems.difference(lapsPerRateCandidates.toSet()),
-        isEmpty,
-      );
+      expect(lapItems.difference(lapsPerRateCandidates.toSet()), isEmpty);
       await tester.tap(find.text('3').last, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       // 递增量候选 ⊆ 固定集合。
-      await tester
-          .tap(find.byKey(const Key('speed_step_editor_rate_increment')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_editor_rate_increment')),
+      );
       await tester.pumpAndSettle();
       final incItems = tester
           .widgetList<DropdownMenuItem<double>>(
@@ -2983,10 +3023,7 @@ void main() {
           .map((item) => item.value)
           .toSet();
       expect(incItems, isNotEmpty);
-      expect(
-        incItems.difference(rateIncrementCandidates.toSet()),
-        isEmpty,
-      );
+      expect(incItems.difference(rateIncrementCandidates.toSet()), isEmpty);
     });
 
     testWidgets('非法组合（封顶 < 起步）在编辑保存时提示错误、不写入', (tester) async {
@@ -3006,10 +3043,7 @@ void main() {
       await tester.tap(find.byKey(const Key('speed_step_editor_save')));
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const Key('speed_step_editor_error')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('speed_step_editor_error')), findsOneWidget);
       expect(
         doc().presets.firstWhere((p) => p.id == 'builtin_first').params.maxRate,
         1.0,
@@ -3031,10 +3065,7 @@ void main() {
             .text,
         '自定义 1',
       );
-      expect(
-        find.byKey(const Key('speed_step_restore_default')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('speed_step_restore_default')), findsNothing);
 
       await tester.enterText(
         find.byKey(const Key('speed_step_editor_name')),
@@ -3048,14 +3079,8 @@ void main() {
       expect(custom.builtin, isFalse);
       expect(doc().selectedId, custom.id);
       // 自定义行出现删除钮（列表视图）。
-      expect(
-        find.byKey(Key('speed_step_delete_${custom.id}')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(Key('speed_step_edit_${custom.id}')),
-        findsOneWidget,
-      );
+      expect(find.byKey(Key('speed_step_delete_${custom.id}')), findsOneWidget);
+      expect(find.byKey(Key('speed_step_edit_${custom.id}')), findsOneWidget);
     });
 
     testWidgets('清空名称直接保存：新建兜底默认名「自定义 N」', (tester) async {
@@ -3100,10 +3125,7 @@ void main() {
       await tester.tap(find.byKey(const Key('speed_step_delete_confirm')));
       await tester.pumpAndSettle();
       expect(doc().presets.length, 2);
-      expect(
-        doc().presets.where((p) => p.id == customId),
-        isEmpty,
-      );
+      expect(doc().presets.where((p) => p.id == customId), isEmpty);
     });
 
     group('内置预设可删', () {
@@ -3127,9 +3149,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      testWidgets('同一枚删除钮 + 同一个二次确认弹窗（标题「删除预设」）；确认后内置从列表消失', (
-        tester,
-      ) async {
+      testWidgets('同一枚删除钮 + 同一个二次确认弹窗（标题「删除预设」）；确认后内置从列表消失', (tester) async {
         await pumpOpenStep(tester);
 
         await tester.tap(
@@ -3153,9 +3173,8 @@ void main() {
         );
         expect(find.text('复习'), findsNothing);
         // 跨会话：已按新列表落盘。
-        final stored =
-            (storage.snapshot['speedStepPresets']['presets'] as List)
-                .cast<Map<String, dynamic>>();
+        final stored = (storage.snapshot['speedStepPresets']['presets'] as List)
+            .cast<Map<String, dynamic>>();
         expect(stored.map((p) => p['id']), ['builtin_first']);
       });
 
@@ -3179,16 +3198,16 @@ void main() {
             .read(speedControlProvider.notifier)
             .setStepEnabled(true);
         await pumpOpenStep(tester);
-        expect(find.byKey(const Key('speed_step_enabled_badge')), findsOneWidget);
+        expect(
+          find.byKey(const Key('speed_step_enabled_badge')),
+          findsOneWidget,
+        );
 
         await deleteVia(tester, 'builtin_first');
 
         expect(container.read(speedControlProvider).stepEnabled, isFalse);
         expect(engine.rate, 1.0, reason: '停用回到手动倍率');
-        expect(
-          find.byKey(const Key('speed_step_enabled_badge')),
-          findsNothing,
-        );
+        expect(find.byKey(const Key('speed_step_enabled_badge')), findsNothing);
         expect(doc().presets.map((p) => p.id), ['builtin_review']);
         expect(doc().selectedId, 'builtin_review', reason: '选中回退列表首个');
       });
@@ -3244,10 +3263,7 @@ void main() {
         await deleteVia(tester, 'builtin_review');
 
         expect(doc().presets.map((p) => p.id), [customId]);
-        expect(
-          find.byKey(Key('speed_step_preset_$customId')),
-          findsOneWidget,
-        );
+        expect(find.byKey(Key('speed_step_preset_$customId')), findsOneWidget);
         expect(
           find.byKey(const Key('speed_step_delete_builtin_first')),
           findsNothing,
@@ -3289,7 +3305,10 @@ void main() {
     });
 
     testWidgets('键盘弹出时气泡随 viewInsets 压缩且内容不重叠', (tester) async {
-      tester.view.physicalSize = const Size(800, 600); // 合成档 800.0×600.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        800,
+        600,
+      ); // 合成档 800.0×600.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
@@ -3312,10 +3331,7 @@ void main() {
         lessThan(before),
         reason: '气泡高度随键盘 viewInsets 压缩',
       );
-      expect(
-        bubble.size.height,
-        lessThanOrEqualTo(600 * 0.7 - 300 + 1),
-      );
+      expect(bubble.size.height, lessThanOrEqualTo(600 * 0.7 - 300 + 1));
       expect(
         find.byKey(const Key('speed_step_editor_start_rate')),
         findsOneWidget,
@@ -3340,7 +3356,6 @@ void main() {
     });
   });
 
-
   group('倍率选择化（数字输入移除、候选集受限）', () {
     testWidgets('倍速气泡：无任何数字输入框', (tester) async {
       await pumpBubble(tester);
@@ -3358,9 +3373,7 @@ void main() {
       expect(find.byType(TextField), findsNothing);
 
       // 进入内置预设编辑器：四参数为下拉（key 保留）、名称输入保留。
-      await tester.tap(
-        find.byKey(const Key('speed_step_edit_builtin_first')),
-      );
+      await tester.tap(find.byKey(const Key('speed_step_edit_builtin_first')));
       await tester.pumpAndSettle();
       for (final fieldKey in const [
         Key('speed_step_editor_start_rate'),
@@ -3613,7 +3626,9 @@ void main() {
       open(SpeedBubbleMode.speed);
       await tester.pumpAndSettle();
 
-      final hit = tester.getRect(find.byKey(const Key('speed_history_hit_0.8')));
+      final hit = tester.getRect(
+        find.byKey(const Key('speed_history_hit_0.8')),
+      );
       expect(hit.width, greaterThanOrEqualTo(kHitTargetMinSize));
       expect(hit.height, greaterThanOrEqualTo(kHitTargetMinSize));
       final column = tester.getRect(
@@ -3650,7 +3665,10 @@ void main() {
         expect(
           tester
               .getRect(
-                find.descendant(of: find.byKey(key), matching: find.byType(Icon)),
+                find.descendant(
+                  of: find.byKey(key),
+                  matching: find.byType(Icon),
+                ),
               )
               .size,
           const Size(18, 18),
@@ -3658,7 +3676,9 @@ void main() {
         );
       }
       // 删除钮仍可点：弹二次确认。
-      await tester.tap(find.byKey(const Key('speed_step_delete_builtin_first')));
+      await tester.tap(
+        find.byKey(const Key('speed_step_delete_builtin_first')),
+      );
       await tester.pumpAndSettle();
       expect(find.text('删除预设'), findsOneWidget);
       await tester.tap(find.byKey(const Key('speed_step_delete_cancel')));
@@ -3667,7 +3687,9 @@ void main() {
       // 返回箭头命中盒 ≥ 48，且仍能返回列表。
       await tester.tap(find.byKey(const Key('speed_step_edit_builtin_first')));
       await tester.pumpAndSettle();
-      final back = tester.getRect(find.byKey(const Key('speed_step_editor_back')));
+      final back = tester.getRect(
+        find.byKey(const Key('speed_step_editor_back')),
+      );
       expect(back.width, greaterThanOrEqualTo(kHitTargetMinSize));
       expect(back.height, greaterThanOrEqualTo(kHitTargetMinSize));
       expect(

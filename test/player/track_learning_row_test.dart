@@ -128,10 +128,7 @@ void main() {
         Duration(seconds: 20),
       ]),
       axis: axisFor(total),
-      mastery: const {
-        0: LearningMastery.mastered,
-        1: LearningMastery.learning,
-      },
+      mastery: const {0: LearningMastery.mastered, 1: LearningMastery.learning},
       emphasizedSegments: const {0},
       activatedSegments: const {0},
     );
@@ -146,11 +143,13 @@ void main() {
       );
     }
     // 填充唯一取熟练度色（缺省段 = 未练）。
-    BoxDecoration boxOf(int index) => tester
-        .widget<DecoratedBox>(
-          find.byKey(ValueKey('learning_segment_${index}_box')),
-        )
-        .decoration as BoxDecoration;
+    BoxDecoration boxOf(int index) =>
+        tester
+                .widget<DecoratedBox>(
+                  find.byKey(ValueKey('learning_segment_${index}_box')),
+                )
+                .decoration
+            as BoxDecoration;
     expect(boxOf(0).color, learningMasteryColor(LearningMastery.mastered));
     expect(boxOf(1).color, learningMasteryColor(LearningMastery.learning));
     expect(boxOf(2).color, learningMasteryColor(LearningMastery.unlearned));
@@ -169,11 +168,13 @@ void main() {
     );
 
     // 激活外发光只在激活段上（层始终占位）。
-    BoxDecoration glowOf(int index) => tester
-        .widget<Container>(
-          find.byKey(ValueKey('learning_segment_${index}_glow')),
-        )
-        .decoration as BoxDecoration;
+    BoxDecoration glowOf(int index) =>
+        tester
+                .widget<Container>(
+                  find.byKey(ValueKey('learning_segment_${index}_glow')),
+                )
+                .decoration
+            as BoxDecoration;
     expect(glowOf(0).boxShadow, isNotEmpty);
     expect(glowOf(1).boxShadow, isEmpty);
 
@@ -219,10 +220,7 @@ void main() {
       findsNothing,
       reason: '空轨无线段命中列',
     );
-    expect(
-      find.byKey(const Key('transition_segment_overlay')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('transition_segment_overlay')), findsNothing);
   });
 
   testWidgets('段体交互：点按报该段序、横滑起手报该段序，不误报抬手', (tester) async {
@@ -520,15 +518,16 @@ void main() {
 /// 空拖动域（未登记任何族）：起手一律为空——供不关心圈选的用例复用。
 /// 单例：域输入按字段判等，两次装配要拿到同一个实例。
 TrackBandDragSession? _emptyDomain;
-TrackBandDragSession _emptyDragDomain() => _emptyDomain ??= TrackBandDragSession(
-  families: TrackBandDragFamilies(),
-  isPinchActive: () => false,
-  isMixedBurstActive: () => false,
-  loadGateActive: () => false,
-  gestureStartRejected: (_) => false,
-  promptOnReject: (_) {},
-  bandWidth: () => 400,
-);
+TrackBandDragSession _emptyDragDomain() =>
+    _emptyDomain ??= TrackBandDragSession(
+      families: TrackBandDragFamilies(),
+      isPinchActive: () => false,
+      isMixedBurstActive: () => false,
+      loadGateActive: () => false,
+      gestureStartRejected: (_) => false,
+      promptOnReject: (_) {},
+      bandWidth: () => 400,
+    );
 
 /// 第十族（学习段圈选）在测试里的自家帧装配：起手、逐帧与两条收口各记一笔。
 class _SpanRecorder {

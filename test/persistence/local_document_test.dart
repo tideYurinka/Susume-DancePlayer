@@ -11,10 +11,7 @@ void main() {
   group('LocalDocument schema v4 往返', () {
     test('全字段往返：熟练度/激活段（session）+ 偏好与浮层（prefs）', () {
       const doc = LocalDocument(
-        mastery: {
-          0: LearningMastery.learning,
-          2: LearningMastery.mastered,
-        },
+        mastery: {0: LearningMastery.learning, 2: LearningMastery.mastered},
         activatedSegments: [1, 2],
         previewSnapEnabled: false,
         layoutLocked: true,
@@ -86,9 +83,7 @@ void main() {
     });
 
     test('承诺性形状：无自定义浮层不写 overlay 键；默认文档两段仍写', () {
-      final json = const LocalDocument(
-        previewSnapEnabled: false,
-      ).toJson();
+      final json = const LocalDocument(previewSnapEnabled: false).toJson();
       expect(json['prefs'].containsKey('overlay'), isFalse);
       expect(json['session'], {'mastery': {}, 'activatedSegments': []});
     });
@@ -147,11 +142,7 @@ void main() {
       final doc = LocalDocument.fromJson(const {
         'version': 3,
         'session': {
-          'mastery': {
-            '0': 'practicing',
-            '9': 'mastered',
-            '2': 'unknown-value',
-          },
+          'mastery': {'0': 'practicing', '9': 'mastered', '2': 'unknown-value'},
         },
         'prefs': {
           'overlay': {
@@ -263,7 +254,9 @@ void main() {
   group('LocalDocument 版本政策（v1／v2 低于地板一次性丢弃）', () {
     test('版本头读不出 → 认识多少读多少 + 只读', () {
       const onDisk = {
-        'session': {'mastery': {'0': 'mastered'}},
+        'session': {
+          'mastery': {'0': 'mastered'},
+        },
         'prefs': {'layoutLocked': true},
       };
       final doc = LocalDocument.fromJson(onDisk);
@@ -276,17 +269,25 @@ void main() {
         expect(
           LocalDocument.fromJson({
             'version': version,
-            'session': {'mastery': {'0': 'mastered'}},
+            'session': {
+              'mastery': {'0': 'mastered'},
+            },
           }),
           const LocalDocument.empty(),
           reason: 'version=$version 低于地板',
         );
       }
-      const onChain = {'version': 3, 'prefs': {'layoutLocked': true}};
+      const onChain = {
+        'version': 3,
+        'prefs': {'layoutLocked': true},
+      };
       expect(LocalDocument.fromJson(onChain).layoutLocked, isTrue);
       expect(LocalDocument.versionPolicy.isWritable(onChain), isTrue);
 
-      const higher = {'version': 5, 'prefs': {'layoutLocked': true}};
+      const higher = {
+        'version': 5,
+        'prefs': {'layoutLocked': true},
+      };
       // 更高版本按「认识多少读多少」打开。
       expect(LocalDocument.fromJson(higher).layoutLocked, isTrue);
       expect(LocalDocument.versionPolicy.isWritable(higher), isFalse);
@@ -305,11 +306,7 @@ void main() {
         'prefs': {
           'layoutLocked': true,
           'prefsReserved': 'p',
-          'overlay': {
-            'dx': 1.0,
-            'dy': 2.0,
-            'overlayReserved': 'o',
-          },
+          'overlay': {'dx': 1.0, 'dy': 2.0, 'overlayReserved': 'o'},
         },
       });
       final json = fromFile.toJson();
@@ -467,15 +464,16 @@ void main() {
         isFalse,
       );
       expect(
-        const LocalDocument(speedRate: 0.5) == const LocalDocument(speedRate: 0.5),
+        const LocalDocument(speedRate: 0.5) ==
+            const LocalDocument(speedRate: 0.5),
         isTrue,
       );
       // 其余字段不变时不产生写盘：陌生键差异不参与相等。
       expect(
         LocalDocument.fromJson(const {
-          'version': 3,
-          'prefs': {'speedRate': 0.5, 'extra': 1},
-        }) ==
+              'version': 3,
+              'prefs': {'speedRate': 0.5, 'extra': 1},
+            }) ==
             const LocalDocument(speedRate: 0.5),
         isTrue,
       );
@@ -539,10 +537,7 @@ void main() {
       const emptyRecord = LocalDocument(beatPrompt: BeatPromptMemoryFields());
 
       // 无记录：prefs 里不写 beatPrompt 键。
-      expect(
-        noRecord.toJson()['prefs'].containsKey('beatPrompt'),
-        isFalse,
-      );
+      expect(noRecord.toJson()['prefs'].containsKey('beatPrompt'), isFalse);
       // 有记录但全缺席：beatPrompt 键在，值为空对象。
       expect(emptyRecord.toJson()['prefs']['beatPrompt'], <String, dynamic>{});
 
@@ -550,10 +545,7 @@ void main() {
         LocalDocument.fromJson(emptyRecord.toJson()).beatPrompt,
         isNotNull,
       );
-      expect(
-        LocalDocument.fromJson(noRecord.toJson()).beatPrompt,
-        isNull,
-      );
+      expect(LocalDocument.fromJson(noRecord.toJson()).beatPrompt, isNull);
       expect(emptyRecord == noRecord, isFalse);
     });
 
@@ -562,10 +554,7 @@ void main() {
         'version': 3,
         'prefs': {
           'beatPromptReserved': 'p',
-          'beatPrompt': {
-            'animation': true,
-            'memoryReserved': 'm',
-          },
+          'beatPrompt': {'animation': true, 'memoryReserved': 'm'},
         },
       });
       final json = fromFile.toJson();
@@ -606,9 +595,8 @@ void main() {
       expect(chained.overlay!.dx, 1.0);
       expect(chained.previewSnapEnabled, isFalse);
 
-      final other = const LocalDocument(beatPrompt: memory).withLayoutLocked(
-        true,
-      );
+      final other = const LocalDocument(beatPrompt: memory)
+          .withLayoutLocked(true);
       expect(other.beatPrompt, memory);
       expect(other.layoutLocked, isTrue);
     });
@@ -616,14 +604,15 @@ void main() {
     test('词表锁：记忆单元枚举名与播放器层枚举名一致', () {
       // 纯值层持枚举名字符串；播放器层枚举改名时这里先红，
       // 防止词表静默脱钩、记忆值读入跌为缺席。
-      expect(
-        BeatAnimationStyle.values.map((s) => s.name).toSet(),
-        {'bar', 'pendulum'},
-      );
-      expect(
-        MetronomeSoundType.values.map((s) => s.name).toSet(),
-        {'normal', 'vocal', 'geigi'},
-      );
+      expect(BeatAnimationStyle.values.map((s) => s.name).toSet(), {
+        'bar',
+        'pendulum',
+      });
+      expect(MetronomeSoundType.values.map((s) => s.name).toSet(), {
+        'normal',
+        'vocal',
+        'geigi',
+      });
     });
 
     test('字段参与相等：记忆值不同判不等，null 与空记录判不等', () {

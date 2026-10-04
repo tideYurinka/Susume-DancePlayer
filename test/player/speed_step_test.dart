@@ -35,10 +35,14 @@ void main() {
 
   group('speedStepRates（档位序列）', () {
     test('默认参数：0.5 起步、0.1 递增至 1.0（含）', () {
-      expect(
-        speedStepRates(const SpeedStepParams()),
-        [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-      );
+      expect(speedStepRates(const SpeedStepParams()), [
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+      ]);
     });
 
     test('增量不能整除 (b - a) 时末档钳制到 b', () {
@@ -85,9 +89,8 @@ void main() {
         throwsArgumentError,
       );
       expect(
-        () => speedStepRates(
-          const SpeedStepParams(startRate: 0.8, maxRate: 0.5),
-        ),
+        () =>
+            speedStepRates(const SpeedStepParams(startRate: 0.8, maxRate: 0.5)),
         throwsArgumentError,
       );
     });

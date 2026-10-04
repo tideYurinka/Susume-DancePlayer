@@ -263,13 +263,8 @@ class TrackHitResolution {
   /// ——长按圈选的起手/逐帧/滚屏共用。[atSpanEdge] = 落点已钳在首/末段（继续
   /// 滚屏不可能再圈进新段）。
   ({int? order, bool atSpanEdge}) learningHitResolve(Offset local) {
-    final dx = local.dx
-        .clamp(0.0, math.max(0.0, width - 0.01))
-        .toDouble();
-    final hit = learningHitOrderAt(
-      Offset(dx, local.dy),
-      segmentBodyOnly: true,
-    );
+    final dx = local.dx.clamp(0.0, math.max(0.0, width - 0.01)).toDouble();
+    final hit = learningHitOrderAt(Offset(dx, local.dy), segmentBodyOnly: true);
     return (order: hit.order, atSpanEdge: hit.spanClamped);
   }
 

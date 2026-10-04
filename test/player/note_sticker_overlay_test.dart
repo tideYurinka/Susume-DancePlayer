@@ -132,6 +132,7 @@ void main() {
 
   group('贴纸随面（注解层按面方向水平换算，文字与图标不镜像）', () {
     const registrationRect = Rect.fromLTWH(0, 0, 800, 600);
+
     /// 跨面几何：贴在画面左侧的那条备注。
     const leftNote = NoteSticker(
       startMs: 1000,
@@ -149,8 +150,7 @@ void main() {
       List<NoteSticker> notes = const [leftNote],
       NoteStickerOverlayRegistration? registration,
     }) async {
-      final noteRegistration =
-          registration ?? NoteStickerOverlayRegistration();
+      final noteRegistration = registration ?? NoteStickerOverlayRegistration();
       final engine = FakePlaybackEngine();
       final container = ProviderContainer(
         overrides: [playbackEngineProvider.overrideWithValue(engine)],
@@ -196,8 +196,7 @@ void main() {
       return transforms.any((t) => t.transform.entry(0, 0) < 0);
     }
 
-    testWidgets('播放态：贴纸按面方向换算到对侧等距处，文字不镜像、命中与渲染同源',
-        (tester) async {
+    testWidgets('播放态：贴纸按面方向换算到对侧等距处，文字不镜像、命中与渲染同源', (tester) async {
       await pumpRegistered(tester, faceDirection: FaceDirection.original);
       final original = stickerRect(tester);
       expect(original.center.dx, moreOrLessEquals(800 * 0.25));
@@ -226,8 +225,7 @@ void main() {
       );
     });
 
-    testWidgets('只读常显（控制层展开）：贴纸仍按面方向换算显示，但不参与命中',
-        (tester) async {
+    testWidgets('只读常显（控制层展开）：贴纸仍按面方向换算显示，但不参与命中', (tester) async {
       final registration = await pumpRegistered(
         tester,
         faceDirection: FaceDirection.mirrored,
@@ -240,8 +238,7 @@ void main() {
       expect(registration.hitTest(readOnly.center), isFalse);
     });
 
-    testWidgets('选中态：贴纸与角工具都随面换算，工具图标保持正向',
-        (tester) async {
+    testWidgets('选中态：贴纸与角工具都随面换算，工具图标保持正向', (tester) async {
       final registration = await pumpRegistered(
         tester,
         faceDirection: FaceDirection.mirrored,
@@ -272,8 +269,7 @@ void main() {
       expect(horizontallyFlipped(tester), isFalse);
     });
 
-    testWidgets('窗外：随面换算不改变显隐（窗外照旧不渲染、不注册）',
-        (tester) async {
+    testWidgets('窗外：随面换算不改变显隐（窗外照旧不渲染、不注册）', (tester) async {
       final registration = await pumpRegistered(
         tester,
         faceDirection: FaceDirection.mirrored,
@@ -330,14 +326,11 @@ void main() {
       );
     });
 
-    testWidgets('点名段描边按该段底色派生：红色代表色亮度 > 0.40 描黑边',
-        (tester) async {
+    testWidgets('点名段描边按该段底色派生：红色代表色亮度 > 0.40 描黑边', (tester) async {
       final container = await pumpHost(
         tester,
         positionMs: 3000,
-        notes: const [
-          NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意'),
-        ],
+        notes: const [NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意')],
       );
       // 名册就位：`@果 ` 构成点名语法单元（解析按当前名册）。
       await container
@@ -358,9 +351,7 @@ void main() {
       final container = await pumpHost(
         tester,
         positionMs: 3000,
-        notes: const [
-          NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意'),
-        ],
+        notes: const [NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意')],
       );
       await container
           .read(dancerRosterControllerProvider)
@@ -379,9 +370,7 @@ void main() {
       final container = await pumpHost(
         tester,
         positionMs: 3000,
-        notes: const [
-          NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意'),
-        ],
+        notes: const [NoteSticker(startMs: 1000, endMs: 5000, text: '@果 注意')],
       );
       await container
           .read(dancerRosterControllerProvider)
@@ -414,8 +403,7 @@ void main() {
   });
 
   group('默认落点与钳制（渲染像素 = 模块几何交叉断言）', () {
-    testWidgets('默认几何：落点 = 具名常量（居中、顶边下移 12%）、字号随系数',
-        (tester) async {
+    testWidgets('默认几何：落点 = 具名常量（居中、顶边下移 12%）、字号随系数', (tester) async {
       await pumpHost(tester, positionMs: 3000);
       final rendered = tester.getRect(find.byType(NoteStickerText));
       // 独立真值：同一纯函数 + 按渲染字号的真实排版（生产测量的同一路径）。
@@ -435,10 +423,14 @@ void main() {
       );
       expect(rendered.left, moreOrLessEquals(expected.left));
       expect(rendered.top, moreOrLessEquals(expected.top));
-      expect(rendered.center.dx,
-          moreOrLessEquals(contentRect.width * noteDefaultCenterX));
-      expect(rendered.center.dy,
-          moreOrLessEquals(contentRect.height * noteDefaultCenterY));
+      expect(
+        rendered.center.dx,
+        moreOrLessEquals(contentRect.width * noteDefaultCenterX),
+      );
+      expect(
+        rendered.center.dy,
+        moreOrLessEquals(contentRect.height * noteDefaultCenterY),
+      );
       // 独立字面量锚点：内容矩形 800×600、默认几何（centerX 0.5 / centerY 0.12）
       // → 落点中心写死为 (400, 72)。
       expect(rendered.center.dx, moreOrLessEquals(400));
@@ -476,9 +468,9 @@ void main() {
         overrides: [playbackEngineProvider.overrideWithValue(engine)],
       );
       addTearDown(container.dispose);
-      container.read(annotationEditorProvider).submit(
-            const InsertNote(at: Duration(milliseconds: 3000)),
-          );
+      container
+          .read(annotationEditorProvider)
+          .submit(const InsertNote(at: Duration(milliseconds: 3000)));
       final notes = container.read(noteStickersProvider);
       expect(notes, hasLength(1));
       // 默认落点来自具名常量（真机看版项）；几何为内容矩形归一化值。
@@ -591,8 +583,7 @@ void main() {
       }
     });
 
-    testWidgets('环境默认样式的字距与行高不改渲染尺寸：语义档两侧吃同一缩放值',
-        (tester) async {
+    testWidgets('环境默认样式的字距与行高不改渲染尺寸：语义档两侧吃同一缩放值', (tester) async {
       // 语义档：真值不再自建 noScaling，而是按**两侧同一个**
       // 系统字号缩放值（独立字面量）量测；渲染盒 == 按该缩放量测的盒。
       // 1.3× 与 1.6× 各验一次：实现若写死
@@ -623,16 +614,13 @@ void main() {
       }
     });
 
-    testWidgets('含点名语法文本下仍成立：可见文本单行不裁、盒尺寸 = 可见分段量测',
-        (tester) async {
+    testWidgets('含点名语法文本下仍成立：可见文本单行不裁、盒尺寸 = 可见分段量测', (tester) async {
       // 语义档：真值按两侧同一个系统字号缩放值（1.3×）量测。
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       final container = await pumpUnderMaterial(
         tester,
-        notes: const [
-          NoteSticker(startMs: 1000, endMs: 5000, text: '@果 走位偏左'),
-        ],
+        notes: const [NoteSticker(startMs: 1000, endMs: 5000, text: '@果 走位偏左')],
       );
       await container
           .read(dancerRosterControllerProvider)
@@ -675,8 +663,7 @@ void main() {
       tp.dispose();
     });
 
-    testWidgets('语义档：系统字号 1.3× 下贴纸盒按缩放后的量测值重算',
-        (tester) async {
+    testWidgets('语义档：系统字号 1.3× 下贴纸盒按缩放后的量测值重算', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await pumpUnderMaterial(tester);
@@ -686,9 +673,12 @@ void main() {
       // 独立真源：同样式 + 同缩放（1.3）的模块量测。贴纸盒按缩放后的
       // 量测尺寸重算，不沿用 1.0× 的旧盒。
       final tp = TextPainter(
-        text: TextSpan(text: '这里注意手', style: noteStickerTextStyle(
-          kNoteStickerBaseFontSize * noteDefaultScale,
-        )),
+        text: TextSpan(
+          text: '这里注意手',
+          style: noteStickerTextStyle(
+            kNoteStickerBaseFontSize * noteDefaultScale,
+          ),
+        ),
         textScaler: const TextScaler.linear(1.3),
         maxLines: 1,
         textDirection: TextDirection.ltr,
@@ -707,14 +697,10 @@ void main() {
             )
             .last,
       );
-      expect(
-        textWidget.textScaler!.scale(10),
-        13.0,
-      );
+      expect(textWidget.textScaler!.scale(10), 13.0);
     });
 
-    testWidgets('窗内改文本后贴纸盒按新文本量测重算',
-        (tester) async {
+    testWidgets('窗内改文本后贴纸盒按新文本量测重算', (tester) async {
       final container = await pumpHost(tester, positionMs: 3000);
       final before = tester.getSize(find.byType(NoteStickerText));
 

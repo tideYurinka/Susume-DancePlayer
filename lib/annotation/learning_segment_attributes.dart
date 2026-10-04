@@ -397,8 +397,10 @@ Set<int> splitLearningEmphasisOnSegmentLineAdded(
     for (final order in orders)
       if (order < insertedLineIndex)
         order
-      else if (order == insertedLineIndex) ...[order, order + 1]
-      else
+      else if (order == insertedLineIndex) ...[
+        order,
+        order + 1,
+      ] else
         order + 1,
   });
 }

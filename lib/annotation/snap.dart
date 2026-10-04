@@ -24,8 +24,7 @@ Duration? nearestCandidate(Iterable<Duration> candidates, Duration position) {
   Duration? best;
   var bestDistance = -1;
   for (final candidate in candidates) {
-    final distance =
-        (candidate.inMilliseconds - position.inMilliseconds).abs();
+    final distance = (candidate.inMilliseconds - position.inMilliseconds).abs();
     if (best == null || distance <= bestDistance) {
       best = candidate;
       bestDistance = distance;
@@ -62,10 +61,7 @@ Duration? adjacentCandidate(
 ///
 /// 与首尾线可拖范围的关系：首尾线可拖到全视频 0..total，覆盖区外落点
 /// 不回拉到末拍点。无「关闭吸附」分支——对齐无条件生效。
-Duration snapRangeBoundary(
-  Duration position, {
-  required BeatGrid grid,
-}) {
+Duration snapRangeBoundary(Duration position, {required BeatGrid grid}) {
   if (!grid.hasRealBeats) return position; // 无网格语义：自由。
   final last = grid.lastBeatIndex!;
   if (position < grid.beatTime(0) || position > grid.beatTime(last)) {
@@ -80,17 +76,13 @@ Duration snapRangeBoundary(
 
 /// [position] 严格之后的相邻真实拍点时刻；无（网格不可用 / 已到末拍之后）
 /// 返回 null（调用侧 no-op）。
-Duration? nextBeatPoint(
-  Duration position, {
-  required BeatGrid grid,
-}) => _adjacentBeatPoint(position, grid, forward: true);
+Duration? nextBeatPoint(Duration position, {required BeatGrid grid}) =>
+    _adjacentBeatPoint(position, grid, forward: true);
 
 /// [position] 严格之前的相邻真实拍点时刻；无（网格不可用 / 首拍之前）
 /// 返回 null（调用侧 no-op）。
-Duration? previousBeatPoint(
-  Duration position, {
-  required BeatGrid grid,
-}) => _adjacentBeatPoint(position, grid, forward: false);
+Duration? previousBeatPoint(Duration position, {required BeatGrid grid}) =>
+    _adjacentBeatPoint(position, grid, forward: false);
 
 Duration? _adjacentBeatPoint(
   Duration position,

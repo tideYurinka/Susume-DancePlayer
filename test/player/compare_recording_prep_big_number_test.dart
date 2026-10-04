@@ -33,16 +33,21 @@ import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show annotationSelectionDomainProvider, annotationEditorProvider;
+
 import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dance_learning_app/player/compare_recording.dart'
     show CompareRecordingPhase, compareRecordingPhaseProvider;
-import 'package:dance_learning_app/core/current_beat.dart' show LeadingBeatCount;
+import 'package:dance_learning_app/core/current_beat.dart'
+    show LeadingBeatCount;
 import 'package:dance_learning_app/player/prep_center_big_number.dart'
     show prepCenterBigNumberOf;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter_test/flutter_test.dart';
+
 import '../helpers/beat_test_seam.dart';
 
 import '../helpers/fake_camera_capture_service.dart';
@@ -126,7 +131,9 @@ void main() {
       double fromSec = 0,
       double stepSec = 0.5,
     }) {
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               marker_doc.BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -184,7 +191,9 @@ void main() {
       materialOutputFile = File('/tmp/unused_prep_big_number.mp4');
     });
 
-    testWidgets('普通练习的前导段（激活段首晚于当前位置）：浮层亮 0｜x，居中大数字不亮（范围钉在两支预备期）', (tester) async {
+    testWidgets('普通练习的前导段（激活段首晚于当前位置）：浮层亮 0｜x，居中大数字不亮（范围钉在两支预备期）', (
+      tester,
+    ) async {
       setDeviceView(tester);
       await pumpPlayer(tester);
       givenGrid(tester);
@@ -200,8 +209,11 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byKey(const Key('beat_count_leading')), findsOneWidget,
-          reason: '前提：此刻浮层确实在前导口径上');
+      expect(
+        find.byKey(const Key('beat_count_leading')),
+        findsOneWidget,
+        reason: '前提：此刻浮层确实在前导口径上',
+      );
       expect(bigNumberOnScreen(tester), '-', reason: '非预备期的前导不亮大数字');
     });
 
@@ -257,7 +269,9 @@ void main() {
       expect(find.byKey(const Key('beat_count_leading')), findsNothing);
     });
 
-    testWidgets('延迟播放预备：倒回起点前 4 拍连续播，大数字 0｜5…0｜8（与浮层同份）、越起点即消失并 1|1 起数', (tester) async {
+    testWidgets('延迟播放预备：倒回起点前 4 拍连续播，大数字 0｜5…0｜8（与浮层同份）、越起点即消失并 1|1 起数', (
+      tester,
+    ) async {
       setDeviceView(tester);
       await pumpPlayer(tester);
       givenGrid(tester);
@@ -288,7 +302,8 @@ void main() {
       // 大数字随媒介位置逐拍推进：0｜5、0｜6、0｜7、0｜8（不靠第二只钟）。
       const beat = Duration(milliseconds: 500);
       for (final number in <int>[5, 6, 7, 8]) {
-        final target = const Duration(seconds: 14) + beat * (number - 5) + beat ~/ 2;
+        final target =
+            const Duration(seconds: 14) + beat * (number - 5) + beat ~/ 2;
         await engine.seek(target);
         await tester.pump();
         await tester.pump();
@@ -410,9 +425,7 @@ void main() {
       final center = tester.getCenter(bigNumber);
       // 分屏两块：源侧左半、练习侧右半、之间留细缝——两块之间就是**整个
       // 视频区的几何中心**，而不是任一半区的中心。
-      final sourceRect = tester.getRect(
-        find.byKey(videoSurfacePlaceholderKey),
-      );
+      final sourceRect = tester.getRect(find.byKey(videoSurfacePlaceholderKey));
       final practiceRect = tester.getRect(
         find.byKey(const Key('fake_camera_preview')),
       );

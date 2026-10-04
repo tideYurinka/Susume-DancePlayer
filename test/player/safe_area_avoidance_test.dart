@@ -14,8 +14,10 @@ import 'package:dance_learning_app/core/video_identity.dart';
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/material_manifest.dart'
-    show MaterialManifestStore, materialManifestStorageProvider,
-    materialRecordingFileResolverProvider;
+    show
+        MaterialManifestStore,
+        materialManifestStorageProvider,
+        materialRecordingFileResolverProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/player/annotation_editor.dart'
@@ -99,7 +101,10 @@ void main() {
     );
 
     Future<ProviderContainer> pumpPlayer(WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
       final source = Uri.file('/videos/a.mp4');
@@ -121,7 +126,9 @@ void main() {
               (videoId) async => materialOutputFile,
             ),
             systemUiControllerProvider.overrideWithValue(systemUi),
-            contentHasherProvider.overrideWithValue(const _FixedHasher('vid-a')),
+            contentHasherProvider.overrideWithValue(
+              const _FixedHasher('vid-a'),
+            ),
             videoIndexStoreProvider.overrideWithValue(
               InMemoryVideoIndexStorage(
                 initial: VideoIndex(
@@ -167,7 +174,9 @@ void main() {
 
     setUp(() async {
       engine = FakePlaybackEngine(duration: total);
-      practiceEngine = FakePlaybackEngine(duration: const Duration(seconds: 20));
+      practiceEngine = FakePlaybackEngine(
+        duration: const Duration(seconds: 20),
+      );
       camera = FakeCameraCaptureService();
       systemUi = FakeSystemUi();
       manifestStorage = MemoryManifestStorage();
@@ -196,8 +205,10 @@ void main() {
       final card = tester.getRect(find.byKey(const Key('resume_prompt_card')));
       expect(card.left, 24);
       expect(card.bottom, 540 - kGestureYieldBottomMinPx);
-      expect(tester.getBottomRight(find.byKey(const Key('speed_entry_button'))),
-          const Offset(960 - 12, 540 - 12));
+      expect(
+        tester.getBottomRight(find.byKey(const Key('speed_entry_button'))),
+        const Offset(960 - 12, 540 - 12),
+      );
     });
 
     testWidgets('「从头播放？」小卡：贴画面矩形左下角，卡边落进让路带即推出带外', (tester) async {
@@ -217,8 +228,10 @@ void main() {
       setGestureInsets(tester, bottom: 44, right: 16);
       await tester.pump();
 
-      expect(tester.getBottomRight(find.byKey(const Key('speed_entry_button'))),
-          Offset(960 - 12 - 16, 540 - 12 - 44));
+      expect(
+        tester.getBottomRight(find.byKey(const Key('speed_entry_button'))),
+        Offset(960 - 12 - 16, 540 - 12 - 44),
+      );
     });
 
     testWidgets('常驻录制钮底部居中并避开系统手势内缩', (tester) async {
@@ -257,8 +270,10 @@ void main() {
         findsOneWidget,
         reason: '前置：回看中',
       );
-      expect(tester.getBottomRight(find.byKey(const Key('clip_review_exit_chip'))),
-          Offset(960 - 12 - 16, 540 - 116 - 44));
+      expect(
+        tester.getBottomRight(find.byKey(const Key('clip_review_exit_chip'))),
+        Offset(960 - 12 - 16, 540 - 116 - 44),
+      );
     });
   });
 

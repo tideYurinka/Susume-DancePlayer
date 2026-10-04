@@ -143,7 +143,10 @@ void main() {
 
     test('版本政策：低于地板为空态；版本头读不出与更高版本都读得出、只读', () {
       expect(FourBeatBucketShard.fromJson(const {}).days, isEmpty);
-      expect(FourBeatBucketShard.fromJson(const {'version': '1'}).days, isEmpty);
+      expect(
+        FourBeatBucketShard.fromJson(const {'version': '1'}).days,
+        isEmpty,
+      );
       expect(
         FourBeatBucketShard.fromJson(const {'version': 0}).days,
         isEmpty,

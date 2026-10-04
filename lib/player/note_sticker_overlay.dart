@@ -666,8 +666,7 @@ TextStyle? _segmentStrokeStyle(
 ) {
   if (segment.name == null) return null;
   final fill = _segmentFillColor(segment, rosterColors);
-  final whiteMention =
-      noteSegmentOuterStrokeColor(fill, mention: true) != null;
+  final whiteMention = noteSegmentOuterStrokeColor(fill, mention: true) != null;
   return TextStyle(
     foreground: Paint()
       ..style = PaintingStyle.stroke
@@ -689,12 +688,13 @@ TextSpan? noteStickerOuterStrokeSpans({
     for (final segment in segments)
       TextSpan(
         text: segment.text,
-        style: segment.name != null &&
+        style:
+            segment.name != null &&
                 noteSegmentOuterStrokeColor(
-                  _segmentFillColor(segment, rosterColors),
-                  mention: true,
-                ) !=
-                null
+                      _segmentFillColor(segment, rosterColors),
+                      mention: true,
+                    ) !=
+                    null
             ? TextStyle(
                 foreground: Paint()
                   ..style = PaintingStyle.stroke

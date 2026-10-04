@@ -21,7 +21,8 @@ void expectLightColor(Color? color) {
   expect(
     color!.computeLuminance(),
     greaterThan(0.5),
-    reason: '气泡底为近黑（black94），文字取到暗色才会可读；'
+    reason:
+        '气泡底为近黑（black94），文字取到暗色才会可读；'
         '取到外层亮色主题的正文色即呈置灰',
   );
 }

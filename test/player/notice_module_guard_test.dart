@@ -18,8 +18,11 @@ void main() {
 
     test('每个身份的时长查询返回非零停留', () {
       for (final id in NoticeId.values) {
-        expect(noticeTimingOf(id).hold, greaterThan(Duration.zero),
-            reason: '$id 停留时长必须非零');
+        expect(
+          noticeTimingOf(id).hold,
+          greaterThan(Duration.zero),
+          reason: '$id 停留时长必须非零',
+        );
       }
     });
   });
@@ -50,11 +53,16 @@ void main() {
     test('未列出的身份取缺省（缺省 + 只列例外）', () {
       // 表是决定而非不变量：只断言缺省回落行为，不断言例外条目数值快照
       // （不新增「时长表快照」断言）。
-      expect(noticeTimingOf(NoticeId.localMirrorEmpty).hold,
-          kDefaultNoticeHold);
+      expect(
+        noticeTimingOf(NoticeId.localMirrorEmpty).hold,
+        kDefaultNoticeHold,
+      );
       expect(noticeTimingOf(NoticeId.localMirrorEmpty).fade, Duration.zero);
-      expect(noticeTimingOf(NoticeId.transition).fade,
-          isNot(Duration.zero), reason: '例外条目确有落表');
+      expect(
+        noticeTimingOf(NoticeId.transition).fade,
+        isNot(Duration.zero),
+        reason: '例外条目确有落表',
+      );
     });
   });
 }

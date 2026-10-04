@@ -91,10 +91,8 @@ class DancePlanSection extends ConsumerWidget {
               context,
               ref,
               videoId,
-              (store) => store.removeChecklistItem(
-                videoId: videoId,
-                index: index,
-              ),
+              (store) =>
+                  store.removeChecklistItem(videoId: videoId, index: index),
             ),
             onAdd: (text) => runPlanWrite(
               context,

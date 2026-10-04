@@ -290,8 +290,7 @@ class _PracticeDistributionCardState extends State<PracticeDistributionCard> {
     return PopupMenuButton<LearningMastery>(
       key: const Key('practice_mastery'),
       enabled: enabled,
-      onSelected: (value) =>
-          widget.onSegmentMasteryChanged(order!, value),
+      onSelected: (value) => widget.onSegmentMasteryChanged(order!, value),
       itemBuilder: (context) => [
         for (final candidate in LearningMastery.values)
           CheckedPopupMenuItem<LearningMastery>(
@@ -570,9 +569,12 @@ class _PracticeDistributionCardState extends State<PracticeDistributionCard> {
     final textScaler = MediaQuery.textScalerOf(context);
     final textDirection = Directionality.of(context);
     // 量测与渲染同源：气泡宽由最长行撑开，不做额外宽度收缩。
-    double textWidth(String text) =>
-        measureTextExtent(text, style,
-            direction: textDirection, scaler: textScaler).width;
+    double textWidth(String text) => measureTextExtent(
+      text,
+      style,
+      direction: textDirection,
+      scaler: textScaler,
+    ).width;
 
     final bubbleWidth =
         [headline, practiceLine, masteryText].map(textWidth).reduce(math.max) +

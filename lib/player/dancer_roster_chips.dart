@@ -44,9 +44,7 @@ int firstUnusedPaletteColor(Iterable<int> usedColors) {
 /// 词条「最近用过」序：会话内名单，名字在前 = 更近用过；未入
 /// 名单的词条按名册文件序跟随。不持久化——名册文件序仍是持久真源。
 final dancerChipRecencyProvider =
-    NotifierProvider<DancerChipRecency, List<String>>(
-      DancerChipRecency.new,
-    );
+    NotifierProvider<DancerChipRecency, List<String>>(DancerChipRecency.new);
 
 class DancerChipRecency extends Notifier<List<String>> {
   @override
@@ -120,9 +118,7 @@ class DancerRosterChipBar extends ConsumerWidget {
         final recency = ref.watch(dancerChipRecencyProvider);
         final roster = orderChipsByRecency(controller.roster, recency);
         return ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: kRosterStripMaxWidth,
-          ),
+          constraints: const BoxConstraints(maxWidth: kRosterStripMaxWidth),
           child: SingleChildScrollView(
             key: const Key('note_editor_roster_strip'),
             scrollDirection: Axis.horizontal,
@@ -134,12 +130,9 @@ class DancerRosterChipBar extends ConsumerWidget {
                     entry: roster[i],
                     onTap: () {
                       final insertDancer = onInsertDancer;
-                      ref
-                          .read(dancerChipRecencyProvider.notifier)
-                          .registerTap(
-                            [for (final e in roster) e.name],
-                            i,
-                          );
+                      ref.read(dancerChipRecencyProvider.notifier).registerTap([
+                        for (final e in roster) e.name,
+                      ], i);
                       final name = roster[i].name;
                       if (rosterMode) {
                         showDancerColorPicker(context, ref, name);
@@ -233,74 +226,75 @@ Future<void> showDancerColorPicker(
   WidgetRef ref,
   String name,
 ) => showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: kNoteEditorPanelColor,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+  context: context,
+  backgroundColor: kNoteEditorPanelColor,
+  builder: (sheetContext) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '选代表色',
+            key: const Key('roster_color_sheet'),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Text(
-                '选代表色',
-                key: const Key('roster_color_sheet'),
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (var i = 0; i < kRosterPalette.length; i++)
-                    GestureDetector(
-                      key: Key('roster_palette_color_$i'),
-                      onTap: () {
-                        ref
-                            .read(dancerRosterControllerProvider)
-                            .changeColor(name, kRosterPalette[i]);
-                        Navigator.of(sheetContext).pop();
-                      },
-                      // 每格报出自己的颜色：色块是唯一视觉信息，
-                      // 读屏用户听不到——按集中色名表给按钮语义。
-                      child: Semantics(
-                        button: true,
-                        label: '选代表色：${kRosterPaletteNames[i]}',
-                        // 透明命中盒：色块视觉 24×24 居中不动，命中
-                        // 矩形定到通行下限 48×48——格子各自独占盒子（Wrap
-                        // 间距 8），命中域互不重叠，48 达得到、不走兜底。
-                        child: SizedBox(
-                          width: kHitTargetMinSize,
-                          height: kHitTargetMinSize,
-                          child: Center(
-                            child: Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: Color(kRosterPalette[i]),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+              for (var i = 0; i < kRosterPalette.length; i++)
+                GestureDetector(
+                  key: Key('roster_palette_color_$i'),
+                  onTap: () {
+                    ref
+                        .read(dancerRosterControllerProvider)
+                        .changeColor(name, kRosterPalette[i]);
+                    Navigator.of(sheetContext).pop();
+                  },
+                  // 每格报出自己的颜色：色块是唯一视觉信息，
+                  // 读屏用户听不到——按集中色名表给按钮语义。
+                  child: Semantics(
+                    button: true,
+                    label: '选代表色：${kRosterPaletteNames[i]}',
+                    // 透明命中盒：色块视觉 24×24 居中不动，命中
+                    // 矩形定到通行下限 48×48——格子各自独占盒子（Wrap
+                    // 间距 8），命中域互不重叠，48 达得到、不走兜底。
+                    child: SizedBox(
+                      width: kHitTargetMinSize,
+                      height: kHitTargetMinSize,
+                      child: Center(
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Color(kRosterPalette[i]),
+                            shape: BoxShape.circle,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                key: Key('roster_palette_delete_$name'),
-                onPressed: () => _confirmRemoveDancer(context, sheetContext, ref, name),
-                child: const Text(
-                  '删除',
-                  style: TextStyle(color: Color(0xFFEF5350), fontSize: 14),
+                  ),
                 ),
-              ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          TextButton(
+            key: Key('roster_palette_delete_$name'),
+            onPressed: () =>
+                _confirmRemoveDancer(context, sheetContext, ref, name),
+            child: const Text(
+              '删除',
+              style: TextStyle(color: Color(0xFFEF5350), fontSize: 14),
+            ),
+          ),
+        ],
       ),
-    );
+    ),
+  ),
+);
 
 /// 删舞者二次确认：取消 = 名册不动；确认后
 /// 直写控制器并收浮层。名册直写不入撤销史，故不引入撤销，只拦一次手滑。

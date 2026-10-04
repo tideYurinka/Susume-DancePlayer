@@ -12,7 +12,8 @@ import 'package:dance_learning_app/player/gestures.dart'
 import 'package:dance_learning_app/player/notice.dart'
     show NoticeId, noticeTimingOf;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -483,8 +484,7 @@ void main() {
       await tester.pump();
       expect(engine.seekCalls, hasLength(1), reason: '越阈后继续同向长滑不重复跳转');
       expect(engine.position, const Duration(minutes: 3));
-      expect(toastFinder(), findsNothing,
-          reason: '提示只出现一次：续滑不重排/重现，已按定时淡出');
+      expect(toastFinder(), findsNothing, reason: '提示只出现一次：续滑不重排/重现，已按定时淡出');
 
       // 反向续滑（t → ~1800ms）：同样不触发第二次跳转、不重现提示。
       for (var i = 0; i < 9; i++) {
@@ -572,7 +572,9 @@ void main() {
       final engine = FakePlaybackEngine();
       await pumpPlayer(tester, engine: engine);
       final gesture = await tester.startGesture(inZone);
-      await tester.pump(kLongPressDoubleSpeedTimeout + const Duration(milliseconds: 50));
+      await tester.pump(
+        kLongPressDoubleSpeedTimeout + const Duration(milliseconds: 50),
+      );
       expect(engine.rate, kLongPressDoubleSpeedRate);
       await gesture.up();
       await tester.pumpAndSettle();

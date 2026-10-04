@@ -17,7 +17,8 @@ double _linearChannel(int value) {
 }
 
 /// ARGB 颜色的 WCAG 相对亮度（0 黑 → 1 白）。
-double relativeLuminance(int argb) => 0.2126 * _linearChannel((argb >> 16) & 255) +
+double relativeLuminance(int argb) =>
+    0.2126 * _linearChannel((argb >> 16) & 255) +
     0.7152 * _linearChannel((argb >> 8) & 255) +
     0.0722 * _linearChannel(argb & 255);
 

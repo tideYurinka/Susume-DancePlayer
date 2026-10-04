@@ -103,7 +103,10 @@ void main() {
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
                 entries: [
-                  historyEntry(filePath: resolved.toFilePath(), mirrored: false),
+                  historyEntry(
+                    filePath: resolved.toFilePath(),
+                    mirrored: false,
+                  ),
                 ],
               ),
             ),
@@ -205,9 +208,9 @@ void main() {
     final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
     await pumpPlayer(tester, engine: engine);
 
-    containerOf(
-      tester,
-    ).read(speedBubbleSessionProvider.notifier).open(SpeedBubbleMode.beatDensity);
+    containerOf(tester)
+        .read(speedBubbleSessionProvider.notifier)
+        .open(SpeedBubbleMode.beatDensity);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('beat_density_segment_entry')), findsOneWidget);
 
@@ -217,10 +220,16 @@ void main() {
       containerOf(tester).read(playerSessionProvider).mode,
       PlayerSessionMode.segmentDensityStandby,
     );
-    expect(containerOf(tester).read(playerSessionProvider).pendingEntry,
-        isNull, reason: '宿主编排后待办清空');
-    expect(containerOf(tester).read(speedBubbleSessionProvider).open, isNull,
-        reason: '按下即关气泡（互斥单开）');
+    expect(
+      containerOf(tester).read(playerSessionProvider).pendingEntry,
+      isNull,
+      reason: '宿主编排后待办清空',
+    );
+    expect(
+      containerOf(tester).read(speedBubbleSessionProvider).open,
+      isNull,
+      reason: '按下即关气泡（互斥单开）',
+    );
     expect(find.byKey(const Key('beat_density_bubble')), findsNothing);
     for (final key in [
       'control_segment_density_faster',
@@ -230,8 +239,11 @@ void main() {
     ]) {
       expect(find.byKey(Key(key)), findsOneWidget, reason: '待命态槽集换装');
     }
-    expect(find.byKey(const Key('control_mastery')), findsNothing,
-        reason: '整排换装：原标注工具槽不显示');
+    expect(
+      find.byKey(const Key('control_mastery')),
+      findsNothing,
+      reason: '整排换装：原标注工具槽不显示',
+    );
   });
 
   testWidgets('置灰门：占位（分析中/未开始）入口置灰并按既有句式说明原因', (tester) async {
@@ -278,12 +290,12 @@ void main() {
     sink.diffs.clear();
     await pressSegmentEntry(tester);
 
+    expect(containerOf(tester).read(selectedLearningSegmentsProvider), isEmpty);
     expect(
-      containerOf(tester).read(selectedLearningSegmentsProvider),
-      isEmpty,
+      slotTappable(tester, 'control_segment_density_faster'),
+      isTrue,
+      reason: '无对象 → 置灰但按得动',
     );
-    expect(slotTappable(tester, 'control_segment_density_faster'), isTrue,
-        reason: '无对象 → 置灰但按得动');
     expect(slotTappable(tester, 'control_segment_density_slower'), isTrue);
     expect(slotTappable(tester, 'control_segment_density_reset'), isTrue);
 
@@ -297,8 +309,10 @@ void main() {
   testWidgets('一条分段线都没有：点赋值钮弹「先用『分段』或『自动分段』切出段来」', (tester) async {
     final engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
     await pumpPlayer(tester, engine: engine);
-    expect(containerOf(tester).read(annotationTimelineProvider).segmentLines,
-        isEmpty);
+    expect(
+      containerOf(tester).read(annotationTimelineProvider).segmentLines,
+      isEmpty,
+    );
 
     await pressSegmentEntry(tester);
     await tester.tap(find.byKey(const Key('control_segment_density_reset')));
@@ -342,8 +356,11 @@ void main() {
     sink.diffs.clear();
     await pressSegmentEntry(tester);
 
-    expect(slotTappable(tester, 'control_segment_density_exit'), isTrue,
-        reason: '退出钮不声明任何门、待命态内恒可点');
+    expect(
+      slotTappable(tester, 'control_segment_density_exit'),
+      isTrue,
+      reason: '退出钮不声明任何门、待命态内恒可点',
+    );
 
     await tester.tap(find.byKey(const Key('control_segment_density_exit')));
     await tester.pump();
@@ -353,8 +370,11 @@ void main() {
       PlayerSessionMode.editing,
       reason: '退待命 = 进入编辑取值，控制层仍展开',
     );
-    expect(find.byKey(const Key('control_mastery')), findsOneWidget,
-        reason: '工具槽恢复编辑态槽集');
+    expect(
+      find.byKey(const Key('control_mastery')),
+      findsOneWidget,
+      reason: '工具槽恢复编辑态槽集',
+    );
     expect(sink.diffs, isEmpty, reason: '退出钮不改文档');
   });
 
@@ -382,21 +402,31 @@ void main() {
     container.read(playerSessionProvider.notifier).collapse();
     await tester.pump();
 
-    expect(container.read(playerSessionProvider).mode,
-        PlayerSessionMode.watching, reason: '收起控制层 = 退出待命态');
-    expect(container.read(annotationTimelineProvider), timelineBefore,
-        reason: '退出后我的数据逐位相同');
+    expect(
+      container.read(playerSessionProvider).mode,
+      PlayerSessionMode.watching,
+      reason: '收起控制层 = 退出待命态',
+    );
+    expect(
+      container.read(annotationTimelineProvider),
+      timelineBefore,
+      reason: '退出后我的数据逐位相同',
+    );
     expect(sink.diffs, isEmpty, reason: '组员方案只读：任何改动被静默拒绝');
 
     // 返回首页 / 换视频同走既有 reset 触发点（与八拍矫正同一退出机制，
     // 无手写退出点）：待命态内 reset 同样回观看态、数据不动。
     await pressSegmentEntry(tester);
-    expect(container.read(playerSessionProvider).mode,
-        PlayerSessionMode.segmentDensityStandby);
+    expect(
+      container.read(playerSessionProvider).mode,
+      PlayerSessionMode.segmentDensityStandby,
+    );
     container.read(playerSessionProvider.notifier).reset();
     await tester.pump();
-    expect(container.read(playerSessionProvider).mode,
-        PlayerSessionMode.watching);
+    expect(
+      container.read(playerSessionProvider).mode,
+      PlayerSessionMode.watching,
+    );
     expect(container.read(annotationTimelineProvider), timelineBefore);
     expect(sink.diffs, isEmpty);
   });
@@ -466,14 +496,19 @@ void main() {
     await tester.tap(find.byKey(const Key('control_segment_density_faster')));
     await tester.pumpAndSettle();
 
-    expect(container.read(segmentDensitiesProvider), const {0: 2.0, 1: 2.0},
-        reason: '一次作用于选中的全部段、整片统一为同一档');
+    expect(container.read(segmentDensitiesProvider), const {
+      0: 2.0,
+      1: 2.0,
+    }, reason: '一次作用于选中的全部段、整片统一为同一档');
     expect(sink.diffs.length, 1, reason: '一次改多段 = 一次标注编辑');
 
     container.read(annotationEditorProvider).undo();
     await tester.pumpAndSettle();
-    expect(container.read(segmentDensitiesProvider), isEmpty,
-        reason: '整片改动 = 一步撤销');
+    expect(
+      container.read(segmentDensitiesProvider),
+      isEmpty,
+      reason: '整片改动 = 一步撤销',
+    );
   });
 
   testWidgets('多段档位不一时按一下即整片统一为同一档（一个 diff、一步撤销）', (tester) async {
@@ -505,13 +540,16 @@ void main() {
 
     await tester.tap(find.byKey(const Key('control_segment_density_slower')));
     await tester.pumpAndSettle();
-    expect(container.read(segmentDensitiesProvider), const {0: 0.5, 1: 0.5},
-        reason: '档位不一按一下即整片统一（赋值覆盖，不叠乘）');
+    expect(container.read(segmentDensitiesProvider), const {
+      0: 0.5,
+      1: 0.5,
+    }, reason: '档位不一按一下即整片统一（赋值覆盖，不叠乘）');
     expect(sink.diffs.length, 1, reason: '一次改多段 = 一次标注编辑');
     container.read(annotationEditorProvider).undo();
     await tester.pumpAndSettle();
-    expect(container.read(segmentDensitiesProvider), const {0: 2.0},
-        reason: '整片统一 = 一步撤销');
+    expect(container.read(segmentDensitiesProvider), const {
+      0: 2.0,
+    }, reason: '整片统一 = 一步撤销');
   });
 
   testWidgets('读数：显示选中段的段内档；多段档位不一时显示最小档；无选中不显示', (tester) async {
@@ -520,15 +558,21 @@ void main() {
     seedSegments(containerOf(tester));
     final container = containerOf(tester);
     Finder readout() => find.byKey(const Key('segment_density_readout'));
-    String? readoutText() => tester.widgetList<Text>(
-          find.descendant(of: readout(), matching: find.textContaining('')),
-        ).isEmpty
-        ? null
-        : tester
-            .widget<Text>(
+    String? readoutText() =>
+        tester
+            .widgetList<Text>(
               find.descendant(of: readout(), matching: find.textContaining('')),
             )
-            .data;
+            .isEmpty
+        ? null
+        : tester
+              .widget<Text>(
+                find.descendant(
+                  of: readout(),
+                  matching: find.textContaining(''),
+                ),
+              )
+              .data;
 
     await pressSegmentEntry(tester);
     expect(readout(), findsNothing, reason: '无选中不显示读数');
@@ -581,8 +625,7 @@ void main() {
       isTrue,
       reason: '全是原样时仍可点（与整曲档「重置」一致）',
     );
-    expect(container.read(segmentDensitiesProvider), isEmpty,
-        reason: '按下无变化');
+    expect(container.read(segmentDensitiesProvider), isEmpty, reason: '按下无变化');
     expect(sink.diffs, isEmpty, reason: '无变化不落盘');
     expect(
       tester.widgetList(find.byKey(const Key('no_subject_prompt'))),
@@ -655,17 +698,22 @@ void main() {
     // 退出待命态：已改的值留在盘上。
     await tester.tap(find.byKey(const Key('control_segment_density_exit')));
     await tester.pumpAndSettle();
-    expect(container.read(playerSessionProvider).mode,
-        PlayerSessionMode.editing);
-    expect(container.read(segmentDensitiesProvider), const {0: 2.0},
-        reason: '退出后已改的值仍在盘上');
+    expect(
+      container.read(playerSessionProvider).mode,
+      PlayerSessionMode.editing,
+    );
+    expect(container.read(segmentDensitiesProvider), const {
+      0: 2.0,
+    }, reason: '退出后已改的值仍在盘上');
     expect(sink.diffs, isNotEmpty, reason: '改动经保存编排落盘');
 
     // 退出三路同语义：收起控制层也不弃已改的值。
     container.read(playerSessionProvider.notifier).collapse();
     await tester.pumpAndSettle();
-    expect(container.read(playerSessionProvider).mode,
-        PlayerSessionMode.watching);
+    expect(
+      container.read(playerSessionProvider).mode,
+      PlayerSessionMode.watching,
+    );
     expect(container.read(segmentDensitiesProvider), const {0: 2.0});
   });
 }

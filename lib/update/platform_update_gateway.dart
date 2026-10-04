@@ -17,8 +17,9 @@ import 'update_manifest.dart';
 final Uri updateManifestUrl = Uri.parse('https://dl.yurinka.top/latest.json');
 
 /// 清单请求的 URI：除一个时间戳查询参数外零参数，规避任何中间缓存。
-Uri updateManifestRequestUri(DateTime now) =>
-    updateManifestUrl.replace(queryParameters: {'t': '${now.millisecondsSinceEpoch}'});
+Uri updateManifestRequestUri(DateTime now) => updateManifestUrl.replace(
+  queryParameters: {'t': '${now.millisecondsSinceEpoch}'},
+);
 
 /// 下载包的固定文件名：应用私有文件目录（Android `getFilesDir()`）里的唯一
 /// 落点，逐次覆盖。

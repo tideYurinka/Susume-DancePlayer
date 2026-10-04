@@ -26,25 +26,24 @@ void main() {
     required String videoId,
     required String filePath,
     String displayName = 'v.mp4',
-  }) =>
+  }) => {
+    'version': 1,
+    'extra': {'keptKey': 'kept'},
+    'entries': [
       {
-        'version': 1,
-        'extra': {'keptKey': 'kept'},
-        'entries': [
-          {
-            'videoId': videoId,
-            'displayName': displayName,
-            'filePath': filePath,
-            'sizeBytes': 64,
-            'fastKey': 'k',
-            'mirrored': false,
-            'mirrorAsked': true,
-            'lastOpenedAt': '2026-09-15T08:00:00.000Z',
-            'signatureCache': {'dancer': '如', 'song': '海草舞', 'remark': ''},
-            'lastPositionMs': 42000,
-          },
-        ],
-      };
+        'videoId': videoId,
+        'displayName': displayName,
+        'filePath': filePath,
+        'sizeBytes': 64,
+        'fastKey': 'k',
+        'mirrored': false,
+        'mirrorAsked': true,
+        'lastOpenedAt': '2026-09-15T08:00:00.000Z',
+        'signatureCache': {'dancer': '如', 'song': '海草舞', 'remark': ''},
+        'lastPositionMs': 42000,
+      },
+    ],
+  };
 
   final markersJson = <String, Object?>{
     'version': 9,
@@ -183,8 +182,9 @@ void main() {
     required Map<String, Object?> markers,
     required Map<String, Object?> local,
   }) async {
-    await AtomicJsonFile(File('${root.path}/index.json'))
-        .write(indexJson(videoId: videoId, filePath: '${root.path}/videos/v.mp4'));
+    await AtomicJsonFile(
+      File('${root.path}/index.json'),
+    ).write(indexJson(videoId: videoId, filePath: '${root.path}/videos/v.mp4'));
     final documents = AtomicVideoDocumentStorage(
       markersFile: File('${root.path}/markers_$videoId.json'),
       localFile: File('${root.path}/local_$videoId.json'),
@@ -200,48 +200,46 @@ void main() {
   }
 
   BackupPorts senderPorts() => BackupPorts(
-        loadIndexJson: () async =>
-            (await AtomicJsonFile(File('${sender.path}/index.json'))
-                    .readOrNull()) ??
-            {},
-        loadIndex: () async => VideoIndex(entries: [
-          VideoIndexEntry(
-            videoId: 'v1',
-            displayName: 'v.mp4',
-            filePath: '${sender.path}/videos/v.mp4',
-            sizeBytes: 64,
-            fastKey: 'k',
-            mirrored: false,
-            mirrorAsked: true,
-            lastOpenedAt: DateTime(2026, 9, 15, 8),
-          ),
-        ]),
-        documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
-          markersFile: File('${sender.path}/markers_$videoId.json'),
-          localFile: File('${sender.path}/local_$videoId.json'),
+    loadIndexJson: () async =>
+        (await AtomicJsonFile(File('${sender.path}/index.json'))
+            .readOrNull()) ??
+        {},
+    loadIndex: () async => VideoIndex(
+      entries: [
+        VideoIndexEntry(
+          videoId: 'v1',
+          displayName: 'v.mp4',
+          filePath: '${sender.path}/videos/v.mp4',
+          sizeBytes: 64,
+          fastKey: 'k',
+          mirrored: false,
+          mirrorAsked: true,
+          lastOpenedAt: DateTime(2026, 9, 15, 8),
         ),
-        memberSchemeStorageFor: (videoId) => MemberSchemeFileStore(
-          File('${sender.path}/schemes_$videoId.json'),
-        ),
-        loadBucketShardJson: (videoId) async =>
-            await AtomicJsonFile(
-              File('${sender.path}/four_beat_buckets_$videoId.json'),
-            ).readOrNull(),
-        loadPracticeStatsJson: () async =>
-            await AtomicJsonFile(File('${sender.path}/practice_stats.json'))
-                .readOrNull(),
-        loadPracticePlanJson: () async =>
-            await AtomicJsonFile(File('${sender.path}/practice_plan.json'))
-                .readOrNull(),
-        loadDeviceSettings: () async => await AtomicJsonFile(
-          File('${sender.path}/global_private.json'),
-        ).read(),
-        loadMaterialsManifestJson: () async =>
-            await AtomicJsonFile(File('${sender.path}/manifest.json'))
-                .readOrNull(),
-        loadMaterialRecords: () async => const [],
-        materialsBaseDirectory: () async => Directory('${sender.path}/materials'),
-      );
+      ],
+    ),
+    documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
+      markersFile: File('${sender.path}/markers_$videoId.json'),
+      localFile: File('${sender.path}/local_$videoId.json'),
+    ),
+    memberSchemeStorageFor: (videoId) =>
+        MemberSchemeFileStore(File('${sender.path}/schemes_$videoId.json')),
+    loadBucketShardJson: (videoId) async => await AtomicJsonFile(
+      File('${sender.path}/four_beat_buckets_$videoId.json'),
+    ).readOrNull(),
+    loadPracticeStatsJson: () async =>
+        await AtomicJsonFile(File('${sender.path}/practice_stats.json'))
+            .readOrNull(),
+    loadPracticePlanJson: () async =>
+        await AtomicJsonFile(File('${sender.path}/practice_plan.json'))
+            .readOrNull(),
+    loadDeviceSettings: () async =>
+        await AtomicJsonFile(File('${sender.path}/global_private.json')).read(),
+    loadMaterialsManifestJson: () async =>
+        await AtomicJsonFile(File('${sender.path}/manifest.json')).readOrNull(),
+    loadMaterialRecords: () async => const [],
+    materialsBaseDirectory: () async => Directory('${sender.path}/materials'),
+  );
 
   /// 用「发送机」的磁盘数据装配一个备份包，返回包文件。
   Future<File> buildBackupPackage() async {
@@ -259,90 +257,87 @@ void main() {
 
   /// 本机自己的采集端口（留档采集的是本机当前数据）。
   BackupPorts localBackupPorts() => BackupPorts(
-        loadIndexJson: () async =>
-            (await AtomicJsonFile(File('${local.path}/index.json'))
-                    .readOrNull()) ??
-            {},
-        loadIndex: () async => VideoIndex(entries: [
-          VideoIndexEntry(
-            videoId: 'v2',
-            displayName: 'v.mp4',
-            filePath: '${local.path}/videos/v.mp4',
-            sizeBytes: 64,
-            fastKey: 'k',
-            mirrored: false,
-            mirrorAsked: true,
-            lastOpenedAt: DateTime(2026, 9, 15, 8),
-          ),
-        ]),
-        documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
-          markersFile: File('${local.path}/markers_$videoId.json'),
-          localFile: File('${local.path}/local_$videoId.json'),
+    loadIndexJson: () async =>
+        (await AtomicJsonFile(File('${local.path}/index.json')).readOrNull()) ??
+        {},
+    loadIndex: () async => VideoIndex(
+      entries: [
+        VideoIndexEntry(
+          videoId: 'v2',
+          displayName: 'v.mp4',
+          filePath: '${local.path}/videos/v.mp4',
+          sizeBytes: 64,
+          fastKey: 'k',
+          mirrored: false,
+          mirrorAsked: true,
+          lastOpenedAt: DateTime(2026, 9, 15, 8),
         ),
-        memberSchemeStorageFor: (videoId) => MemberSchemeFileStore(
-          File('${local.path}/schemes_$videoId.json'),
-        ),
-        loadBucketShardJson: (videoId) async =>
-            await AtomicJsonFile(
-              File('${local.path}/four_beat_buckets_$videoId.json'),
-            ).readOrNull(),
-        loadPracticeStatsJson: () async =>
-            await AtomicJsonFile(File('${local.path}/practice_stats.json'))
-                .readOrNull(),
-        loadPracticePlanJson: () async =>
-            await AtomicJsonFile(File('${local.path}/practice_plan.json'))
-                .readOrNull(),
-        loadDeviceSettings: () async => await AtomicJsonFile(
-          File('${local.path}/global_private.json'),
-        ).read(),
-        loadMaterialsManifestJson: () async =>
-            await AtomicJsonFile(File('${local.path}/manifest.json'))
-                .readOrNull(),
-        loadMaterialRecords: () async => const [],
-        materialsBaseDirectory: () async => Directory('${local.path}/materials'),
-      );
+      ],
+    ),
+    documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
+      markersFile: File('${local.path}/markers_$videoId.json'),
+      localFile: File('${local.path}/local_$videoId.json'),
+    ),
+    memberSchemeStorageFor: (videoId) =>
+        MemberSchemeFileStore(File('${local.path}/schemes_$videoId.json')),
+    loadBucketShardJson: (videoId) async => await AtomicJsonFile(
+      File('${local.path}/four_beat_buckets_$videoId.json'),
+    ).readOrNull(),
+    loadPracticeStatsJson: () async =>
+        await AtomicJsonFile(File('${local.path}/practice_stats.json'))
+            .readOrNull(),
+    loadPracticePlanJson: () async =>
+        await AtomicJsonFile(File('${local.path}/practice_plan.json'))
+            .readOrNull(),
+    loadDeviceSettings: () async =>
+        await AtomicJsonFile(File('${local.path}/global_private.json')).read(),
+    loadMaterialsManifestJson: () async =>
+        await AtomicJsonFile(File('${local.path}/manifest.json')).readOrNull(),
+    loadMaterialRecords: () async => const [],
+    materialsBaseDirectory: () async => Directory('${local.path}/materials'),
+  );
 
-  RestorePorts localPorts({BackupPorts? backup, bool failPlanReplace = false}) =>
-      RestorePorts(
-        backup: backup ?? localBackupPorts(),
-        indexFile: () async => File('${local.path}/index.json'),
-        documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
-          markersFile: File('${local.path}/markers_$videoId.json'),
-          localFile: File('${local.path}/local_$videoId.json'),
+  RestorePorts localPorts({
+    BackupPorts? backup,
+    bool failPlanReplace = false,
+  }) => RestorePorts(
+    backup: backup ?? localBackupPorts(),
+    indexFile: () async => File('${local.path}/index.json'),
+    documentStorageFor: (videoId) => AtomicVideoDocumentStorage(
+      markersFile: File('${local.path}/markers_$videoId.json'),
+      localFile: File('${local.path}/local_$videoId.json'),
+    ),
+    memberSchemeStorageFor: (videoId) =>
+        MemberSchemeFileStore(File('${local.path}/schemes_$videoId.json')),
+    bucketStorage: AtomicFourBeatBucketStorage(
+      (videoId) async => File('${local.path}/four_beat_buckets_$videoId.json'),
+    ),
+    practiceStatsStorage: AtomicPracticeStatsStorage(
+      () async => File('${local.path}/practice_stats.json'),
+    ),
+    practicePlanReplace: (json) async {
+      if (failPlanReplace) throw StateError('计划文档写盘失败');
+      await PracticePlanStore(
+        AtomicPracticePlanStorage(
+          () async => File('${local.path}/practice_plan.json'),
         ),
-        memberSchemeStorageFor: (videoId) => MemberSchemeFileStore(
-          File('${local.path}/schemes_$videoId.json'),
-        ),
-        bucketStorage: AtomicFourBeatBucketStorage(
-          (videoId) async =>
-              File('${local.path}/four_beat_buckets_$videoId.json'),
-        ),
-        practiceStatsStorage: AtomicPracticeStatsStorage(
-          () async => File('${local.path}/practice_stats.json'),
-        ),
-        practicePlanReplace: (json) async {
-          if (failPlanReplace) throw StateError('计划文档写盘失败');
-          await PracticePlanStore(
-            AtomicPracticePlanStorage(
-              () async => File('${local.path}/practice_plan.json'),
-            ),
-          ).replaceWithJson(json);
-        },
-        practicePlanRetainDances: (videoIds) => PracticePlanStore(
-          AtomicPracticePlanStorage(
-            () async => File('${local.path}/practice_plan.json'),
-          ),
-        ).retainDances(videoIds),
-        deviceSettingsStorage: AtomicJsonFile(
-          File('${local.path}/global_private.json'),
-        ),
-        materialsStorage: MaterialManifestFileStore(
-          File('${local.path}/manifest.json'),
-        ),
-        materialsBaseDirectory: () async => Directory('${local.path}/materials'),
-        archiveDirectory: () async => Directory('${local.path}/恢复留档'),
-        videosDirectory: () async => Directory('${local.path}/videos'),
-      );
+      ).replaceWithJson(json);
+    },
+    practicePlanRetainDances: (videoIds) => PracticePlanStore(
+      AtomicPracticePlanStorage(
+        () async => File('${local.path}/practice_plan.json'),
+      ),
+    ).retainDances(videoIds),
+    deviceSettingsStorage: AtomicJsonFile(
+      File('${local.path}/global_private.json'),
+    ),
+    materialsStorage: MaterialManifestFileStore(
+      File('${local.path}/manifest.json'),
+    ),
+    materialsBaseDirectory: () async => Directory('${local.path}/materials'),
+    archiveDirectory: () async => Directory('${local.path}/恢复留档'),
+    videosDirectory: () async => Directory('${local.path}/videos'),
+  );
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('whole_machine_restore');
@@ -360,7 +355,12 @@ void main() {
     await seedMachine(
       local,
       videoId: 'v2',
-      markers: {'version': 8, 'meta': {'signature': {'song': '本机的舞'}}},
+      markers: {
+        'version': 8,
+        'meta': {
+          'signature': {'song': '本机的舞'},
+        },
+      },
       local: {'version': 3},
     );
     // 发送机：v1 的桶分片与练舞统计。
@@ -386,8 +386,7 @@ void main() {
     if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  test('全量替换：恢复后本机各文件与备份逐字段相等，留档先行落在固定位置且可清',
-      () async {
+  test('全量替换：恢复后本机各文件与备份逐字段相等，留档先行落在固定位置且可清', () async {
     final package = await buildBackupPackage();
 
     final outcome = await WholeMachineRestorer(ports: localPorts()).restore(
@@ -399,21 +398,24 @@ void main() {
 
     // 留档：恢复前本机（v2）的数据在固定位置，可解析、可删除。
     final archiveDir = Directory('${local.path}/恢复留档');
-    final archiveFile =
-        archiveDir.listSync().whereType<File>().toList();
+    final archiveFile = archiveDir.listSync().whereType<File>().toList();
     expect(archiveFile, hasLength(1));
     expect(archiveFile.single.path, endsWith('.susume'));
     final archived = await readSusumePackage(archiveFile.single.path);
     expect(archived.backup!['dances'], hasLength(1));
-    expect(
-      (archived.backup!['dances'] as List).first['markers'],
-      {'version': 8, 'meta': {'signature': {'song': '本机的舞'}}},
-      reason: '留档是恢复前的本机数据',
-    );
+    expect((archived.backup!['dances'] as List).first['markers'], {
+      'version': 8,
+      'meta': {
+        'signature': {'song': '本机的舞'},
+      },
+    }, reason: '留档是恢复前的本机数据');
     // 留档也含练舞统计与四拍桶分片：留档范围与备份范围同源，不作废。
     expect(archived.backup!['practiceStats'], localStatsJson);
-    expect(archived.backup!['practicePlan'], localPlanJson,
-        reason: '留档带着恢复前本机的计划文档');
+    expect(
+      archived.backup!['practicePlan'],
+      localPlanJson,
+      reason: '留档带着恢复前本机的计划文档',
+    );
     expect(
       (archived.backup!['dances'] as List).first['buckets'],
       localBucketsJson,
@@ -447,8 +449,7 @@ void main() {
       schemesJson,
     );
     expect(
-      await AtomicJsonFile(File('${local.path}/global_private.json'))
-          .read(),
+      await AtomicJsonFile(File('${local.path}/global_private.json')).read(),
       deviceJson,
     );
     expect(
@@ -506,10 +507,11 @@ void main() {
     // 替换，留档须在覆盖前把原文另存。
     await AtomicJsonFile(File('${local.path}/markers_v1.json')).write(const {
       'version': 99,
-      'meta': {'signature': {'song': '本机读不懂的舞'}},
+      'meta': {
+        'signature': {'song': '本机读不懂的舞'},
+      },
     });
-    final before =
-        await File('${local.path}/markers_v1.json').readAsString();
+    final before = await File('${local.path}/markers_v1.json').readAsString();
 
     final package = await buildBackupPackage();
     final outcome = await WholeMachineRestorer(ports: localPorts()).restore(
@@ -532,8 +534,7 @@ void main() {
     );
   });
 
-  test('全量替换：本机多出的舞被清掉——索引不再列出，文档、组员方案、桶分片消失',
-      () async {
+  test('全量替换：本机多出的舞被清掉——索引不再列出，文档、组员方案、桶分片消失', () async {
     final package = await buildBackupPackage();
 
     await WholeMachineRestorer(ports: localPorts()).restore(
@@ -557,18 +558,15 @@ void main() {
     final planAfter = PracticePlanDocument.fromJson(
       await AtomicJsonFile(File('${local.path}/practice_plan.json')).read(),
     );
-    expect(
-      [for (final e in planAfter.entries) e.videoId],
-      containsAllInOrder(['v1']),
-    );
+    expect([
+      for (final e in planAfter.entries) e.videoId,
+    ], containsAllInOrder(['v1']));
     expect(planAfter.entries, hasLength(1));
     expect(planAfter.events.single.id, 'e1');
-    expect(planAfter.events.single.danceIds, ['v1'],
-        reason: '事件保留、关联清单少一项');
+    expect(planAfter.events.single.danceIds, ['v1'], reason: '事件保留、关联清单少一项');
   });
 
-  test('恢复清理：备份计划文档里指向「备份里没有的舞」的条目也被清（全量替换 + 保留集）',
-      () async {
+  test('恢复清理：备份计划文档里指向「备份里没有的舞」的条目也被清（全量替换 + 保留集）', () async {
     final package = await buildBackupPackage();
     final parsed = await readSusumePackage(package.path);
     final payload = Map<String, Object?>.from(parsed.backup!)
@@ -611,8 +609,7 @@ void main() {
     );
   });
 
-  test('老包（payload v1）：缺桶与统计不拒绝，恢复后本机桶为空、统计清零',
-      () async {
+  test('老包（payload v1）：缺桶与统计不拒绝，恢复后本机桶为空、统计清零', () async {
     final package = await buildBackupPackage();
     final parsed = await readSusumePackage(package.path);
     final legacyDances = [
@@ -651,13 +648,10 @@ void main() {
       File('${local.path}/four_beat_buckets_v2.json').existsSync(),
       isFalse,
     );
-    final stats =
-        await AtomicJsonFile(File('${local.path}/practice_stats.json'))
-            .readOrNull();
-    expect(
-      PracticeStatsDocument.fromJson(stats ?? const {}).sessions,
-      isEmpty,
-    );
+    final stats = await AtomicJsonFile(
+      File('${local.path}/practice_stats.json'),
+    ).readOrNull();
+    expect(PracticeStatsDocument.fromJson(stats ?? const {}).sessions, isEmpty);
     // 旧包没有计划文档键：恢复后本机计划文档为空态（本机旧计划不残留）。
     final plan = PracticePlanDocument.fromJson(
       (await AtomicJsonFile(File('${local.path}/practice_plan.json'))
@@ -670,12 +664,12 @@ void main() {
   test('计划文档替换失败：恢复折成明确失败，不静默半恢复', () async {
     final package = await buildBackupPackage();
 
-    final outcome = await WholeMachineRestorer(
-      ports: localPorts(failPlanReplace: true),
-    ).restore(
-      package: await readSusumePackage(package.path),
-      packagePath: package.path,
-    );
+    final outcome =
+        await WholeMachineRestorer(ports: localPorts(failPlanReplace: true))
+            .restore(
+              package: await readSusumePackage(package.path),
+              packagePath: package.path,
+            );
 
     expect(outcome, isA<RestoreFailed>());
     // 本机计划文档未被半写：仍是恢复前的本机计划（留档可退回）。
@@ -703,31 +697,26 @@ void main() {
       materialsBaseDirectory: brokenBackup.materialsBaseDirectory,
     );
 
-    final outcome = await WholeMachineRestorer(
-      ports: localPorts(backup: broken),
-    ).restore(
-      package: await readSusumePackage(package.path),
-      packagePath: package.path,
-    );
+    final outcome =
+        await WholeMachineRestorer(ports: localPorts(backup: broken)).restore(
+          package: await readSusumePackage(package.path),
+          packagePath: package.path,
+        );
 
     expect(outcome, isA<RestoreFailed>());
     expect((outcome as RestoreFailed).message, contains('留档失败'));
     // 本机数据原样：v2 还在，v1 没进来。
     expect(File('${local.path}/markers_v2.json').existsSync(), isTrue);
     expect(File('${local.path}/markers_v1.json').existsSync(), isFalse);
-    final untouched =
-        await AtomicJsonFile(File('${local.path}/index.json')).readOrNull();
-    expect(
-      [
-        for (final entry in (untouched!['entries'] as List))
-          (entry as Map)['videoId'],
-      ],
-      contains('v2'),
-    );
+    final untouched = await AtomicJsonFile(File('${local.path}/index.json'))
+        .readOrNull();
+    expect([
+      for (final entry in (untouched!['entries'] as List))
+        (entry as Map)['videoId'],
+    ], contains('v2'));
   });
 
-  test('未带媒体的舞：本机原视频还在盘上则索引指向本机副本，退路接得回',
-      () async {
+  test('未带媒体的舞：本机原视频还在盘上则索引指向本机副本，退路接得回', () async {
     final localVideo = File('${local.path}/videos/v.mp4')
       ..createSync(recursive: true)
       ..writeAsBytesSync(List.filled(64, 9));
@@ -765,13 +754,16 @@ void main() {
     );
 
     expect(outcome, isA<RestoreCompleted>());
-    final restoredIndex =
-        await AtomicJsonFile(File('${local.path}/index.json')).readOrNull();
+    final restoredIndex = await AtomicJsonFile(File('${local.path}/index.json'))
+        .readOrNull();
     final entry =
         ((restoredIndex!['entries'] as List).single as Map<String, Object?>);
     expect(entry['videoId'], 'v1');
-    expect(entry['filePath'], localVideo.path,
-        reason: '本机原视频尚在，恢复后仍打得开，退路真实可用');
+    expect(
+      entry['filePath'],
+      localVideo.path,
+      reason: '本机原视频尚在，恢复后仍打得开，退路真实可用',
+    );
     expect(localVideo.existsSync(), isTrue);
   });
 
@@ -801,8 +793,7 @@ void main() {
     expect(File('${local.path}/markers_v1.json').existsSync(), isFalse);
   });
 
-  test('带媒体的备份：源视频解出进本机视频目录，索引 filePath 指向本机副本',
-      () async {
+  test('带媒体的备份：源视频解出进本机视频目录，索引 filePath 指向本机副本', () async {
     final video = File('${sender.path}/videos/v.mp4')
       ..createSync(recursive: true)
       ..writeAsBytesSync(List.filled(64, 7));
@@ -824,8 +815,8 @@ void main() {
     );
 
     expect(outcome, isA<RestoreCompleted>());
-    final restoredIndex =
-        await AtomicJsonFile(File('${local.path}/index.json')).readOrNull();
+    final restoredIndex = await AtomicJsonFile(File('${local.path}/index.json'))
+        .readOrNull();
     final entry =
         ((restoredIndex!['entries'] as List).single as Map<String, Object?>);
     final restored = File(entry['filePath'] as String);

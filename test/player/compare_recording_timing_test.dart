@@ -18,7 +18,8 @@ import 'package:dance_learning_app/core/current_beat.dart'
     show deriveBeatCount, LeadingBeatCount;
 import 'package:dance_learning_app/core/beat_grid.dart';
 import 'package:dance_learning_app/core/eight_beat_phase.dart' show BeatPhase;
-import 'package:dance_learning_app/persistence/marker_document.dart' as marker_doc;
+import 'package:dance_learning_app/persistence/marker_document.dart'
+    as marker_doc;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
 import 'package:dance_learning_app/player/compare_recording.dart';
 import 'package:dance_learning_app/surface_direction/surface_direction.dart';
@@ -158,11 +159,9 @@ void main() {
         // 位置越过起录点（10s）→ 起录，**不再补 seek**。
         async.elapse(const Duration(milliseconds: 400));
         expect(s.controller.phase, CompareRecordingPhase.recording);
-        expect(
-          s.engine.seekCalls,
-          [const Duration(seconds: 6)],
-          reason: '起播那次定位之后不得再出现 seek（那一次 seek 就是源侧可见的顿挫）',
-        );
+        expect(s.engine.seekCalls, [
+          const Duration(seconds: 6),
+        ], reason: '起播那次定位之后不得再出现 seek（那一次 seek 就是源侧可见的顿挫）');
         // 段尾（18s）自动停并入库。
         async.elapse(const Duration(seconds: 9));
         expect(s.camera.stopRecordingCount, 1);
@@ -649,197 +648,195 @@ void main() {
         expect(s.ingests.single.record.sourceStartMs, 10000);
       });
     });
-  group('录制准备的可视数拍（第 0 个八拍顺数同源）', () {
-    /// 当前可视数拍的拍号（按**引擎媒介位置**换算；非前导期返回 null）。
-    /// 生产侧该数字与浮层数拍同读发布值（录制
-    /// 锚经锚点链派生 `0｜x`）——本助手只充当**观察通道**：经纯求值
-    /// 缝（[deriveBeatCount]）读出，断言的期望值全部是字面号序列（1…8）。
-    int? leadingOf(_Session s) {
-      final anchor = s.controller.recordingStartPoint;
-      if (anchor == null) return null;
-      final count = deriveBeatCount(
-        grid: s.grid,
-        anchor: anchor,
-        position: s.engine.position,
-        phase: s.phase ?? BeatPhase(grid: s.grid),
-      );
-      return switch (count) {
-        LeadingBeatCount(:final beatCount) => beatCount,
-        _ => null,
-      };
-    }
-
-    test('节拍前导期逐拍推进第 0 个八拍顺数（数字跟媒介位置，不跟墙钟）', () {
-      fakeAsync((async) {
-        final s = _Session(
-          active: (
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 18),
-          ),
+    group('录制准备的可视数拍（第 0 个八拍顺数同源）', () {
+      /// 当前可视数拍的拍号（按**引擎媒介位置**换算；非前导期返回 null）。
+      /// 生产侧该数字与浮层数拍同读发布值（录制
+      /// 锚经锚点链派生 `0｜x`）——本助手只充当**观察通道**：经纯求值
+      /// 缝（[deriveBeatCount]）读出，断言的期望值全部是字面号序列（1…8）。
+      int? leadingOf(_Session s) {
+        final anchor = s.controller.recordingStartPoint;
+        if (anchor == null) return null;
+        final count = deriveBeatCount(
+          grid: s.grid,
+          anchor: anchor,
+          position: s.engine.position,
+          phase: s.phase ?? BeatPhase(grid: s.grid),
         );
-        s.camera.startRecordingLatency = const Duration(milliseconds: 200);
+        return switch (count) {
+          LeadingBeatCount(:final beatCount) => beatCount,
+          _ => null,
+        };
+      }
 
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
-
-        // 前导起播 = 起录点前第 8 个真实拍点（均匀 500ms 网格 → 6.0s）：
-        // 起播即显示第 0 个八拍第 1 拍（与当拍一声同刻）。
-        expect(s.controller.phase, CompareRecordingPhase.preparing);
-        expect(s.engine.seekCalls, [const Duration(seconds: 6)]);
-        expect(leadingOf(s), 1, reason: '前导第一拍 = 0|1');
-
-        for (var beat = 2; beat <= 8; beat++) {
-          async.elapse(const Duration(milliseconds: 500));
-          expect(
-            leadingOf(s),
-            beat,
-            reason: '每拍顺数一格（与同一拍序列的节拍声同刻）',
+      test('节拍前导期逐拍推进第 0 个八拍顺数（数字跟媒介位置，不跟墙钟）', () {
+        fakeAsync((async) {
+          final s = _Session(
+            active: (
+              start: const Duration(seconds: 10),
+              end: const Duration(seconds: 18),
+            ),
           );
+          s.camera.startRecordingLatency = const Duration(milliseconds: 200);
+
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+
+          // 前导起播 = 起录点前第 8 个真实拍点（均匀 500ms 网格 → 6.0s）：
+          // 起播即显示第 0 个八拍第 1 拍（与当拍一声同刻）。
           expect(s.controller.phase, CompareRecordingPhase.preparing);
-        }
+          expect(s.engine.seekCalls, [const Duration(seconds: 6)]);
+          expect(leadingOf(s), 1, reason: '前导第一拍 = 0|1');
 
-        // 越过起录点（10s）：数拍让位给正式数拍（1｜1 由锚点链那套渲染给出）。
-        async.elapse(const Duration(milliseconds: 500));
-        expect(s.controller.phase, CompareRecordingPhase.recording);
-        expect(
-          s.controller.prepBeatVisual,
-          isNull,
-          reason: '起录后不再覆盖数拍显示，正式数拍按锚点链走',
-        );
-        expect(
-          s.controller.recordingStartPoint,
-          const Duration(seconds: 10),
-          reason: '录制期锚 = 起录点（无激活段录制也一样）',
-        );
-      });
-    });
+          for (var beat = 2; beat <= 8; beat++) {
+            async.elapse(const Duration(milliseconds: 500));
+            expect(leadingOf(s), beat, reason: '每拍顺数一格（与同一拍序列的节拍声同刻）');
+            expect(s.controller.phase, CompareRecordingPhase.preparing);
+          }
 
-    test('数字不再由自由计时器驱动：媒介位置冻结时墙钟流逝不推进数字', () {
-      fakeAsync((async) {
-        final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
-        s.engine.seek(const Duration(seconds: 12));
-
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
-        expect(s.controller.phase, CompareRecordingPhase.preparing);
-        expect(leadingOf(s), 1);
-
-        // 冻结媒介位置（暂停 = 位置流不再推进）：旧实现那只自由计时器照样
-        // 每拍推进数字，数字只跟媒介位置走。
-        s.engine.pause();
-        async.elapse(const Duration(seconds: 2));
-        expect(
-          leadingOf(s),
-          1,
-          reason: '墙钟走了 2s 而媒介位置没动 → 数字不许动',
-        );
-        expect(s.engine.position, const Duration(seconds: 8));
-      });
-    });
-
-    test('seek 后数字随媒介位置跳（与拍声同一条位置流，不是自由计时器）', () {
-      fakeAsync((async) {
-        final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
-        s.engine.seek(const Duration(seconds: 12));
-
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
-        // 前导起点 = 起录点前第 8 个真实拍点 = 8.0s。
-        expect(leadingOf(s), 1);
-
-        // 播放推进两拍后回跳/前跳：数字跟随媒介位置，不跟随已流逝的墙钟。
-        async.elapse(const Duration(seconds: 1));
-        expect(leadingOf(s), 3);
-        s.engine.seek(const Duration(seconds: 10));
-        async.flushMicrotasks();
-        async.elapse(const Duration(milliseconds: 1));
-        expect(leadingOf(s), 5, reason: '10.0s = 第 5 个准备拍（与位置一一对应）');
-        s.engine.seek(const Duration(milliseconds: 8500));
-        async.flushMicrotasks();
-        async.elapse(const Duration(milliseconds: 1));
-        expect(leadingOf(s), 2, reason: '回跳同样即刻跟随，不残留旧拍号');
-        expect(s.controller.phase, CompareRecordingPhase.preparing);
-      });
-    });
-
-    test('起录点前可用真实拍点不足：按可用拍点缩短、数字照实（不整块静默）', () {
-      fakeAsync((async) {
-        // 区间头 10s、按下位置 12s：可用的真实拍点只有 10.0/10.5/11.0/11.5
-        // 四个（设定 8 拍）→ 缩短成四拍。
-        final s = _Session(rangeStartMs: 10000, rangeEndMs: 30000);
-        s.engine.seek(const Duration(seconds: 12));
-        s.engine.seekCalls.clear();
-
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
-
-        expect(s.controller.phase, CompareRecordingPhase.preparing);
-        // 预备起点 = 区间头内第一个真实拍点 10.0s（可用的只有 10.0–11.5
-        // 四拍）——截断由这条字面 seek 落点钉住（可视数拍已无载荷，
-        // beatTimes 不再外露）。
-        expect(s.engine.seekCalls, [const Duration(seconds: 10)]);
-        expect(s.controller.prepBeatVisual, isA<RecordingPrepLeadingBeat>(),
-            reason: '「有网格但不足」不得退化成整块静默');
-        for (var beat = 5; beat <= 8; beat++) {
+          // 越过起录点（10s）：数拍让位给正式数拍（1｜1 由锚点链那套渲染给出）。
+          async.elapse(const Duration(milliseconds: 500));
+          expect(s.controller.phase, CompareRecordingPhase.recording);
           expect(
-            leadingOf(s),
-            beat,
-            reason: '距起录点还有 ${9 - beat} 拍 → 0|$beat',
+            s.controller.prepBeatVisual,
+            isNull,
+            reason: '起录后不再覆盖数拍显示，正式数拍按锚点链走',
           );
-          async.elapse(const Duration(milliseconds: 500));
-        }
+          expect(
+            s.controller.recordingStartPoint,
+            const Duration(seconds: 10),
+            reason: '录制期锚 = 起录点（无激活段录制也一样）',
+          );
+        });
       });
-    });
 
-    test('异常网格：无数字（秒制兜底）', () {
-      fakeAsync((async) {
-        final s = _Session(grid: const UnavailableBeatGrid(), rangeEndMs: 30000);
-        s.engine.seek(const Duration(seconds: 12));
+      test('数字不再由自由计时器驱动：媒介位置冻结时墙钟流逝不推进数字', () {
+        fakeAsync((async) {
+          final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
+          s.engine.seek(const Duration(seconds: 12));
 
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+          expect(s.controller.phase, CompareRecordingPhase.preparing);
+          expect(leadingOf(s), 1);
 
-        expect(s.controller.phase, CompareRecordingPhase.preparing);
-        expect(s.controller.prepBeatVisual, isA<RecordingPrepSilentBeat>());
-        for (var i = 0; i < 3; i++) {
-          // 兜底 4s：1.5s 仍在准备期内。
-          async.elapse(const Duration(milliseconds: 500));
+          // 冻结媒介位置（暂停 = 位置流不再推进）：旧实现那只自由计时器照样
+          // 每拍推进数字，数字只跟媒介位置走。
+          s.engine.pause();
+          async.elapse(const Duration(seconds: 2));
+          expect(leadingOf(s), 1, reason: '墙钟走了 2s 而媒介位置没动 → 数字不许动');
+          expect(s.engine.position, const Duration(seconds: 8));
+        });
+      });
+
+      test('seek 后数字随媒介位置跳（与拍声同一条位置流，不是自由计时器）', () {
+        fakeAsync((async) {
+          final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
+          s.engine.seek(const Duration(seconds: 12));
+
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+          // 前导起点 = 起录点前第 8 个真实拍点 = 8.0s。
+          expect(leadingOf(s), 1);
+
+          // 播放推进两拍后回跳/前跳：数字跟随媒介位置，不跟随已流逝的墙钟。
+          async.elapse(const Duration(seconds: 1));
+          expect(leadingOf(s), 3);
+          s.engine.seek(const Duration(seconds: 10));
+          async.flushMicrotasks();
+          async.elapse(const Duration(milliseconds: 1));
+          expect(leadingOf(s), 5, reason: '10.0s = 第 5 个准备拍（与位置一一对应）');
+          s.engine.seek(const Duration(milliseconds: 8500));
+          async.flushMicrotasks();
+          async.elapse(const Duration(milliseconds: 1));
+          expect(leadingOf(s), 2, reason: '回跳同样即刻跟随，不残留旧拍号');
+          expect(s.controller.phase, CompareRecordingPhase.preparing);
+        });
+      });
+
+      test('起录点前可用真实拍点不足：按可用拍点缩短、数字照实（不整块静默）', () {
+        fakeAsync((async) {
+          // 区间头 10s、按下位置 12s：可用的真实拍点只有 10.0/10.5/11.0/11.5
+          // 四个（设定 8 拍）→ 缩短成四拍。
+          final s = _Session(rangeStartMs: 10000, rangeEndMs: 30000);
+          s.engine.seek(const Duration(seconds: 12));
+          s.engine.seekCalls.clear();
+
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+
+          expect(s.controller.phase, CompareRecordingPhase.preparing);
+          // 预备起点 = 区间头内第一个真实拍点 10.0s（可用的只有 10.0–11.5
+          // 四拍）——截断由这条字面 seek 落点钉住（可视数拍已无载荷，
+          // beatTimes 不再外露）。
+          expect(s.engine.seekCalls, [const Duration(seconds: 10)]);
+          expect(
+            s.controller.prepBeatVisual,
+            isA<RecordingPrepLeadingBeat>(),
+            reason: '「有网格但不足」不得退化成整块静默',
+          );
+          for (var beat = 5; beat <= 8; beat++) {
+            expect(
+              leadingOf(s),
+              beat,
+              reason: '距起录点还有 ${9 - beat} 拍 → 0|$beat',
+            );
+            async.elapse(const Duration(milliseconds: 500));
+          }
+        });
+      });
+
+      test('异常网格：无数字（秒制兜底）', () {
+        fakeAsync((async) {
+          final s = _Session(
+            grid: const UnavailableBeatGrid(),
+            rangeEndMs: 30000,
+          );
+          s.engine.seek(const Duration(seconds: 12));
+
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+
+          expect(s.controller.phase, CompareRecordingPhase.preparing);
           expect(s.controller.prepBeatVisual, isA<RecordingPrepSilentBeat>());
-        }
+          for (var i = 0; i < 3; i++) {
+            // 兜底 4s：1.5s 仍在准备期内。
+            async.elapse(const Duration(milliseconds: 500));
+            expect(s.controller.prepBeatVisual, isA<RecordingPrepSilentBeat>());
+          }
+        });
+      });
+
+      test('无激活段但起点前余量足够：同样按节拍前导顺数（基准 = 按下位置）', () {
+        fakeAsync((async) {
+          final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
+          s.engine.seek(const Duration(seconds: 12));
+          s.engine.seekCalls.clear();
+
+          unawaited(s.controller.startRequested());
+          async.flushMicrotasks();
+
+          // 无激活段：起点 = 按下位置 12s，其前 8 个真实拍点自 8.0s 起。
+          expect(s.engine.seekCalls, [const Duration(seconds: 8)]);
+          expect(leadingOf(s), 1);
+          async.elapse(const Duration(seconds: 4));
+          expect(s.controller.phase, CompareRecordingPhase.recording);
+          expect(s.controller.prepBeatVisual, isNull);
+        });
+      });
+
+      test('待录态不干预数拍显示（null = 锚点链照旧）', () {
+        fakeAsync((async) {
+          final s = _Session(
+            active: (
+              start: const Duration(seconds: 10),
+              end: const Duration(seconds: 18),
+            ),
+          );
+          expect(s.controller.prepBeatVisual, isNull);
+          expect(s.controller.recordingStartPoint, isNull);
+        });
       });
     });
-
-    test('无激活段但起点前余量足够：同样按节拍前导顺数（基准 = 按下位置）', () {
-      fakeAsync((async) {
-        final s = _Session(rangeStartMs: 0, rangeEndMs: 30000);
-        s.engine.seek(const Duration(seconds: 12));
-        s.engine.seekCalls.clear();
-
-        unawaited(s.controller.startRequested());
-        async.flushMicrotasks();
-
-        // 无激活段：起点 = 按下位置 12s，其前 8 个真实拍点自 8.0s 起。
-        expect(s.engine.seekCalls, [const Duration(seconds: 8)]);
-        expect(leadingOf(s), 1);
-        async.elapse(const Duration(seconds: 4));
-        expect(s.controller.phase, CompareRecordingPhase.recording);
-        expect(s.controller.prepBeatVisual, isNull);
-      });
-    });
-
-    test('待录态不干预数拍显示（null = 锚点链照旧）', () {
-      fakeAsync((async) {
-        final s = _Session(
-          active: (
-            start: const Duration(seconds: 10),
-            end: const Duration(seconds: 18),
-          ),
-        );
-        expect(s.controller.prepBeatVisual, isNull);
-        expect(s.controller.recordingStartPoint, isNull);
-      });
-    });
-  });
   });
 
   group('录制期方向冻结：基线项在武装那一刻取一次', () {
@@ -881,11 +878,7 @@ void main() {
         unawaited(s.controller.startRequested());
         async.flushMicrotasks();
         expect(s.controller.phase, CompareRecordingPhase.preparing);
-        expect(
-          s.controller.armedBaselines,
-          isNull,
-          reason: '还没武装：本次录制尚未取冻结值',
-        );
+        expect(s.controller.armedBaselines, isNull, reason: '还没武装：本次录制尚未取冻结值');
 
         // 武装前改设备事实：本次录制取新值（武装那一刻现读）。
         s.liveBaselines = basisSaveMirrored;
@@ -1001,11 +994,9 @@ void main() {
         // 素材来源起点 = 新起录点（对齐锚只有起录点一个）。
         async.elapse(const Duration(seconds: 6));
         expect(s.controller.phase, CompareRecordingPhase.recording);
-        expect(
-          s.engine.seekCalls,
-          [const Duration(seconds: 12)],
-          reason: '起播那次定位之后不得再出现 seek',
-        );
+        expect(s.engine.seekCalls, [
+          const Duration(seconds: 12),
+        ], reason: '起播那次定位之后不得再出现 seek');
         // 引擎自 12s 起播：越过 16s 起录后继续推进到有效区间尾（30s）。
         async.elapse(const Duration(seconds: 13));
         expect(s.camera.stopRecordingCount, 1);

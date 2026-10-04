@@ -117,10 +117,7 @@ void main() {
       );
 
       expect(groups.withPlan, isEmpty);
-      expect(
-        [for (final d in groups.withoutPlan) d.videoId],
-        ['v2', 'v3'],
-      );
+      expect([for (final d in groups.withoutPlan) d.videoId], ['v2', 'v3']);
     });
 
     test('过滤与只看未设计划同时生效', () {

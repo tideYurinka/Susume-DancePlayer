@@ -149,7 +149,10 @@ void main() {
         findsOneWidget,
       );
       // 各带一行使用提示小字。
-      expect(find.byKey(const Key('beat_correction_align_hint')), findsOneWidget);
+      expect(
+        find.byKey(const Key('beat_correction_align_hint')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key('beat_correction_eight_beat_hint')),
         findsOneWidget,
@@ -325,8 +328,11 @@ void main() {
           find.byKey(Key(key)),
         );
         expect(paragraph.didExceedMaxLines, isFalse, reason: '$key 不截断');
-        expect(tester.getSize(find.byKey(Key(key))).height,
-            lessThan(30), reason: '$key 单行');
+        expect(
+          tester.getSize(find.byKey(Key(key))).height,
+          lessThan(30),
+          reason: '$key 单行',
+        );
       }
     });
   });
@@ -334,7 +340,9 @@ void main() {
   group('节拍对齐独立气泡（原第三列控件迁出）', () {
     /// 就绪网格文档（拍点 0.5/1.0/1.5/2.0s，第 1 拍 downbeat）。
     void seedReadyGrid(ProviderContainer container) {
-      container.read(beatTrackStateProvider.notifier).replace(
+      container
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
@@ -366,7 +374,10 @@ void main() {
     }
 
     testWidgets('点「节拍对齐」→ 节拍提示气泡消失、独立对齐气泡出现', (tester) async {
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final container = await pumpHost(tester, entryLeft: 600);
@@ -428,7 +439,9 @@ void main() {
       );
       expect(
         tester
-            .widget<ButtonStyleButton>(find.byKey(const Key('beat_align_apply')))
+            .widget<ButtonStyleButton>(
+              find.byKey(const Key('beat_align_apply')),
+            )
             .onPressed,
         isNull,
       );
@@ -469,8 +482,11 @@ void main() {
       expect(find.byKey(const Key('beat_align_bubble')), findsNothing);
       expect(container.read(speedBubbleSessionProvider).open, isNull);
       expect(container.read(beatAlignPreviewOffsetProvider), isNull);
-      expect(container.read(beatTrackStateProvider).grid!.shift, 0.0,
-          reason: '未应用的预览不写盘');
+      expect(
+        container.read(beatTrackStateProvider).grid!.shift,
+        0.0,
+        reason: '未应用的预览不写盘',
+      );
     });
 
     testWidgets('切到其它气泡即丢弃预览；再点入口切回节拍提示气泡', (tester) async {
@@ -491,9 +507,15 @@ void main() {
       // 点「节拍提示」工具入口：切回节拍提示气泡（第三列一致）。气泡遮罩
       // 在先——首次点击由遮罩承接（收起倍速气泡），再点即打开节拍提示气泡
       // （与既有「工具→遮罩→工具」路径同构）。
-      await tester.tap(find.byKey(const Key('beat_entry')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('beat_entry')),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('beat_entry')), warnIfMissed: false);
+      await tester.tap(
+        find.byKey(const Key('beat_entry')),
+        warnIfMissed: false,
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -506,7 +528,10 @@ void main() {
     });
 
     testWidgets('对齐气泡宽度恒定：读数变化只变读数内容，气泡宽不动', (tester) async {
-      tester.view.physicalSize = const Size(1600, 800); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
+      tester.view.physicalSize = const Size(
+        1600,
+        800,
+      ); // 合成档 1600.0×800.0dp（dpr 1），非设备基准。
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final container = await pumpHost(tester, entryLeft: 600);
@@ -532,7 +557,10 @@ void main() {
         findsOneWidget,
         reason: '前置：读数确实变化',
       );
-      expect(tester.getSize(find.byKey(const Key('beat_align_bubble'))), width0);
+      expect(
+        tester.getSize(find.byKey(const Key('beat_align_bubble'))),
+        width0,
+      );
     });
   });
 }

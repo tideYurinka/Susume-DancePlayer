@@ -61,7 +61,9 @@ TrackHitResolution hitsOf({
     window: window,
     width: width,
     rowTable: rowTable,
-    timeline: timeline ?? AnnotationTimeline.wholeVideo(totalDuration ?? Duration.zero),
+    timeline:
+        timeline ??
+        AnnotationTimeline.wholeVideo(totalDuration ?? Duration.zero),
     clips: clips,
     notes: notes,
     mirrorFragments: mirrorFragments,
@@ -73,7 +75,8 @@ AnnotationTimeline timelineWithLines(List<int> lineMs) =>
     AnnotationTimeline.normalized(
       videoDuration: total,
       segmentLines: [
-        for (final ms in lineMs) SegmentLine(position: Duration(milliseconds: ms)),
+        for (final ms in lineMs)
+          SegmentLine(position: Duration(milliseconds: ms)),
       ],
     );
 
@@ -85,12 +88,18 @@ void main() {
         playhead: const Duration(seconds: 30),
       );
       // 预览条半宽 1dp：120 与 121 都在列内，122 出列。
-      expect(hits.editTargetAt(Offset(xAt(30000), learningRowY)),
-          TrackEditTarget.previewLine);
-      expect(hits.editTargetAt(Offset(xAt(30000) + 1, learningRowY)),
-          TrackEditTarget.previewLine);
-      expect(hits.editTargetAt(Offset(xAt(30000) + 2, learningRowY)),
-          TrackEditTarget.segmentLine);
+      expect(
+        hits.editTargetAt(Offset(xAt(30000), learningRowY)),
+        TrackEditTarget.previewLine,
+      );
+      expect(
+        hits.editTargetAt(Offset(xAt(30000) + 1, learningRowY)),
+        TrackEditTarget.previewLine,
+      );
+      expect(
+        hits.editTargetAt(Offset(xAt(30000) + 2, learningRowY)),
+        TrackEditTarget.segmentLine,
+      );
     });
 
     test('练习片段块先于学习段命中：块上即练习片段', () {
@@ -106,55 +115,81 @@ void main() {
           ),
         ],
       );
-      expect(hits.editTargetAt(Offset(xAt(3750), practiceRowY)),
-          TrackEditTarget.practiceClip);
+      expect(
+        hits.editTargetAt(Offset(xAt(3750), practiceRowY)),
+        TrackEditTarget.practiceClip,
+      );
       // 同一列落在学习行上：块体不在该行，落回首尾线命中。
-      expect(hits.editTargetAt(Offset(xAt(3750), compareLearningRowY)),
-          TrackEditTarget.segmentLine);
+      expect(
+        hits.editTargetAt(Offset(xAt(3750), compareLearningRowY)),
+        TrackEditTarget.segmentLine,
+      );
       // 练习片段命中入口（压在块上的预览线落位那一问同用）：局部点 → 片段。
       expect(hits.practiceClipAt(Offset(xAt(3750), practiceRowY))?.id, 'c1');
-      expect(hits.practiceClipAt(Offset(xAt(3750), compareLearningRowY)), isNull);
+      expect(
+        hits.practiceClipAt(Offset(xAt(3750), compareLearningRowY)),
+        isNull,
+      );
       expect(hits.practiceClipAt(Offset(xAt(45000), practiceRowY)), isNull);
     });
 
     test('段线命中带贯穿全带高：非学习行也是编辑内容', () {
       final normal = hitsOf(timeline: timelineWithLines([30000]));
-      final compare =
-          hitsOf(rowTable: TrackRowTable.compare, timeline: timelineWithLines([30000]));
-      expect(normal.editTargetAt(Offset(xAt(30000), beatRowY)),
-          TrackEditTarget.segmentLine);
-      expect(compare.editTargetAt(Offset(xAt(30000), beatRowY)),
-          TrackEditTarget.segmentLine);
+      final compare = hitsOf(
+        rowTable: TrackRowTable.compare,
+        timeline: timelineWithLines([30000]),
+      );
+      expect(
+        normal.editTargetAt(Offset(xAt(30000), beatRowY)),
+        TrackEditTarget.segmentLine,
+      );
+      expect(
+        compare.editTargetAt(Offset(xAt(30000), beatRowY)),
+        TrackEditTarget.segmentLine,
+      );
     });
 
     test('段体只在学习行内是编辑内容', () {
       // 线在 30s → 段 = [0, 30s) 与 [30s, 60s)；10s 落在首段体内。
       final hits = hitsOf(timeline: timelineWithLines([30000]));
-      expect(hits.editTargetAt(Offset(xAt(10000), learningRowY)),
-          TrackEditTarget.learningSegment);
+      expect(
+        hits.editTargetAt(Offset(xAt(10000), learningRowY)),
+        TrackEditTarget.learningSegment,
+      );
       expect(hits.editTargetAt(Offset(xAt(10000), beatRowY)), isNull);
     });
 
     test('备注片段只在学习段命中为空时、且仅在备注行内算编辑内容', () {
-      final notes = const [NoteSticker(startMs: 20000, endMs: 25000, text: 'x')];
+      final notes = const [
+        NoteSticker(startMs: 20000, endMs: 25000, text: 'x'),
+      ];
       final hits = hitsOf(notes: notes);
       // 备注 [20s, 25s) 按 15s 最小命中宽对称扩到 [15s, 30s)：
       // 10s 在两窗之外、且学习段轨命中为空（首尾线窗 7.5s 之外）→ 空白。
       expect(hits.editTargetAt(Offset(xAt(10000), noteRowY)), isNull);
       // 22.5s 落在备注命中窗内、备注行内。
-      expect(hits.editTargetAt(Offset(xAt(22500), noteRowY)),
-          TrackEditTarget.noteFragment);
+      expect(
+        hits.editTargetAt(Offset(xAt(22500), noteRowY)),
+        TrackEditTarget.noteFragment,
+      );
       // 同一列不在备注行 → 不是编辑内容。
       expect(hits.editTargetAt(Offset(xAt(22500), mirrorRowY)), isNull);
       // 备注行的行底那一条线（y=36）不是本行内容 → 不算编辑内容。
       expect(hits.editTargetAt(Offset(xAt(22500), 36)), isNull);
       // 行底之内仍是备注片段。
-      expect(hits.editTargetAt(Offset(xAt(22500), 35.999)),
-          TrackEditTarget.noteFragment);
+      expect(
+        hits.editTargetAt(Offset(xAt(22500), 35.999)),
+        TrackEditTarget.noteFragment,
+      );
       // 学习段轨命中非空时它先答（分段线优先于备注片段）。
-      final withLine = hitsOf(timeline: timelineWithLines([22500]), notes: notes);
-      expect(withLine.editTargetAt(Offset(xAt(22500), noteRowY)),
-          TrackEditTarget.segmentLine);
+      final withLine = hitsOf(
+        timeline: timelineWithLines([22500]),
+        notes: notes,
+      );
+      expect(
+        withLine.editTargetAt(Offset(xAt(22500), noteRowY)),
+        TrackEditTarget.segmentLine,
+      );
     });
 
     test('轨道片头带与带外不是编辑内容', () {
@@ -178,8 +213,33 @@ void main() {
     test('行归属与行表逐位一致（含两端口径），几何不可用时为空', () {
       final hits = hitsOf();
       for (final dy in const <double>[
-        -1, 0, 1, 35, 36, 37, 40, 45, 46, 60, 76, 77, 80, 86,
-        110, 134, 135, 140, 144, 156, 168, 169, 178, 190, 208, 209, 300,
+        -1,
+        0,
+        1,
+        35,
+        36,
+        37,
+        40,
+        45,
+        46,
+        60,
+        76,
+        77,
+        80,
+        86,
+        110,
+        134,
+        135,
+        140,
+        144,
+        156,
+        168,
+        169,
+        178,
+        190,
+        208,
+        209,
+        300,
       ]) {
         expect(
           hits.rowAt(dy),
@@ -226,13 +286,19 @@ void main() {
 
     test('单击解析：段体命中给出段序，段线命中不给出段序（线 > 段体）', () {
       final hits = hitsOf(timeline: threeSegments);
-      expect(hits.learningHitOrderAt(Offset(xAt(10000), learningRowY)),
-          (order: 0, spanClamped: false));
-      expect(hits.learningHitOrderAt(Offset(xAt(30000), learningRowY)),
-          (order: 1, spanClamped: false));
+      expect(hits.learningHitOrderAt(Offset(xAt(10000), learningRowY)), (
+        order: 0,
+        spanClamped: false,
+      ));
+      expect(hits.learningHitOrderAt(Offset(xAt(30000), learningRowY)), (
+        order: 1,
+        spanClamped: false,
+      ));
       // 段线上：单击那一份认线不认段体（该解析只答段序）。
-      expect(hits.learningHitOrderAt(Offset(xAt(20000), learningRowY)),
-          (order: null, spanClamped: false));
+      expect(hits.learningHitOrderAt(Offset(xAt(20000), learningRowY)), (
+        order: null,
+        spanClamped: false,
+      ));
     });
 
     test('段体那一份跨过分段线不停顿', () {
@@ -280,34 +346,50 @@ void main() {
 
     test('学习行外与区间外都是空命中', () {
       final hits = hitsOf(timeline: threeSegments);
-      expect(hits.learningHitOrderAt(Offset(xAt(10000), beatRowY)),
-          (order: null, spanClamped: false));
+      expect(hits.learningHitOrderAt(Offset(xAt(10000), beatRowY)), (
+        order: null,
+        spanClamped: false,
+      ));
       // 右缘 = 区间右端（开判定）。
-      expect(hits.learningHitOrderAt(Offset(bandWidth, learningRowY)),
-          (order: null, spanClamped: false));
+      expect(hits.learningHitOrderAt(Offset(bandWidth, learningRowY)), (
+        order: null,
+        spanClamped: false,
+      ));
     });
 
     test('带内局部落点解析：横向钳回带内后按段体解析', () {
       final hits = hitsOf(timeline: threeSegments);
       // 带左之外钳到 0 → 首段段首。
-      expect(hits.learningHitResolve(const Offset(-50, learningRowY)),
-          (order: 0, atSpanEdge: true));
-      expect(hits.learningHitResolve(Offset(xAt(30000), learningRowY)),
-          (order: 1, atSpanEdge: false));
+      expect(hits.learningHitResolve(const Offset(-50, learningRowY)), (
+        order: 0,
+        atSpanEdge: true,
+      ));
+      expect(hits.learningHitResolve(Offset(xAt(30000), learningRowY)), (
+        order: 1,
+        atSpanEdge: false,
+      ));
       // 学习行外为空。
-      expect(hits.learningHitResolve(Offset(xAt(30000), beatRowY)),
-          (order: null, atSpanEdge: false));
+      expect(hits.learningHitResolve(Offset(xAt(30000), beatRowY)), (
+        order: null,
+        atSpanEdge: false,
+      ));
       // 远超右缘钳到带内右缘（收进 0.01px：区间右端开判定仍可达）→ 末段。
-      expect(hits.learningHitResolve(const Offset(1000, learningRowY)),
-          (order: 2, atSpanEdge: true));
+      expect(hits.learningHitResolve(const Offset(1000, learningRowY)), (
+        order: 2,
+        atSpanEdge: true,
+      ));
     });
 
     test('几何不可用时安静返回空', () {
       final hits = hitsOf(timeline: threeSegments, width: 0);
-      expect(hits.learningHitOrderAt(Offset(xAt(10000), learningRowY)),
-          (order: null, spanClamped: false));
-      expect(hits.learningHitResolve(Offset(xAt(10000), learningRowY)),
-          (order: null, atSpanEdge: false));
+      expect(hits.learningHitOrderAt(Offset(xAt(10000), learningRowY)), (
+        order: null,
+        spanClamped: false,
+      ));
+      expect(hits.learningHitResolve(Offset(xAt(10000), learningRowY)), (
+        order: null,
+        atSpanEdge: false,
+      ));
     });
   });
 
@@ -324,7 +406,10 @@ void main() {
     });
 
     test('几何不可用时安静回落到兜底下标', () {
-      final hits = hitsOf(timeline: timelineWithLines([20000, 25000]), width: 0);
+      final hits = hitsOf(
+        timeline: timelineWithLines([20000, 25000]),
+        width: 0,
+      );
       expect(hits.nearestSegmentLineIndex(xAt(22000)), isNull);
       expect(hits.nearestSegmentLineOrFallback(3, xAt(22000)), 3);
     });
@@ -333,7 +418,9 @@ void main() {
   group('局部镜像轨内容命中经域公开入口', () {
     test('镜像行内片段命中为真；非镜像行与片段外为假', () {
       final hits = hitsOf(
-        mirrorFragments: const [LocalMirrorFragment(startMs: 30000, endMs: 40000)],
+        mirrorFragments: const [
+          LocalMirrorFragment(startMs: 30000, endMs: 40000),
+        ],
       );
       expect(hits.mirrorContentAt(Offset(xAt(30000), mirrorRowY)), isTrue);
       expect(hits.mirrorContentAt(Offset(xAt(30000), learningRowY)), isFalse);
@@ -343,7 +430,9 @@ void main() {
 
     test('几何不可用时安静返回假', () {
       final hits = hitsOf(
-        mirrorFragments: const [LocalMirrorFragment(startMs: 30000, endMs: 40000)],
+        mirrorFragments: const [
+          LocalMirrorFragment(startMs: 30000, endMs: 40000),
+        ],
         width: 0,
       );
       expect(hits.mirrorContentAt(Offset(xAt(30000), mirrorRowY)), isFalse);

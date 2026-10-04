@@ -117,5 +117,5 @@ List<PracticeClip> normalizePracticeClipTable(List<PracticeClip> clips) {
 }
 
 Map<String, PracticeClip> _byId(List<PracticeClip> clips) => {
-      for (final clip in clips) clip.id: clip,
-    };
+  for (final clip in clips) clip.id: clip,
+};

@@ -210,14 +210,14 @@ final segmentDensitiesProvider =
 /// 重点写点）取**最低档**所属段——多段档位不一时显示还有一段没跟上的那
 /// 一档；并列取最小段序。
 final selectedLearningSegmentRepresentativeProvider = Provider<int?>((ref) {
-  final count = deriveLearningSegments(
-    ref.watch(annotationTimelineProvider),
-  ).length;
-  final selected = ref
-      .watch(selectedLearningSegmentsProvider)
-      .where((order) => order >= 0 && order < count)
-      .toList()
-    ..sort();
+  final count = deriveLearningSegments(ref.watch(annotationTimelineProvider))
+      .length;
+  final selected =
+      ref
+          .watch(selectedLearningSegmentsProvider)
+          .where((order) => order >= 0 && order < count)
+          .toList()
+        ..sort();
   if (selected.isEmpty) return null;
   final mastery = ref.watch(learningMasteryProvider);
   var representative = selected.first;
@@ -481,14 +481,16 @@ class PracticeClipActivationModel extends Notifier<PracticeClipLoop?> {
   /// 进度、并清掉我的激活学习段。片段回看本身照常，只是这次查看不动我的盘。
   void _persist() {
     if (ref.read(annotationMemberSchemeReadonlyProvider)) return;
-    ref.read(annotationSaveSinkProvider)?.save(
-      AnnotationSectionDiff(
-        session: _currentSessionValue(
-          ref,
-          activePracticeClipId: state?.clipId,
-        ),
-      ),
-    );
+    ref
+        .read(annotationSaveSinkProvider)
+        ?.save(
+          AnnotationSectionDiff(
+            session: _currentSessionValue(
+              ref,
+              activePracticeClipId: state?.clipId,
+            ),
+          ),
+        );
   }
 }
 
@@ -527,10 +529,7 @@ final practiceClipActivationProvider =
 final practiceOnscreenFaceProvider = Provider<SurfaceFace>((ref) {
   final loop = ref.watch(practiceClipActivationProvider);
   if (loop == null) return SurfaceFace.cameraPreview;
-  final clip = practiceClipById(
-    ref.watch(practiceClipsProvider),
-    loop.clipId,
-  );
+  final clip = practiceClipById(ref.watch(practiceClipsProvider), loop.clipId);
   return clip != null ? SurfaceFace.clipPlayback : SurfaceFace.cameraPreview;
 });
 
@@ -624,9 +623,8 @@ void clearLoopActivationsIfOutside(
   AnnotationTimeline timeline,
   Duration position,
 ) {
-  read(annotationSelectionDomainProvider).clearLearningSegmentsIfOutside(
-    position,
-  );
+  read(annotationSelectionDomainProvider)
+      .clearLearningSegmentsIfOutside(position);
   read(transitionSegmentProvider.notifier).clearIfOutside(timeline, position);
   read(practiceClipActivationProvider.notifier).clearIfOutside(position);
 }
@@ -763,16 +761,20 @@ class AnnotationEditHistoryModel
     // annotations 段值重建时间线（`videoDuration` 不属于任何段，取当前
     // 时间线的现值——同视频会话内恒定，换视频前历史已被清空）。
     final a = snapshot.annotations;
-    ref.read(annotationTimelineProvider.notifier)._replace(
-      AnnotationTimeline.normalized(
-        videoDuration: ref.read(annotationTimelineProvider).videoDuration,
-        rangeStart: a.rangeStart,
-        rangeEnd: a.rangeEnd,
-        segmentLines: a.segmentLines,
-        halfBeatLines: a.halfBeatLines,
-      ),
-    );
-    ref.read(learningMasteryProvider.notifier)._replace(snapshot.session.mastery);
+    ref
+        .read(annotationTimelineProvider.notifier)
+        ._replace(
+          AnnotationTimeline.normalized(
+            videoDuration: ref.read(annotationTimelineProvider).videoDuration,
+            rangeStart: a.rangeStart,
+            rangeEnd: a.rangeEnd,
+            segmentLines: a.segmentLines,
+            halfBeatLines: a.halfBeatLines,
+          ),
+        );
+    ref
+        .read(learningMasteryProvider.notifier)
+        ._replace(snapshot.session.mastery);
     ref.read(learningEmphasisProvider.notifier)._replace(a.emphasizedSegments);
     // 逐段档随 annotations 段回放（撤销/重做
     // 与几何级联同一步回退/重放）。
@@ -802,17 +804,17 @@ class AnnotationEditHistoryModel
     final current = ref.read(practiceClipsProvider);
     // 复活分支把复活的片段追加在表尾：写前恢复表恒升序（确定性并列
     // 次序按 end、id；不裁剪——重叠裁剪归库内写缝）。
-    final merged = replayClipTableBySnapshotPair(
-      before: before,
-      after: after,
-      current: current,
-    ).clips
-      ..sort((a, b) {
-        final byStart = a.sourceStartMs.compareTo(b.sourceStartMs);
-        if (byStart != 0) return byStart;
-        final byEnd = a.sourceEndMs.compareTo(b.sourceEndMs);
-        return byEnd != 0 ? byEnd : a.id.compareTo(b.id);
-      });
+    final merged =
+        replayClipTableBySnapshotPair(
+          before: before,
+          after: after,
+          current: current,
+        ).clips..sort((a, b) {
+          final byStart = a.sourceStartMs.compareTo(b.sourceStartMs);
+          if (byStart != 0) return byStart;
+          final byEnd = a.sourceEndMs.compareTo(b.sourceEndMs);
+          return byEnd != 0 ? byEnd : a.id.compareTo(b.id);
+        });
     var changed = merged.length != current.length;
     for (var i = 0; i < merged.length && !changed; i++) {
       changed = merged[i] != current[i];
@@ -823,6 +825,7 @@ class AnnotationEditHistoryModel
 
 /// 标注编辑历史注入点；顶栏撤销/重做按钮与各编辑入口共用。
 final annotationEditHistoryProvider =
-    NotifierProvider<AnnotationEditHistoryModel, EditHistory<AnnotationEditSnapshot>>(
-      AnnotationEditHistoryModel.new,
-    );
+    NotifierProvider<
+      AnnotationEditHistoryModel,
+      EditHistory<AnnotationEditSnapshot>
+    >(AnnotationEditHistoryModel.new);

@@ -58,7 +58,9 @@ List<Duration> deriveAutoSegmentCuts({
   if (endLine <= startLine) return const [];
   final grid = phase.grid;
   // 锚点刀位置 = 锚点拍时刻（锚点自身恒为八拍点，必在区间序列端点集内）。
-  final anchorTimes = {for (final anchor in phase.anchors) grid.beatTime(anchor)};
+  final anchorTimes = {
+    for (final anchor in phase.anchors) grid.beatTime(anchor),
+  };
   final intervals = eightBeatIntervals(phase, startLine, endLine);
   final cuts = <Duration>[];
   var quota = 0;
@@ -73,8 +75,7 @@ List<Duration> deriveAutoSegmentCuts({
     if (!endIsAnchor &&
         quota >= fullIntervalsPerSegment &&
         i + 1 < intervals.length &&
-        eightBeatIntervalWeight(intervals[i + 1].beatGap, grid: grid)
-                .floor() ==
+        eightBeatIntervalWeight(intervals[i + 1].beatGap, grid: grid).floor() ==
             0) {
       continue;
     }

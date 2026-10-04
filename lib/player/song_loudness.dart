@@ -49,7 +49,8 @@ double metronomeSampleVolume({
   required double baseline,
   bool halfBeat = false,
 }) {
-  final raw = baseline *
+  final raw =
+      baseline *
       metronomeSliderGain(volumePercent) *
       (halfBeat ? kHalfBeatLoudnessCompensation : 1.0);
   return raw.clamp(0.0, 1.0).toDouble();
@@ -168,9 +169,9 @@ class SongLoudnessCoordinator {
   }) async {
     double? cached;
     try {
-      cached = await _ref.read(songLoudnessBaselineStorageProvider).load(
-            videoId,
-          );
+      cached = await _ref
+          .read(songLoudnessBaselineStorageProvider)
+          .load(videoId);
     } on Object {
       cached = null; // 缓存不可读按未测处理（后台补测）。
     }
@@ -181,8 +182,7 @@ class SongLoudnessCoordinator {
     }
     final generation = ++_generation;
     try {
-      final rms =
-          await _ref.read(songLoudnessProbeProvider).pcmRms(videoPath);
+      final rms = await _ref.read(songLoudnessProbeProvider).pcmRms(videoPath);
       if (generation != _generation) return; // 已切换视频：不串写。
       await _apply(videoId, loudnessBaselineFromRms(rms));
     } on Object {
@@ -203,8 +203,9 @@ final songLoudnessCoordinatorProvider = Provider<SongLoudnessCoordinator>(
 
 /// 节拍音量设置槽（设备级 `metronomeSettings.metronomeVolume`，0–100，
 /// 默认 50）。
-final metronomeVolumeProvider =
-    NotifierProvider<MetronomeVolumeModel, int>(MetronomeVolumeModel.new);
+final metronomeVolumeProvider = NotifierProvider<MetronomeVolumeModel, int>(
+  MetronomeVolumeModel.new,
+);
 
 class MetronomeVolumeModel extends PersistedSettingModel<int> {
   @override
@@ -215,7 +216,8 @@ class MetronomeVolumeModel extends PersistedSettingModel<int> {
       (raw) => raw is int && raw >= 0 && raw <= 100 ? raw : null;
 
   @override
-  Object? Function(int value) get encode => (value) => value;
+  Object? Function(int value) get encode =>
+      (value) => value;
 
   @override
   int get defaultValue => 50;
@@ -225,12 +227,12 @@ class MetronomeVolumeModel extends PersistedSettingModel<int> {
 /// 滑条增益；半拍槽含内部拉平增益），节拍声/前导共用。
 final metronomePlayVolumeProvider =
     Provider<double Function(MetronomeSegmentSlot slot)>((ref) {
-  return (slot) => metronomeSampleVolume(
+      return (slot) => metronomeSampleVolume(
         volumePercent: ref.read(metronomeVolumeProvider),
         baseline: ref.read(songLoudnessBaselineProvider),
         halfBeat: slot == MetronomeSegmentSlot.half,
       );
-});
+    });
 
 /// 发声响度工厂注入点的整拍槽取值（前导/延迟播放占位提示用整拍段）。
 double metronomePlayBeatVolume(Ref ref) =>

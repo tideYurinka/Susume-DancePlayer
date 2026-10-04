@@ -52,7 +52,9 @@ void main() {
           'sectionReserved': {'future': 1},
         },
       });
-      expect(doc.roster, const [DancerRosterEntry(name: '果', color: 4278190325)]);
+      expect(doc.roster, const [
+        DancerRosterEntry(name: '果', color: 4278190325),
+      ]);
       final json = doc.toJson();
       expect(json['roster']['sectionReserved'], {'future': 1});
       expect(json['roster']['dancers'].single['entryReserved'], 7);
@@ -72,7 +74,9 @@ void main() {
           ],
         },
       });
-      expect(doc.roster, const [DancerRosterEntry(name: '鸟', color: 0xFF1E88E5)]);
+      expect(doc.roster, const [
+        DancerRosterEntry(name: '鸟', color: 0xFF1E88E5),
+      ]);
     });
 
     test('withRoster 整表补写只触碰名册段，notes / beat / corrections 原样', () {
@@ -102,10 +106,14 @@ void main() {
     });
 
     test('名册参与相等判定（净变化判定不漏）', () {
-      expect(const MarkersDocument(roster: roster),
-          isNot(const MarkersDocument()));
-      expect(const MarkersDocument(roster: roster),
-          const MarkersDocument(roster: roster));
+      expect(
+        const MarkersDocument(roster: roster),
+        isNot(const MarkersDocument()),
+      );
+      expect(
+        const MarkersDocument(roster: roster),
+        const MarkersDocument(roster: roster),
+      );
     });
   });
 
@@ -134,9 +142,7 @@ void main() {
     ]) {
       test('$label：整表补写落盘，重开按名册还原一致', () async {
         final coordinator = VideoDocumentCoordinator(make(tempDir));
-        await coordinator.patchMarkers(
-          (doc) => doc.withRoster(roster),
-        );
+        await coordinator.patchMarkers((doc) => doc.withRoster(roster));
         // 重开：新协调器从同一文件读回。
         final reopened = VideoDocumentCoordinator(make(tempDir));
         final restored = await reopened.readMarkers();

@@ -210,7 +210,10 @@ void main() {
             ],
           ).toJson(),
           local: LocalDocument(
-            mastery: const {0: LearningMastery.mastered, 1: LearningMastery.unlearned},
+            mastery: const {
+              0: LearningMastery.mastered,
+              1: LearningMastery.unlearned,
+            },
           ).toJson(),
         ),
       },
@@ -259,7 +262,9 @@ void main() {
     // 逾期（2020）按日期排在 2026 之前；两组组头次序「已有计划」在上。
     expect(
       tester.getTopLeft(find.byKey(const Key('plan_manage_row_v2'))).dy,
-      lessThan(tester.getTopLeft(find.byKey(const Key('plan_manage_row_v1'))).dy),
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('plan_manage_row_v1'))).dy,
+      ),
     );
     expect(
       tester
@@ -274,7 +279,9 @@ void main() {
     // 未设计划组：v3 在前，完全掌握的 v4 沉底。
     expect(
       tester.getTopLeft(find.byKey(const Key('plan_manage_row_v3'))).dy,
-      lessThan(tester.getTopLeft(find.byKey(const Key('plan_manage_row_v4'))).dy),
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('plan_manage_row_v4'))).dy,
+      ),
     );
   });
 
@@ -292,10 +299,7 @@ void main() {
       ).toJson(),
     );
 
-    await tester.enterText(
-      find.byKey(const Key('plan_manage_search')),
-      'v2',
-    );
+    await tester.enterText(find.byKey(const Key('plan_manage_search')), 'v2');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('plan_manage_row_v2')), findsOneWidget);
     expect(find.byKey(const Key('plan_manage_row_v1')), findsNothing);
@@ -372,7 +376,10 @@ void main() {
       tester.widget<Text>(find.byKey(const Key('plan_manage_hints_v1'))).data,
       '曲库关',
     );
-    expect(find.byKey(const Key('plan_manage_group_with_plan')), findsOneWidget);
+    expect(
+      find.byKey(const Key('plan_manage_group_with_plan')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('无 DDL 的舞：编辑页日期滚轮默认今天，改开关保存即落 DDL 与开关', (tester) async {
@@ -390,7 +397,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final store = PracticePlanStore(storage);
-    expect((await store.ddlOf('v1'))!.date, localToday(), reason: '新建 DDL 默认今天');
+    expect(
+      (await store.ddlOf('v1'))!.date,
+      localToday(),
+      reason: '新建 DDL 默认今天',
+    );
     expect(await store.reviewRemindersEnabledOf('v1'), isFalse);
     expect(
       tester.widget<Text>(find.byKey(const Key('plan_manage_hints_v1'))).data,

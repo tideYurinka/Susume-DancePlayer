@@ -30,10 +30,7 @@ Iterable<Duration> _midpointCandidates(
 }
 
 /// 解析 [position] 就近的半拍格点（相邻拍点中点）；网格无候选返回 null。
-Duration? resolveHalfBeatSnap(
-  Duration position, {
-  required BeatGrid grid,
-}) {
+Duration? resolveHalfBeatSnap(Duration position, {required BeatGrid grid}) {
   final last = grid.lastBeatIndex;
   if (last != null && last < grid.firstDownbeatIndex) return null;
   final k = grid.beatIndexAt(position);
@@ -51,17 +48,13 @@ Duration? resolveHalfBeatSnap(
 
 /// [position] 严格之后的相邻半拍格点；无（有界网格已到末中点之后）返回
 /// null（调用侧 no-op）。
-Duration? nextHalfBeatPoint(
-  Duration position, {
-  required BeatGrid grid,
-}) => _stepHalfBeatPoint(position, grid, forward: true);
+Duration? nextHalfBeatPoint(Duration position, {required BeatGrid grid}) =>
+    _stepHalfBeatPoint(position, grid, forward: true);
 
 /// [position] 严格之前的相邻半拍格点；无（首个中点之前——含弱起区间）
 /// 返回 null（调用侧 no-op）。
-Duration? previousHalfBeatPoint(
-  Duration position, {
-  required BeatGrid grid,
-}) => _stepHalfBeatPoint(position, grid, forward: false);
+Duration? previousHalfBeatPoint(Duration position, {required BeatGrid grid}) =>
+    _stepHalfBeatPoint(position, grid, forward: false);
 
 Duration? _stepHalfBeatPoint(
   Duration position,

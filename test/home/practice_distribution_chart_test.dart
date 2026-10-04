@@ -32,15 +32,13 @@ void main() {
     List<LearningSegment> segments = const [],
     Map<int, LearningMastery> masteries = const {},
     List<SegmentPractice> segmentPractices = const [],
-    void Function(int order, LearningMastery mastery)?
-    onSegmentMasteryChanged,
+    void Function(int order, LearningMastery mastery)? onSegmentMasteryChanged,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
         home: Scaffold(
@@ -53,8 +51,7 @@ void main() {
                 segments: segments,
                 masteries: masteries,
                 segmentPractices: segmentPractices,
-                onSegmentMasteryChanged:
-                    onSegmentMasteryChanged ?? (_, _) {},
+                onSegmentMasteryChanged: onSegmentMasteryChanged ?? (_, _) {},
               ),
             ),
           ),
@@ -107,9 +104,7 @@ void main() {
     expect(find.text('0:23'), findsOneWidget);
   });
 
-  testWidgets('标签按真实时间几何摆位：首标签贴左、末标签贴右、中间随时间落位', (
-    tester,
-  ) async {
+  testWidgets('标签按真实时间几何摆位：首标签贴左、末标签贴右、中间随时间落位', (tester) async {
     await pumpCard(tester, width: 320);
     const pad = 18.0;
     // 卡片内衬 12：绘图区宽 = 320 − 24 − 刻度列（28 + 4）= 264。
@@ -136,7 +131,10 @@ void main() {
     expect(find.textContaining('八拍'), findsNothing);
     expect(find.byKey(const Key('practice_point_0')), findsNothing);
     expect(find.byKey(const Key('practice_dot_0')), findsNothing);
-    expect(find.byKey(const Key('practice_distribution_selected')), findsNothing);
+    expect(
+      find.byKey(const Key('practice_distribution_selected')),
+      findsNothing,
+    );
   });
 
   testWidgets('两行芯片保留：纵轴与范围口径各行其是', (tester) async {
@@ -144,15 +142,17 @@ void main() {
     expect(find.byKey(const Key('practice_axis_segment')), findsNothing);
     expect(find.byKey(const Key('practice_axis_eightBeat')), findsNothing);
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('practice_metric_duration')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(find.byKey(const Key('practice_metric_duration')))
+          .selected,
       isTrue,
     );
     expect(
-      tester.widget<ChoiceChip>(
-        find.byKey(const Key('practice_range_cumulative')),
-      ).selected,
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const Key('practice_range_cumulative')),
+          )
+          .selected,
       isTrue,
     );
     expect(find.byKey(const Key('practice_metric_count')), findsOneWidget);
@@ -171,10 +171,7 @@ void main() {
   testWidgets('空态不出现刻度列与虚线', (tester) async {
     await pumpCard(tester, data: const [], beatGridNotReady: true);
     expect(find.byKey(const Key('practice_axis_column')), findsNothing);
-    expect(
-      find.byKey(const Key('practice_distribution_chart')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('practice_distribution_chart')), findsNothing);
     await pumpCard(tester, data: const []);
     expect(find.byKey(const Key('practice_axis_column')), findsNothing);
     expect(find.byKey(const Key('practice_gridlines')), findsNothing);
@@ -216,49 +213,40 @@ void main() {
     });
 
     test('时长口径：全零退化为单档（上界 1 分钟）', () {
-      final axis = practiceDistributionAxis(
-        const [
-          PracticeDistributionBucket(
-            start: Duration.zero,
-            end: Duration(seconds: 2),
-            duration: Duration.zero,
-            count: 0,
-          ),
-        ],
-        PracticeDistributionMetric.duration,
-      );
+      final axis = practiceDistributionAxis(const [
+        PracticeDistributionBucket(
+          start: Duration.zero,
+          end: Duration(seconds: 2),
+          duration: Duration.zero,
+          count: 0,
+        ),
+      ], PracticeDistributionMetric.duration);
       expect(axis.step, 1);
       expect(axis.upperBound, 1);
       expect(axis.ticks, [0, 1]);
     });
 
     test('次数口径：次数 1 → 上界 1；单点极高 200 次 → 步长 50、上界 200', () {
-      final one = practiceDistributionAxis(
-        const [
-          PracticeDistributionBucket(
-            start: Duration.zero,
-            end: Duration(seconds: 2),
-            duration: Duration.zero,
-            count: 1,
-          ),
-        ],
-        PracticeDistributionMetric.count,
-      );
+      final one = practiceDistributionAxis(const [
+        PracticeDistributionBucket(
+          start: Duration.zero,
+          end: Duration(seconds: 2),
+          duration: Duration.zero,
+          count: 1,
+        ),
+      ], PracticeDistributionMetric.count);
       expect(one.step, 1);
       expect(one.upperBound, 1);
       expect(one.ticks, [0, 1]);
 
-      final tall = practiceDistributionAxis(
-        const [
-          PracticeDistributionBucket(
-            start: Duration.zero,
-            end: Duration(seconds: 2),
-            duration: Duration.zero,
-            count: 200,
-          ),
-        ],
-        PracticeDistributionMetric.count,
-      );
+      final tall = practiceDistributionAxis(const [
+        PracticeDistributionBucket(
+          start: Duration.zero,
+          end: Duration(seconds: 2),
+          duration: Duration.zero,
+          count: 200,
+        ),
+      ], PracticeDistributionMetric.count);
       expect(tall.step, 50);
       expect(tall.upperBound, 200);
       expect(tall.ticks, [0, 50, 100, 150, 200]);
@@ -351,45 +339,45 @@ void main() {
 
   testWidgets('系统字号放大时刻度列变宽、不与绘图区重叠；缩小档不收缩', (tester) async {
     await pumpCard(tester, width: 480, textScale: 1.0);
-    final normalWidth = tester.getSize(
-      find.byKey(const Key('practice_axis_column')),
-    ).width;
-    final normalPlotLeft = tester.getTopLeft(
-      find.byKey(const Key('practice_gridlines')),
-    ).dx;
+    final normalWidth = tester
+        .getSize(find.byKey(const Key('practice_axis_column')))
+        .width;
+    final normalPlotLeft = tester
+        .getTopLeft(find.byKey(const Key('practice_gridlines')))
+        .dx;
 
     await pumpCard(tester, width: 480, textScale: 2.0);
-    final largeWidth = tester.getSize(
-      find.byKey(const Key('practice_axis_column')),
-    ).width;
-    final largePlotLeft = tester.getTopLeft(
-      find.byKey(const Key('practice_gridlines')),
-    ).dx;
+    final largeWidth = tester
+        .getSize(find.byKey(const Key('practice_axis_column')))
+        .width;
+    final largePlotLeft = tester
+        .getTopLeft(find.byKey(const Key('practice_gridlines')))
+        .dx;
     expect(largeWidth, greaterThan(normalWidth));
     // 刻度列右缘与绘图区左缘之间隔着 4dp 间隙，不重叠。
-    final axisRight = tester.getTopRight(
-      find.byKey(const Key('practice_axis_column')),
-    ).dx;
+    final axisRight = tester
+        .getTopRight(find.byKey(const Key('practice_axis_column')))
+        .dx;
     expect(largePlotLeft - axisRight, closeTo(4, 0.5));
 
     await pumpCard(tester, width: 480, textScale: 0.5);
-    final smallWidth = tester.getSize(
-      find.byKey(const Key('practice_axis_column')),
-    ).width;
+    final smallWidth = tester
+        .getSize(find.byKey(const Key('practice_axis_column')))
+        .width;
     expect(smallWidth, closeTo(normalWidth, 0.01));
     expect(normalPlotLeft, greaterThan(0));
   });
 
   testWidgets('时间标签行高随系统字号放大（与统计页同款）；缩小档不收缩', (tester) async {
     await pumpCard(tester, textScale: 1.0);
-    final normalHeight = tester.getSize(
-      find.byKey(const Key('practice_time_label_row')),
-    ).height;
+    final normalHeight = tester
+        .getSize(find.byKey(const Key('practice_time_label_row')))
+        .height;
 
     await pumpCard(tester, textScale: 2.0);
-    final largeHeight = tester.getSize(
-      find.byKey(const Key('practice_time_label_row')),
-    ).height;
+    final largeHeight = tester
+        .getSize(find.byKey(const Key('practice_time_label_row')))
+        .height;
     expect(largeHeight, greaterThan(normalHeight));
 
     await pumpCard(tester, textScale: 0.5);
@@ -428,8 +416,7 @@ void main() {
       final plotWidth = tester
           .getSize(find.byKey(const Key('practice_gridlines')))
           .width;
-      double x(int seconds) =>
-          18 + (plotWidth - 36) * (seconds - 1) / 22;
+      double x(int seconds) => 18 + (plotWidth - 36) * (seconds - 1) / 22;
       expect(bands[0].left, 18);
       expect(bands[0].right, closeTo(x(10), 0.01));
       expect(bands[1].left, closeTo(x(15), 0.01));
@@ -510,7 +497,11 @@ void main() {
     // 两段：[0,10s) 带空隙 [10,15s)、[15,20s)。桶中点域 1–23s，绘图区宽
     // 264、内缩 18 ⇒ x(t) = 18 + 228·(t−1)/22。
     final segments = [
-      LearningSegment(order: 0, start: Duration.zero, end: const Duration(seconds: 10)),
+      LearningSegment(
+        order: 0,
+        start: Duration.zero,
+        end: const Duration(seconds: 10),
+      ),
       LearningSegment(
         order: 1,
         start: const Duration(seconds: 15),
@@ -779,16 +770,14 @@ void main() {
         segmentPractices: practices,
       );
       await selectSegment(tester, 5);
-      final bubble = tester.getRect(find.byKey(const Key('practice_segment_bubble')));
+      final bubble = tester.getRect(
+        find.byKey(const Key('practice_segment_bubble')),
+      );
 
       // 点气泡内一段「本无段覆盖」的横位（段间空隙 12s）：若无气泡豁免，
       // 这一击会按空隙规则清掉选中。
       final gapPoint = plotPointAt(tester, 12);
-      expect(
-        bubble.contains(gapPoint),
-        isTrue,
-        reason: '前置：该点落在气泡矩形内，豁免才被触发',
-      );
+      expect(bubble.contains(gapPoint), isTrue, reason: '前置：该点落在气泡矩形内，豁免才被触发');
       await tapAt(tester, gapPoint);
       expect(find.byKey(const Key('practice_segment_bubble')), findsOneWidget);
       expect(find.text('第 1 段 · 0:00–0:10'), findsOneWidget);
@@ -802,7 +791,9 @@ void main() {
         segmentPractices: practices,
       );
       await selectSegment(tester, 5);
-      final bubble = tester.getRect(find.byKey(const Key('practice_segment_bubble')));
+      final bubble = tester.getRect(
+        find.byKey(const Key('practice_segment_bubble')),
+      );
 
       await tester.dragFrom(
         bubble.center,
@@ -842,7 +833,11 @@ void main() {
       // 窄段 [10s, 10.1s] 夹在中间：像素宽约 1px，不足 2dp 线宽，两条边仍
       // 各画一条（收到段内、重合成一条也不省略）。
       final narrow = [
-        LearningSegment(order: 0, start: Duration.zero, end: const Duration(seconds: 10)),
+        LearningSegment(
+          order: 0,
+          start: Duration.zero,
+          end: const Duration(seconds: 10),
+        ),
         LearningSegment(
           order: 1,
           start: const Duration(seconds: 10),
@@ -885,7 +880,11 @@ void main() {
     // 与「段级选中与气泡」组同一套几何：两段 [0,10s) / [10,20s)，桶中点域 1–23s，
     // 绘图区宽 264、内缩 18 ⇒ x(t) = 18 + 228·(t−1)/22。
     final legendSegments = [
-      LearningSegment(order: 0, start: Duration.zero, end: const Duration(seconds: 10)),
+      LearningSegment(
+        order: 0,
+        start: Duration.zero,
+        end: const Duration(seconds: 10),
+      ),
       LearningSegment(
         order: 1,
         start: const Duration(seconds: 10),
@@ -927,8 +926,10 @@ void main() {
         LearningMastery.mastered: '掌握',
       };
       for (final entry in expected.entries) {
-        expect(find.byKey(Key('practice_legend_dot_${entry.key.name}')),
-            findsOneWidget);
+        expect(
+          find.byKey(Key('practice_legend_dot_${entry.key.name}')),
+          findsOneWidget,
+        );
         final dot = tester.widget<Container>(
           find.byKey(Key('practice_legend_dot_${entry.key.name}')),
         );
@@ -947,9 +948,11 @@ void main() {
     testWidgets('未选中任何段时按钮置灰不可点', (tester) async {
       await pumpCard(tester, segments: legendSegments);
       expect(
-        tester.widget<PopupMenuButton<LearningMastery>>(
-          find.byKey(const Key('practice_mastery')),
-        ).enabled,
+        tester
+            .widget<PopupMenuButton<LearningMastery>>(
+              find.byKey(const Key('practice_mastery')),
+            )
+            .enabled,
         isFalse,
       );
       // 未选中显示「熟练度」占位，不借未练档位名顶位。
@@ -989,20 +992,26 @@ void main() {
         );
       }
       expect(
-        tester.widget<CheckedPopupMenuItem<LearningMastery>>(
-          find.byKey(const Key('practice_mastery_learning')),
-        ).checked,
+        tester
+            .widget<CheckedPopupMenuItem<LearningMastery>>(
+              find.byKey(const Key('practice_mastery_learning')),
+            )
+            .checked,
         isTrue,
       );
       expect(
-        tester.widget<CheckedPopupMenuItem<LearningMastery>>(
-          find.byKey(const Key('practice_mastery_mastered')),
-        ).checked,
+        tester
+            .widget<CheckedPopupMenuItem<LearningMastery>>(
+              find.byKey(const Key('practice_mastery_mastered')),
+            )
+            .checked,
         isFalse,
       );
     });
 
-    testWidgets('改档后就地更新：回调带段序与新档位，色带换色、选中边框仍在、气泡档位名就地变且气泡保持打开', (tester) async {
+    testWidgets('改档后就地更新：回调带段序与新档位，色带换色、选中边框仍在、气泡档位名就地变且气泡保持打开', (
+      tester,
+    ) async {
       var masteries = {
         0: LearningMastery.learning,
         1: LearningMastery.mastered,

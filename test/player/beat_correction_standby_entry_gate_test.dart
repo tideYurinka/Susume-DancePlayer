@@ -8,7 +8,8 @@ import 'package:dance_learning_app/player/beat_analysis.dart'
     show beatAnalysisPipelineProvider;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/speed_bubble.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,7 +61,10 @@ void main() {
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
                 entries: [
-                  historyEntry(filePath: resolved.toFilePath(), mirrored: false),
+                  historyEntry(
+                    filePath: resolved.toFilePath(),
+                    mirrored: false,
+                  ),
                 ],
               ),
             ),
@@ -165,14 +169,15 @@ void main() {
       listen: false,
     );
     // 观看态打开气泡并同步连按两次：槽是单槽，重复落待办不叠加。
-    container.read(speedBubbleSessionProvider.notifier).open(SpeedBubbleMode.beat);
+    container
+        .read(speedBubbleSessionProvider.notifier)
+        .open(SpeedBubbleMode.beat);
     await tester.pumpAndSettle();
-    final onPressed =
-        tester
-            .widget<OutlinedButton>(
-              find.byKey(const Key('beat_correction_eight_beat_button')),
-            )
-            .onPressed;
+    final onPressed = tester
+        .widget<OutlinedButton>(
+          find.byKey(const Key('beat_correction_eight_beat_button')),
+        )
+        .onPressed;
     expect(onPressed, isNotNull);
     onPressed!();
     onPressed();

@@ -40,20 +40,29 @@ class PrepBeats {
   static PrepBeats fromJson(Object? raw) {
     if (raw is! Map) return const PrepBeats();
     return PrepBeats(
-      delayedPlay: decodePrepBeatsTier(raw['delayedPlay'], kPrepBeatsTiers,
-          kDelayedPlayPrepBeatsDefault),
+      delayedPlay: decodePrepBeatsTier(
+        raw['delayedPlay'],
+        kPrepBeatsTiers,
+        kDelayedPlayPrepBeatsDefault,
+      ),
       recording: decodePrepBeatsTier(
-          raw['recording'], kPrepBeatsTiers, kRecordingPrepBeatsDefault),
-      loopLead: decodePrepBeatsTier(raw['loopLead'], kLoopLeadPrepBeatsTiers,
-          kLoopLeadPrepBeatsDefault),
+        raw['recording'],
+        kPrepBeatsTiers,
+        kRecordingPrepBeatsDefault,
+      ),
+      loopLead: decodePrepBeatsTier(
+        raw['loopLead'],
+        kLoopLeadPrepBeatsTiers,
+        kLoopLeadPrepBeatsDefault,
+      ),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'delayedPlay': delayedPlay,
-        'recording': recording,
-        'loopLead': loopLead,
-      };
+    'delayedPlay': delayedPlay,
+    'recording': recording,
+    'loopLead': loopLead,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -86,9 +95,7 @@ abstract interface class PrepBeatsStorage {
   Future<PrepBeats> load();
 
   /// 原子「读 → [mutate] → 写」三项（保留同文件其它键）。
-  Future<void> update(
-    FutureOr<PrepBeats> Function(PrepBeats current) mutate,
-  );
+  Future<void> update(FutureOr<PrepBeats> Function(PrepBeats current) mutate);
 }
 
 /// [PrepBeatsStorage] 的私密 JSON 实现（`prepBeats` 键）。
@@ -104,9 +111,7 @@ class PrepBeatsStore implements PrepBeatsStorage {
       PrepBeats.fromJson((await _storage.read())[_key]);
 
   @override
-  Future<void> update(
-    FutureOr<PrepBeats> Function(PrepBeats current) mutate,
-  ) {
+  Future<void> update(FutureOr<PrepBeats> Function(PrepBeats current) mutate) {
     return _storage.mutate((json, {required bool present}) async {
       final current = PrepBeats.fromJson(json[_key]);
       final next = await mutate(current);
@@ -186,7 +191,9 @@ class PrepBeatsModel extends Notifier<PrepBeats> {
     _mutated = true;
     _flush = _flush.then((_) async {
       try {
-        await ref.read(prepBeatsStorageProvider).update(
+        await ref
+            .read(prepBeatsStorageProvider)
+            .update(
               (current) => current.withFields(
                 delayedPlay: delayedPlay,
                 recording: recording,

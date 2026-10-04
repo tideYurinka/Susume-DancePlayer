@@ -10,7 +10,8 @@ import 'package:dance_learning_app/help/help_documents.dart'
         HelpDocumentContent,
         loadHelpContent,
         onboardingCopyAssetKey;
-import 'package:dance_learning_app/help/help_markdown.dart' show resolveHelpAnchor;
+import 'package:dance_learning_app/help/help_markdown.dart'
+    show resolveHelpAnchor;
 import 'package:dance_learning_app/help/platform_help_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -69,7 +70,10 @@ void main() {
     // 那排按钮真的贴卡片内右缘（卡内边距 20）：只断次序会漏掉「整排偏左」。
     expect(
       tester.getRect(welcomeAction(FirstRunChoice.tour)).right,
-      closeTo(tester.getRect(find.byKey(const Key('guide_one_shot'))).right - 20, 1),
+      closeTo(
+        tester.getRect(find.byKey(const Key('guide_one_shot'))).right - 20,
+        1,
+      ),
       reason: '出口按钮右对齐',
     );
     expect(
@@ -119,7 +123,10 @@ void main() {
     // 换行后每一行仍贴卡片内右缘。
     expect(
       tester.getRect(welcomeAction(FirstRunChoice.tour)).right,
-      closeTo(tester.getRect(find.byKey(const Key('guide_one_shot'))).right - 20, 1),
+      closeTo(
+        tester.getRect(find.byKey(const Key('guide_one_shot'))).right - 20,
+        1,
+      ),
       reason: '窄屏换行后仍右对齐',
     );
     expect(tester.takeException(), isNull, reason: '320 宽 + 2.0 倍字号下不得溢出');
@@ -181,16 +188,8 @@ void main() {
 
     expect(find.text(downloadVideoTutorialId), findsOneWidget);
     expect(find.text(sectionHeading), findsOneWidget);
-    expect(
-      find.text(_introLine(tutorial)),
-      findsNothing,
-      reason: '引言段不在卡里',
-    );
-    expect(
-      find.text(laterHeading),
-      findsNothing,
-      reason: '后面的方法不在卡里',
-    );
+    expect(find.text(_introLine(tutorial)), findsNothing, reason: '引言段不在卡里');
+    expect(find.text(laterHeading), findsNothing, reason: '后面的方法不在卡里');
     expect(find.text('等会儿再下载'), findsOneWidget);
     expect(find.text('已经存好了'), findsOneWidget);
 
@@ -237,16 +236,12 @@ void main() {
         .map((image) => (image.image as AssetImage).assetName)
         .toSet();
     // 只出卡里那一节自己引用到的截图：期望集按该节正文现算。
-    expect(
-      assetNames,
-      {
-        for (final match in RegExp(
-          r'!\[[^\]]*\]\(([^)]+)\)',
-        ).allMatches(tutorial.firstSectionMarkdown))
-          '${tutorial.directory}/${match.group(1)}',
-      },
-      reason: '卡里的图与该节正文引用的截图一一对应',
-    );
+    expect(assetNames, {
+      for (final match in RegExp(
+        r'!\[[^\]]*\]\(([^)]+)\)',
+      ).allMatches(tutorial.firstSectionMarkdown))
+        '${tutorial.directory}/${match.group(1)}',
+    }, reason: '卡里的图与该节正文引用的截图一一对应');
     for (final image in cardImages) {
       expect(image.fit, BoxFit.fitWidth, reason: '图片按宽度铺满');
     }
@@ -289,7 +284,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expectGuidePointsAt(tester, find.byKey(const Key('home_help_entry')));
-    expect(find.text(guideStepMessage('first_run_help_download')), findsOneWidget);
+    expect(
+      find.text(guideStepMessage('first_run_help_download')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('「跳过教程」→ 不出现图文直接指「帮助」；按下即全部置位', (tester) async {
@@ -370,7 +368,14 @@ void main() {
         .state<ScrollableState>(find.byType(Scrollable).first)
         .position;
     final headingTop = tester.getTopLeft(find.text(headingText)).dy;
-    expect(headingTop, inInclusiveRange(0, MediaQuery.sizeOf(tester.element(find.byType(Scrollable).first)).height), reason: '目标标题在视口内');
+    expect(
+      headingTop,
+      inInclusiveRange(
+        0,
+        MediaQuery.sizeOf(tester.element(find.byType(Scrollable).first)).height,
+      ),
+      reason: '目标标题在视口内',
+    );
     if (_targetIsInFirstSection(tutorial, link.anchor)) return;
     expect(position.pixels, greaterThan(0), reason: '正文页朝目标标题滚过去');
 
@@ -468,11 +473,9 @@ void main() {
     await tester.tapOnText(find.textRange.ofSubstring('官网'));
     await tester.pumpAndSettle();
 
-    expect(
-      opener.opened,
-      ['https://example.com/tool'],
-      reason: '图文卡与文档页共用渲染件，外部网址同样交打开件',
-    );
+    expect(opener.opened, [
+      'https://example.com/tool',
+    ], reason: '图文卡与文档页共用渲染件，外部网址同样交打开件');
     expect(
       find.byKey(const Key('guide_one_shot')),
       findsOneWidget,
@@ -560,12 +563,12 @@ String _introLine(HelpDocumentContent tutorial) => _firstProseLine(
 );
 
 /// 卡里那一节（第一个二级标题到下一个二级标题之间）的正文行。
-Iterable<String> _firstSectionLines(HelpDocumentContent tutorial) =>
-    tutorial.markdown
-        .split('\n')
-        .skipWhile((line) => !line.startsWith('## '))
-        .skip(1)
-        .takeWhile((line) => !line.startsWith('## '));
+Iterable<String> _firstSectionLines(HelpDocumentContent tutorial) => tutorial
+    .markdown
+    .split('\n')
+    .skipWhile((line) => !line.startsWith('## '))
+    .skip(1)
+    .takeWhile((line) => !line.startsWith('## '));
 
 /// 一组正文行里的第一行普通文字：跳过标题行与图片行，并按渲染后的样子剥掉
 /// 行内标记与提示块的 `>` 记号——那些记号都不出现在屏上。
@@ -573,7 +576,8 @@ String _firstProseLine(Iterable<String> lines) {
   final line = lines
       .map((line) => line.trim())
       .firstWhere(
-        (line) => line.isNotEmpty && !line.startsWith('#') && !line.startsWith('!['),
+        (line) =>
+            line.isNotEmpty && !line.startsWith('#') && !line.startsWith('!['),
       );
   return line
       .replaceFirst(RegExp(r'^>+\s*'), '')
@@ -589,9 +593,8 @@ String _firstProseLine(Iterable<String> lines) {
 ({String label, String anchor, bool onCard})? _firstAnchorLink(
   HelpDocumentContent tutorial,
 ) {
-  final inSection = RegExp(
-    r'\[([^\]]+)\]\(#([^)]+)\)',
-  ).firstMatch(_firstSectionLines(tutorial).join('\n'));
+  final inSection = RegExp(r'\[([^\]]+)\]\(#([^)]+)\)')
+      .firstMatch(_firstSectionLines(tutorial).join('\n'));
   if (inSection != null) {
     return (
       label: inSection.group(1)!,
@@ -599,15 +602,10 @@ String _firstProseLine(Iterable<String> lines) {
       onCard: true,
     );
   }
-  final anywhere = RegExp(
-    r'\[([^\]]+)\]\(#([^)]+)\)',
-  ).firstMatch(tutorial.markdown);
+  final anywhere = RegExp(r'\[([^\]]+)\]\(#([^)]+)\)')
+      .firstMatch(tutorial.markdown);
   if (anywhere == null) return null;
-  return (
-    label: anywhere.group(1)!,
-    anchor: anywhere.group(2)!,
-    onCard: false,
-  );
+  return (label: anywhere.group(1)!, anchor: anywhere.group(2)!, onCard: false);
 }
 
 /// 锚点指向的那条标题原文（按装载侧同一套 slug 规则解析）。

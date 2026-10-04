@@ -65,8 +65,7 @@ NoteGeometry noteGeometryFromGesture({
     centerX:
         start.centerX +
         panDelta.dx * faceDirection.scaleX * windowWidth / contentRect.width,
-    centerY:
-        start.centerY + panDelta.dy * windowHeight / contentRect.height,
+    centerY: start.centerY + panDelta.dy * windowHeight / contentRect.height,
     scale: start.scale * pinchRatio,
   );
 }
@@ -81,9 +80,7 @@ NoteGeometry noteGeometryFromGesture({
 Offset noteStickerCenterOnFace({
   required Offset center,
   required FaceDirection faceDirection,
-}) => faceDirection.isMirrored
-    ? Offset(1 - center.dx, center.dy)
-    : center;
+}) => faceDirection.isMirrored ? Offset(1 - center.dx, center.dy) : center;
 
 /// 备注贴纸在播放页坐标系里的像素矩形：[geometry]（内容矩形归一化）经
 /// **选区窗口**换算（`(源点 − 选区原点) ÷ 选区尺寸`）、[faceDirection]
@@ -111,7 +108,8 @@ Rect noteStickerRect({
     ),
     faceDirection: faceDirection,
   );
-  final mapped = contentRect.topLeft +
+  final mapped =
+      contentRect.topLeft +
       Offset(center.dx * contentRect.width, center.dy * contentRect.height);
   // 逐轴钳制：轴上装得下 → 中心钳进框（矩形完整留在框内）；装不下
   // （贴纸大于内容矩形）→ 该轴居中（钳制退化）。

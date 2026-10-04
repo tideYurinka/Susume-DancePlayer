@@ -56,10 +56,7 @@ void main() {
     expect(await _isReady(cache, 'v1', const Duration(seconds: 7)), isTrue);
     expect(await (await cache.fileFor('v1')).readAsString(), 'fake-jpeg');
     // 临时产物不残留。
-    expect(
-      (await cache.tempFileFor('v1')).existsSync(),
-      isFalse,
-    );
+    expect((await cache.tempFileFor('v1')).existsSync(), isFalse);
   });
 
   test('缓存目录尚不存在：先备好输出位置再取帧，封面照样就绪', () async {
@@ -245,7 +242,6 @@ void main() {
     expect(await _isReady(cache, 'v1', const Duration(seconds: 9)), isTrue);
   });
 }
-
 
 class _FakeExecutor implements CoverFrameExecutor {
   bool result = true;

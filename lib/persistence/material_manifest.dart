@@ -145,9 +145,7 @@ class MaterialManifestDocument {
 
 /// v2 → v3 迁移：`materials` 由「段对象（`entries` + 段级陌生键）」摊平为
 /// 条目列表；只改形状、不写版本号。幂等：只认 `version = 2`。
-Map<String, Object?> _migrateMaterialManifestV2ToV3(
-  Map<String, Object?> json,
-) {
+Map<String, Object?> _migrateMaterialManifestV2ToV3(Map<String, Object?> json) {
   if (json['version'] != 2) return json;
   final materials = json['materials'];
   if (materials is! Map) return Map<String, Object?>.of(json);
@@ -209,13 +207,12 @@ class MaterialManifestStore {
       _materialManifestCodec.decode(await _storage.load());
 
   /// 追加一条素材记录（录制入库唯一写入口）并返回追加后的清单。
-  Future<MaterialManifestDocument> append(MaterialRecord record) =>
-      _mutate(
-        (current) => MaterialManifestDocument(
-          materials: [...current.materials, record],
-          extra: current.extra,
-        ),
-      );
+  Future<MaterialManifestDocument> append(MaterialRecord record) => _mutate(
+    (current) => MaterialManifestDocument(
+      materials: [...current.materials, record],
+      extra: current.extra,
+    ),
+  );
 
   /// 删除一条素材记录（素材库删除的唯一写入口）并返回删除后的清单；
   /// [materialId] 不存在时清单原样（仍整份重写）。
@@ -271,17 +268,18 @@ Future<Directory> defaultMaterialsBaseDirectory() =>
 
 /// 私有素材基目录注入点（返回目录解析器的 provider seam；测试覆盖为
 /// 临时目录，不触 path_provider）。
-final materialsBaseDirectoryProvider =
-    Provider<Future<Directory> Function()>(
-      (ref) => defaultMaterialsBaseDirectory,
-    );
+final materialsBaseDirectoryProvider = Provider<Future<Directory> Function()>(
+  (ref) => defaultMaterialsBaseDirectory,
+);
 
 /// 素材清单文件（`<素材基目录>/manifest.json`）。
-final materialManifestStorageProvider = Provider<MaterialManifestStorage>((ref) {
+final materialManifestStorageProvider = Provider<MaterialManifestStorage>((
+  ref,
+) {
   return MaterialManifestFileStore(
-    ref.watch(materialsBaseDirectoryProvider)().then(
-      (dir) => File(p.join(dir.path, 'manifest.json')),
-    ),
+    ref
+        .watch(materialsBaseDirectoryProvider)()
+        .then((dir) => File(p.join(dir.path, 'manifest.json'))),
   );
 });
 
@@ -291,17 +289,17 @@ final materialManifestStoreProvider = Provider<MaterialManifestStore>(
 
 /// 素材文件在素材基目录下的落位（唯一来源）：`<base>/<videoId>/<fileName>`
 /// ——录制输出解析与素材库删除共用此布局，改落位只动这里。
-String materialFilePathIn(
-  String basePath,
-  String videoId,
-  String fileName,
-) => p.join(basePath, videoId, fileName);
+String materialFilePathIn(String basePath, String videoId, String fileName) =>
+    p.join(basePath, videoId, fileName);
 
 /// 删除某支舞的全部素材文件：素材按舞分目录，整目录删净——清单条目对应的
 /// 文件与未入清单的录制残留（中断的录制、`.tmp`、清单写失败产物）一起消失，
 /// 不留再也进不去的孤儿素材。目录不存在视作已删；失败向上抛（调用方
 /// best-effort）。布局的唯一来源同 [materialFilePathIn]。
-Future<void> deleteMaterialFilesForVideo(String basePath, String videoId) async {
+Future<void> deleteMaterialFilesForVideo(
+  String basePath,
+  String videoId,
+) async {
   final directory = Directory(p.join(basePath, videoId));
   if (directory.existsSync()) directory.deleteSync(recursive: true);
 }

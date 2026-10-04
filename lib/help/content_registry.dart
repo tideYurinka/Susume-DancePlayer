@@ -123,62 +123,20 @@ const String badgeHalfBeatUnitId = 'badge_half_beat';
 const String badgeThreeFingerJumpUnitId = 'badge_three_finger_jump';
 
 const List<GuideUnit> helpGuideUnits = [
-  GuideUnit(
-    id: 'first_run',
-    group: GuideUnitGroup.start,
-  ),
-  GuideUnit(
-    id: 'player_drill',
-    group: GuideUnitGroup.player,
-  ),
-  GuideUnit(
-    id: editorIntroUnitId,
-    group: GuideUnitGroup.player,
-  ),
-  GuideUnit(
-    id: practiceRangeUnitId,
-    group: GuideUnitGroup.player,
-  ),
-  GuideUnit(
-    id: badgeSegmentUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeAutoSegmentUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeBeatPromptUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeSpeedUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeAvSyncUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeRosterUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeLocalMirrorUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeSegmentFlagUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeThreeFingerJumpUnitId,
-    group: GuideUnitGroup.hint,
-  ),
-  GuideUnit(
-    id: badgeHalfBeatUnitId,
-    group: GuideUnitGroup.hint,
-  ),
+  GuideUnit(id: 'first_run', group: GuideUnitGroup.start),
+  GuideUnit(id: 'player_drill', group: GuideUnitGroup.player),
+  GuideUnit(id: editorIntroUnitId, group: GuideUnitGroup.player),
+  GuideUnit(id: practiceRangeUnitId, group: GuideUnitGroup.player),
+  GuideUnit(id: badgeSegmentUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeAutoSegmentUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeBeatPromptUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeSpeedUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeAvSyncUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeRosterUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeLocalMirrorUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeSegmentFlagUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeThreeFingerJumpUnitId, group: GuideUnitGroup.hint),
+  GuideUnit(id: badgeHalfBeatUnitId, group: GuideUnitGroup.hint),
 ];
 
 /// 需「功能被触达」才可能出现的单元全集（功能提示只在用户
@@ -499,9 +457,9 @@ bool guideIsFinalStepOfUnit(GuideStep step, FirstRunChoice? choice) {
 /// [unitId] 在注册表里的全部步是否都已走完（读面是**本会话已走完的步**）：
 /// 多步单元用来判「轮到它后面的那一步了」——注册表序即推进序，本单元全部步
 /// 走完才轮到下一个单元。
-bool guideUnitStepsDone(String unitId, Set<String> sessionStepsDone) => [
-  for (final step in guideStepsOfUnit(unitId)) step.id,
-].every(sessionStepsDone.contains);
+bool guideUnitStepsDone(String unitId, Set<String> sessionStepsDone) =>
+    [for (final step in guideStepsOfUnit(unitId)) step.id]
+        .every(sessionStepsDone.contains);
 
 /// 首启第 1 步的锚点 key：锚点包装器与被包控件共用同一份字面量。
 const String importVideoAnchorKey = 'import_video_button';
@@ -677,14 +635,8 @@ class GuideDrillStep {
 
 /// 手势演练步表：单指滑 / 双指滑 / 末步三个点击类子勾（三步；三指滑不在此教）。
 const List<GuideDrillStep> helpDrillSteps = [
-  GuideDrillStep(
-    id: 'drill_single_finger',
-    actionIcon: Icons.swipe,
-  ),
-  GuideDrillStep(
-    id: 'drill_two_finger',
-    actionIcon: Icons.fast_forward,
-  ),
+  GuideDrillStep(id: 'drill_single_finger', actionIcon: Icons.swipe),
+  GuideDrillStep(id: 'drill_two_finger', actionIcon: Icons.fast_forward),
   GuideDrillStep(
     id: 'drill_taps',
     actionIcon: Icons.touch_app,

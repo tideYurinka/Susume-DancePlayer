@@ -61,8 +61,7 @@ class _TestGrid implements BeatGrid {
   int get beatsPerBar => 4;
 
   @override
-  Duration beatTime(int index) =>
-      Duration(milliseconds: index * 500); // 120bpm
+  Duration beatTime(int index) => Duration(milliseconds: index * 500); // 120bpm
 
   @override
   int beatIndexAt(Duration time) => time.inMilliseconds ~/ 500;
@@ -78,26 +77,21 @@ class _TestGrid implements BeatGrid {
       beatTime(from + count) - beatTime(from);
 
   @override
-  List<Duration> beatsInWindow(Duration start, Duration end) =>
-      [for (var i = beatIndexAt(start); i <= beatIndexAt(end); i++) beatTime(i)];
+  List<Duration> beatsInWindow(Duration start, Duration end) => [
+    for (var i = beatIndexAt(start); i <= beatIndexAt(end); i++) beatTime(i),
+  ];
 }
 
 void main() {
   group('素材记录值对象', () {
     test('字段齐全、相等按字段声明', () {
       expect(_material(), equals(_material()));
-      expect(
-        _material(id: 'm2'),
-        isNot(equals(_material())),
-      );
+      expect(_material(id: 'm2'), isNot(equals(_material())));
     });
 
     test('录制完成即建 1:1 在轨片段（截取范围 = 素材全长）', () {
       final material = _material(durationMs: 8000, sourceStartMs: 60000);
-      final clip = PracticeClip.fullLength(
-        id: 'c1',
-        material: material,
-      );
+      final clip = PracticeClip.fullLength(id: 'c1', material: material);
       expect(clip.inMs, 0);
       expect(clip.outMs, 8000);
       expect(clip.sourceStartMs, 60000);
@@ -155,15 +149,10 @@ void main() {
 
     test('素材记录永不被清理改动（函数不触素材表）', () {
       final material = _material();
-      pruneClipsOverlappedBy(
-        [_clip('a', sourceStart: 61000, sourceEnd: 62000)],
-        const IntervalSpan(startMs: 60000, endMs: 63000),
-      );
-      expect(
-        material,
-        equals(_material()),
-        reason: '重叠清理只作用于轨道引用，素材不动',
-      );
+      pruneClipsOverlappedBy([
+        _clip('a', sourceStart: 61000, sourceEnd: 62000),
+      ], const IntervalSpan(startMs: 60000, endMs: 63000));
+      expect(material, equals(_material()), reason: '重叠清理只作用于轨道引用，素材不动');
     });
   });
 

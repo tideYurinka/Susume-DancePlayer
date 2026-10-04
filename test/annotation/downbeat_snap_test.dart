@@ -63,7 +63,10 @@ void main() {
     test('占位/异常网格：按各自强拍周期解析（就绪门在调用侧）', () {
       // 占位均匀网格（120bpm、强拍每 4 拍 = 每 2s）。
       expect(resolveDownbeatSnap(ms(700), grid: placeholderBeatGrid), ms(0));
-      expect(resolveDownbeatSnap(ms(1400), grid: placeholderBeatGrid), ms(2000));
+      expect(
+        resolveDownbeatSnap(ms(1400), grid: placeholderBeatGrid),
+        ms(2000),
+      );
       // 异常态秒制兜底网格（每拍 0.5s、强拍每 4 拍）。
       const error = UnavailableBeatGrid();
       expect(resolveDownbeatSnap(ms(700), grid: error), ms(0));

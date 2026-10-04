@@ -44,9 +44,7 @@ void main() {
     container.read(noticeTriggerProvider(id).notifier).show();
   }
 
-  testWidgets('触发身份 → 屏幕正中恰好一条胶囊，key 与内容对，绘制在控制层替身之后', (
-    tester,
-  ) async {
+  testWidgets('触发身份 → 屏幕正中恰好一条胶囊，key 与内容对，绘制在控制层替身之后', (tester) async {
     await tester.pumpWidget(host(tester, const [localMirrorSpec]));
     expect(find.byType(NoticeBadge), findsNothing);
 
@@ -89,7 +87,9 @@ void main() {
   });
 
   testWidgets('后触发者接管：同屏只有一条，前一条消失', (tester) async {
-    await tester.pumpWidget(host(tester, const [localMirrorSpec, overlayCloseSpec]));
+    await tester.pumpWidget(
+      host(tester, const [localMirrorSpec, overlayCloseSpec]),
+    );
     trigger(tester, NoticeId.localMirrorEmpty);
     await tester.pump();
     expect(find.byKey(const Key('host_notice_a')), findsOneWidget);
@@ -121,7 +121,9 @@ void main() {
   });
 
   testWidgets('换身份时销毁旧控制器：旧身份的停留定时不再点燃', (tester) async {
-    await tester.pumpWidget(host(tester, const [localMirrorSpec, overlayCloseSpec]));
+    await tester.pumpWidget(
+      host(tester, const [localMirrorSpec, overlayCloseSpec]),
+    );
     trigger(tester, NoticeId.localMirrorEmpty);
     await tester.pump();
     expect(find.byKey(const Key('host_notice_a')), findsOneWidget);
@@ -129,11 +131,16 @@ void main() {
     // 立刻换身份：旧控制器销毁，其 hold（1500ms）到点不得把宿主拉回可见；
     // 新身份停留 2000ms，此刻仍在。
     trigger(tester, NoticeId.beatOverlayClose);
-    await tester.pump(noticeTimingOf(NoticeId.localMirrorEmpty).hold +
-        const Duration(milliseconds: 100));
+    await tester.pump(
+      noticeTimingOf(NoticeId.localMirrorEmpty).hold +
+          const Duration(milliseconds: 100),
+    );
     expect(find.byKey(const Key('host_notice_a')), findsNothing);
-    expect(find.byKey(const Key('host_notice_b')), findsOneWidget,
-        reason: '新身份按自己的时长继续停留');
+    expect(
+      find.byKey(const Key('host_notice_b')),
+      findsOneWidget,
+      reason: '新身份按自己的时长继续停留',
+    );
   });
 }
 

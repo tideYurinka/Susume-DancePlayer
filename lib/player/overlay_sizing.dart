@@ -1,6 +1,5 @@
 part of 'overlay.dart';
 
-
 /// 浮层内容基准尺寸（系数 1.0 时的逻辑尺寸；命中区/选中框同源）。
 /// 宽 = 矩形形态默认内容宽 320；
 /// 高容纳数拍数字 + 节拍动画，全形态固定（高向预算 ≥
@@ -69,9 +68,7 @@ Size resolveOverlaySize({
 /// 极窄视口下生效上限可低于内容相对下限——铺满视口为准。
 double effectiveMaxRectWidthFactor(Size viewport) {
   final viewportCap = viewport.width / kOverlayBaseContentSize.width;
-  return viewportCap < kMaxRectWidthFactor
-      ? viewportCap
-      : kMaxRectWidthFactor;
+  return viewportCap < kMaxRectWidthFactor ? viewportCap : kMaxRectWidthFactor;
 }
 
 /// 摆锤等比系数的视口联动生效上限：min(内容相对上限, 视口宽/基准宽,
@@ -81,9 +78,7 @@ double effectiveMaxPendulumScale(Size viewport) {
   final widthCap = viewport.width / kPendulumBaseContentSize.width;
   final heightCap = viewport.height / kPendulumBaseContentSize.height;
   final viewportCap = widthCap < heightCap ? widthCap : heightCap;
-  return viewportCap < kMaxPendulumScale
-      ? viewportCap
-      : kMaxPendulumScale;
+  return viewportCap < kMaxPendulumScale ? viewportCap : kMaxPendulumScale;
 }
 
 /// 位置屏内钳制：内容 ≤ 视口时整体钳在视口内（右/下贴边、

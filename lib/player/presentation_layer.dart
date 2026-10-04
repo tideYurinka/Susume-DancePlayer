@@ -30,7 +30,9 @@ import 'annotation_editor.dart'
         noteStickersProvider,
         practiceOnscreenFaceProvider;
 import 'beat_animation.dart' show beatAnimationStyleProvider;
+
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
+
 import 'compare_framing_bar.dart'
     show FramingBar, kCompareFramingBarBottomInset;
 import 'framing_session_state.dart' show framingStateProvider;
@@ -154,6 +156,7 @@ class PresentationLayerInput {
 
   /// 提示声明清单（组合根装配）：演出层只挂一条宿主。
   final List<NoticeSpec> noticeSpecs;
+
   /// 演出层会话（浮层控制器、装配句柄与提示控制器的唯一持有者）。
   final PresentationSession presentation;
   final CameraCaptureService camera;
@@ -180,6 +183,7 @@ class PresentationLayerInput {
   final bool opened;
   final bool openFailed;
   final PracticeClip? reviewingClip;
+
   /// 布局事实（构建上下文读取留在组合根）：系统栏顶内缩与横竖屏姿态。
   final double systemTopInset;
 
@@ -239,8 +243,7 @@ class PresentationLayer extends ConsumerWidget {
     // 录制中（含准备期）：转屏钮不出现——录制画面方向在起录瞬间已锁定，
     // 中途改布局只会让预览与素材不一致。
     final recording =
-        ref.watch(compareRecordingPhaseProvider) !=
-        CompareRecordingPhase.idle;
+        ref.watch(compareRecordingPhaseProvider) != CompareRecordingPhase.idle;
     // 避开系统手势让路区：叠加组合根传入的系统上报内缩，
     // 为 0 时落位不变。
     final gesture = input.systemGestureInsets;
@@ -403,9 +406,7 @@ class PresentationLayer extends ConsumerWidget {
             bottom: kCompareFramingBarBottomInset,
             child: Center(
               child: FramingBar(
-                onReset: () => ref
-                    .read(framingStateProvider.notifier)
-                    .reset(),
+                onReset: () => ref.read(framingStateProvider.notifier).reset(),
                 onDone: input.editorEntry.exitFraming,
               ),
             ),
@@ -473,14 +474,14 @@ class PresentationLayer extends ConsumerWidget {
         // 锚——每帧算一次，落位规则只有一条（`cornerPromptAnchor`）。
         LayoutBuilder(
           builder: (context, constraints) {
-            final anchor = _promptAnchor(constraints.biggest, selection: framing);
+            final anchor = _promptAnchor(
+              constraints.biggest,
+              selection: framing,
+            );
             return Stack(
               fit: StackFit.expand,
               children: [
-                LoopPromptOverlay(
-                  controller: input.loopPrompt,
-                  anchor: anchor,
-                ),
+                LoopPromptOverlay(controller: input.loopPrompt, anchor: anchor),
                 ResumePromptOverlay(anchor: anchor),
               ],
             );
@@ -529,7 +530,8 @@ class PresentationLayer extends ConsumerWidget {
                 takeover: input.takeover,
                 face: ref.watch(practiceOnscreenFaceProvider),
                 buildClipPicture: () =>
-                    input.compareRecordingClips.clipEngine?.buildVideoSurface() ??
+                    input.compareRecordingClips.clipEngine
+                        ?.buildVideoSurface() ??
                     const SizedBox.shrink(),
               ),
             )
@@ -627,7 +629,8 @@ class PresentationLayer extends ConsumerWidget {
         selection: selection,
       );
       // 宽高比未知（画面即容器）时退化为宿主框整体。
-      return framed ?? videoContentRectInBox(box: box, aspectRatio: aspectRatio);
+      return framed ??
+          videoContentRectInBox(box: box, aspectRatio: aspectRatio);
     }
     // 对比源侧半区同口径：读数一律落到源半区的画面矩形（未调过 =
     // 整帧 contain、取景后 = 选区内容 contain）——未调过与「选区恰好覆盖整
@@ -679,10 +682,7 @@ Widget _openFailedOverlay(VoidCallback onBack) {
           style: TextStyle(color: Colors.white, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        FilledButton(
-          onPressed: onBack,
-          child: const Text('返回'),
-        ),
+        FilledButton(onPressed: onBack, child: const Text('返回')),
       ],
     ),
   );
@@ -789,8 +789,11 @@ class _ClipReviewExitChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.stop_circle_outlined,
-                    color: Colors.white, size: 18),
+                const Icon(
+                  Icons.stop_circle_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   label,
@@ -823,7 +826,8 @@ class _ThreeFingerToastContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final left = ref.watch(threeFingerToastDirectionProvider) ==
+    final left =
+        ref.watch(threeFingerToastDirectionProvider) ==
         ThreeFingerSwipeDirection.left;
     return Row(
       mainAxisSize: MainAxisSize.min,

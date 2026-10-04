@@ -23,8 +23,9 @@ import 'package:dance_learning_app/player/settings_persistence.dart'
     show videoDocumentStorageProvider;
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
-import '../helpers/video_surface.dart'
-    show videoSurfacePlaceholderKey;
+
+import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
@@ -73,13 +74,14 @@ void main() {
             InMemoryPrivateJsonStorage(),
           ),
           systemUiControllerProvider.overrideWithValue(systemUi),
-          contentHasherProvider.overrideWithValue(const FixedHasher('vid-test')),
+          contentHasherProvider.overrideWithValue(
+            const FixedHasher('vid-test'),
+          ),
           videoDocumentStorageFactoryProvider.overrideWithValue(
             (videoId) => docStorage,
           ),
-          videoDocumentStorageProvider(
-            'vid-test',
-          ).overrideWithValue(docStorage),
+          videoDocumentStorageProvider('vid-test')
+              .overrideWithValue(docStorage),
         ],
         child: MaterialApp(home: PlayerPage(source: source)),
       ),
@@ -179,16 +181,18 @@ void main() {
     camera = FakeCameraCaptureService();
   });
 
-  testWidgets('单画面取景：拖动圈出一块选区；双击不暂停（除取景手势外手势全停）', (
-    tester,
-  ) async {
+  testWidgets('单画面取景：拖动圈出一块选区；双击不暂停（除取景手势外手势全停）', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await enterSingleFraming(tester);
 
     expect(sourceSelectionOf(tester), isNull, reason: '未调过 = 取值不存在');
 
-    await buildBox(tester, from: const Offset(240, 120), to: const Offset(480, 280));
+    await buildBox(
+      tester,
+      from: const Offset(240, 120),
+      to: const Offset(480, 280),
+    );
     final selection = sourceSelectionOf(tester);
     expect(selection, isNotNull, reason: '拖动圈出一块选区');
     expect(selection!.width, lessThan(1.0));
@@ -196,24 +200,31 @@ void main() {
 
     // 双击暂停停用：引擎播放态不变。
     final playingBefore = engine.isPlaying;
-    await tester.tap(find.byKey(const Key('player_surface')), warnIfMissed: false);
+    await tester.tap(
+      find.byKey(const Key('player_surface')),
+      warnIfMissed: false,
+    );
     await tester.pump(kDoubleTapTimeout);
-    await tester.tap(find.byKey(const Key('player_surface')), warnIfMissed: false);
+    await tester.tap(
+      find.byKey(const Key('player_surface')),
+      warnIfMissed: false,
+    );
     await tester.pump(kDoubleTapTimeout);
     expect(engine.isPlaying, playingBefore, reason: '双击暂停停用');
     expect(modeOf(tester).name, 'framing', reason: '单击（双击首击）也不唤控制层');
   });
 
-  testWidgets('打开含旧 v3 取景键的舞：单画面路径未调过、按整帧起手构图', (
-    tester,
-  ) async {
+  testWidgets('打开含旧 v3 取景键的舞：单画面路径未调过、按整帧起手构图', (tester) async {
     setWideView(tester);
-    await pumpPlayer(tester, local: {
-      'version': 3,
-      'prefs': {
-        'framingSource': {'scale': 2.5, 'offsetX': 0.0, 'offsetY': 0.0},
+    await pumpPlayer(
+      tester,
+      local: {
+        'version': 3,
+        'prefs': {
+          'framingSource': {'scale': 2.5, 'offsetX': 0.0, 'offsetY': 0.0},
+        },
       },
-    });
+    );
     await enterSingleFraming(tester);
 
     expect(
@@ -223,9 +234,7 @@ void main() {
     );
   });
 
-  testWidgets('竖屏贴底：覆盖层的画面矩形贴着画面实际显示位置（不偏上）', (
-    tester,
-  ) async {
+  testWidgets('竖屏贴底：覆盖层的画面矩形贴着画面实际显示位置（不偏上）', (tester) async {
     useNamedViewport(tester, ViewportTier.compact, landscape: false);
     await pumpPlayer(tester);
     await enterSingleFraming(tester);
@@ -282,7 +291,11 @@ void main() {
     await pumpPlayer(tester);
 
     await enterSingleFraming(tester);
-    await buildBox(tester, from: const Offset(240, 120), to: const Offset(480, 280));
+    await buildBox(
+      tester,
+      from: const Offset(240, 120),
+      to: const Offset(480, 280),
+    );
     final single = sourceSelectionOf(tester)!;
     expect(single.width, lessThan(1.0));
 
@@ -308,7 +321,11 @@ void main() {
     await pumpPlayer(tester);
 
     await enterSingleFraming(tester);
-    await buildBox(tester, from: const Offset(240, 120), to: const Offset(480, 280));
+    await buildBox(
+      tester,
+      from: const Offset(240, 120),
+      to: const Offset(480, 280),
+    );
     expect(sourceSelectionOf(tester), isNotNull);
 
     await tester.tap(find.byKey(const Key('framing_reset')));

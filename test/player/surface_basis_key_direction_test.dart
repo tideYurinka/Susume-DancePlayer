@@ -29,7 +29,9 @@ void main() {
   late InMemoryPrivateJsonStorage privateJson;
   late ProviderContainer container;
 
-  ProviderContainer makeContainer({Map<String, dynamic> privateInitial = const {}}) {
+  ProviderContainer makeContainer({
+    Map<String, dynamic> privateInitial = const {},
+  }) {
     camera = FakeCameraCaptureService();
     privateJson = InMemoryPrivateJsonStorage(initial: privateInitial);
     return ProviderContainer(
@@ -43,17 +45,19 @@ void main() {
 
   /// 以设备事实的当前取值求画面方向（练习镜像 / 源侧输入取中性值——本文件
   /// 受审的是基线项那一项）。
-  SurfaceDirection tableOf(SurfaceBaselines baselines, {bool practiceMirror = false}) =>
-      SurfaceDirection(
-        moment: SurfaceMoment(
-          globalMirrored: false,
-          localMirrorEnabled: false,
-          fragments: const [],
-          positionMs: 0,
-          practiceMirror: practiceMirror,
-          baselines: baselines,
-        ),
-      );
+  SurfaceDirection tableOf(
+    SurfaceBaselines baselines, {
+    bool practiceMirror = false,
+  }) => SurfaceDirection(
+    moment: SurfaceMoment(
+      globalMirrored: false,
+      localMirrorEnabled: false,
+      fragments: const [],
+      positionMs: 0,
+      practiceMirror: practiceMirror,
+      baselines: baselines,
+    ),
+  );
 
   test('键值变化 ⇒ 画面方向表按新键落定（预览面的施加缩放随之翻，'
       '两路可见方向锚定平台保存基准）', () async {

@@ -190,12 +190,10 @@ class VideoIndexEntry {
           mirrorAsked: values[VideoIndexEntryField.mirrorAsked]! as bool,
           localMirrorEnabled:
               values[VideoIndexEntryField.localMirrorEnabled]! as bool,
-          lastOpenedAt:
-              values[VideoIndexEntryField.lastOpenedAt]! as DateTime,
+          lastOpenedAt: values[VideoIndexEntryField.lastOpenedAt]! as DateTime,
           signatureCache:
               values[VideoIndexEntryField.signatureCache] as SongSignature?,
-          lastPositionMs:
-              values[VideoIndexEntryField.lastPositionMs]! as int,
+          lastPositionMs: values[VideoIndexEntryField.lastPositionMs]! as int,
         ),
         extraOf: (v) => v.extra,
         withExtra: (v, extra) => v.copyWith(extra: extra),
@@ -273,8 +271,12 @@ class VideoIndex {
   /// 文档级陌生键保底区：读入时原样带回、写回原样（不参与相等）。
   final Map<String, Object?> extra;
 
-  static final ListDocumentCodec<VideoIndex, VideoIndexEntry,
-      VideoIndexEntryField> _codec = ListDocumentCodec(
+  static final ListDocumentCodec<
+    VideoIndex,
+    VideoIndexEntry,
+    VideoIndexEntryField
+  >
+  _codec = ListDocumentCodec(
     policy: versionPolicy,
     listKey: 'entries',
     elementCodec: VideoIndexEntry.codec,
@@ -398,10 +400,8 @@ class VideoIndex {
   /// 调用方据此跳过写盘）。供「以权威源整条回写」场景使用（如打开恢复时
   /// 以 markers 的署名/镜像回写 index 缓存）——[upsert] 会保留
   /// 既有镜像值，不适用本场景。
-  VideoIndex replaceEntry(VideoIndexEntry entry) => _mapEntry(
-    (e) => e.videoId == entry.videoId,
-    (e) => entry,
-  );
+  VideoIndex replaceEntry(VideoIndexEntry entry) =>
+      _mapEntry((e) => e.videoId == entry.videoId, (e) => entry);
 
   /// 删除指定 videoId 的条目（舞被删除时索引侧的唯一写入口）；未命中
   /// 原样返回（同一实例，调用方据此跳过写盘）。陌生键保底区随行。
@@ -431,8 +431,7 @@ class VideoIndex {
 
   Map<String, dynamic> toJson() => _codec.encode(this);
 
-  factory VideoIndex.fromJson(Map<String, dynamic> json) =>
-      _codec.decode(json);
+  factory VideoIndex.fromJson(Map<String, dynamic> json) => _codec.decode(json);
 }
 
 /// 视频索引的读写能力（import 域对外暴露的最小接口）。

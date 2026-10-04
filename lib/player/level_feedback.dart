@@ -54,7 +54,11 @@ class LevelAdjustSlider extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(display.icon, size: kLevelAdjustIconSize, color: Colors.white),
+              Icon(
+                display.icon,
+                size: kLevelAdjustIconSize,
+                color: Colors.white,
+              ),
               const SizedBox(width: kLevelAdjustIconTrackGap),
               Expanded(
                 child: SizedBox(
@@ -64,8 +68,9 @@ class LevelAdjustSlider extends StatelessWidget {
                     builder: (context, constraints) {
                       final fillWidth =
                           constraints.maxWidth * value.clamp(0.0, 1.0);
-                      final trackRadius =
-                          BorderRadius.circular(kLevelAdjustTrackHeight / 2);
+                      final trackRadius = BorderRadius.circular(
+                        kLevelAdjustTrackHeight / 2,
+                      );
                       return Stack(
                         fit: StackFit.expand,
                         children: [

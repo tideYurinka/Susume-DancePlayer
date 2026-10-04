@@ -131,8 +131,15 @@ DailyPracticeDetail dailyPracticeDetail(
 ) {
   final target = localDay(day);
   final byVideo =
-      <String,
-      ({SongSignature signature, DateTime start, Duration total, int sessions})>{};
+      <
+        String,
+        ({
+          SongSignature signature,
+          DateTime start,
+          Duration total,
+          int sessions,
+        })
+      >{};
   var total = Duration.zero;
   var sessions = 0;
   for (final record in records) {
@@ -149,19 +156,20 @@ DailyPracticeDetail dailyPracticeDetail(
       sessions: (current?.sessions ?? 0) + (record.wallSeconds > 0 ? 1 : 0),
     );
   }
-  final dances = [
-    for (final entry in byVideo.entries)
-      if (entry.value.total > Duration.zero)
-        DailyPracticeDance(
-          videoId: entry.key,
-          signature: entry.value.signature,
-          total: entry.value.total,
-          sessions: entry.value.sessions,
-        ),
-  ]..sort((a, b) {
-    final byTotal = b.total.compareTo(a.total);
-    return byTotal != 0 ? byTotal : a.videoId.compareTo(b.videoId);
-  });
+  final dances =
+      [
+        for (final entry in byVideo.entries)
+          if (entry.value.total > Duration.zero)
+            DailyPracticeDance(
+              videoId: entry.key,
+              signature: entry.value.signature,
+              total: entry.value.total,
+              sessions: entry.value.sessions,
+            ),
+      ]..sort((a, b) {
+        final byTotal = b.total.compareTo(a.total);
+        return byTotal != 0 ? byTotal : a.videoId.compareTo(b.videoId);
+      });
   return DailyPracticeDetail(
     day: target,
     total: total,
@@ -208,8 +216,7 @@ int statsMetricValue(Duration total, int sessions, StatsMetric metric) =>
 /// 柱按当前单位取量（柱高归一的分子与分母同尺）。
 extension DailyPracticeBarMetric on DailyPracticeBar {
   /// 当前单位下的量（时长为微秒，场次为场次数）。
-  int valueFor(StatsMetric metric) =>
-      statsMetricValue(total, sessions, metric);
+  int valueFor(StatsMetric metric) => statsMetricValue(total, sessions, metric);
 }
 
 /// 明细列表内当前单位的最大值（日下钻进度条归一的基准，与排行归一
@@ -221,9 +228,9 @@ int dayDetailMaxValue(List<DailyPracticeDance> dances, StatsMetric metric) =>
     });
 
 /// 明细行按当前单位取量、取文案、比较（降序 + videoId 升序稳定次序）。
-extension DailyPracticeDanceMetric on DailyPracticeDance {  /// 当前单位下的量（时长为微秒，场次为场次数）。
-  int valueFor(StatsMetric metric) =>
-      statsMetricValue(total, sessions, metric);
+extension DailyPracticeDanceMetric on DailyPracticeDance {
+  /// 当前单位下的量（时长为微秒，场次为场次数）。
+  int valueFor(StatsMetric metric) => statsMetricValue(total, sessions, metric);
 
   /// 当前单位下的展示文案（界面口径：「次数」）。
   String textFor(StatsMetric metric) => switch (metric) {

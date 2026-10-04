@@ -19,7 +19,8 @@ extension VideoDocumentWriteTestHelpers on VideoDocumentCoordinator {
     if (outcome is! WritableDocumentReadOutcome<MarkersDocument>) {
       return outcome.document;
     }
-    return (await outcome.write((context) => mutate(context.document))).document;
+    return (await outcome.write((context) => mutate(context.document)))
+        .document;
   }
 
   /// 经可写读结局整份写回 local；只读文件上不写。
@@ -30,6 +31,7 @@ extension VideoDocumentWriteTestHelpers on VideoDocumentCoordinator {
     if (outcome is! WritableDocumentReadOutcome<LocalDocument>) {
       return outcome.document;
     }
-    return (await outcome.write((context) => mutate(context.document))).document;
+    return (await outcome.write((context) => mutate(context.document)))
+        .document;
   }
 }

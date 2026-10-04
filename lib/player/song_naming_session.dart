@@ -5,12 +5,11 @@ import '../stats/song_signature.dart';
 /// 命名对话框的呈现接缝：域把初值、回退文本与是否可点框外收起
 /// 交给宿主，宿主（widget 层）负责按构建上下文弹出命名框并交回用户结论。
 /// 返回值 null = 页面已卸载或点框外收起，域按「不提交」处理。
-typedef SongNamingPresenter =
-    Future<SongNamingResult?> Function({
-      required SongNamingInitial initial,
-      required String fallbackFileName,
-      required bool barrierDismissible,
-    });
+typedef SongNamingPresenter = Future<SongNamingResult?> Function({
+  required SongNamingInitial initial,
+  required String fallbackFileName,
+  required bool barrierDismissible,
+});
 
 /// 歌曲署名的命名会话域：自持首次导入判定、命名/改名编排与
 /// 提交路径，宿主不再持有这些方法。
@@ -89,9 +88,6 @@ class SongNamingSession {
   /// （内存态即时生效 → 标题刷新）；随后署名域自己发出提交通知，统计域
   /// 据此把署名快照写-through 迁移。
   Future<void> _commit(SongSignature raw, String fallbackSong) async {
-    await _signatureController.applySignature(
-      raw,
-      fallbackSong: fallbackSong,
-    );
+    await _signatureController.applySignature(raw, fallbackSong: fallbackSong);
   }
 }

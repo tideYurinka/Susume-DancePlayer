@@ -73,8 +73,7 @@ Future<void> _pumpStats(WidgetTester tester) async {
 
 Finder _ticks() => find.byWidgetPredicate((widget) {
   final key = widget.key;
-  return key is ValueKey<String> &&
-      key.value.startsWith('daily_axis_tick_');
+  return key is ValueKey<String> && key.value.startsWith('daily_axis_tick_');
 });
 
 void main() {
@@ -89,16 +88,18 @@ void main() {
       // 刻度全部单行在场且不与柱区重叠：最宽刻度的右缘不越过任意柱的左缘。
       final barFinder = find.byWidgetPredicate((widget) {
         final key = widget.key;
-        return key is ValueKey<String> &&
-            key.value.startsWith('daily_bar_2');
+        return key is ValueKey<String> && key.value.startsWith('daily_bar_2');
       });
       expect(barFinder, findsWidgets);
       final barLeft = tester.getTopLeft(barFinder.first).dx;
       for (final Element tick in _ticks().evaluate()) {
         final rect = tester.getRect(find.byWidget(tick.widget));
         expect(rect.height, lessThan(60), reason: '刻度未换行撑破');
-        expect(rect.right, lessThanOrEqualTo(barLeft + 0.5),
-            reason: '刻度 ${tick.widget.key} 不与柱重叠');
+        expect(
+          rect.right,
+          lessThanOrEqualTo(barLeft + 0.5),
+          reason: '刻度 ${tick.widget.key} 不与柱重叠',
+        );
       }
     });
   }

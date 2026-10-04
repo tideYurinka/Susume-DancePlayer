@@ -85,7 +85,7 @@ void main() {
 
     containerOf(tester)
       ..read(guideSessionProvider.notifier)
-      .recordArtifact(badgeSegmentUnitId, 1)
+          .recordArtifact(badgeSegmentUnitId, 1)
       ..read(guideSessionProvider.notifier).trigger(badgeSegmentUnitId);
     await tester.pumpAndSettle();
 

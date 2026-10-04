@@ -142,9 +142,7 @@ AnnotationTimeline applyAutoSegment(
     videoDuration: t.videoDuration,
     rangeStart: start,
     rangeEnd: end,
-    segmentLines: [
-      for (final cut in cuts) SegmentLine(position: cut),
-    ],
+    segmentLines: [for (final cut in cuts) SegmentLine(position: cut)],
     halfBeatLines: t.halfBeatLines,
   );
   final landed = _migratedFlagCuts(t.segmentLines, replaced);
@@ -251,7 +249,10 @@ AnnotationTimeline addHalfBeatLine(AnnotationTimeline t, Duration at) {
   return _rebuild(
     t,
     lines: t.segmentLines,
-    halfBeats: [...t.halfBeatLines, HalfBeatLine(position: at)],
+    halfBeats: [
+      ...t.halfBeatLines,
+      HalfBeatLine(position: at),
+    ],
   );
 }
 

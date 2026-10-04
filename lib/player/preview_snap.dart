@@ -48,8 +48,8 @@ Duration previewSnapRadiusTime({
 }) {
   if (width <= 0) return Duration.zero;
   return Duration(
-    microseconds:
-        (windowSpan.inMicroseconds * kPreviewSnapRadiusDp / width).round(),
+    microseconds: (windowSpan.inMicroseconds * kPreviewSnapRadiusDp / width)
+        .round(),
   );
 }
 

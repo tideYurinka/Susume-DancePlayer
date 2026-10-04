@@ -137,8 +137,7 @@ import '../annotation/compare_materials.dart'
         pruneClipsOverlappedBy;
 import '../annotation/note_sticker.dart';
 import '../annotation/segment_selection.dart';
-import '../annotation/snap.dart'
-    show nearestCandidate, snapRangeBoundary;
+import '../annotation/snap.dart' show nearestCandidate, snapRangeBoundary;
 import '../annotation/timeline_ops.dart' as timeline_ops;
 import '../annotation/transition_segment.dart';
 import '../beat_track_state/beat_track_state.dart';
@@ -203,16 +202,18 @@ AnnotationSelectionWritePort _selectionWritePort(Ref ref) {
       ref.read(practiceClipActivationProvider.notifier)._clear();
     },
     persistSelection: (_) {
-      ref.read(annotationSaveSinkProvider)?.save(
-        AnnotationSectionDiff(
-          session: _currentSessionValue(
-            ref,
-            activePracticeClipId: ref
-                .read(practiceClipActivationProvider)
-                ?.clipId,
-          ),
-        ),
-      );
+      ref
+          .read(annotationSaveSinkProvider)
+          ?.save(
+            AnnotationSectionDiff(
+              session: _currentSessionValue(
+                ref,
+                activePracticeClipId: ref
+                    .read(practiceClipActivationProvider)
+                    ?.clipId,
+              ),
+            ),
+          );
     },
   );
 }
@@ -371,12 +372,12 @@ Set<AnnotationEditGateReason> gestureTargetGateReasons(
   AnnotationGestureTarget.segmentLineMove => AnnotationEditor.verbGateReasons(
     const MoveSegmentLine(index: 0, to: Duration.zero),
   ),
-  AnnotationGestureTarget.halfBeatLineMove =>
-    AnnotationEditor.verbGateReasons(
-      const MoveHalfBeatLine(index: 0, to: Duration.zero),
-    ),
-  AnnotationGestureTarget.rangeBoundaryDrag =>
-    AnnotationEditor.verbGateReasons(const SetVideoRange()),
+  AnnotationGestureTarget.halfBeatLineMove => AnnotationEditor.verbGateReasons(
+    const MoveHalfBeatLine(index: 0, to: Duration.zero),
+  ),
+  AnnotationGestureTarget.rangeBoundaryDrag => AnnotationEditor.verbGateReasons(
+    const SetVideoRange(),
+  ),
   AnnotationGestureTarget.localMirrorMove => AnnotationEditor.verbGateReasons(
     const MoveLocalMirrorFragment(index: 0, to: Duration.zero),
   ),
@@ -460,8 +461,7 @@ class AnnotationEditor {
 
   /// 逐段档读面：几何变动级联与快照捕获
   /// 共用。
-  Map<int, double> get _segmentDensities =>
-      _ref.read(segmentDensitiesProvider);
+  Map<int, double> get _segmentDensities => _ref.read(segmentDensitiesProvider);
 
   /// 当前选中的学习段段序（升序）——批量熟练度/重点写点的作用对象
   /// 无选中为空列表。
@@ -475,8 +475,7 @@ class AnnotationEditor {
   List<NoteSticker> get _notes => _ref.read(noteStickersProvider);
 
   /// 练习片段读面（独立 lane，快照 lane 同源）。
-  List<PracticeClip> get _practiceClips =>
-      _ref.read(practiceClipsProvider);
+  List<PracticeClip> get _practiceClips => _ref.read(practiceClipsProvider);
 
   /// 公开 beat 段八拍锚点读面：锚点存 beat 段，
   /// 会话内的现值即写读源；占位/异常无 beat 段恒空。
@@ -506,16 +505,15 @@ class AnnotationEditor {
     required Set<int> emphasis,
     required Map<int, double> segmentDensities,
     required List<LocalMirrorFragment> localMirrorFragments,
-  }) =>
-      MarkerAnnotationsValue(
-        rangeStart: timeline.rangeStart,
-        rangeEnd: timeline.rangeEnd,
-        segmentLines: timeline.segmentLines,
-        halfBeatLines: timeline.halfBeatLines,
-        emphasizedSegments: emphasis,
-        segmentDensities: segmentDensities,
-        localMirrorFragments: localMirrorFragments,
-      );
+  }) => MarkerAnnotationsValue(
+    rangeStart: timeline.rangeStart,
+    rangeEnd: timeline.rangeEnd,
+    segmentLines: timeline.segmentLines,
+    halfBeatLines: timeline.halfBeatLines,
+    emphasizedSegments: emphasis,
+    segmentDensities: segmentDensities,
+    localMirrorFragments: localMirrorFragments,
+  );
 
   // ── 落点解析基础设施（半拍线/首尾线复用）──
 
@@ -640,18 +638,14 @@ class AnnotationEditor {
   bool gestureStartRejected(AnnotationGestureTarget target) {
     if (gestureStartRejectedBySegmentLock(target)) return true;
     final reasons = gestureTargetGateReasons(target);
-    if (reasons.contains(
-          AnnotationEditGateReason.compareReadonly,
-        ) &&
+    if (reasons.contains(AnnotationEditGateReason.compareReadonly) &&
         _compareReadonly) {
       return true;
     }
     // 组员方案只读：受本原因门禁的目标（逐 verb
     // 声明的几何族）在装载组员方案时静默不参与，与对比态只读同款；
     // 点选类目标不声明本原因——选中与激活不是编辑。
-    return reasons.contains(
-          AnnotationEditGateReason.memberSchemeReadonly,
-        ) &&
+    return reasons.contains(AnnotationEditGateReason.memberSchemeReadonly) &&
         _memberSchemeReadonly;
   }
 
@@ -662,9 +656,8 @@ class AnnotationEditor {
   /// 合并三者的「会不会被拒」）。
   bool gestureStartRejectedBySegmentLock(AnnotationGestureTarget target) =>
       _layoutLocked &&
-      gestureTargetGateReasons(target).contains(
-        AnnotationEditGateReason.userLayoutLock,
-      );
+      gestureTargetGateReasons(target)
+          .contains(AnnotationEditGateReason.userLayoutLock);
 
   /// 触发一次「已锁定分段」短暂提示并返回锁门禁拒绝结果（编辑不成立）。
   EditLocked _lockedReject() {
@@ -793,17 +786,13 @@ class AnnotationEditor {
       return _lockedReject();
     }
     if (_noteContentLocked(edit)) return _contentLockReject();
-    if (gateReasons.contains(
-          AnnotationEditGateReason.compareReadonly,
-        ) &&
+    if (gateReasons.contains(AnnotationEditGateReason.compareReadonly) &&
         _compareReadonly) {
       // 对比态只读：静默拒绝——不弹提示（对比态不是「锁」），
       // 不写、不入史、不入盘、不抛。
       return const EditLocked();
     }
-    if (gateReasons.contains(
-          AnnotationEditGateReason.memberSchemeReadonly,
-        ) &&
+    if (gateReasons.contains(AnnotationEditGateReason.memberSchemeReadonly) &&
         _memberSchemeReadonly) {
       // 组员方案只读：同款静默拒绝——组员
       // 方案不能被我改，也不弹提示。
@@ -1106,7 +1095,10 @@ class AnnotationEditor {
       return snapRangeBoundary(requested, grid: grid);
     }
     // 占位均匀网格：吸附最近派生（等分）拍点。
-    final uniform = _nearestUniformDerivedPointMs(grid, requested.inMilliseconds);
+    final uniform = _nearestUniformDerivedPointMs(
+      grid,
+      requested.inMilliseconds,
+    );
     return uniform == null ? requested : Duration(milliseconds: uniform);
   }
 
@@ -1134,8 +1126,10 @@ class AnnotationEditor {
       if (i < 0) continue;
       candidates.add(grid.beatTime(i));
     }
-    final nearest =
-        nearestCandidate(candidates, Duration(milliseconds: requestedMs));
+    final nearest = nearestCandidate(
+      candidates,
+      Duration(milliseconds: requestedMs),
+    );
     return nearest?.inMilliseconds;
   }
 
@@ -1383,7 +1377,11 @@ class AnnotationEditor {
         final notes = _notes;
         final index = spanInsertionIndex(_noteSpans, created.startMs);
         return _EditPlan()
-          ..notes = [...notes.sublist(0, index), created, ...notes.sublist(index)];
+          ..notes = [
+            ...notes.sublist(0, index),
+            created,
+            ...notes.sublist(index),
+          ];
       case SetNoteText(:final index, :final text):
         // 载荷 = 纯文本本身，写定即完成（不解析点名、
         // 不读名册、不存引用）；索引越界抛 RangeError（与其它按索引
@@ -1410,7 +1408,9 @@ class AnnotationEditor {
         // 字段原样携带。
         _checkNoteIndex(index);
         final toggled = List.of(_notes);
-        toggled[index] = toggled[index].copyWith(locked: !toggled[index].locked);
+        toggled[index] = toggled[index].copyWith(
+          locked: !toggled[index].locked,
+        );
         return _EditPlan()..notes = toggled;
       case RemoveNote(:final index):
         // 删除整条备注；越界抛 RangeError；撤销即恢复。
@@ -1493,8 +1493,7 @@ class AnnotationEditor {
     );
     if (created == null) return _EditPlan();
     return _EditPlan()
-      ..localMirrorFragments =
-          insertFragmentKeepingInvariant(current, created);
+      ..localMirrorFragments = insertFragmentKeepingInvariant(current, created);
   }
 
   /// 整体移 plan：保留原宽平移 + 互斥钳制；钳空返回空 plan（EditNoop）。
@@ -1524,11 +1523,7 @@ class AnnotationEditor {
   }
 
   /// 端点拖 plan：端点吸附 + 互斥钳制；越位/钳空返回空 plan。
-  _EditPlan _planFragmentDragEdge(
-    int index,
-    IntervalEdge edge,
-    Duration to,
-  ) {
+  _EditPlan _planFragmentDragEdge(int index, IntervalEdge edge, Duration to) {
     _checkedFragmentList(index);
     final timeline = _timeline;
     final rangeStartMs = timeline.rangeStart.inMilliseconds;
@@ -1707,10 +1702,7 @@ class AnnotationEditor {
 
   /// 局部镜像片段**端点拖**拖动会话：校验（共享片段列表检查）→ 选中该
   /// 片段 → 开事务；契约见库头「拖动会话协议」。
-  DurationDragSession beginLocalMirrorEdgeDrag(
-    int index,
-    IntervalEdge edge,
-  ) {
+  DurationDragSession beginLocalMirrorEdgeDrag(int index, IntervalEdge edge) {
     _checkedFragmentList(index);
     _endSession();
     _selectionDomain.select(LocalMirrorFragmentSelection(index));
@@ -1739,10 +1731,7 @@ class AnnotationEditor {
 
   /// 备注片段**端点拖**拖动会话（第 7 个拖动会话族）：校验（备注
   /// 列表检查）→ 开事务；契约见库头「拖动会话协议」。
-  DurationDragSession beginNoteEdgeDrag(
-    int index,
-    IntervalEdge edge,
-  ) {
+  DurationDragSession beginNoteEdgeDrag(int index, IntervalEdge edge) {
     _checkedNoteList(index);
     _endSession();
     return _openDragSession(
@@ -1822,7 +1811,7 @@ class AnnotationEditor {
     _checkedClipList(index);
     final clip = _practiceClips[index];
     final rawOffset = to.inMilliseconds - clip.materialSourceStartMs;
-    // 异常态吸附停用（与半拍线落点同口径，[isSecondsFallback] 
+    // 异常态吸附停用（与半拍线落点同口径，[isSecondsFallback]
     // 收口）：请求位置原样直通；其余经吸附纯件（就绪网格吸就近八拍点、
     // 占位派生同级、异常不达此处）。
     final offset = _ref.read(beatGridProvider).isSecondsFallback
@@ -1848,7 +1837,9 @@ class AnnotationEditor {
     final current = edge == IntervalEdge.start ? clip.inMs : clip.outMs;
     final other = edge == IntervalEdge.start ? clip.outMs : clip.inMs;
     // 端点不倒置（拖过对端 = no-op）；同值无净变化。
-    final isInverted = edge == IntervalEdge.start ? clamped >= other : clamped <= other;
+    final isInverted = edge == IntervalEdge.start
+        ? clamped >= other
+        : clamped <= other;
     if (isInverted || clamped == current) return null;
     return clamped;
   }
@@ -1856,8 +1847,8 @@ class AnnotationEditor {
   /// 开拖动事务并返回会话（各具名工厂的共用尾巴）：生成会话令牌（唯一
   /// 性结构保证）→ 捕获事务起点 → 注入本族两条必填适配器（命令 + 落点
   /// 读回，漏声明即编译错）。
-  AnnotationDragSession<Target, Landing> _openDragSession<Target extends Object,
-      Landing extends Object>(
+  AnnotationDragSession<Target, Landing>
+  _openDragSession<Target extends Object, Landing extends Object>(
     AnnotationEdit Function(Target target) command,
     Landing Function() readLanding,
   ) {
@@ -2148,15 +2139,13 @@ class AnnotationRestoreDocument {
 AnnotationSectionDiff foldSectionDiff(
   AnnotationEditSnapshot before,
   AnnotationEditSnapshot after,
-) =>
-    AnnotationSectionDiff(
-      corrections: before.corrections == after.corrections
-          ? null
-          : after.corrections,
-      annotations: before.annotations == after.annotations
-          ? null
-          : after.annotations,
-      session: before.session == after.session ? null : after.session,
-      notes: _listEquals(before.notes, after.notes) ? null : after.notes,
-    );
-
+) => AnnotationSectionDiff(
+  corrections: before.corrections == after.corrections
+      ? null
+      : after.corrections,
+  annotations: before.annotations == after.annotations
+      ? null
+      : after.annotations,
+  session: before.session == after.session ? null : after.session,
+  notes: _listEquals(before.notes, after.notes) ? null : after.notes,
+);

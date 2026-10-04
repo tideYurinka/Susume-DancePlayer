@@ -16,7 +16,9 @@ import 'package:flutter/material.dart';
 /// 挂录像用例），换实例只发生在开流与停录重开；[start] 与真实现一样幂等。
 /// 失败路径的形状 = 「编码未开始」：不记录起录参数、不落产物、实例不动。
 class FakeCameraCaptureService implements CameraCaptureService {
-  FakeCameraCaptureService({this.permissionResult = CameraPermissionStatus.granted});
+  FakeCameraCaptureService({
+    this.permissionResult = CameraPermissionStatus.granted,
+  });
 
   /// [requestPermission] 的脚本化结果；每次询问后自动收严为
   /// permanentlyDenied（模拟「再次询问系统不再弹窗」），可手动改写。

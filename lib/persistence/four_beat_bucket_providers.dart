@@ -14,11 +14,11 @@ import 'four_beat_bucket_store.dart';
 /// 调用链静默承接，与练舞统计同款）。
 final fourBeatBucketFileProvider =
     Provider<Future<File> Function(String videoId)>((ref) {
-  return (videoId) async {
-    final base = await getApplicationDocumentsDirectory();
-    return File('${base.path}/four_beat_buckets_$videoId.json');
-  };
-});
+      return (videoId) async {
+        final base = await getApplicationDocumentsDirectory();
+        return File('${base.path}/four_beat_buckets_$videoId.json');
+      };
+    });
 
 /// 每舞桶分片存取注入点（完全私密，ADR-0002：不进任何分享包、只随整机
 /// 备份走）。

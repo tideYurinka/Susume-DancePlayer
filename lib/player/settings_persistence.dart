@@ -206,13 +206,10 @@ class VideoSettingsPersistence {
       // 源画面取景随舞记忆（取景只有源画面
       // 一份，直写公开标记文件）：手势/复位逐帧变更与浮层位同款去抖——一次
       // 拖动合并为一次落盘，flush 同步点强制收口。
-      _container.listen(
-        framingStateProvider,
-        (previous, next) {
-          _framingDirty = true;
-          _scheduleDebouncedPersist();
-        },
-      ),
+      _container.listen(framingStateProvider, (previous, next) {
+        _framingDirty = true;
+        _scheduleDebouncedPersist();
+      }),
       // 练习片段列表随舞记忆：录制入轨与截取拖动变更
       // 落 local prefs；截取拖动逐帧变更与浮层位同款去抖（一次拖动合并
       // 为一次落盘）。
@@ -296,7 +293,9 @@ class VideoSettingsPersistence {
                 .withBeatPrompt(beatPrompt);
             // 倍速记忆：null = 这支舞没有意见（写侧省键，不
             // 制造一份 1.0× 的记录）。
-            return speedRate == null ? updated : updated.withSpeedRate(speedRate);
+            return speedRate == null
+                ? updated
+                : updated.withSpeedRate(speedRate);
           });
           if (written is DocumentWriteRejected<LocalDocument>) {
             _showDocumentReadOnly();

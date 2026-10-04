@@ -33,7 +33,11 @@ void main() {
     ]) {
       final rect = tester.getRect(find.byKey(Key(key)));
       expect(rect.top, greaterThanOrEqualTo(0), reason: '$label不越上缘');
-      expect(rect.bottom, lessThanOrEqualTo(screenHeight), reason: '$label不越下缘');
+      expect(
+        rect.bottom,
+        lessThanOrEqualTo(screenHeight),
+        reason: '$label不越下缘',
+      );
     }
   });
 }

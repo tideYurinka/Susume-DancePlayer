@@ -91,8 +91,7 @@ void main() {
 
       domain().toggleLearningSegment(1);
 
-      expect(sink.saved.single.session?.mastery,
-          {0: LearningMastery.mastered});
+      expect(sink.saved.single.session?.mastery, {0: LearningMastery.mastered});
     });
 
     test('熟练度编辑的 session diff 携带激活现值（反向不覆盖）', () {
@@ -202,7 +201,9 @@ void main() {
     );
     addTearDown(behaviorContainer.dispose);
 
-    behaviorContainer.read(annotationEditorProvider).submit(AddSegmentLine(at: ten));
+    behaviorContainer
+        .read(annotationEditorProvider)
+        .submit(AddSegmentLine(at: ten));
     behaviorContainer
         .read(annotationSelectionDomainProvider)
         .toggleLearningSegment(0);

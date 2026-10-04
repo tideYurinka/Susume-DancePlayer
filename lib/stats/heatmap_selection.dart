@@ -30,10 +30,7 @@ const double heatmapCellPitch = heatmapCellSize + heatmapCellGap;
 }) {
   int clamp(double value, int count) =>
       (value ~/ heatmapCellPitch).clamp(0, count - 1);
-  return (
-    column: clamp(local.dx, columnCount),
-    row: clamp(local.dy, rowCount),
-  );
+  return (column: clamp(local.dx, columnCount), row: clamp(local.dy, rowCount));
 }
 
 /// 柱状图手势坐标 → 柱索引（TDD seam）：等宽柱列按比例换算后钳在

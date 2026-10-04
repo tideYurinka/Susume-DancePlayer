@@ -16,7 +16,10 @@ DancePlanEntry _ddlEntry(
   DateTime day, {
   DdlSettlement? settlement,
   String occasion = '约舞',
-}) => DancePlanEntry(videoId: videoId, ddl: DanceDdl(date: day, occasion: occasion, settlement: settlement));
+}) => DancePlanEntry(
+  videoId: videoId,
+  ddl: DanceDdl(date: day, occasion: occasion, settlement: settlement),
+);
 
 PlanEvent _social(
   String id,
@@ -25,8 +28,16 @@ PlanEvent _social(
   String location = '',
 }) => PlanEvent(id: id, date: day, danceIds: danceIds, location: location);
 
-PlanEvent _teamCheck(String id, DateTime day, {List<String> danceIds = const ['v1']}) =>
-    PlanEvent(id: id, type: kPlanEventTypeTeamCheck, date: day, danceIds: danceIds);
+PlanEvent _teamCheck(
+  String id,
+  DateTime day, {
+  List<String> danceIds = const ['v1'],
+}) => PlanEvent(
+  id: id,
+  type: kPlanEventTypeTeamCheck,
+  date: day,
+  danceIds: danceIds,
+);
 
 void main() {
   group('即将到期', () {
@@ -37,16 +48,15 @@ void main() {
           _ddlEntry('vFar', now.add(const Duration(days: 5))),
           _ddlEntry('vNear', now.add(const Duration(days: 1))),
         ],
-        events: [
-          _teamCheck('tc1', now.add(const Duration(days: 3))),
-        ],
+        events: [_teamCheck('tc1', now.add(const Duration(days: 3)))],
         teamCheckAchieved: (_) => false,
         now: now,
       );
-      expect(
-        items.map((i) => i.videoId ?? i.event!.id).toList(),
-        ['vNear', 'tc1', 'vFar'],
-      );
+      expect(items.map((i) => i.videoId ?? i.event!.id).toList(), [
+        'vNear',
+        'tc1',
+        'vFar',
+      ]);
       expect(items.every((i) => i.remainingDays >= 0), isTrue);
     });
 
@@ -54,15 +64,18 @@ void main() {
       final now = _today;
       final items = agendaDueItems(
         entries: [
-          _ddlEntry('vDone', now.add(const Duration(days: 1)),
-              settlement: DdlSettlement(
-                  outcome: DdlSettlementOutcome.onTime, judgedOn: now)),
+          _ddlEntry(
+            'vDone',
+            now.add(const Duration(days: 1)),
+            settlement: DdlSettlement(
+              outcome: DdlSettlementOutcome.onTime,
+              judgedOn: now,
+            ),
+          ),
           _ddlEntry('vPast', now.subtract(const Duration(days: 1))),
           _ddlEntry('vToday', now),
         ],
-        events: [
-          _teamCheck('tcMet', now.add(const Duration(days: 1))),
-        ],
+        events: [_teamCheck('tcMet', now.add(const Duration(days: 1)))],
         teamCheckAchieved: (event) => event.id == 'tcMet',
         now: now,
       );
@@ -101,11 +114,17 @@ void main() {
       final items = agendaReviewItems(
         dances: [
           // 学习中阈值 3 天：练过 4 天前 = 超 1 天。
-          dance('vSmall', lastPracticeDay: now.subtract(const Duration(days: 4))),
+          dance(
+            'vSmall',
+            lastPracticeDay: now.subtract(const Duration(days: 4)),
+          ),
           // 练过 8 天前 = 超 5 天。
           dance('vBig', lastPracticeDay: now.subtract(const Duration(days: 8))),
           // 练过 2 天前 = 未超阈值。
-          dance('vFresh', lastPracticeDay: now.subtract(const Duration(days: 2))),
+          dance(
+            'vFresh',
+            lastPracticeDay: now.subtract(const Duration(days: 2)),
+          ),
         ],
         now: now,
       );
@@ -118,13 +137,22 @@ void main() {
       final now = _today;
       final items = agendaReviewItems(
         dances: [
-          dance('vNoGoal', lastPracticeDay: now.subtract(const Duration(days: 40)), goalKind: null),
+          dance(
+            'vNoGoal',
+            lastPracticeDay: now.subtract(const Duration(days: 40)),
+            goalKind: null,
+          ),
           // 掌握阈值 30 天：29 天未练未超阈值；无目标者即使超阈也不进。
-          dance('vMastered',
-              level: LearningMastery.mastered,
-              lastPracticeDay: now.subtract(const Duration(days: 29))),
-          dance('vMasteredNoGoal',
-              level: LearningMastery.mastered, goalKind: null),
+          dance(
+            'vMastered',
+            level: LearningMastery.mastered,
+            lastPracticeDay: now.subtract(const Duration(days: 29)),
+          ),
+          dance(
+            'vMasteredNoGoal',
+            level: LearningMastery.mastered,
+            goalKind: null,
+          ),
         ],
         now: now,
       );
@@ -137,7 +165,11 @@ void main() {
         dances: [
           dance('vDdl', lastPracticeDay: null, goalKind: PlanMarkKind.ddl),
           dance('vTc', lastPracticeDay: null, goalKind: PlanMarkKind.teamCheck),
-          dance('vSocial', lastPracticeDay: null, goalKind: PlanMarkKind.social),
+          dance(
+            'vSocial',
+            lastPracticeDay: null,
+            goalKind: PlanMarkKind.social,
+          ),
         ],
         now: now,
       );

@@ -60,15 +60,14 @@ void main() {
   }
 
   group('快照装配（逐项入参收成一次求值）', () {
-    testWidgets('源视频面 = 全局镜像 ⊕（局部镜像开关 ∧ 片段覆盖当前位置）', (
-      tester,
-    ) async {
+    testWidgets('源视频面 = 全局镜像 ⊕（局部镜像开关 ∧ 片段覆盖当前位置）', (tester) async {
       const fragments = [LocalMirrorFragment(startMs: 1000, endMs: 2000)];
 
       expect(
-        (await assemble(tester, globalMirrored: true)).directionOf(
-          SurfaceFace.sourceVideo,
-        ),
+        (await assemble(
+          tester,
+          globalMirrored: true,
+        )).directionOf(SurfaceFace.sourceVideo),
         FaceDirection.mirrored,
       );
       // 位置在片段内但开关关：片段整组不参与。

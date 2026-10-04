@@ -138,8 +138,13 @@ void main() {
         pendulumScale: 3.0,
         viewport: const Size(440, 300),
       );
-      expect(size, Size(kPendulumBaseContentSize.width * 2.0,
-          kPendulumBaseContentSize.height * 2.0));
+      expect(
+        size,
+        Size(
+          kPendulumBaseContentSize.width * 2.0,
+          kPendulumBaseContentSize.height * 2.0,
+        ),
+      );
     });
 
     test('不传视口 → 既有相对上限语义（落盘值不在布局期被视口外改写的前提）', () {

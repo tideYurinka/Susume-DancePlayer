@@ -39,7 +39,11 @@ double widestRateLabelWidth(
   for (final rate in rates) {
     widest = math.max(
       widest,
-      measureTextExtent('${formatRate(rate)}x', style, scaler: textScaler).width,
+      measureTextExtent(
+        '${formatRate(rate)}x',
+        style,
+        scaler: textScaler,
+      ).width,
     );
   }
   return widest;

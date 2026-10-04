@@ -18,7 +18,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationTimelineProvider,
         layoutLockedProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -96,7 +97,11 @@ void main() {
       expect(anchors(), [28], reason: '13.5s 就近强拍 = 14s（第 8 个强拍）');
       expect(container.read(annotationEditHistoryProvider).length, 1);
       expect(sink.saved.single.corrections?.eightBeatAnchors, [28]);
-      expect(sink.saved.single.annotations, isNull, reason: '仅 corrections 段变化');
+      expect(
+        sink.saved.single.annotations,
+        isNull,
+        reason: '仅 corrections 段变化',
+      );
     });
 
     test('落点解析在模块内：裸时间（非强拍）也被解析到最近强拍', () {
@@ -134,7 +139,10 @@ void main() {
 
       expect(outcome, isA<EditNoop>());
       expect(anchors(), [28]);
-      expect(container.read(annotationEditHistoryProvider).length, lengthBefore);
+      expect(
+        container.read(annotationEditHistoryProvider).length,
+        lengthBefore,
+      );
       expect(sink.saved, isEmpty);
     });
 
@@ -172,19 +180,27 @@ void main() {
 
     test('锁定分段：落锚照常（锁只护分段结构，不弹提示）', () {
       useReadyGrid();
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
+      );
       container.read(layoutLockedProvider.notifier).replace(true);
 
       final outcome = editor().submit(AddEightBeatAnchor(at: ms(14000)));
 
       expect(outcome.applied, isTrue);
       expect(anchors(), [28]);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
     });
 
     test('非就绪网格（占位/异常）无落点：静默 EditNoop 不写不入史', () {
       // 默认占位态。
-      expect(editor().submit(AddEightBeatAnchor(at: ms(14000))), isA<EditNoop>());
+      expect(
+        editor().submit(AddEightBeatAnchor(at: ms(14000))),
+        isA<EditNoop>(),
+      );
       expect(anchors(), isEmpty);
       expect(container.read(annotationEditHistoryProvider).length, 0);
       expect(sink.saved, isEmpty);
@@ -192,7 +208,10 @@ void main() {
       container
           .read(beatTrackStateProvider.notifier)
           .replace(const BeatTrackState.error());
-      expect(editor().submit(AddEightBeatAnchor(at: ms(14000))), isA<EditNoop>());
+      expect(
+        editor().submit(AddEightBeatAnchor(at: ms(14000))),
+        isA<EditNoop>(),
+      );
       expect(anchors(), isEmpty);
     });
 
@@ -209,7 +228,10 @@ void main() {
         ),
       );
 
-      expect(editor().submit(AddEightBeatAnchor(at: ms(2000))), isA<EditNoop>());
+      expect(
+        editor().submit(AddEightBeatAnchor(at: ms(2000))),
+        isA<EditNoop>(),
+      );
       expect(anchors(), isEmpty);
     });
   });
@@ -234,7 +256,11 @@ void main() {
         historyBefore + 1,
       );
       expect(sink.saved.single.corrections?.eightBeatAnchors, [40]);
-      expect(sink.saved.single.annotations, isNull, reason: '仅 corrections 段变化');
+      expect(
+        sink.saved.single.annotations,
+        isNull,
+        reason: '仅 corrections 段变化',
+      );
     });
 
     test('落点解析在模块内：裸时间（非强拍）也删到最近强拍那个锚点', () {
@@ -286,14 +312,19 @@ void main() {
     test('锁定分段：删除照常（锁只护分段结构，不弹提示）', () {
       useReadyGrid();
       editor().submit(AddEightBeatAnchor(at: ms(14000)));
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
+      );
       container.read(layoutLockedProvider.notifier).replace(true);
 
       final outcome = editor().submit(RemoveEightBeatAnchor(at: ms(14000)));
 
       expect(outcome.applied, isTrue);
       expect(anchors(), isEmpty);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
     });
 
     test('删锚当帧刷新落点派生面：其后新插分段线按新相位落点', () {
@@ -413,14 +444,19 @@ void main() {
     test('锁定分段：清空照常（锁只护分段结构，不弹提示）', () {
       useReadyGrid();
       editor().submit(AddEightBeatAnchor(at: ms(14000)));
-      final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
+      final promptBefore = container.read(
+        noticeTriggerProvider(NoticeId.layoutLock),
+      );
       container.read(layoutLockedProvider.notifier).replace(true);
 
       final outcome = editor().submit(const ClearEightBeatAnchors());
 
       expect(outcome.applied, isTrue);
       expect(anchors(), isEmpty);
-      expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
+      expect(
+        container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+        promptBefore,
+      );
     });
   });
 

@@ -233,9 +233,7 @@ const PlayToolSlot kPlayToolGuide = PlayToolSlot(
 class PlayToolRowItem {
   const PlayToolRowItem.slot(PlayToolSlot this.slot) : isSeparator = false;
 
-  const PlayToolRowItem.separator()
-    : slot = null,
-      isSeparator = true;
+  const PlayToolRowItem.separator() : slot = null, isSeparator = true;
 
   /// 被引用的槽声明（分隔线成员为 null）。
   final PlayToolSlot? slot;

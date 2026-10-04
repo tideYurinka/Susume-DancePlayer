@@ -23,9 +23,7 @@ class NoteMentionSegment {
 
   @override
   bool operator ==(Object other) =>
-      other is NoteMentionSegment &&
-      other.text == text &&
-      other.name == name;
+      other is NoteMentionSegment && other.text == text && other.name == name;
 
   @override
   int get hashCode => Object.hash(text, name);
@@ -43,10 +41,7 @@ class NoteMentionHiddenRange {
 /// 解析结果：[segments]（可见分段，按源顺序拼接 = 贴纸实际显示的文本）
 /// 与 [hiddenRanges]（隐藏区间，升序、互不重叠）。
 class NoteMentionParse {
-  const NoteMentionParse({
-    required this.segments,
-    required this.hiddenRanges,
-  });
+  const NoteMentionParse({required this.segments, required this.hiddenRanges});
 
   /// 可见分段（点名段 + 普通段），覆盖源文本的全部非语法字符。
   final List<NoteMentionSegment> segments;
@@ -74,7 +69,7 @@ NoteMentionParse parseNoteMentions(String text, Iterable<String> rosterNames) {
 
   var i = 0;
   while (i < text.length) {
-    if (text.codeUnitAt(i) == 0x40 /* @ */) {
+    if (text.codeUnitAt(i) == 0x40 /* @ */ ) {
       String? matched;
       for (final name in names) {
         if (text.startsWith(name, i + 1)) {
@@ -86,8 +81,8 @@ NoteMentionParse parseNoteMentions(String text, Iterable<String> rosterNames) {
         final nameStart = i + 1;
         final nameEnd = nameStart + matched.length;
         // 紧随其后的第一个空格（若有）属于语法单元、被隐藏。
-        final hasTrailingSpace = nameEnd < text.length &&
-            text.codeUnitAt(nameEnd) == 0x20;
+        final hasTrailingSpace =
+            nameEnd < text.length && text.codeUnitAt(nameEnd) == 0x20;
         final unitEnd = nameEnd + (hasTrailingSpace ? 1 : 0);
         flushPlain();
         hidden.add(NoteMentionHiddenRange(i, nameStart));

@@ -246,8 +246,7 @@ class _PlanPageState extends ConsumerState<PlanPage> {
               PlanEditorDance(
                 videoId: dance.videoId,
                 title: dance.title,
-                checked:
-                    initial?.danceIds.contains(dance.videoId) ?? false,
+                checked: initial?.danceIds.contains(dance.videoId) ?? false,
               ),
           ],
           initial: initial,
@@ -800,9 +799,7 @@ class _MonthGridCardState extends State<_MonthGridCard> {
                   const SizedBox(height: 4),
                   for (final week in grid.weeks)
                     Row(
-                      children: [
-                        for (final day in week) _dayCell(theme, day),
-                      ],
+                      children: [for (final day in week) _dayCell(theme, day)],
                     ),
                 ],
               ),
@@ -854,7 +851,9 @@ class _MonthGridCardState extends State<_MonthGridCard> {
                     for (final kind in PlanMarkKind.values)
                       if (widget.marks[kind]!.contains(day))
                         Container(
-                          key: Key('plan_day_dot_${planMarkSlug(kind)}_$dayKey'),
+                          key: Key(
+                            'plan_day_dot_${planMarkSlug(kind)}_$dayKey',
+                          ),
                           width: 6,
                           margin: const EdgeInsets.only(right: 2),
                           decoration: BoxDecoration(
@@ -872,7 +871,6 @@ class _MonthGridCardState extends State<_MonthGridCard> {
     );
   }
 }
-
 
 /// 页内空态提示条：无任何计划时时间轴与月视图照常显示，只出一条
 /// 引导；新建入口改由点某日后的下栏承担。

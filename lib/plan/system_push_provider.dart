@@ -56,26 +56,28 @@ final planPushFullyMasteredIdsProvider =
 /// 快照。
 final Provider<Future<void> Function()> planPushSyncProvider =
     Provider<Future<void> Function()>((ref) {
-  return () async {
-    try {
-      final store = ref.read(practicePlanStoreProvider);
-      final planner = ref.read(planPushPlannerProvider);
-      final index = await ref.read(videoIndexStoreProvider).load();
-      await planner.sync(
-        entries: await store.entries(),
-        events: await store.events(),
-        fullyMasteredIds: await ref.read(planPushFullyMasteredIdsProvider)(),
-        displayNames: {
-          for (final entry in index.entries)
-            entry.videoId: signatureDisplayText(
-              entry.signatureCache,
-              entry.displayName,
-            ),
-        },
-        now: DateTime.now(),
-      );
-    } on Object {
-      // 排程降级为不投递，不影响计划数据。
-    }
-  };
-});
+      return () async {
+        try {
+          final store = ref.read(practicePlanStoreProvider);
+          final planner = ref.read(planPushPlannerProvider);
+          final index = await ref.read(videoIndexStoreProvider).load();
+          await planner.sync(
+            entries: await store.entries(),
+            events: await store.events(),
+            fullyMasteredIds: await ref.read(
+              planPushFullyMasteredIdsProvider,
+            )(),
+            displayNames: {
+              for (final entry in index.entries)
+                entry.videoId: signatureDisplayText(
+                  entry.signatureCache,
+                  entry.displayName,
+                ),
+            },
+            now: DateTime.now(),
+          );
+        } on Object {
+          // 排程降级为不投递，不影响计划数据。
+        }
+      };
+    });

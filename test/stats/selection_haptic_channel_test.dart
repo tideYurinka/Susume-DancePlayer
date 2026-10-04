@@ -14,8 +14,8 @@ void main() {
   test('原生调用失败（PlatformException）：静默无操作，不向页面冒泡', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      throw PlatformException(code: 'no_vibrator');
-    });
+          throw PlatformException(code: 'no_vibrator');
+        });
     addTearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);

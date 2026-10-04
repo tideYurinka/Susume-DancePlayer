@@ -5,6 +5,7 @@ import 'package:dance_learning_app/persistence/video_document_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+
 import '../helpers/video_document_write_test_helpers.dart';
 
 /// 按视频文档单一基目录：生产代码里
@@ -41,15 +42,17 @@ void main() {
     final localFile = File(p.join(tempDir.path, 'local_$videoId.json'));
     expect(localFile.existsSync(), isTrue);
 
-    final viaFactory =
-        container.read(videoDocumentStorageFactoryProvider)(videoId);
+    final viaFactory = container.read(videoDocumentStorageFactoryProvider)(
+      videoId,
+    );
     final json = await viaFactory.loadLocal();
     expect(json['prefs']['layoutLocked'], true);
   });
 
   test('文档目录无文件按空态读取（旧支持目录同名文件不做迁移、整体丢弃）', () async {
-    final viaFactory =
-        container.read(videoDocumentStorageFactoryProvider)(videoId);
+    final viaFactory = container.read(videoDocumentStorageFactoryProvider)(
+      videoId,
+    );
     final doc = await container
         .read(videoDocumentCoordinatorProvider(videoId))
         .readLocal();

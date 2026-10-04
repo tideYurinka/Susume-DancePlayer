@@ -44,10 +44,12 @@ Future<FakeSelectionHapticController> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        practiceStatsStoreProvider
-            .overrideWithValue(PracticeStatsStore(statsStorage)),
-        videoIndexStoreProvider
-            .overrideWithValue(InMemoryVideoIndexStorage(initial: VideoIndex.empty)),
+        practiceStatsStoreProvider.overrideWithValue(
+          PracticeStatsStore(statsStorage),
+        ),
+        videoIndexStoreProvider.overrideWithValue(
+          InMemoryVideoIndexStorage(initial: VideoIndex.empty),
+        ),
         videoDocumentStorageFactoryProvider.overrideWithValue(
           (videoId) => InMemoryVideoDocumentStorage(),
         ),

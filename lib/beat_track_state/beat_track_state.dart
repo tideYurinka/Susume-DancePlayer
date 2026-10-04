@@ -177,10 +177,9 @@ final beatAlignPreviewOffsetProvider =
 /// 写入的会话态，null = 无预览（读面用已落盘档）。预览只改派生网格（节拍
 /// 轨刻度等消费方实时跟随），不改文档 beat 段、不写盘；应用后写定、预览
 /// 清空；关气泡/切走即弃（气泡会话侧统一丢弃，与节拍对齐预览同语义）。
-final beatDensityPreviewProvider =
-    NotifierProvider<BeatPreviewModel, double?>(
-      BeatPreviewModel.new,
-    );
+final beatDensityPreviewProvider = NotifierProvider<BeatPreviewModel, double?>(
+  BeatPreviewModel.new,
+);
 
 /// 节拍 seam 注入点（自 hub beat 分析域迁入本
 /// 小库：标注编辑模块库的临时衔接段 store 依赖它，小库是模块库允许的
@@ -249,8 +248,10 @@ final beatGridProvider = Provider<BeatGrid>((ref) {
 /// 的逐段档与分段几何由装配处注入——beat_track_state 不反向依赖播放器标注
 /// 库（先例：main.dart 的观察者装配 override）。缺省空 = 全部段原样、无
 /// 分段几何，派生与逐段档缺席时逐位一致。
-typedef BeatGridSegmentContext =
-    ({Map<int, double> segmentDensities, List<({int startMs, int endMs})> segments});
+typedef BeatGridSegmentContext = ({
+  Map<int, double> segmentDensities,
+  List<({int startMs, int endMs})> segments,
+});
 
 final beatGridSegmentContextProvider = Provider<BeatGridSegmentContext>(
   (ref) => (segmentDensities: const {}, segments: const []),

@@ -41,8 +41,7 @@ void main() {
     EditHistory<AnnotationEditSnapshot> history() =>
         container.read(annotationEditHistoryProvider);
 
-    AnnotationTimeline timeline() =>
-        container.read(annotationTimelineProvider);
+    AnnotationTimeline timeline() => container.read(annotationTimelineProvider);
 
     /// 在 [position] 新建分段线（经模块命令，等同「分段」按钮路径）。
     void addLine(Duration position) {
@@ -63,8 +62,10 @@ void main() {
 
       editor.redo();
       expect(timeline().segmentLines.length, 1);
-      expect(timeline().segmentLines.first.position,
-          const Duration(seconds: 10),);
+      expect(
+        timeline().segmentLines.first.position,
+        const Duration(seconds: 10),
+      );
     });
 
     test('撤销删除分段线：恢复线并回放删除时的属性融合', () {

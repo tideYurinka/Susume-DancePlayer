@@ -55,7 +55,8 @@ void main() {
       ..writeAsBytesSync(List.filled(64, 1));
     materialsBase = Directory('${tempDir.path}/materials/v1')
       ..createSync(recursive: true);
-    File('${materialsBase.path}/rec_1.mp4').writeAsBytesSync(List.filled(32, 2));
+    File('${materialsBase.path}/rec_1.mp4')
+        .writeAsBytesSync(List.filled(32, 2));
     channel = FakeShareChannel();
     documents = InMemoryVideoDocumentStorage(markers: markersJson);
     manifestStorage = MemoryManifestStorage();
@@ -82,24 +83,24 @@ void main() {
   });
 
   DanceSnapshot snapshot({int sizeBytes = 64}) => composeDanceSnapshot(
-        entry: VideoIndexEntry(
-          videoId: 'v1',
-          displayName: 'dance_v1.mp4',
-          filePath: sourceVideo.path,
-          sizeBytes: sizeBytes,
-          fastKey: 'k',
-          mirrored: false,
-          lastOpenedAt: DateTime(2026, 9, 1),
-        ),
-        importOrder: 0,
-        markers: MarkersDocument(
-          rangeEndMs: 24000,
-          segmentLines: const [SegmentLine(position: Duration(seconds: 8))],
-          signature: const SongSignature(song: '海草舞'),
-        ),
-        local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
-        practice: const DancePracticeTotals(),
-      );
+    entry: VideoIndexEntry(
+      videoId: 'v1',
+      displayName: 'dance_v1.mp4',
+      filePath: sourceVideo.path,
+      sizeBytes: sizeBytes,
+      fastKey: 'k',
+      mirrored: false,
+      lastOpenedAt: DateTime(2026, 9, 1),
+    ),
+    importOrder: 0,
+    markers: MarkersDocument(
+      rangeEndMs: 24000,
+      segmentLines: const [SegmentLine(position: Duration(seconds: 8))],
+      signature: const SongSignature(song: '海草舞'),
+    ),
+    local: const LocalDocument(mastery: {0: LearningMastery.mastered}),
+    practice: const DancePracticeTotals(),
+  );
 
   Future<void> pumpSheet(
     WidgetTester tester, {
@@ -132,18 +133,20 @@ void main() {
       ),
     );
     // 经路由推入分享面：成功递出后的关闭走真实 pop 路径。
-    tester.state<NavigatorState>(find.byType(Navigator)).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          body: DanceShareSheet(
-            dance: dance,
-            initialIncludeSourceVideo: initialIncludeSourceVideo,
-            initialIncludeMastery: initialIncludeMastery,
-            initialClipIds: initialClipIds,
+    tester
+        .state<NavigatorState>(find.byType(Navigator))
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              body: DanceShareSheet(
+                dance: dance,
+                initialIncludeSourceVideo: initialIncludeSourceVideo,
+                initialIncludeMastery: initialIncludeMastery,
+                initialClipIds: initialClipIds,
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        );
     await tester.pumpAndSettle();
   }
 
@@ -159,16 +162,16 @@ void main() {
   /// import_flow_test 的 runAsync 先例）；轮询等待递出完成或失败出声，
   /// 避免真实 IO 与 fake 时钟竞态。
   Future<void> sendSheet(WidgetTester tester) => tester.runAsync(() async {
-        await tester.tap(find.byKey(const Key('share_sheet_send')));
-        await pollUntil(
-          () =>
-              channel.sharedFiles.isNotEmpty ||
-              find.byType(SnackBar).evaluate().isNotEmpty,
-          onTick: tester.pump,
-          reason: '确认递出后应出包或出声',
-        );
-        await tester.pumpAndSettle();
-      });
+    await tester.tap(find.byKey(const Key('share_sheet_send')));
+    await pollUntil(
+      () =>
+          channel.sharedFiles.isNotEmpty ||
+          find.byType(SnackBar).evaluate().isNotEmpty,
+      onTick: tester.pump,
+      reason: '确认递出后应出包或出声',
+    );
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('三项默认勾选：源视频勾、熟练度与练习录像不勾', (tester) async {
     await pumpSheet(tester, dance: snapshot());
@@ -191,8 +194,9 @@ void main() {
     expect(shared.path, endsWith('海草舞.susume'));
     expect(Directory('${tempDir.path}/out').existsSync(), isTrue);
 
-    final parsed =
-        (await tester.runAsync(() => readSusumePackage(shared.path)))!;
+    final parsed = (await tester.runAsync(
+      () => readSusumePackage(shared.path),
+    ))!;
     expect(parsed.manifest.videoId, 'v1');
     expect(parsed.manifest.schemeName, '海草舞');
     expect(parsed.manifest.mastery, isNull);
@@ -211,15 +215,16 @@ void main() {
     await tester.pumpAndSettle();
     await sendSheet(tester);
 
-    final parsed =
-        (await tester.runAsync(() => readSusumePackage(channel.sharedFiles.single.path)))!;
+    final parsed = (await tester.runAsync(
+      () => readSusumePackage(channel.sharedFiles.single.path),
+    ))!;
     // 档位 4 = LearningMastery.mastered。
     expect(parsed.manifest.mastery, {0: 4});
     expect(parsed.manifest.media, hasLength(2));
-    expect(
-      parsed.manifest.media.map((m) => m.kind).toSet(),
-      {SusumeMediaKind.sourceVideo, SusumeMediaKind.practiceClip},
-    );
+    expect(parsed.manifest.media.map((m) => m.kind).toSet(), {
+      SusumeMediaKind.sourceVideo,
+      SusumeMediaKind.practiceClip,
+    });
   });
 
   testWidgets('包体接近微信 1 GB 上限给出明确提示，且不阻止递出', (tester) async {
@@ -254,15 +259,17 @@ void main() {
   testWidgets('同一支舞两次分享：递出两个包、方案标识一致', (tester) async {
     await pumpSheet(tester, dance: snapshot());
     await sendSheet(tester);
-    final first =
-        (await tester.runAsync(() => readSusumePackage(channel.sharedFiles[0].path)))!;
+    final first = (await tester.runAsync(
+      () => readSusumePackage(channel.sharedFiles[0].path),
+    ))!;
 
     // 面已关，重新打开一份新面再分享一次。
     channel.sharedFiles.clear();
     await pumpSheet(tester, dance: snapshot());
     await sendSheet(tester);
-    final second =
-        (await tester.runAsync(() => readSusumePackage(channel.sharedFiles.single.path)))!;
+    final second = (await tester.runAsync(
+      () => readSusumePackage(channel.sharedFiles.single.path),
+    ))!;
 
     expect(first.manifest.schemeId, second.manifest.schemeId);
   });

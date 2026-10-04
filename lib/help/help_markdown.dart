@@ -180,8 +180,7 @@ _FoldOutcome _foldOutcomeAt(List<String> lines, int line) {
   final summaryLine = line + 1;
   if (summaryLine >= lines.length ||
       !_summaryLine.hasMatch(lines[summaryLine])) {
-    if (summaryLine < lines.length &&
-        lines[summaryLine].contains('<summary')) {
+    if (summaryLine < lines.length && lines[summaryLine].contains('<summary')) {
       return broken(
         summaryLine,
         '`<summary>标题</summary>` 要单行写完，并紧跟 `<details>` 的下一行',
@@ -358,7 +357,11 @@ List<HelpMarkdownIssue> helpMarkdownIssues({
   return [
     for (final index in reported)
       for (final reason in byLine[index]!)
-        HelpMarkdownIssue(entryName: entryName, line: index + 1, reason: reason),
+        HelpMarkdownIssue(
+          entryName: entryName,
+          line: index + 1,
+          reason: reason,
+        ),
   ];
 }
 

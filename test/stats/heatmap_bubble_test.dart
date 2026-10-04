@@ -18,14 +18,16 @@ import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 
-PracticeSessionRecord _record(DateTime start, double seconds,
-        {String videoId = 'v1'}) =>
-    PracticeSessionRecord(
-      start: start,
-      videoId: videoId,
-      signature: const SongSignature(song: 'My Love'),
-      wallSeconds: seconds,
-    );
+PracticeSessionRecord _record(
+  DateTime start,
+  double seconds, {
+  String videoId = 'v1',
+}) => PracticeSessionRecord(
+  start: start,
+  videoId: videoId,
+  signature: const SongSignature(song: 'My Love'),
+  wallSeconds: seconds,
+);
 
 String _dayKey(DateTime day) {
   String two(int value) => value.toString().padLeft(2, '0');
@@ -52,10 +54,12 @@ Future<FakeSelectionHapticController> _pump(
     ProviderScope(
       overrides: [
         selectionHapticProvider.overrideWithValue(haptic),
-        practiceStatsStoreProvider
-            .overrideWithValue(PracticeStatsStore(statsStorage)),
-        videoIndexStoreProvider
-            .overrideWithValue(InMemoryVideoIndexStorage(initial: VideoIndex.empty)),
+        practiceStatsStoreProvider.overrideWithValue(
+          PracticeStatsStore(statsStorage),
+        ),
+        videoIndexStoreProvider.overrideWithValue(
+          InMemoryVideoIndexStorage(initial: VideoIndex.empty),
+        ),
         videoDocumentStorageFactoryProvider.overrideWithValue(
           (videoId) => InMemoryVideoDocumentStorage(),
         ),
@@ -89,20 +93,14 @@ void main() {
   final today = DateTime(now.year, now.month, now.day, 10);
 
   testWidgets('点格出单行气泡并联动下方明细', (tester) async {
-    await _pump(
-      tester,
-      records: [_record(today, 42 * 60 + 30)],
-    );
+    await _pump(tester, records: [_record(today, 42 * 60 + 30)]);
 
     await tester.ensureVisible(_cell(today));
     await tester.pumpAndSettle();
     await tester.tap(_cell(today));
     await tester.pumpAndSettle();
 
-    expect(
-      _bubbleText(tester),
-      '${today.month}月${today.day}日 · 练习 42:30',
-    );
+    expect(_bubbleText(tester), '${today.month}月${today.day}日 · 练习 42:30');
     // 气泡夹在热力图卡内。
     final card = tester.getRect(find.byKey(const Key('heatmap_card')));
     final bubbleRect = tester.getRect(_bubble());
@@ -128,10 +126,7 @@ void main() {
     await tester.tap(_cell(emptyDay));
     await tester.pumpAndSettle();
 
-    expect(
-      _bubbleText(tester),
-      '${emptyDay.month}月${emptyDay.day}日 · 这天没有练习',
-    );
+    expect(_bubbleText(tester), '${emptyDay.month}月${emptyDay.day}日 · 这天没有练习');
   });
 
   testWidgets('长按进入模式：震动一次、滑动实时改选中日与气泡、抬手保留模式', (tester) async {
@@ -139,10 +134,7 @@ void main() {
 
     final gesture = await _enterSelectionMode(tester, today);
     expect(haptic.impactCalls, 1);
-    expect(
-      _bubbleText(tester),
-      '${today.month}月${today.day}日 · 练习 10:00',
-    );
+    expect(_bubbleText(tester), '${today.month}月${today.day}日 · 练习 10:00');
 
     // 滑出今天所在列：选中日实时改为更早的无练习日，气泡实时跟随。
     var moved = 0;
@@ -155,9 +147,11 @@ void main() {
     expect(_bubbleText(tester), contains('这天没有练习'));
     final bubbleDay = RegExp(r'(\d+)月(\d+)日').firstMatch(_bubbleText(tester))!;
     expect(
-      DateTime(today.year, int.parse(bubbleDay.group(1)!),
-              int.parse(bubbleDay.group(2)!))
-          .isBefore(today),
+      DateTime(
+        today.year,
+        int.parse(bubbleDay.group(1)!),
+        int.parse(bubbleDay.group(2)!),
+      ).isBefore(today),
       isTrue,
     );
 

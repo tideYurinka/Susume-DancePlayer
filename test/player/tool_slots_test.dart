@@ -52,8 +52,14 @@ void main() {
       expect(keysById[ToolSlotId.delete], 'control_segment_delete');
       expect(keysById[ToolSlotId.autoRange], 'control_auto_range');
       expect(keysById[ToolSlotId.beatAnchorAdd], 'control_beat_anchor_add');
-      expect(keysById[ToolSlotId.beatAnchorRemove], 'control_beat_anchor_remove');
-      expect(keysById[ToolSlotId.beatAnchorsClear], 'control_beat_anchors_clear');
+      expect(
+        keysById[ToolSlotId.beatAnchorRemove],
+        'control_beat_anchor_remove',
+      );
+      expect(
+        keysById[ToolSlotId.beatAnchorsClear],
+        'control_beat_anchors_clear',
+      );
       expect(
         keysById[ToolSlotId.beatCorrectionExit],
         'control_beat_correction_exit',
@@ -80,15 +86,12 @@ void main() {
 
   group('具名槽集', () {
     test('段内倍频待命态 4 槽，次序 = 快一倍→慢一半→回到原样→退出', () {
-      expect(
-        ToolSlotTable.segmentDensityStandby.slots.map((s) => s.id),
-        const [
-          ToolSlotId.segmentDensityFaster,
-          ToolSlotId.segmentDensitySlower,
-          ToolSlotId.segmentDensityReset,
-          ToolSlotId.segmentDensityExit,
-        ],
-      );
+      expect(ToolSlotTable.segmentDensityStandby.slots.map((s) => s.id), const [
+        ToolSlotId.segmentDensityFaster,
+        ToolSlotId.segmentDensitySlower,
+        ToolSlotId.segmentDensityReset,
+        ToolSlotId.segmentDensityExit,
+      ]);
       // 三枚赋值钮的门 = 装载 + 无对象（做法取辞 = 先选中一个学习段）；
       // 退出槽无门、不改文档。
       for (final id in [
@@ -97,54 +100,43 @@ void main() {
         ToolSlotId.segmentDensityReset,
       ]) {
         final slot = ToolSlotTable.segmentDensityStandby.slotOf(id);
-        expect(slot.gates, [
-          ToolGateKind.loading,
-          ToolGateKind.noSubject,
-        ]);
+        expect(slot.gates, [ToolGateKind.loading, ToolGateKind.noSubject]);
         expect(slot.noSubjectHint, NoSubjectHint.learningSegment);
       }
-      final exit = ToolSlotTable.segmentDensityStandby
-          .slotOf(ToolSlotId.segmentDensityExit);
+      final exit = ToolSlotTable.segmentDensityStandby.slotOf(
+        ToolSlotId.segmentDensityExit,
+      );
       expect(exit.gates, isEmpty);
       expect(exit.writesDocument, isFalse);
     });
     test('对比态 5 槽，次序 = 熟练度→重点→删除→练习侧镜像→自动分段', () {
-      expect(
-        ToolSlotTable.compare.slots.map((s) => s.id),
-        const [
-          ToolSlotId.mastery,
-          ToolSlotId.emphasis,
-          ToolSlotId.delete,
-          ToolSlotId.practiceMirror,
-          ToolSlotId.autoRange,
-        ],
-      );
+      expect(ToolSlotTable.compare.slots.map((s) => s.id), const [
+        ToolSlotId.mastery,
+        ToolSlotId.emphasis,
+        ToolSlotId.delete,
+        ToolSlotId.practiceMirror,
+        ToolSlotId.autoRange,
+      ]);
     });
 
     test('正常态 6 槽，次序 = 熟练度→重点→分段→添加→删除→自动分段', () {
-      expect(
-        ToolSlotTable.normal.slots.map((s) => s.id),
-        const [
-          ToolSlotId.mastery,
-          ToolSlotId.emphasis,
-          ToolSlotId.segment,
-          ToolSlotId.add,
-          ToolSlotId.delete,
-          ToolSlotId.autoRange,
-        ],
-      );
+      expect(ToolSlotTable.normal.slots.map((s) => s.id), const [
+        ToolSlotId.mastery,
+        ToolSlotId.emphasis,
+        ToolSlotId.segment,
+        ToolSlotId.add,
+        ToolSlotId.delete,
+        ToolSlotId.autoRange,
+      ]);
     });
 
     test('待命态 4 槽，次序 = 设为八拍线→取消八拍线→清除所有八拍线→退出八拍矫正', () {
-      expect(
-        ToolSlotTable.standby.slots.map((s) => s.id),
-        const [
-          ToolSlotId.beatAnchorAdd,
-          ToolSlotId.beatAnchorRemove,
-          ToolSlotId.beatAnchorsClear,
-          ToolSlotId.beatCorrectionExit,
-        ],
-      );
+      expect(ToolSlotTable.standby.slots.map((s) => s.id), const [
+        ToolSlotId.beatAnchorAdd,
+        ToolSlotId.beatAnchorRemove,
+        ToolSlotId.beatAnchorsClear,
+        ToolSlotId.beatCorrectionExit,
+      ]);
     });
 
     test('引导锚点声明：底栏三份槽集里只有编辑态那枚「删除」声明为真', () {
@@ -210,23 +202,17 @@ void main() {
     test('对比态没有分段 / 添加槽（自动分段在册）', () {
       expect(
         byId.keys,
-        isNot(anyOf(
-          contains(ToolSlotId.segment),
-          contains(ToolSlotId.add),
-        )),
+        isNot(anyOf(contains(ToolSlotId.segment), contains(ToolSlotId.add))),
       );
       expect(byId[ToolSlotId.autoRange], isNotNull);
     });
 
     test('自动分段条目表：三档、次序 = 清空分段→4 个八拍/段→8 个八拍/段；键与门逐条声明', () {
-      expect(
-        AutoSegmentEntryTable.normal.entries.map((e) => e.id),
-        const [
-          AutoSegmentEntryId.clearSegments,
-          AutoSegmentEntryId.fourBeats,
-          AutoSegmentEntryId.eightBeats,
-        ],
-      );
+      expect(AutoSegmentEntryTable.normal.entries.map((e) => e.id), const [
+        AutoSegmentEntryId.clearSegments,
+        AutoSegmentEntryId.fourBeats,
+        AutoSegmentEntryId.eightBeats,
+      ]);
       final byId = {
         for (final e in AutoSegmentEntryTable.normal.entries) e.id: e,
       };
@@ -234,20 +220,17 @@ void main() {
       expect(byId[AutoSegmentEntryId.fourBeats]!.key, 'control_auto_seg_4');
       expect(byId[AutoSegmentEntryId.eightBeats]!.key, 'control_auto_seg_8');
       for (final entry in AutoSegmentEntryTable.normal.entries) {
-        expect(
-          entry.gates,
-          const [
-            ToolGateKind.loading,
-            ToolGateKind.locked,
-            ToolGateKind.gridNotReady,
-          ],
-          reason: '${entry.id} 门 = 装载 / 锁定 / 网格未就绪',
-        );
+        expect(entry.gates, const [
+          ToolGateKind.loading,
+          ToolGateKind.locked,
+          ToolGateKind.gridNotReady,
+        ], reason: '${entry.id} 门 = 装载 / 锁定 / 网格未就绪');
         expect(entry.writesDocument, isTrue, reason: '${entry.id}');
       }
       // 未收录标识显式报错。
       expect(
-        () => AutoSegmentEntryTable.normal.entryOf(AutoSegmentEntryId.eightBeats),
+        () =>
+            AutoSegmentEntryTable.normal.entryOf(AutoSegmentEntryId.eightBeats),
         returnsNormally,
       );
     });
@@ -299,9 +282,10 @@ void main() {
 
   group('装载未完成门', () {
     test('门优先级排在无对象之前：对象集本身来自尚未装载的文档', () {
-      final v = evaluateToolSlot(
-        const [ToolGateKind.noSubject, ToolGateKind.loading],
-      );
+      final v = evaluateToolSlot(const [
+        ToolGateKind.noSubject,
+        ToolGateKind.loading,
+      ]);
       expect(v.kind, ToolGateKind.loading);
       expect(v.tappable, isTrue);
     });
@@ -364,7 +348,11 @@ void main() {
     test('添加条目：三个条目都会写文档，各自声明装载未完成门', () {
       for (final entry in AddEntryTable.normal.entries) {
         expect(entry.writesDocument, isTrue, reason: '${entry.id}');
-        expect(entry.gates, contains(ToolGateKind.loading), reason: '${entry.id}');
+        expect(
+          entry.gates,
+          contains(ToolGateKind.loading),
+          reason: '${entry.id}',
+        );
       }
     });
 
@@ -416,10 +404,7 @@ void main() {
         returnsNormally,
       );
       const empty = PageWriteEntryTable([]);
-      expect(
-        () => empty.entryOf(PageWriteEntryId.capture),
-        throwsStateError,
-      );
+      expect(() => empty.entryOf(PageWriteEntryId.capture), throwsStateError);
       expect(empty.entries, isEmpty);
     });
 
@@ -445,35 +430,36 @@ void main() {
 
   group('判定表：两句话优先级', () {
     test('无对象 + 锁定 → 无对象胜', () {
-      final v = evaluateToolSlot(
-        const [ToolGateKind.locked, ToolGateKind.noSubject],
-      );
+      final v = evaluateToolSlot(const [
+        ToolGateKind.locked,
+        ToolGateKind.noSubject,
+      ]);
       expect(v.kind, ToolGateKind.noSubject);
       expect(v.tappable, isTrue);
     });
 
     test('锁定 + 网格未就绪 → 锁定胜', () {
-      final v = evaluateToolSlot(
-        const [ToolGateKind.gridNotReady, ToolGateKind.locked],
-      );
+      final v = evaluateToolSlot(const [
+        ToolGateKind.gridNotReady,
+        ToolGateKind.locked,
+      ]);
       expect(v.kind, ToolGateKind.locked);
     });
 
     test('锁定 + 越界 → 锁定胜', () {
-      final v = evaluateToolSlot(
-        const [ToolGateKind.previewOutOfBounds, ToolGateKind.locked],
-      );
+      final v = evaluateToolSlot(const [
+        ToolGateKind.previewOutOfBounds,
+        ToolGateKind.locked,
+      ]);
       expect(v.kind, ToolGateKind.locked);
       expect(v.tappable, isTrue);
     });
 
     test('网格未就绪 + 越界 → 未就绪胜', () {
-      final v = evaluateToolSlot(
-        const [
-          ToolGateKind.previewOutOfBounds,
-          ToolGateKind.gridNotReady,
-        ],
-      );
+      final v = evaluateToolSlot(const [
+        ToolGateKind.previewOutOfBounds,
+        ToolGateKind.gridNotReady,
+      ]);
       expect(v.kind, ToolGateKind.gridNotReady);
       expect(v.tappable, isTrue);
     });
@@ -527,7 +513,8 @@ void main() {
             AddEntryTable.normal.entryOf(AddEntryId.segmentFlag).gates.toSet(),
             const ToolFacts(),
             hasSubject: false,
-            noSubjectExplained: AddEntryTable.normal
+            noSubjectExplained:
+                AddEntryTable.normal
                     .entryOf(AddEntryId.segmentFlag)
                     .noSubjectHint !=
                 null,
@@ -556,8 +543,11 @@ void main() {
           expect(v.available, isTrue, reason: '${slot.id} 无门恒为正常');
         } else {
           expect(v.available, isFalse, reason: '${slot.id} 有门命中即不可用');
-          expect(v.tappable, toolSlotTappable(v.kind!),
-              reason: '${slot.id} 可点性与种类映射一致');
+          expect(
+            v.tappable,
+            toolSlotTappable(v.kind!),
+            reason: '${slot.id} 可点性与种类映射一致',
+          );
         }
       }
     });
@@ -573,64 +563,45 @@ void main() {
         expect(v.kind, kind, reason: '$id 全命中结果');
       }
 
-      expectRow(
-        ToolSlotId.mastery,
-        const [ToolGateKind.loading, ToolGateKind.noSubject],
+      expectRow(ToolSlotId.mastery, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.emphasis,
-        const [ToolGateKind.loading, ToolGateKind.noSubject],
+        ToolGateKind.noSubject,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.emphasis, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.segment,
-        const [
-          ToolGateKind.loading,
-          ToolGateKind.locked,
-          ToolGateKind.gridNotReady,
-          ToolGateKind.previewOutOfBounds,
-        ],
+        ToolGateKind.noSubject,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.segment, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.add,
-        const [ToolGateKind.loading],
+        ToolGateKind.locked,
+        ToolGateKind.gridNotReady,
+        ToolGateKind.previewOutOfBounds,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.add, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.delete,
-        const [
-          ToolGateKind.loading,
-          ToolGateKind.noSubject,
-          ToolGateKind.locked,
-        ],
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.delete, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.autoRange,
-        const [
-          ToolGateKind.loading,
-          ToolGateKind.locked,
-          ToolGateKind.gridNotReady,
-        ],
+        ToolGateKind.noSubject,
+        ToolGateKind.locked,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.autoRange, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.beatAnchorAdd,
-        const [ToolGateKind.loading, ToolGateKind.noSubject],
+        ToolGateKind.locked,
+        ToolGateKind.gridNotReady,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.beatAnchorAdd, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.beatAnchorRemove,
-        const [ToolGateKind.loading, ToolGateKind.noSubject],
+        ToolGateKind.noSubject,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.beatAnchorRemove, const [
         ToolGateKind.loading,
-      );
-      expectRow(
-        ToolSlotId.beatAnchorsClear,
-        const [ToolGateKind.loading, ToolGateKind.noSubject],
+        ToolGateKind.noSubject,
+      ], ToolGateKind.loading);
+      expectRow(ToolSlotId.beatAnchorsClear, const [
         ToolGateKind.loading,
-      );
+        ToolGateKind.noSubject,
+      ], ToolGateKind.loading);
       expectRow(ToolSlotId.beatCorrectionExit, const [], null);
     });
 
@@ -641,18 +612,20 @@ void main() {
         ToolSlotId.autoRange,
       ];
       for (final id in lockedSlots) {
-        expect(rows[id]!.gates, contains(ToolGateKind.locked), reason: '$id 受锁');
+        expect(
+          rows[id]!.gates,
+          contains(ToolGateKind.locked),
+          reason: '$id 受锁',
+        );
       }
       expect(
         ToolSlotTable.compare.slotOf(ToolSlotId.autoRange).gates,
         contains(ToolGateKind.locked),
         reason: '对比态自动分段同受锁',
       );
-      expect(
-        rows[ToolSlotId.add]!.gates,
-        const [ToolGateKind.loading],
-        reason: '「添加」钮不受锁',
-      );
+      expect(rows[ToolSlotId.add]!.gates, const [
+        ToolGateKind.loading,
+      ], reason: '「添加」钮不受锁');
       const exempt = [
         ToolSlotId.mastery,
         ToolSlotId.emphasis,
@@ -663,8 +636,11 @@ void main() {
         ToolSlotId.beatAnchorsClear,
       ];
       for (final id in exempt) {
-        expect(rows[id]!.gates, isNot(contains(ToolGateKind.locked)),
-            reason: '$id 锁定豁免');
+        expect(
+          rows[id]!.gates,
+          isNot(contains(ToolGateKind.locked)),
+          reason: '$id 锁定豁免',
+        );
       }
     });
 
@@ -714,10 +690,7 @@ void main() {
 
     test('未知槽标识显式报错，不静默返回空', () {
       const table = ToolSlotTable([]);
-      expect(
-        () => table.slotOf(ToolSlotId.mastery),
-        throwsStateError,
-      );
+      expect(() => table.slotOf(ToolSlotId.mastery), throwsStateError);
       expect(
         () => ToolSlotTable.standby.slotOf(ToolSlotId.mastery),
         throwsStateError,
@@ -779,8 +752,10 @@ void main() {
       }
       // 「练习侧镜像」只声明装载未完成：锁定事实点亮不了它。
       final mirror = ToolSlotTable.compare.slotOf(ToolSlotId.practiceMirror);
-      expect(evaluateToolEntry(mirror, const ToolFacts(locked: true)).available,
-          isTrue);
+      expect(
+        evaluateToolEntry(mirror, const ToolFacts(locked: true)).available,
+        isTrue,
+      );
       expect(
         evaluateToolEntry(mirror, const ToolFacts(loading: true)).kind,
         ToolGateKind.loading,
@@ -790,8 +765,10 @@ void main() {
     test('逐槽 noSubject：声明该门的槽按具名事实解析；做法随声明', () {
       // 声明无对象门的槽与它的具名事实（穷尽 switch 的外部观察）。
       final subjectFact = {
-        ToolSlotId.mastery: (ToolFacts f) => f.selectedLearningSegmentInInterval,
-        ToolSlotId.emphasis: (ToolFacts f) => f.selectedLearningSegmentInInterval,
+        ToolSlotId.mastery: (ToolFacts f) =>
+            f.selectedLearningSegmentInInterval,
+        ToolSlotId.emphasis: (ToolFacts f) =>
+            f.selectedLearningSegmentInInterval,
         ToolSlotId.delete: (ToolFacts f) =>
             f.anyLineSelected || f.selectedPracticeClip,
         ToolSlotId.beatAnchorAdd: (ToolFacts f) => f.anchorAddable,
@@ -823,27 +800,30 @@ void main() {
             ? const ToolFacts(anyLineSelected: true)
             : ToolFacts(
                 selectedLearningSegmentInInterval:
-                    slot.id == ToolSlotId.mastery || slot.id == ToolSlotId.emphasis,
+                    slot.id == ToolSlotId.mastery ||
+                    slot.id == ToolSlotId.emphasis,
                 anchorAddable: slot.id == ToolSlotId.beatAnchorAdd,
                 anchorRemovable: slot.id == ToolSlotId.beatAnchorRemove,
                 hasAnchors: slot.id == ToolSlotId.beatAnchorsClear,
               );
         final allowed = evaluateToolEntry(slot, satisfied);
-        expect(
-          allowed.available,
-          isTrue,
-          reason: '${slot.id} 事实成立 → 无对象不命中',
-        );
+        expect(allowed.available, isTrue, reason: '${slot.id} 事实成立 → 无对象不命中');
       }
     });
 
     test('做法声明的结构事实：四个灰钮入口各声明一句做法，待命态锚点三槽刻意为空', () {
-      expect(ToolSlotTable.normal.slotOf(ToolSlotId.mastery).noSubjectHint,
-          NoSubjectHint.learningSegment);
-      expect(ToolSlotTable.normal.slotOf(ToolSlotId.emphasis).noSubjectHint,
-          NoSubjectHint.learningSegment);
-      expect(ToolSlotTable.normal.slotOf(ToolSlotId.delete).noSubjectHint,
-          NoSubjectHint.segmentLineOrClip);
+      expect(
+        ToolSlotTable.normal.slotOf(ToolSlotId.mastery).noSubjectHint,
+        NoSubjectHint.learningSegment,
+      );
+      expect(
+        ToolSlotTable.normal.slotOf(ToolSlotId.emphasis).noSubjectHint,
+        NoSubjectHint.learningSegment,
+      );
+      expect(
+        ToolSlotTable.normal.slotOf(ToolSlotId.delete).noSubjectHint,
+        NoSubjectHint.segmentLineOrClip,
+      );
       expect(
         AddEntryTable.normal.entryOf(AddEntryId.segmentFlag).noSubjectHint,
         NoSubjectHint.segmentLine,
@@ -852,12 +832,18 @@ void main() {
         expect(slot.noSubjectHint, isNull, reason: '${slot.id} 刻意不给做法');
       }
       // 对比槽集里同门同款（熟练度 / 重点 / 删除三条逐位相同）。
-      expect(ToolSlotTable.compare.slotOf(ToolSlotId.mastery).noSubjectHint,
-          NoSubjectHint.learningSegment);
-      expect(ToolSlotTable.compare.slotOf(ToolSlotId.emphasis).noSubjectHint,
-          NoSubjectHint.learningSegment);
-      expect(ToolSlotTable.compare.slotOf(ToolSlotId.delete).noSubjectHint,
-          NoSubjectHint.segmentLineOrClip);
+      expect(
+        ToolSlotTable.compare.slotOf(ToolSlotId.mastery).noSubjectHint,
+        NoSubjectHint.learningSegment,
+      );
+      expect(
+        ToolSlotTable.compare.slotOf(ToolSlotId.emphasis).noSubjectHint,
+        NoSubjectHint.learningSegment,
+      );
+      expect(
+        ToolSlotTable.compare.slotOf(ToolSlotId.delete).noSubjectHint,
+        NoSubjectHint.segmentLineOrClip,
+      );
       // 不给做法 + 命中该门 → 判定表退回旧口径（可点性不由渲染路径决定）。
       final silent = evaluateDeclaredGates(
         const {ToolGateKind.noSubject},
@@ -887,18 +873,14 @@ void main() {
       for (final slot in all) {
         if (!slot.gates.contains(ToolGateKind.noSubject)) continue;
         final v = evaluateToolEntry(slot, facts);
-        expect(v.kind, isNot(ToolGateKind.noSubject),
-            reason: '${slot.id}');
+        expect(v.kind, isNot(ToolGateKind.noSubject), reason: '${slot.id}');
       }
     });
 
     test('门优先级无例外：无对象压倒锁定，锁定压倒未就绪与越界', () {
       // 无对象压倒锁定：删除槽空事实 + 锁定 → 无对象胜。
       final delete = ToolSlotTable.normal.slotOf(ToolSlotId.delete);
-      final v1 = evaluateToolEntry(
-        delete,
-        const ToolFacts(locked: true),
-      );
+      final v1 = evaluateToolEntry(delete, const ToolFacts(locked: true));
       expect(v1.kind, ToolGateKind.noSubject);
       expect(v1.tappable, isTrue);
       // 事实成立后锁定才可见（锁覆盖的作用对象 = 选中的分段线）。
@@ -966,10 +948,7 @@ void main() {
     });
 
     test('锁定覆盖解析逐槽穷尽：声明锁定门的槽之外一律不覆盖（加槽漏补即编译报错）', () {
-      const facts = ToolFacts(
-        selectedSegmentLine: true,
-        anyLineSelected: true,
-      );
+      const facts = ToolFacts(selectedSegmentLine: true, anyLineSelected: true);
       expect(toolEntryLayoutLockApplies(ToolSlotId.segment, facts), isTrue);
       expect(toolEntryLayoutLockApplies(ToolSlotId.autoRange, facts), isTrue);
       expect(toolEntryLayoutLockApplies(ToolSlotId.delete, facts), isTrue);
@@ -1006,15 +985,12 @@ void main() {
 
   group('添加条目表', () {
     test('条目次序 = 菜单次序：备注贴纸 → 局部镜像 → 标记分段线 → 半拍标记', () {
-      expect(
-        AddEntryTable.normal.entries.map((e) => e.id),
-        const [
-          AddEntryId.noteSticker,
-          AddEntryId.localMirror,
-          AddEntryId.segmentFlag,
-          AddEntryId.halfBeat,
-        ],
-      );
+      expect(AddEntryTable.normal.entries.map((e) => e.id), const [
+        AddEntryId.noteSticker,
+        AddEntryId.localMirror,
+        AddEntryId.segmentFlag,
+        AddEntryId.halfBeat,
+      ]);
     });
 
     test('菜单文案 = 条目自己声明的标签：备注贴纸 / 局部镜像 / 标记分段线 / 半拍标记（基础标签是未标记态文案，已标记态「取消标记」由渲染层按事实取辞）', () {
@@ -1037,26 +1013,29 @@ void main() {
       expect(keysById[AddEntryId.segmentFlag], 'control_segment_flag');
     });
 
-    test('条目各自的门清单：半拍线 = 装载未完成/越界，局部镜像片段与备注贴纸 = 装载未完成，标记分段线 = 装载未完成/无对象/锁定', () {
-      final byId = {
-        for (final e in AddEntryTable.normal.entries) e.id: e,
-      };
-      expect(byId[AddEntryId.halfBeat]!.gates, const [
-        ToolGateKind.loading,
-        ToolGateKind.previewOutOfBounds,
-      ]);
-      expect(byId[AddEntryId.localMirror]!.gates,
-          const [ToolGateKind.loading]);
-      // 备注贴纸条目门 = 装载未完成（不受锁定分段）。
-      expect(byId[AddEntryId.noteSticker]!.gates,
-          const [ToolGateKind.loading]);
-      // 原「标记」槽的「无对象」门随条目搬进来；flag 切换属分段结构族。
-      expect(byId[AddEntryId.segmentFlag]!.gates, const [
-        ToolGateKind.loading,
-        ToolGateKind.noSubject,
-        ToolGateKind.locked,
-      ]);
-    });
+    test(
+      '条目各自的门清单：半拍线 = 装载未完成/越界，局部镜像片段与备注贴纸 = 装载未完成，标记分段线 = 装载未完成/无对象/锁定',
+      () {
+        final byId = {for (final e in AddEntryTable.normal.entries) e.id: e};
+        expect(byId[AddEntryId.halfBeat]!.gates, const [
+          ToolGateKind.loading,
+          ToolGateKind.previewOutOfBounds,
+        ]);
+        expect(byId[AddEntryId.localMirror]!.gates, const [
+          ToolGateKind.loading,
+        ]);
+        // 备注贴纸条目门 = 装载未完成（不受锁定分段）。
+        expect(byId[AddEntryId.noteSticker]!.gates, const [
+          ToolGateKind.loading,
+        ]);
+        // 原「标记」槽的「无对象」门随条目搬进来；flag 切换属分段结构族。
+        expect(byId[AddEntryId.segmentFlag]!.gates, const [
+          ToolGateKind.loading,
+          ToolGateKind.noSubject,
+          ToolGateKind.locked,
+        ]);
+      },
+    );
 
     test('addEntryHasSubject：条目「无对象」前提由库内穷尽 switch 解析（与槽面同构）', () {
       expect(
@@ -1075,52 +1054,62 @@ void main() {
         AddEntryId.localMirror,
         AddEntryId.noteSticker,
       ]) {
-        expect(addEntryHasSubject(id, const ToolFacts()), isTrue, reason: '$id');
+        expect(
+          addEntryHasSubject(id, const ToolFacts()),
+          isTrue,
+          reason: '$id',
+        );
       }
     });
 
-    test('标记分段线条目：无选中分段线（无对象）→ 置灰可点弹做法；有选中且锁定 → 可点弹「已锁定分段」（动作不发生）；装载未完成压倒一切', () {
-      final entry = AddEntryTable.normal.entryOf(AddEntryId.segmentFlag);
-      // 条目自己声明的做法——装配处与求值处读的同一份。
-      final explained = entry.noSubjectHint != null;
-      // 无选中：无对象命中（可点并解释该怎么做）。
-      final denied = evaluateDeclaredGates(
-        entry.gates.toSet(),
-        const ToolFacts(),
-        hasSubject: false,
-        noSubjectExplained: explained,
-      );
-      expect(denied.available, isFalse);
-      expect(denied.kind, ToolGateKind.noSubject);
-      expect(denied.tappable, isTrue);
-      // 无对象压倒锁定：无选中 + 锁定仍报无对象（可点、弹做法）。
-      const lockedFacts = ToolFacts(locked: true);
-      final lockedNoSubject = evaluateDeclaredGates(
-        entry.gates.toSet(),
-        lockedFacts,
-        hasSubject: false,
-        noSubjectExplained: explained,
-      );
-      expect(lockedNoSubject.kind, ToolGateKind.noSubject);
-      // 有选中 + 锁定：可点弹「已锁定分段」、动作不发生。
-      final lockedOk = evaluateDeclaredGates(
-        entry.gates.toSet(),
-        lockedFacts,
-      );
-      expect(lockedOk.kind, ToolGateKind.locked);
-      expect(lockedOk.tappable, isTrue);
-      // 装载未完成压倒无对象与锁定。
-      final loading = evaluateDeclaredGates(
-        entry.gates.toSet(),
-        const ToolFacts(loading: true),
-        hasSubject: false,
-      );
-      expect(loading.kind, ToolGateKind.loading);
-      expect(loading.tappable, isTrue);
-      // 装载落定、有选中、未锁定 → 正常。
-      final ok = evaluateDeclaredGates(entry.gates.toSet(), const ToolFacts());
-      expect(ok.available, isTrue);
-    });
+    test(
+      '标记分段线条目：无选中分段线（无对象）→ 置灰可点弹做法；有选中且锁定 → 可点弹「已锁定分段」（动作不发生）；装载未完成压倒一切',
+      () {
+        final entry = AddEntryTable.normal.entryOf(AddEntryId.segmentFlag);
+        // 条目自己声明的做法——装配处与求值处读的同一份。
+        final explained = entry.noSubjectHint != null;
+        // 无选中：无对象命中（可点并解释该怎么做）。
+        final denied = evaluateDeclaredGates(
+          entry.gates.toSet(),
+          const ToolFacts(),
+          hasSubject: false,
+          noSubjectExplained: explained,
+        );
+        expect(denied.available, isFalse);
+        expect(denied.kind, ToolGateKind.noSubject);
+        expect(denied.tappable, isTrue);
+        // 无对象压倒锁定：无选中 + 锁定仍报无对象（可点、弹做法）。
+        const lockedFacts = ToolFacts(locked: true);
+        final lockedNoSubject = evaluateDeclaredGates(
+          entry.gates.toSet(),
+          lockedFacts,
+          hasSubject: false,
+          noSubjectExplained: explained,
+        );
+        expect(lockedNoSubject.kind, ToolGateKind.noSubject);
+        // 有选中 + 锁定：可点弹「已锁定分段」、动作不发生。
+        final lockedOk = evaluateDeclaredGates(
+          entry.gates.toSet(),
+          lockedFacts,
+        );
+        expect(lockedOk.kind, ToolGateKind.locked);
+        expect(lockedOk.tappable, isTrue);
+        // 装载未完成压倒无对象与锁定。
+        final loading = evaluateDeclaredGates(
+          entry.gates.toSet(),
+          const ToolFacts(loading: true),
+          hasSubject: false,
+        );
+        expect(loading.kind, ToolGateKind.loading);
+        expect(loading.tappable, isTrue);
+        // 装载落定、有选中、未锁定 → 正常。
+        final ok = evaluateDeclaredGates(
+          entry.gates.toSet(),
+          const ToolFacts(),
+        );
+        expect(ok.available, isTrue);
+      },
+    );
 
     test('条目经同一张判定表判定：锁定可点弹原因、越界不可点静默、装载未完成弹原因', () {
       final halfBeat = AddEntryTable.normal.entryOf(AddEntryId.halfBeat);
@@ -1137,8 +1126,11 @@ void main() {
       expect(outOfBounds.kind, ToolGateKind.previewOutOfBounds);
       expect(outOfBounds.tappable, isFalse);
       final mirror = AddEntryTable.normal.entryOf(AddEntryId.localMirror);
-      expect(mirror.gates.contains(ToolGateKind.previewOutOfBounds), isFalse,
-          reason: '局部镜像片段不受越界约束');
+      expect(
+        mirror.gates.contains(ToolGateKind.previewOutOfBounds),
+        isFalse,
+        reason: '局部镜像片段不受越界约束',
+      );
     });
 
     test('未知 / 未收录条目标识显式报错', () {
@@ -1147,10 +1139,7 @@ void main() {
         returnsNormally,
       );
       const empty = AddEntryTable([]);
-      expect(
-        () => empty.entryOf(AddEntryId.halfBeat),
-        throwsStateError,
-      );
+      expect(() => empty.entryOf(AddEntryId.halfBeat), throwsStateError);
     });
 
     test('空条目表可构造、条目查询返回空', () {
@@ -1159,4 +1148,3 @@ void main() {
     });
   });
 }
-

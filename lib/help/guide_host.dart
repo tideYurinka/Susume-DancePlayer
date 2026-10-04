@@ -178,9 +178,7 @@ class _GuideHostState extends ConsumerState<GuideHost> {
       _waitingAnchorKey = primaryAnchorKey;
       _anchorMissedFrames = 0;
     }
-    var anchorRect = primaryAnchorKey == null
-        ? null
-        : rects[primaryAnchorKey];
+    var anchorRect = primaryAnchorKey == null ? null : rects[primaryAnchorKey];
     // 贴框前提 = **锚点当前在屏上在场**；驻留锚点的步
     // （三指跳转 ②）矩形只继续用于画高亮框、不用于贴条——它讲的是一个屏幕
     // 手势，控制层随即收起带走锚点，恒停靠安全区顶，不随锚点在场的头几帧
@@ -190,8 +188,7 @@ class _GuideHostState extends ConsumerState<GuideHost> {
     // 经组合根给的闭包请求播放页收起控制层进观看态（幂等；控制层未展开时
     // 收起动作是 no-op，等于什么都不做）。一次演出只请求一次；请求排在帧尾
     // ——此刻判定面还在构建中。
-    final stickyHandsOn =
-        !suppressed && step != null && step.stickyAnchor;
+    final stickyHandsOn = !suppressed && step != null && step.stickyAnchor;
     if (stickyHandsOn && _enterWatchingRequestedStepId != step.id) {
       _enterWatchingRequestedStepId = step.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -338,8 +335,7 @@ class _GuideHostState extends ConsumerState<GuideHost> {
     if (session.criterionLatches.contains(criterion)) return true;
     // 取值型判据：做到的那个实物就是本单元刚落成的那一个。
     final selected = session.criterionValues[criterion];
-    return selected != null &&
-        selected == session.artifactIndexes[step.unitId];
+    return selected != null && selected == session.artifactIndexes[step.unitId];
   }
 }
 

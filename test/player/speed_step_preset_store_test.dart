@@ -21,8 +21,9 @@ void main() {
     return ProviderContainer(
       overrides: [
         playbackEngineProvider.overrideWithValue(engine),
-        speedStepPresetStorageProvider
-            .overrideWithValue(SpeedStepPresetStore(storage)),
+        speedStepPresetStorageProvider.overrideWithValue(
+          SpeedStepPresetStore(storage),
+        ),
         // 存取 seam 单测不跑自动恢复（恢复行为单独一组验证）。
         if (!restore)
           speedStepPresetAutoRestoreProvider.overrideWithValue(false),
@@ -43,7 +44,10 @@ void main() {
 
   group('预设 Notifier（初始态）', () {
     test('初始：仅两个内置预设、选中首个、参数已应用到步进控制', () {
-      expect(doc().presets.map((p) => p.id), ['builtin_first', 'builtin_review']);
+      expect(doc().presets.map((p) => p.id), [
+        'builtin_first',
+        'builtin_review',
+      ]);
       expect(doc().selectedId, 'builtin_first');
       expect(
         container.read(speedControlProvider).stepParams,
@@ -70,8 +74,11 @@ void main() {
           lapsPerRate: 2,
           rateIncrement: 0.25,
         ),
-      );      expect(storage.snapshot['speedStepPresets']['selectedId'],
-          'builtin_review');
+      );
+      expect(
+        storage.snapshot['speedStepPresets']['selectedId'],
+        'builtin_review',
+      );
     });
 
     test('选中不存在的 id：no-op', () async {
@@ -137,8 +144,8 @@ void main() {
         ),
       );
       expect(
-        (storage.snapshot['speedStepPresets']['presets'] as List)[0]['params']
-            ['startRate'],
+        (storage.snapshot['speedStepPresets']['presets']
+            as List)[0]['params']['startRate'],
         0.6,
       );
     });
@@ -166,8 +173,10 @@ void main() {
         doc().presets.firstWhere((p) => p.id == 'builtin_first').params,
         const SpeedStepParams(),
       );
-      expect(doc().presets.firstWhere((p) => p.id == 'builtin_first').name,
-          '初见·大量练习');
+      expect(
+        doc().presets.firstWhere((p) => p.id == 'builtin_first').name,
+        '初见·大量练习',
+      );
     });
 
     test('不存在的 id：no-op', () async {
@@ -191,10 +200,7 @@ void main() {
       final selected = doc().presets.firstWhere((p) => p.id == 'builtin_first');
       expect(selected.params.startRate, 0.4);
       expect(selected.params.maxRate, 1.2);
-      expect(
-        container.read(speedControlProvider).stepParams.startRate,
-        0.4,
-      );
+      expect(container.read(speedControlProvider).stepParams.startRate, 0.4);
       final saved = storage.snapshot['speedStepPresets']['presets'] as List;
       expect((saved[0]['params'] as Map)['startRate'], 0.4);
     });
@@ -248,8 +254,10 @@ void main() {
 
       final selected = doc().presets.firstWhere((p) => p.id == 'builtin_first');
       expect(selected.params, const SpeedStepParams());
-      expect(container.read(speedControlProvider).stepParams,
-          const SpeedStepParams());
+      expect(
+        container.read(speedControlProvider).stepParams,
+        const SpeedStepParams(),
+      );
       final saved = storage.snapshot['speedStepPresets']['presets'] as List;
       expect((saved[0]['params'] as Map)['startRate'], 0.5);
     });
@@ -279,8 +287,11 @@ void main() {
         ),
         reason: '恢复默认回到新出厂值',
       );
-      expect(container.read(speedControlProvider).stepParams, review.params,
-          reason: '选中预设恢复后步进参数随之应用');
+      expect(
+        container.read(speedControlProvider).stepParams,
+        review.params,
+        reason: '选中预设恢复后步进参数随之应用',
+      );
     });
   });
 
@@ -327,10 +338,7 @@ void main() {
       await model().delete(customId);
 
       expect(doc().presets.length, 2);
-      expect(
-        doc().presets.where((p) => p.id == customId),
-        isEmpty,
-      );
+      expect(doc().presets.where((p) => p.id == customId), isEmpty);
       expect(doc().selectedId, 'builtin_first');
       expect(
         container.read(speedControlProvider).stepParams,
@@ -381,9 +389,7 @@ void main() {
 
     test('删除正在生效的预设：步进一并停用、倍速回手动值', () async {
       await model().select('builtin_first');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       expect(engine.rate, 0.5, reason: '步进按该预设首档起跑');
 
       await model().delete('builtin_first');
@@ -395,9 +401,7 @@ void main() {
 
     test('录制期删除正在生效的预设：步进同样停用，且不写穿录制的 1.0×', () async {
       await model().select('builtin_first');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
       container
           .read(compareRecordingPhaseProvider.notifier)
           .set(CompareRecordingPhase.recording);
@@ -417,9 +421,7 @@ void main() {
 
     test('步进生效中删除未生效的那条预设：步进不受影响', () async {
       await model().select('builtin_first');
-      await container
-          .read(speedControlProvider.notifier)
-          .setStepEnabled(true);
+      await container.read(speedControlProvider.notifier).setStepEnabled(true);
 
       await model().delete('builtin_review');
 
@@ -478,8 +480,12 @@ void main() {
       await first
           .read(speedControlProvider.notifier)
           .setStepEnabled(true, scope: SpeedStepScope.wholeVideo);
-      await first.read(speedStepPresetProvider.notifier).select('builtin_review');
-      await first.read(speedStepPresetProvider.notifier).updatePreset(
+      await first
+          .read(speedStepPresetProvider.notifier)
+          .select('builtin_review');
+      await first
+          .read(speedStepPresetProvider.notifier)
+          .updatePreset(
             id: 'builtin_review',
             params: const SpeedStepParams(
               startRate: 0.8,
@@ -500,8 +506,7 @@ void main() {
 
       final doc = second.read(speedStepPresetProvider);
       expect(doc.presets.length, 3);
-      final review =
-          doc.presets.firstWhere((p) => p.id == 'builtin_review');
+      final review = doc.presets.firstWhere((p) => p.id == 'builtin_review');
       expect(review.params.startRate, 0.8);
       expect(doc.presets.last.name, '冲刺');
       expect(doc.selectedId, doc.presets.last.id);
@@ -522,7 +527,12 @@ void main() {
               'id': 'builtin_first',
               'name': '初见·大量练习',
               'builtin': true,
-              'params': {'startRate': 'oops', 'maxRate': 1.0, 'lapsPerRate': 3, 'rateIncrement': 0.1},
+              'params': {
+                'startRate': 'oops',
+                'maxRate': 1.0,
+                'lapsPerRate': 3,
+                'rateIncrement': 0.1,
+              },
             },
           ],
           'selectedId': 'builtin_first',
@@ -533,8 +543,7 @@ void main() {
       await first.read(speedStepPresetProvider.notifier).restoreDone;
 
       final doc = first.read(speedStepPresetProvider);
-      expect(doc.presets.map((p) => p.id),
-          ['builtin_first', 'builtin_review']);
+      expect(doc.presets.map((p) => p.id), ['builtin_first', 'builtin_review']);
       expect(doc.selectedId, 'builtin_first');
     });
 
@@ -545,15 +554,13 @@ void main() {
       await first.read(speedStepPresetProvider.notifier).restoreDone;
 
       final doc = first.read(speedStepPresetProvider);
-      expect(doc.presets.map((p) => p.id),
-          ['builtin_first', 'builtin_review']);
+      expect(doc.presets.map((p) => p.id), ['builtin_first', 'builtin_review']);
       expect(doc.selectedId, 'builtin_first');
     });
   });
 
   group('同文件其它键保留', () {
-    test('预设写盘只覆盖 speedStepPresets 键，并列键（avSyncDelays 等）保留',
-        () async {
+    test('预设写盘只覆盖 speedStepPresets 键，并列键（avSyncDelays 等）保留', () async {
       storage.reset();
       // 并列键先在文件中（与生产同文件多键形态一致）。
       await storage.mutate((json, {required bool present}) async {

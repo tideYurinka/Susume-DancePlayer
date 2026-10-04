@@ -11,7 +11,8 @@ import 'package:dance_learning_app/player/settings_persistence.dart'
     show videoDocumentCoordinatorProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:dance_learning_app/persistence/video_document_store.dart'
@@ -40,7 +41,10 @@ void main() {
     late FakeCameraCaptureService camera;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -57,7 +61,9 @@ void main() {
               InMemoryPrivateJsonStorage(),
             ),
             systemUiControllerProvider.overrideWithValue(systemUi),
-            contentHasherProvider.overrideWithValue(const FixedHasher('seeded')),
+            contentHasherProvider.overrideWithValue(
+              const FixedHasher('seeded'),
+            ),
             // 打开会话读两份文档走内存实现（真实实现走 path_provider，在
             // flutter_test 的 fake async 时钟下不完成）。
             videoDocumentStorageFactoryProvider.overrideWithValue(
@@ -157,13 +163,17 @@ void main() {
       await tester.tap(find.byKey(const Key('camera_permission_retry')));
       await tester.pumpAndSettle();
       expect(camera.requestPermissionCount, 2);
-      expect(find.byKey(const Key('camera_permission_open_settings')),
-          findsOneWidget);
+      expect(
+        find.byKey(const Key('camera_permission_open_settings')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('camera_permission_retry')), findsNothing);
 
       // 去系统设置：跳设置页即结束本次进入编排（不在返回瞬间重问），
       // 待办取消、模式值不动；授权后再次发起进入按已授权放行。
-      await tester.tap(find.byKey(const Key('camera_permission_open_settings')));
+      await tester.tap(
+        find.byKey(const Key('camera_permission_open_settings')),
+      );
       await tester.pumpAndSettle();
       expect(camera.openSettingsCount, 1);
       expect(find.byKey(const Key('camera_permission_dialog')), findsNothing);
@@ -243,7 +253,10 @@ void main() {
     });
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -271,7 +284,9 @@ void main() {
               InMemoryPrivateJsonStorage(initial: privateInitial),
             ),
             systemUiControllerProvider.overrideWithValue(systemUi),
-            contentHasherProvider.overrideWithValue(const FixedHasher('seeded')),
+            contentHasherProvider.overrideWithValue(
+              const FixedHasher('seeded'),
+            ),
             videoDocumentStorageFactoryProvider.overrideWithValue(
               (videoId) => docs ?? InMemoryVideoDocumentStorage(),
             ),
@@ -380,7 +395,8 @@ void main() {
       expectPreviewPresent(tester);
       await tester.pump(const Duration(milliseconds: 100));
       expect(
-        (docs.localSnapshot['prefs'] as Map<String, dynamic>?)?['practiceMirror'],
+        (docs.localSnapshot['prefs']
+            as Map<String, dynamic>?)?['practiceMirror'],
         false,
       );
 
@@ -390,9 +406,7 @@ void main() {
       expectPreviewPresent(tester);
     });
 
-    testWidgets('槽覆盖设备默认：设备级默认关 + 槽点按开 → 落盘 true，重开恢复开', (
-      tester,
-    ) async {
+    testWidgets('槽覆盖设备默认：设备级默认关 + 槽点按开 → 落盘 true，重开恢复开', (tester) async {
       setWideView(tester);
       final docs = InMemoryVideoDocumentStorage();
       // 设备级默认关（global_private.json 扩键）。
@@ -416,7 +430,8 @@ void main() {
       // 落盘随舞 prefs；重开这支舞覆盖恢复 → 仍是开（非设备默认）。
       await tester.pump(const Duration(milliseconds: 100));
       expect(
-        (docs.localSnapshot['prefs'] as Map<String, dynamic>?)?['practiceMirror'],
+        (docs.localSnapshot['prefs']
+            as Map<String, dynamic>?)?['practiceMirror'],
         true,
       );
       final reopened = await pumpCompareEditingWithPrivate(

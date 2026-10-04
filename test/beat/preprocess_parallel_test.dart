@@ -21,8 +21,10 @@ void main() {
       for (var i = 0; i < ref.length; i++) {
         final eq = ref[i] == out[i] || (ref[i].isNaN && out[i].isNaN);
         if (!eq) {
-          fail('nSamples=$nSamples bit mismatch at $i: '
-              '${ref[i]} vs ${out[i]}');
+          fail(
+            'nSamples=$nSamples bit mismatch at $i: '
+            '${ref[i]} vs ${out[i]}',
+          );
         }
       }
     }
@@ -30,13 +32,15 @@ void main() {
 }
 
 List<Filterbank> _fakeFbs() => [
-      for (var i = 0; i < kFrameSizes.length; i++)
-        Filterbank(
-          kFrameSizes[i] ~/ 2,
-          kLogDims[i],
-          Float32List.fromList(List.generate(
-            kFrameSizes[i] ~/ 2 * kLogDims[i],
-            (j) => ((j * 37) % 101) / 101 - 0.5,
-          )),
+  for (var i = 0; i < kFrameSizes.length; i++)
+    Filterbank(
+      kFrameSizes[i] ~/ 2,
+      kLogDims[i],
+      Float32List.fromList(
+        List.generate(
+          kFrameSizes[i] ~/ 2 * kLogDims[i],
+          (j) => ((j * 37) % 101) / 101 - 0.5,
         ),
-    ];
+      ),
+    ),
+];

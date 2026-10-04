@@ -35,7 +35,8 @@ import 'package:dance_learning_app/player/resume_position.dart'
         resumeDecision,
         resumePromptAutoDismiss,
         resumePromptProvider;
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,10 +145,7 @@ void main() {
   group('resumeDecision（纯函数 seam：续播位置 → 决策）', () {
     test('无位置（0）→ 不续播不弹卡', () {
       expect(
-        resumeDecision(
-          lastPosition: Duration.zero,
-          videoDuration: kDuration,
-        ),
+        resumeDecision(lastPosition: Duration.zero, videoDuration: kDuration),
         ResumeDecision.none,
       );
     });
@@ -164,11 +162,17 @@ void main() {
 
     test('位置有效且超出头部阈值 → 续播并弹「从头播放？」', () {
       expect(
-        resumeDecision(lastPosition: const Duration(seconds: 5), videoDuration: kDuration),
+        resumeDecision(
+          lastPosition: const Duration(seconds: 5),
+          videoDuration: kDuration,
+        ),
         ResumeDecision.continueWithPrompt,
       );
       expect(
-        resumeDecision(lastPosition: const Duration(minutes: 1), videoDuration: kDuration),
+        resumeDecision(
+          lastPosition: const Duration(minutes: 1),
+          videoDuration: kDuration,
+        ),
         ResumeDecision.continueWithPrompt,
       );
     });
@@ -189,7 +193,10 @@ void main() {
 
     test('视频时长未知 → 不续播（位置无从校验）', () {
       expect(
-        resumeDecision(lastPosition: const Duration(minutes: 1), videoDuration: Duration.zero),
+        resumeDecision(
+          lastPosition: const Duration(minutes: 1),
+          videoDuration: Duration.zero,
+        ),
         ResumeDecision.none,
       );
     });
@@ -449,7 +456,9 @@ void main() {
               FakeScreenBrightnessController(),
             ),
             videoIndexStoreProvider.overrideWithValue(indexStorage),
-            contentHasherProvider.overrideWithValue(const _FixedHasher('seeded')),
+            contentHasherProvider.overrideWithValue(
+              const _FixedHasher('seeded'),
+            ),
             videoDocumentStorageFactoryProvider.overrideWithValue(
               (videoId) => InMemoryVideoDocumentStorage(),
             ),
@@ -464,9 +473,7 @@ void main() {
     InMemoryVideoIndexStorage seededIndex({required int lastPositionMs}) {
       return InMemoryVideoIndexStorage(
         initial: VideoIndex(
-          entries: [
-            _entry().copyWith(lastPositionMs: lastPositionMs),
-          ],
+          entries: [_entry().copyWith(lastPositionMs: lastPositionMs)],
         ),
       );
     }
@@ -478,18 +485,14 @@ void main() {
 
       // 播放 3 秒后切后台。
       await tester.pump(const Duration(seconds: 3));
-      tester
-          .binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
       expect(
         indexStorage.current.entries.single.lastPositionMs,
         inInclusiveRange(3000, 3400),
       );
 
-      tester
-          .binding
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     });
 
     testWidgets('打开即从续播位置播放，左下角出现「从头播放？」小卡', (tester) async {
@@ -500,7 +503,10 @@ void main() {
         indexStorage: seededIndex(lastPositionMs: 60000),
       );
 
-      expect(engine.position, greaterThanOrEqualTo(const Duration(seconds: 60)));
+      expect(
+        engine.position,
+        greaterThanOrEqualTo(const Duration(seconds: 60)),
+      );
       expect(engine.position, lessThan(const Duration(seconds: 61)));
       expect(engine.isPlaying, isTrue);
       expect(find.byKey(const Key('resume_prompt_card')), findsOneWidget);

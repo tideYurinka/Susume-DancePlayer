@@ -52,8 +52,7 @@ void main() {
       expect(doc.toJson()['version'], 9);
     });
 
-    test('v4 文件整份按空态丢弃（不崩、不部分解析；升 v5 的安全网）',
-        () {
+    test('v4 文件整份按空态丢弃（不崩、不部分解析；升 v5 的安全网）', () {
       final doc = MarkersDocument.fromJson(const {
         'version': 4,
         'meta': {'mirrored': true},

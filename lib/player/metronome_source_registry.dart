@@ -39,7 +39,7 @@ const int kMetronomeSlotCount = 9;
 
 class MetronomeSpeedGroup {
   const MetronomeSpeedGroup({required this.standardMs, required this.slots})
-      : assert(slots.length == kMetronomeSlotCount);
+    : assert(slots.length == kMetronomeSlotCount);
 
   /// 组内最长音频长度（毫秒，声明值；由「声明 == 实测」不变量用例兜住）。
   final int standardMs;

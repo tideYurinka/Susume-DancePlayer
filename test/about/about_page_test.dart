@@ -98,8 +98,12 @@ void main() {
     );
 
     final value = tester.getRect(find.byKey(const Key('about_version_value')));
-    final middle = tester.getRect(find.byKey(const Key('about_version_middle')));
-    final action = tester.getRect(find.byKey(const Key('about_version_action')));
+    final middle = tester.getRect(
+      find.byKey(const Key('about_version_middle')),
+    );
+    final action = tester.getRect(
+      find.byKey(const Key('about_version_action')),
+    );
     expect(value.right, lessThanOrEqualTo(middle.left), reason: '左段整个在中段左侧');
     expect(middle.right, lessThanOrEqualTo(action.left), reason: '中段整个在按钮左侧');
     expect(value.left, lessThan(middle.left));
@@ -157,11 +161,7 @@ void main() {
       expect(_statusText(tester), '检查中…');
       expect(_actionText(tester), '', reason: '按钮上没有字，只有一枚转圈');
       expect(find.byKey(const Key('about_version_checking')), findsOneWidget);
-      expect(
-        _actionButton(tester).onPressed,
-        isNull,
-        reason: '检查中不能重复按',
-      );
+      expect(_actionButton(tester).onPressed, isNull, reason: '检查中不能重复按');
 
       await tester.tap(
         find.byKey(const Key('about_version_action')),
@@ -202,16 +202,10 @@ void main() {
 
       expect(_statusText(tester), '最新版本 0.1.1');
       expect(_actionText(tester), '下载');
-      expect(
-        _actionButton(tester),
-        isA<FilledButton>(),
-        reason: '有新版时按钮实心',
-      );
+      expect(_actionButton(tester), isA<FilledButton>(), reason: '有新版时按钮实心');
     });
 
-    testWidgets('下载中：中间格写百分比并长出进度条，按钮换成「取消」；取消回到可下载', (
-      tester,
-    ) async {
+    testWidgets('下载中：中间格写百分比并长出进度条，按钮换成「取消」；取消回到可下载', (tester) async {
       final gateway = FakeUpdateGateway(
         manifestScript: [
           updateManifestFixture(buildNumber: 2, size: 1024 * 1024),
@@ -221,7 +215,11 @@ void main() {
       await _pumpAboutPage(tester, gateway: gateway);
       await _startDownload(tester);
 
-      expect(_statusText(tester), '下载中 25%', reason: 'spec §6 表：下载中这一态只写「下载中 N%」');
+      expect(
+        _statusText(tester),
+        '下载中 25%',
+        reason: 'spec §6 表：下载中这一态只写「下载中 N%」',
+      );
       expect(find.byKey(const Key('about_version_progress')), findsOneWidget);
       expect(_actionText(tester), '取消');
 
@@ -328,7 +326,9 @@ void main() {
 
     testWidgets('窄屏 320：中间格只写「下载中 N%」，不越出格、不压右侧按钮', (tester) async {
       final gateway = FakeUpdateGateway(
-        manifestScript: [updateManifestFixture(buildNumber: 2, size: 1024 * 1024)],
+        manifestScript: [
+          updateManifestFixture(buildNumber: 2, size: 1024 * 1024),
+        ],
       )..progressScript = const [(256 * 1024, 1024 * 1024)];
       gateway.downloadGate = Completer<void>();
       await _pumpAboutPage(
@@ -340,8 +340,12 @@ void main() {
 
       expect(_statusText(tester), '下载中 25%', reason: '这一态不写包体积，格子里放得下');
       expect(_statusLayoutOverflow(tester), lessThanOrEqualTo(0.5));
-      final status = tester.getRect(find.byKey(const Key('about_version_status')));
-      final action = tester.getRect(find.byKey(const Key('about_version_action')));
+      final status = tester.getRect(
+        find.byKey(const Key('about_version_status')),
+      );
+      final action = tester.getRect(
+        find.byKey(const Key('about_version_action')),
+      );
       expect(status.right, lessThanOrEqualTo(action.left), reason: '不压到右侧按钮');
 
       gateway.downloadGate!.complete();
@@ -365,9 +369,17 @@ void main() {
         lessThanOrEqualTo(0.5),
         reason: '语义状态文字随系统字号缩放，盒子容量得跟上；窄于文字需要的一行宽就会画到格外',
       );
-      final status = tester.getRect(find.byKey(const Key('about_version_status')));
-      final action = tester.getRect(find.byKey(const Key('about_version_action')));
-      expect(status.right, lessThanOrEqualTo(action.left + 0.5), reason: '不压到右侧按钮');
+      final status = tester.getRect(
+        find.byKey(const Key('about_version_status')),
+      );
+      final action = tester.getRect(
+        find.byKey(const Key('about_version_action')),
+      );
+      expect(
+        status.right,
+        lessThanOrEqualTo(action.left + 0.5),
+        reason: '不压到右侧按钮',
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -398,7 +410,11 @@ void main() {
     testWidgets('交安装器在飞：版本行按钮同样不可按，状态文字照常可读', (tester) async {
       final gateway = FakeUpdateGateway(
         manifestScript: [
-          updateManifestFixture(buildNumber: 2, versionName: '0.1.1', size: 1000),
+          updateManifestFixture(
+            buildNumber: 2,
+            versionName: '0.1.1',
+            size: 1000,
+          ),
         ],
       )..installGate = Completer<void>();
       await _pumpAboutPage(tester, gateway: gateway);
@@ -490,10 +506,8 @@ List<double> _rect(WidgetTester tester, Finder finder) {
 }
 
 /// 版本行右端那颗按钮。
-ButtonStyleButton _actionButton(WidgetTester tester) =>
-    tester.widget<ButtonStyleButton>(
-      find.byKey(const Key('about_version_action')),
-    );
+ButtonStyleButton _actionButton(WidgetTester tester) => tester
+    .widget<ButtonStyleButton>(find.byKey(const Key('about_version_action')));
 
 /// 先把版本行推到「有新版」，再按下「下载」；[settle] 为真时等下载走完。
 Future<void> _startDownload(WidgetTester tester, {bool settle = false}) async {

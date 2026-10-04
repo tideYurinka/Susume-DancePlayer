@@ -89,9 +89,7 @@ class CountingAvSyncStorage implements AvSyncDelaysStorage {
   Future<Map<String, int>> load() => _inner.load();
 
   @override
-  Future<void> update(
-    FutureOr<void> Function(Map<String, int> delays) mutate,
-  ) {
+  Future<void> update(FutureOr<void> Function(Map<String, int> delays) mutate) {
     updateCalls += 1;
     final captured = <String, int>{};
     return _inner.update((delays) async {
@@ -132,13 +130,16 @@ void main() {
       deviceController = FakeAudioOutputDeviceController();
       privateJson = InMemoryPrivateJsonStorage();
       storage = CountingAvSyncStorage(AvSyncDelaysStore(privateJson));
-      container = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(privateJson),
-        avSyncDelaysStorageProvider.overrideWithValue(storage),
-        audioOutputDeviceControllerProvider
-            .overrideWithValue(deviceController),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(privateJson),
+          avSyncDelaysStorageProvider.overrideWithValue(storage),
+          audioOutputDeviceControllerProvider.overrideWithValue(
+            deviceController,
+          ),
+        ],
+      );
       addTearDown(container.dispose);
     });
 
@@ -191,8 +192,10 @@ void main() {
 
     test('应用：恰好一次写当前设备键 + 引擎值更新 + 退出还原进入前播放态', () async {
       await seedDelays({avSyncUnknownDeviceKey: 60});
-      deviceController.current =
-          const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
+      deviceController.current = const AvSyncDeviceInfo(
+        typeLabel: '蓝牙',
+        product: 'X 耳机',
+      );
       await engine.open(Uri.parse('file:///a.mp4'));
       await engine.play();
 
@@ -205,10 +208,7 @@ void main() {
 
       expect(storage.updateCalls, 1);
       expect(storage.writtenKeys.single, {'蓝牙|X 耳机': -40});
-      expect(
-        (privateJson.snapshot['avSyncDelays'] as Map)['蓝牙|X 耳机'],
-        -40,
-      );
+      expect((privateJson.snapshot['avSyncDelays'] as Map)['蓝牙|X 耳机'], -40);
       expect(engine.avSyncDelayCalls, [-40]);
       // 退出会话并还原进入前播放态（进入前在播 → 续播）。
       expect(state().active, isFalse);
@@ -225,8 +225,10 @@ void main() {
     });
 
     test('取消：零写盘 + 还原进入前播放态', () async {
-      deviceController.current =
-          const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
+      deviceController.current = const AvSyncDeviceInfo(
+        typeLabel: '蓝牙',
+        product: 'X 耳机',
+      );
       await seedDelays({'蓝牙|X 耳机': 60});
       await engine.open(Uri.parse('file:///a.mp4'));
       await engine.play();
@@ -260,8 +262,7 @@ void main() {
       expect(engine.avSyncDelayCalls, isEmpty);
     });
 
-    test('退后台：等同取消（零写盘 + 退出会话；播放页退后台直调 cancel）',
-        () async {
+    test('退后台：等同取消（零写盘 + 退出会话；播放页退后台直调 cancel）', () async {
       await engine.open(Uri.parse('file:///a.mp4'));
       await engine.play();
       await session().enter();
@@ -274,10 +275,11 @@ void main() {
       expect(engine.avSyncDelayCalls, isEmpty);
     });
 
-    test('设备切换：会话重置为新设备记忆值（未校准 = 0）+ 切换提示 + 刻度带重启；零写盘',
-        () async {
-      deviceController.current =
-          const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
+    test('设备切换：会话重置为新设备记忆值（未校准 = 0）+ 切换提示 + 刻度带重启；零写盘', () async {
+      deviceController.current = const AvSyncDeviceInfo(
+        typeLabel: '蓝牙',
+        product: 'X 耳机',
+      );
       await seedDelays({'蓝牙|X 耳机': 60, '蓝牙|Z 耳机': -30});
       await session().enter();
       session().setTrialMs(300);
@@ -306,8 +308,10 @@ void main() {
     });
 
     test('切到无记录设备：试听值复位 0', () async {
-      deviceController.current =
-          const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
+      deviceController.current = const AvSyncDeviceInfo(
+        typeLabel: '蓝牙',
+        product: 'X 耳机',
+      );
       await seedDelays({'蓝牙|X 耳机': 60});
       await session().enter();
       session().setTrialMs(300);
@@ -349,18 +353,19 @@ void main() {
       expect(engine.isPlaying, isFalse);
     });
 
-    test('enter 取数期间设备切换：建会话后复检快照，随新设备重置（竞态回归）',
-        () async {
+    test('enter 取数期间设备切换：建会话后复检快照，随新设备重置（竞态回归）', () async {
       const deviceA = AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
       const deviceB = AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'Z 耳机');
       await seedDelays({'蓝牙|X 耳机': 60, '蓝牙|Z 耳机': -30});
       final shifting = ShiftingAudioOutputDeviceController([deviceA, deviceB]);
-      final raceContainer = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(privateJson),
-        avSyncDelaysStorageProvider.overrideWithValue(storage),
-        audioOutputDeviceControllerProvider.overrideWithValue(shifting),
-      ]);
+      final raceContainer = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(privateJson),
+          avSyncDelaysStorageProvider.overrideWithValue(storage),
+          audioOutputDeviceControllerProvider.overrideWithValue(shifting),
+        ],
+      );
       addTearDown(raceContainer.dispose);
 
       await raceContainer
@@ -390,25 +395,25 @@ void main() {
       deviceController = FakeAudioOutputDeviceController();
       privateJson = InMemoryPrivateJsonStorage();
       storage = CountingAvSyncStorage(AvSyncDelaysStore(privateJson));
-      container = ProviderContainer(overrides: [
-        playbackEngineProvider.overrideWithValue(engine),
-        privateJsonStorageProvider.overrideWithValue(privateJson),
-        avSyncDelaysStorageProvider.overrideWithValue(storage),
-        audioOutputDeviceControllerProvider
-            .overrideWithValue(deviceController),
-      ]);
+      container = ProviderContainer(
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+          privateJsonStorageProvider.overrideWithValue(privateJson),
+          avSyncDelaysStorageProvider.overrideWithValue(storage),
+          audioOutputDeviceControllerProvider.overrideWithValue(
+            deviceController,
+          ),
+        ],
+      );
       addTearDown(container.dispose);
     });
 
     Future<void> enterSession() async {
-      await container
-          .read(avSyncCalibrationSessionProvider.notifier)
-          .enter();
+      await container.read(avSyncCalibrationSessionProvider.notifier).enter();
     }
 
-    void setSource(MetronomeSoundType type) => container
-        .read(metronomeSoundTypeProvider.notifier)
-        .set(type);
+    void setSource(MetronomeSoundType type) =>
+        container.read(metronomeSoundTypeProvider.notifier).set(type);
 
     test('会话活跃 + 待支持音源：会话滴答回落「普通」，退出还原原音源', () async {
       setSource(MetronomeSoundType.vocal);
@@ -417,9 +422,7 @@ void main() {
       await enterSession();
       expect(container.read(effectiveMetronomeSourceIdProvider), 'normal');
 
-      await container
-          .read(avSyncCalibrationSessionProvider.notifier)
-          .cancel();
+      await container.read(avSyncCalibrationSessionProvider.notifier).cancel();
       expect(container.read(effectiveMetronomeSourceIdProvider), 'vocal');
     });
 
@@ -438,9 +441,7 @@ void main() {
         container.read(metronomeSoundTypeProvider),
         MetronomeSoundType.geigi,
       );
-      await container
-          .read(avSyncCalibrationSessionProvider.notifier)
-          .cancel();
+      await container.read(avSyncCalibrationSessionProvider.notifier).cancel();
       expect(
         container.read(metronomeSoundTypeProvider),
         MetronomeSoundType.geigi,
@@ -449,24 +450,13 @@ void main() {
 
     test('渲染器音源项随生效音源重建：会话回落换 entry、退出还原', () async {
       setSource(MetronomeSoundType.vocal);
-      expect(
-        container.read(beatAudioRendererProvider).entry.id,
-        'vocal',
-      );
+      expect(container.read(beatAudioRendererProvider).entry.id, 'vocal');
 
       await enterSession();
-      expect(
-        container.read(beatAudioRendererProvider).entry.id,
-        'normal',
-      );
+      expect(container.read(beatAudioRendererProvider).entry.id, 'normal');
 
-      await container
-          .read(avSyncCalibrationSessionProvider.notifier)
-          .cancel();
-      expect(
-        container.read(beatAudioRendererProvider).entry.id,
-        'vocal',
-      );
+      await container.read(avSyncCalibrationSessionProvider.notifier).cancel();
+      expect(container.read(beatAudioRendererProvider).entry.id, 'vocal');
     });
   });
 
@@ -494,13 +484,14 @@ void tierState() {
     deviceController = FakeAudioOutputDeviceController();
     privateJson = InMemoryPrivateJsonStorage();
     storage = CountingAvSyncStorage(AvSyncDelaysStore(privateJson));
-    container = ProviderContainer(overrides: [
-      playbackEngineProvider.overrideWithValue(engine),
-      privateJsonStorageProvider.overrideWithValue(privateJson),
-      avSyncDelaysStorageProvider.overrideWithValue(storage),
-      audioOutputDeviceControllerProvider
-          .overrideWithValue(deviceController),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        playbackEngineProvider.overrideWithValue(engine),
+        privateJsonStorageProvider.overrideWithValue(privateJson),
+        avSyncDelaysStorageProvider.overrideWithValue(storage),
+        audioOutputDeviceControllerProvider.overrideWithValue(deviceController),
+      ],
+    );
     addTearDown(container.dispose);
   });
 
@@ -549,8 +540,10 @@ void tierState() {
   });
 
   test('设备切换保留用户已选档位（不清档；零写盘）', () async {
-    deviceController.current =
-        const AvSyncDeviceInfo(typeLabel: '蓝牙', product: 'X 耳机');
+    deviceController.current = const AvSyncDeviceInfo(
+      typeLabel: '蓝牙',
+      product: 'X 耳机',
+    );
     await session().enter();
     session().setTier(CalibrationSessionBpmTier.bpm160);
     final tokenAtSwitch = state().restartToken;
@@ -575,8 +568,7 @@ void tierState() {
 }
 
 /// get() 可门控的设备控制器 fake（复现进入流程在途的 async 窗口）。
-class GatedAudioOutputDeviceController
-    implements AudioOutputDeviceController {
+class GatedAudioOutputDeviceController implements AudioOutputDeviceController {
   Completer<void>? gate;
 
   @override
@@ -609,13 +601,14 @@ void unifiedExitWithRaceGuard() {
     deviceController = FakeAudioOutputDeviceController();
     privateJson = InMemoryPrivateJsonStorage();
     storage = CountingAvSyncStorage(AvSyncDelaysStore(privateJson));
-    container = ProviderContainer(overrides: [
-      playbackEngineProvider.overrideWithValue(engine),
-      privateJsonStorageProvider.overrideWithValue(privateJson),
-      avSyncDelaysStorageProvider.overrideWithValue(storage),
-      audioOutputDeviceControllerProvider
-          .overrideWithValue(deviceController),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        playbackEngineProvider.overrideWithValue(engine),
+        privateJsonStorageProvider.overrideWithValue(privateJson),
+        avSyncDelaysStorageProvider.overrideWithValue(storage),
+        audioOutputDeviceControllerProvider.overrideWithValue(deviceController),
+      ],
+    );
     addTearDown(container.dispose);
   });
 
@@ -623,9 +616,7 @@ void unifiedExitWithRaceGuard() {
   Future<void> enterWhilePlaying() async {
     await engine.open(Uri.parse('file:///a.mp4'));
     await engine.play();
-    await container
-        .read(avSyncCalibrationSessionProvider.notifier)
-        .enter();
+    await container.read(avSyncCalibrationSessionProvider.notifier).enter();
     container.read(avSyncCalibrationSessionProvider.notifier).setTrialMs(500);
   }
 
@@ -659,23 +650,24 @@ void unifiedExitWithRaceGuard() {
     });
   });
 
-  test('进入竞态守卫：进入完成前收到退出请求 → 不置活跃、不暂停（点开即点空白回归）',
-      () async {
+  test('进入竞态守卫：进入完成前收到退出请求 → 不置活跃、不暂停（点开即点空白回归）', () async {
     final gatedDevice = GatedAudioOutputDeviceController();
-    final gatedContainer = ProviderContainer(overrides: [
-      playbackEngineProvider.overrideWithValue(engine),
-      privateJsonStorageProvider.overrideWithValue(privateJson),
-      avSyncDelaysStorageProvider.overrideWithValue(storage),
-      audioOutputDeviceControllerProvider
-          .overrideWithValue(gatedDevice),
-    ]);
+    final gatedContainer = ProviderContainer(
+      overrides: [
+        playbackEngineProvider.overrideWithValue(engine),
+        privateJsonStorageProvider.overrideWithValue(privateJson),
+        avSyncDelaysStorageProvider.overrideWithValue(storage),
+        audioOutputDeviceControllerProvider.overrideWithValue(gatedDevice),
+      ],
+    );
     addTearDown(gatedContainer.dispose);
     await engine.open(Uri.parse('file:///a.mp4'));
     await engine.play();
 
     // 进入流程停在设备快照取数（在途），此时用户点开即点空白。
-    final notifier =
-        gatedContainer.read(avSyncCalibrationSessionProvider.notifier);
+    final notifier = gatedContainer.read(
+      avSyncCalibrationSessionProvider.notifier,
+    );
     gatedDevice.gate = Completer<void>();
     final gate = gatedDevice.gate!;
     final entering = notifier.enter();
@@ -697,5 +689,4 @@ void unifiedExitWithRaceGuard() {
       isTrue,
     );
   });
-
 }

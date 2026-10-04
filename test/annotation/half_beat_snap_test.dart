@@ -55,10 +55,8 @@ class FakeRealTestGrid implements BeatGrid {
 
 /// 弱起真实网格：首拍 0.1s 非强拍，首个强拍序号 3（1.6s）；拍点
 /// 0.1s/0.6s/…/4.1s（共 9 拍）。
-FakeRealTestGrid pickupGrid() => FakeRealTestGrid(
-      [for (var i = 0; i < 9; i++) ms(100 + i * 500)],
-      {3, 7},
-    );
+FakeRealTestGrid pickupGrid() =>
+    FakeRealTestGrid([for (var i = 0; i < 9; i++) ms(100 + i * 500)], {3, 7});
 
 void main() {
   group('半拍吸附位置解析（占位网格，120bpm：一拍 500ms）', () {
@@ -83,7 +81,10 @@ void main() {
     });
 
     test('已落在半拍格点上则原样返回', () {
-      expect(resolveHalfBeatSnap(ms(1250), grid: placeholderBeatGrid), ms(1250));
+      expect(
+        resolveHalfBeatSnap(ms(1250), grid: placeholderBeatGrid),
+        ms(1250),
+      );
     });
   });
 
@@ -116,9 +117,18 @@ void main() {
     });
 
     test('上一帧跳步：严格越过当前位置的前一个中点', () {
-      expect(previousHalfBeatPoint(ms(750), grid: placeholderBeatGrid), ms(250));
-      expect(previousHalfBeatPoint(ms(749), grid: placeholderBeatGrid), ms(250));
-      expect(previousHalfBeatPoint(ms(500), grid: placeholderBeatGrid), ms(250));
+      expect(
+        previousHalfBeatPoint(ms(750), grid: placeholderBeatGrid),
+        ms(250),
+      );
+      expect(
+        previousHalfBeatPoint(ms(749), grid: placeholderBeatGrid),
+        ms(250),
+      );
+      expect(
+        previousHalfBeatPoint(ms(500), grid: placeholderBeatGrid),
+        ms(250),
+      );
     });
 
     test('有界网格边界外无相邻中点返回 null', () {

@@ -28,7 +28,8 @@ import '../core/beat_grid.dart' show BeatGridReads;
 import 'annotation_editor.dart' show annotationEditorProvider;
 import '../beat_track_state/beat_track_state.dart'
     show beatDensityPreviewProvider, beatGridProvider, beatTrackStateProvider;
-import '../player_session/player_session.dart' show PlayerSessionMode, playerSessionProvider;
+import '../player_session/player_session.dart'
+    show PlayerSessionMode, playerSessionProvider;
 import 'speed_bubble.dart' show speedBubbleSessionProvider;
 
 /// 节拍侧「网格未就绪」两态的使用提示句（唯一取辞处；节拍提示面板的
@@ -178,7 +179,12 @@ class BeatDensityPanelGroup extends ConsumerWidget {
         // 经唯一提交入口提交）。置灰门 = 真实拍点可用（占位/异常置灰），
         // 与本气泡整体同门；置灰时按既有使用提示句式说明原因。
         Padding(
-          padding: const EdgeInsets.only(left: 12, right: 8, top: 12, bottom: 8),
+          padding: const EdgeInsets.only(
+            left: 12,
+            right: 8,
+            top: 12,
+            bottom: 8,
+          ),
           child: Row(
             children: [
               OutlinedButton(

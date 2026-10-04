@@ -8,8 +8,7 @@ void main() {
   group('无对象做法文案', () {
     test('已有分段 → 指出要先选中作用对象，按入口取辞', () {
       expect(
-        noSubjectHintText(NoSubjectHint.learningSegment,
-            hasSegments: true),
+        noSubjectHintText(NoSubjectHint.learningSegment, hasSegments: true),
         '先点一段再点这里',
       );
       expect(
@@ -17,8 +16,7 @@ void main() {
         '先选中一条分段线，再点这里标记',
       );
       expect(
-        noSubjectHintText(NoSubjectHint.segmentLineOrClip,
-            hasSegments: true),
+        noSubjectHintText(NoSubjectHint.segmentLineOrClip, hasSegments: true),
         '先选中一条分段线或片段，再点这里删除',
       );
     });

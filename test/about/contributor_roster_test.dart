@@ -28,68 +28,104 @@ void main() {
         }),
       );
 
-      expect(roster.contributors.map((c) => c.id).toList(), ['zeta', 'alpha'], reason: '按资产里的顺序，不按 id 重排');
-      expect(roster.contributors.map((c) => c.displayName).toList(), ['末位', '首位']);
+      expect(roster.contributors.map((c) => c.id).toList(), [
+        'zeta',
+        'alpha',
+      ], reason: '按资产里的顺序，不按 id 重排');
+      expect(roster.contributors.map((c) => c.displayName).toList(), [
+        '末位',
+        '首位',
+      ]);
       expect(roster.contributors.map((c) => c.role).toList(), ['插画', '项目发起者']);
     });
 
     test('每位贡献者取到自己的个人介绍正文：标题、折叠段与引用的图都从他自己目录读', () async {
       final rewardKey = '${contributorDirectory('alpha')}/reward.png';
       final roster = await loadContributorRoster(
-        FakeHelpAssetBundle({
-          contributorRosterAsset: contributorRosterYaml([
-            ContributorFixture('alpha', '首位', '项目发起者'),
-            ContributorFixture('zeta', '末位', '插画'),
-          ]),
-          contributorIntroAsset('alpha'):
-              '# 首位\n'
-              '\n'
-              '发起自述。\n'
-              '\n'
-              '<details>\n'
-              '<summary>赞赏</summary>\n'
-              '![赞赏码](reward.png)\n'
-              '</details>\n',
-        }, binary: {rewardKey: onePixelPng}),
+        FakeHelpAssetBundle(
+          {
+            contributorRosterAsset: contributorRosterYaml([
+              ContributorFixture('alpha', '首位', '项目发起者'),
+              ContributorFixture('zeta', '末位', '插画'),
+            ]),
+            contributorIntroAsset('alpha'):
+                '# 首位\n'
+                '\n'
+                '发起自述。\n'
+                '\n'
+                '<details>\n'
+                '<summary>赞赏</summary>\n'
+                '![赞赏码](reward.png)\n'
+                '</details>\n',
+          },
+          binary: {rewardKey: onePixelPng},
+        ),
       );
 
       final alpha = roster.contributors.first;
       expect(alpha.intro.title, '首位');
-      expect(alpha.intro.bodyMarkdown, isNot(contains('# 首位')), reason: '一级标题不进正文');
-      expect(alpha.intro.bodySegments.whereType<HelpFoldSegment>(), hasLength(1));
+      expect(
+        alpha.intro.bodyMarkdown,
+        isNot(contains('# 首位')),
+        reason: '一级标题不进正文',
+      );
+      expect(
+        alpha.intro.bodySegments.whereType<HelpFoldSegment>(),
+        hasLength(1),
+      );
       expect(alpha.intro.imageAssets, contains(rewardKey));
-      expect(roster.contributors[1].intro.markdown, isEmpty, reason: '另一位没写正文，不影响前面那位');
+      expect(
+        roster.contributors[1].intro.markdown,
+        isEmpty,
+        reason: '另一位没写正文，不影响前面那位',
+      );
     });
 
     test('头像文件在盘上才给出：约定名 avatar.webp；不在盘上时为 null', () async {
       final roster = await loadContributorRoster(
-        FakeHelpAssetBundle({
-          contributorRosterAsset: contributorRosterYaml([
-            ContributorFixture('alpha', '首位', '项目发起者'),
-            ContributorFixture('zeta', '末位', '插画'),
-          ]),
-          contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
-          contributorIntroAsset('zeta'): '# 末位\n\n自述。\n',
-        }, binary: {contributorAvatarAsset('alpha'): onePixelPng}),
+        FakeHelpAssetBundle(
+          {
+            contributorRosterAsset: contributorRosterYaml([
+              ContributorFixture('alpha', '首位', '项目发起者'),
+              ContributorFixture('zeta', '末位', '插画'),
+            ]),
+            contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
+            contributorIntroAsset('zeta'): '# 末位\n\n自述。\n',
+          },
+          binary: {contributorAvatarAsset('alpha'): onePixelPng},
+        ),
       );
 
-      expect(roster.contributors.first.avatarAsset, contributorAvatarAsset('alpha'));
-      expect(roster.contributors[1].avatarAsset, isNull, reason: '盘上没有头像就不给出一个坏 key');
+      expect(
+        roster.contributors.first.avatarAsset,
+        contributorAvatarAsset('alpha'),
+      );
+      expect(
+        roster.contributors[1].avatarAsset,
+        isNull,
+        reason: '盘上没有头像就不给出一个坏 key',
+      );
     });
 
     test('名单里的「头像」可改文件名：按它找；文件不在盘上仍为 null', () async {
       final roster = await loadContributorRoster(
-        FakeHelpAssetBundle({
-          contributorRosterAsset: contributorRosterYaml([
-            ContributorFixture('alpha', '首位', '项目发起者', avatar: 'me.webp'),
-            ContributorFixture('zeta', '末位', '插画', avatar: 'me.webp'),
-          ]),
-          contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
-          contributorIntroAsset('zeta'): '# 末位\n\n自述。\n',
-        }, binary: {contributorAvatarAsset('alpha', 'me.webp'): onePixelPng}),
+        FakeHelpAssetBundle(
+          {
+            contributorRosterAsset: contributorRosterYaml([
+              ContributorFixture('alpha', '首位', '项目发起者', avatar: 'me.webp'),
+              ContributorFixture('zeta', '末位', '插画', avatar: 'me.webp'),
+            ]),
+            contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
+            contributorIntroAsset('zeta'): '# 末位\n\n自述。\n',
+          },
+          binary: {contributorAvatarAsset('alpha', 'me.webp'): onePixelPng},
+        ),
       );
 
-      expect(roster.contributors.first.avatarAsset, contributorAvatarAsset('alpha', 'me.webp'));
+      expect(
+        roster.contributors.first.avatarAsset,
+        contributorAvatarAsset('alpha', 'me.webp'),
+      );
       expect(roster.contributors[1].avatarAsset, isNull);
     });
 
@@ -123,23 +159,36 @@ void main() {
 
     test('多一位：新的一位取到自己的目录与头像，已在的那位不受影响', () async {
       final roster = await loadContributorRoster(
-        FakeHelpAssetBundle({
-          contributorRosterAsset: contributorRosterYaml([
-            ContributorFixture('alpha', '首位', '项目发起者'),
-            ContributorFixture('zeta', '末位', '插画', avatar: 'me.webp'),
-            ContributorFixture('omega', '第三位', '测试'),
-          ]),
-          contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
-          contributorIntroAsset('omega'): '# 第三位\n\n第三份自述。\n',
-        }, binary: {
-          contributorAvatarAsset('alpha'): onePixelPng,
-          contributorAvatarAsset('zeta', 'me.webp'): onePixelPng,
-        }),
+        FakeHelpAssetBundle(
+          {
+            contributorRosterAsset: contributorRosterYaml([
+              ContributorFixture('alpha', '首位', '项目发起者'),
+              ContributorFixture('zeta', '末位', '插画', avatar: 'me.webp'),
+              ContributorFixture('omega', '第三位', '测试'),
+            ]),
+            contributorIntroAsset('alpha'): '# 首位\n\n自述。\n',
+            contributorIntroAsset('omega'): '# 第三位\n\n第三份自述。\n',
+          },
+          binary: {
+            contributorAvatarAsset('alpha'): onePixelPng,
+            contributorAvatarAsset('zeta', 'me.webp'): onePixelPng,
+          },
+        ),
       );
 
-      expect(roster.contributors.map((c) => c.id).toList(), ['alpha', 'zeta', 'omega']);
-      expect(roster.contributors[0].avatarAsset, contributorAvatarAsset('alpha'));
-      expect(roster.contributors[1].avatarAsset, contributorAvatarAsset('zeta', 'me.webp'));
+      expect(roster.contributors.map((c) => c.id).toList(), [
+        'alpha',
+        'zeta',
+        'omega',
+      ]);
+      expect(
+        roster.contributors[0].avatarAsset,
+        contributorAvatarAsset('alpha'),
+      );
+      expect(
+        roster.contributors[1].avatarAsset,
+        contributorAvatarAsset('zeta', 'me.webp'),
+      );
       expect(roster.contributors[2].intro.title, '第三位');
       expect(roster.contributors[2].avatarAsset, isNull);
     });
@@ -164,13 +213,13 @@ void main() {
       final roster = await loadContributorRoster(rootBundle);
       expect(roster.contributors, isNotEmpty, reason: '关于页至少要有一位贡献者');
 
-      final onDisk =
-          [
-            for (final entity in Directory(aboutContentAssetDir).listSync())
-              if (entity is Directory) entity.path.replaceAll('\\', '/'),
-          ]..sort();
+      final onDisk = [
+        for (final entity in Directory(aboutContentAssetDir).listSync())
+          if (entity is Directory) entity.path.replaceAll('\\', '/'),
+      ]..sort();
       expect(
-        roster.contributors.map((c) => contributorDirectory(c.id)).toList()..sort(),
+        roster.contributors.map((c) => contributorDirectory(c.id)).toList()
+          ..sort(),
         onDisk,
         reason: '名单与磁盘目录一一对应（新增一位要补 YAML 与 pubspec 各一行）',
       );
@@ -182,8 +231,16 @@ void main() {
       for (final contributor in roster.contributors) {
         expect(contributor.displayName, isNotEmpty, reason: contributor.id);
         expect(contributor.role, isNotEmpty, reason: contributor.id);
-        expect(contributor.intro.title, isNotEmpty, reason: '${contributor.id} 的个人介绍缺一级标题');
-        expect(contributor.intro.bodySegments, isNotEmpty, reason: '${contributor.id} 缺个人介绍正文');
+        expect(
+          contributor.intro.title,
+          isNotEmpty,
+          reason: '${contributor.id} 的个人介绍缺一级标题',
+        );
+        expect(
+          contributor.intro.bodySegments,
+          isNotEmpty,
+          reason: '${contributor.id} 缺个人介绍正文',
+        );
       }
     });
 
@@ -205,7 +262,11 @@ void main() {
       for (final contributor in roster.contributors) {
         final avatar = contributor.avatarAsset;
         if (avatar != null) {
-          expect(File(avatar).existsSync(), isTrue, reason: '${contributor.id} 给出的头像不在盘上');
+          expect(
+            File(avatar).existsSync(),
+            isTrue,
+            reason: '${contributor.id} 给出的头像不在盘上',
+          );
         }
         for (final match in RegExp(
           r'!\[[^\]]*\]\(([^)]+)\)',

@@ -165,11 +165,9 @@ class MetronomeSettingSync<T> {
     _mutated = true;
     _flush = _flush.then((_) async {
       try {
-        await _ref
-            .read(metronomeSettingsStorageProvider)
-            .update((settings) {
-              settings[field] = encode(value);
-            });
+        await _ref.read(metronomeSettingsStorageProvider).update((settings) {
+          settings[field] = encode(value);
+        });
       } on Object {
         // 写失败不抛到 UI。
       }

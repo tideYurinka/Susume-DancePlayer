@@ -38,11 +38,11 @@ class SeekSubmitter {
     required this.clearLoops,
     this.displayHead,
   }) : _queue = SerialSeekQueue(
-          engineSeek,
-          minInterval: minInterval,
-          clock: clock,
-          delay: delay,
-        );
+         engineSeek,
+         minInterval: minInterval,
+         clock: clock,
+         delay: delay,
+       );
 
   /// 相邻两次实际 seek 的最小间隔（节流窗口）：player 传 [Duration.zero]
   /// （不节流），blank/band 传 [kScrubSeekMinInterval]（约一帧）。
@@ -57,7 +57,7 @@ class SeekSubmitter {
   /// 宿主绑 ref 的完整清循环 helper（`clearLoopActivationsIfOutside`，
   /// 真实段 + 临时衔接段恒含）；本类是各面唯一调用位。
   final void Function(AnnotationTimeline timeline, Duration position)
-      clearLoops;
+  clearLoops;
 
   /// 预览显示位（blank/band 的拖动目标显示值）；null = 宿主自管（player
   /// 经返回值同源消费 _scrubTarget）。

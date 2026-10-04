@@ -56,12 +56,14 @@ Future<void> scrollPlanEditorTo(WidgetTester tester, Key key) async {
 }
 
 FixedExtentScrollController _controllerOf(WidgetTester tester, Key columnKey) =>
-    tester
-            .widget<ListWheelScrollView>(find.byKey(columnKey))
-            .controller
+    tester.widget<ListWheelScrollView>(find.byKey(columnKey)).controller
         as FixedExtentScrollController;
 
-Future<void> _scrollTo(WidgetTester tester, Key columnKey, int targetIndex) async {
+Future<void> _scrollTo(
+  WidgetTester tester,
+  Key columnKey,
+  int targetIndex,
+) async {
   var current = _controllerOf(tester, columnKey).selectedItem;
   if (current == targetIndex) return;
   await tester.drag(

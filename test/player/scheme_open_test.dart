@@ -7,9 +7,7 @@ import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/persistence/member_scheme_store.dart';
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
-    show
-        videoDocumentCoordinatorProvider,
-        videoDocumentStorageFactoryProvider;
+    show videoDocumentCoordinatorProvider, videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/player/annotation_edit.dart'
     show AddSegmentLine, EditLocked;
 import 'package:dance_learning_app/player/annotation_editor.dart'
@@ -137,15 +135,14 @@ MemberSchemeRecord memberRecord({
   String schemeId = 's1',
   Map<int, int>? mastery = const {0: 4, 1: 2},
   Map<String, dynamic>? markers,
-}) =>
-    MemberSchemeRecord(
-      schemeId: schemeId,
-      memberName: '果',
-      schemeName: '队长的版本',
-      mastery: mastery,
-      importedAt: kImportedAt,
-      markers: markers ?? memberMarkersJson(),
-    );
+}) => MemberSchemeRecord(
+  schemeId: schemeId,
+  memberName: '果',
+  schemeName: '队长的版本',
+  mastery: mastery,
+  importedAt: kImportedAt,
+  markers: markers ?? memberMarkersJson(),
+);
 
 class _FixedLoudnessProbe implements SongLoudnessProbe {
   const _FixedLoudnessProbe();
@@ -204,18 +201,20 @@ Probe makeProbe({
       playbackEngineProvider.overrideWithValue(engine),
       videoIndexStoreProvider.overrideWithValue(
         InMemoryVideoIndexStorage(
-          initial: VideoIndex(entries: [
-            VideoIndexEntry(
-              videoId: kVideoId,
-              displayName: 'a.mp4',
-              filePath: kFilePath,
-              sizeBytes: 1,
-              fastKey: '1:a.mp4',
-              mirrored: false,
-              mirrorAsked: true,
-              lastOpenedAt: DateTime(2026, 9, 1),
-            ),
-          ]),
+          initial: VideoIndex(
+            entries: [
+              VideoIndexEntry(
+                videoId: kVideoId,
+                displayName: 'a.mp4',
+                filePath: kFilePath,
+                sizeBytes: 1,
+                fastKey: '1:a.mp4',
+                mirrored: false,
+                mirrorAsked: true,
+                lastOpenedAt: DateTime(2026, 9, 1),
+              ),
+            ],
+          ),
         ),
       ),
       contentHasherProvider.overrideWithValue(const FixedHasher(kVideoId)),
@@ -247,8 +246,8 @@ Probe makeProbe({
 
 /// 我的落盘激活（退出后须与查看前逐位相同的那个值）。
 Object? persistedActivation(InMemoryVideoDocumentStorage storage) =>
-    (storage.localSnapshot['session'] as Map<String, dynamic>?)?[
-        'activatedSegments'];
+    (storage.localSnapshot['session']
+        as Map<String, dynamic>?)?['activatedSegments'];
 
 void main() {
   group('打开参数 resolveOpenedMemberScheme（纯函数）', () {
@@ -307,10 +306,7 @@ void main() {
 
   group('以某一份方案打开时的恢复', () {
     test('不带参数且我无内容：仍用我的——不借组员方案的标注、可写就位、激活照常', () async {
-      final probe = makeProbe(
-        schemes: [memberRecord()],
-        local: myLocalJson(),
-      );
+      final probe = makeProbe(schemes: [memberRecord()], local: myLocalJson());
       await probe.open();
 
       // 打开的是我的空方案：没有组员方案那条 60s 的分段线。
@@ -333,7 +329,10 @@ void main() {
       await probe.open();
 
       final timeline = probe.container.read(annotationTimelineProvider);
-      expect(timeline.segmentLines.single.position, const Duration(seconds: 30));
+      expect(
+        timeline.segmentLines.single.position,
+        const Duration(seconds: 30),
+      );
       expect(probe.container.read(learningMasteryProvider), {
         1: LearningMastery.learning,
       });
@@ -346,10 +345,7 @@ void main() {
     });
 
     test('显式「我的标注」：我的方案空也走我的——只读不就位、不借组员方案的标注', () async {
-      final probe = makeProbe(
-        local: myLocalJson(),
-        schemes: [memberRecord()],
-      );
+      final probe = makeProbe(local: myLocalJson(), schemes: [memberRecord()]);
       await probe.open(open: const MySchemeOpen());
 
       expect(
@@ -394,7 +390,11 @@ void main() {
       await probe.open(open: const MemberSchemeOpen('gone'));
 
       expect(
-        probe.container.read(annotationTimelineProvider).segmentLines.single.position,
+        probe.container
+            .read(annotationTimelineProvider)
+            .segmentLines
+            .single
+            .position,
         const Duration(seconds: 30),
       );
       expect(
@@ -424,17 +424,14 @@ void main() {
     });
 
     test('装载组员方案时编辑被门禁拒绝、持久化激活被拒、临时衔接段可用', () async {
-      final probe = makeProbe(
-        schemes: [memberRecord()],
-        local: myLocalJson(),
-      );
+      final probe = makeProbe(schemes: [memberRecord()], local: myLocalJson());
       await probe.open(open: const MemberSchemeOpen('s1'));
       final sessionBefore = probe.docStorage.localSnapshot['session'];
 
       expect(
-        probe.container.read(annotationEditorProvider).submit(
-              const AddSegmentLine(at: Duration(seconds: 90)),
-            ),
+        probe.container
+            .read(annotationEditorProvider)
+            .submit(const AddSegmentLine(at: Duration(seconds: 90))),
         isA<EditLocked>(),
       );
       // 持久化激活被拒：内存不激活、盘上原样。
@@ -455,7 +452,9 @@ void main() {
         inMs: 0,
         outMs: 1000,
       );
-      probe.container.read(practiceClipActivationProvider.notifier).toggle(clip);
+      probe.container
+          .read(practiceClipActivationProvider.notifier)
+          .toggle(clip);
       expect(
         probe.container.read(practiceClipActivationProvider)?.clipId,
         'c1',

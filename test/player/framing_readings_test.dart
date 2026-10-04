@@ -51,7 +51,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/android_camera_platform.dart';
-import '../helpers/beat_test_seam.dart' show hangingBeatPipeline, turnBeatAnimationOn;
+import '../helpers/beat_test_seam.dart'
+    show hangingBeatPipeline, turnBeatAnimationOn;
 import '../helpers/device_viewport.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -196,7 +197,8 @@ void main() {
 
       await applyFraming(tester, container, wideSelection);
       final framed = tester.getRect(find.byType(FramingSelectionView));
-      final expectedHeight = screen.width / wideSelection.contentAspectRatio(16 / 9);
+      final expectedHeight =
+          screen.width / wideSelection.contentAspectRatio(16 / 9);
       expect(framed.height, closeTo(expectedHeight, 0.05));
       expect(framed.height, lessThan(unframedSkeleton.pictureBandHeight));
       expect(
@@ -225,16 +227,20 @@ void main() {
       required NoteGeometry geometry,
     }) async {
       final container = await pumpPlayer(tester);
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(notes: [
-          NoteSticker(
-            startMs: 0,
-            endMs: 30000,
-            text: noteText,
-            geometry: geometry,
-          ),
-        ]),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              notes: [
+                NoteSticker(
+                  startMs: 0,
+                  endMs: 30000,
+                  text: noteText,
+                  geometry: geometry,
+                ),
+              ],
+            ),
+          );
       await tester.pumpAndSettle();
       return container;
     }
@@ -304,8 +310,14 @@ void main() {
         aspectRatio: 16 / 9,
         selection: null,
       )!;
-      expect(unframed.center.dx, closeTo(picture.left + 0.3 * picture.width, 0.5));
-      expect(unframed.center.dy, closeTo(picture.top + 0.4 * picture.height, 0.5));
+      expect(
+        unframed.center.dx,
+        closeTo(picture.left + 0.3 * picture.width, 0.5),
+      );
+      expect(
+        unframed.center.dy,
+        closeTo(picture.top + 0.4 * picture.height, 0.5),
+      );
     });
   });
 
@@ -340,7 +352,9 @@ void main() {
           ? contentRect.width
           : contentRect.height;
       final markSize = tester.getSize(mark);
-      final capped = radius < kScrubCancelZoneSize ? radius : kScrubCancelZoneSize;
+      final capped = radius < kScrubCancelZoneSize
+          ? radius
+          : kScrubCancelZoneSize;
       expect(markSize.width, closeTo(capped, 0.5));
       expect(markSize.height, closeTo(capped, 0.5));
       await gesture.up();
@@ -437,16 +451,20 @@ void main() {
   group('对比源侧半区同口径', () {
     Future<ProviderContainer> pumpCompareWithNote(WidgetTester tester) async {
       final container = await pumpPlayer(tester);
-      container.read(annotationEditorProvider).restoreDocument(
-        AnnotationRestoreDocument(notes: const [
-          NoteSticker(
-            startMs: 0,
-            endMs: 30000,
-            text: '注意手',
-            geometry: NoteGeometry(centerX: 0.5, centerY: 0.5),
-          ),
-        ]),
-      );
+      container
+          .read(annotationEditorProvider)
+          .restoreDocument(
+            AnnotationRestoreDocument(
+              notes: const [
+                NoteSticker(
+                  startMs: 0,
+                  endMs: 30000,
+                  text: '注意手',
+                  geometry: NoteGeometry(centerX: 0.5, centerY: 0.5),
+                ),
+              ],
+            ),
+          );
       container
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareWatching);

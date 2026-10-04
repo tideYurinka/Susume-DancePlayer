@@ -45,10 +45,19 @@ void main() {
   group('无激活段起录点与拒录判定', () {
     test('边界表：首线之前 / 区间头 / 区间中段 → 可录，起点按口径取值', () {
       // 早于有效区间头：起点钳到区间头。
-      expect(_decide(pressPositionMs: 8000, rangeStartMs: 10000).startPointMs, 10000);
-      expect(_decide(pressPositionMs: 8000, rangeStartMs: 10000).recordable, isTrue);
+      expect(
+        _decide(pressPositionMs: 8000, rangeStartMs: 10000).startPointMs,
+        10000,
+      );
+      expect(
+        _decide(pressPositionMs: 8000, rangeStartMs: 10000).recordable,
+        isTrue,
+      );
       // 恰在区间头。
-      expect(_decide(pressPositionMs: 10000, rangeStartMs: 10000).startPointMs, 10000);
+      expect(
+        _decide(pressPositionMs: 10000, rangeStartMs: 10000).startPointMs,
+        10000,
+      );
       // 区间中段：起点 = 按下位置原样。
       expect(_decide(pressPositionMs: 15000).startPointMs, 15000);
       expect(_decide(pressPositionMs: 15000).recordable, isTrue);
@@ -88,7 +97,10 @@ void main() {
         isFalse,
         reason: '距尾 500ms < 传入阈值 1000ms',
       );
-      expect(_decide(pressPositionMs: 29000, minTailMs: 1000).recordable, isTrue);
+      expect(
+        _decide(pressPositionMs: 29000, minTailMs: 1000).recordable,
+        isTrue,
+      );
       // 阈值为 0：只有「已在尾线或之后」才拒（钳 0 的退化入参）。
       expect(_decide(pressPositionMs: 29999, minTailMs: 0).recordable, isTrue);
       expect(_decide(pressPositionMs: 30000, minTailMs: 0).recordable, isFalse);

@@ -45,7 +45,10 @@ void main() {
     test('build_number 是字符串：收敛为无更新', () {
       expect(
         UpdateManifest.parse(
-          updateManifestJson({...updateManifestJsonFields(), 'build_number': '1'}),
+          updateManifestJson({
+            ...updateManifestJsonFields(),
+            'build_number': '1',
+          }),
         ),
         isNull,
       );
@@ -54,7 +57,10 @@ void main() {
     test('build_number 为负：收敛为无更新', () {
       expect(
         UpdateManifest.parse(
-          updateManifestJson({...updateManifestJsonFields(), 'build_number': -1}),
+          updateManifestJson({
+            ...updateManifestJsonFields(),
+            'build_number': -1,
+          }),
         ),
         isNull,
       );
@@ -63,7 +69,10 @@ void main() {
     test('version_name 为空串：收敛为无更新', () {
       expect(
         UpdateManifest.parse(
-          updateManifestJson({...updateManifestJsonFields(), 'version_name': ''}),
+          updateManifestJson({
+            ...updateManifestJsonFields(),
+            'version_name': '',
+          }),
         ),
         isNull,
       );
@@ -72,7 +81,10 @@ void main() {
     test('size 不是数字：收敛为无更新', () {
       expect(
         UpdateManifest.parse(
-          updateManifestJson({...updateManifestJsonFields(), 'size': '77.5 MB'}),
+          updateManifestJson({
+            ...updateManifestJsonFields(),
+            'size': '77.5 MB',
+          }),
         ),
         isNull,
       );
@@ -96,21 +108,30 @@ void main() {
   group('版本判定', () {
     test('远端构建号更大：有新版本', () {
       expect(
-        hasUpdate(manifest: updateManifestFixture(buildNumber: 2), localBuildNumber: 1),
+        hasUpdate(
+          manifest: updateManifestFixture(buildNumber: 2),
+          localBuildNumber: 1,
+        ),
         isTrue,
       );
     });
 
     test('远端构建号相等：无新版', () {
       expect(
-        hasUpdate(manifest: updateManifestFixture(buildNumber: 1), localBuildNumber: 1),
+        hasUpdate(
+          manifest: updateManifestFixture(buildNumber: 1),
+          localBuildNumber: 1,
+        ),
         isFalse,
       );
     });
 
     test('远端构建号更小：无新版', () {
       expect(
-        hasUpdate(manifest: updateManifestFixture(buildNumber: 1), localBuildNumber: 2),
+        hasUpdate(
+          manifest: updateManifestFixture(buildNumber: 1),
+          localBuildNumber: 2,
+        ),
         isFalse,
       );
     });
@@ -121,7 +142,10 @@ void main() {
 
     test('本机构建号读不出：无新版', () {
       expect(
-        hasUpdate(manifest: updateManifestFixture(buildNumber: 99), localBuildNumber: null),
+        hasUpdate(
+          manifest: updateManifestFixture(buildNumber: 99),
+          localBuildNumber: null,
+        ),
         isFalse,
       );
     });

@@ -19,7 +19,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         layoutLockedProvider,
         localMirrorFragmentsProvider;
 import 'package:dance_learning_app/player/annotation_selection.dart';
-import 'package:dance_learning_app/player/notice.dart' show NoticeId, noticeTriggerProvider;
+import 'package:dance_learning_app/player/notice.dart'
+    show NoticeId, noticeTriggerProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -239,7 +240,8 @@ void main() {
       diffLanding: (diff) => diff.annotations == null
           ? null
           : Duration(
-              milliseconds: diff.annotations!.localMirrorFragments.first.startMs,
+              milliseconds:
+                  diff.annotations!.localMirrorFragments.first.startMs,
             ),
     ),
     // 局部镜像片段端点拖：端点吸附 + 互斥钳制；钳空 = 钳到相邻片段
@@ -377,37 +379,46 @@ void main() {
         expect(session.moveTo(family.noNetFrame), isNull);
       });
 
-      test(family.layoutLocked
-          ? '锁门禁：逐帧返回空、状态不变、触发一次提示'
-          : '不受锁定分段：锁下逐帧照常写入、不弹提示', () {
-        family.seed(container);
-        container.read(layoutLockedProvider.notifier).toggle();
-        final promptBefore = container.read(noticeTriggerProvider(NoticeId.layoutLock));
-        sink.saved.clear();
-
-        final session = family.open(editor());
-        if (family.layoutLocked) {
-          final historyBefore = container
-              .read(annotationEditHistoryProvider)
-              .length;
-          final stateBefore = family.snapshot(container);
-          expect(session.moveTo(family.netFrames.first), isNull);
-          expect(family.snapshot(container), stateBefore);
-          expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore + 1);
-          session.end();
-
-          expect(
-            container.read(annotationEditHistoryProvider).length,
-            historyBefore,
+      test(
+        family.layoutLocked ? '锁门禁：逐帧返回空、状态不变、触发一次提示' : '不受锁定分段：锁下逐帧照常写入、不弹提示',
+        () {
+          family.seed(container);
+          container.read(layoutLockedProvider.notifier).toggle();
+          final promptBefore = container.read(
+            noticeTriggerProvider(NoticeId.layoutLock),
           );
-          expect(sink.saved, isEmpty);
-        } else {
-          expect(session.moveTo(family.netFrames.first), isNotNull);
-          expect(container.read(noticeTriggerProvider(NoticeId.layoutLock)), promptBefore);
-          session.end();
-          expect(sink.saved, hasLength(1));
-        }
-      });
+          sink.saved.clear();
+
+          final session = family.open(editor());
+          if (family.layoutLocked) {
+            final historyBefore = container
+                .read(annotationEditHistoryProvider)
+                .length;
+            final stateBefore = family.snapshot(container);
+            expect(session.moveTo(family.netFrames.first), isNull);
+            expect(family.snapshot(container), stateBefore);
+            expect(
+              container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+              promptBefore + 1,
+            );
+            session.end();
+
+            expect(
+              container.read(annotationEditHistoryProvider).length,
+              historyBefore,
+            );
+            expect(sink.saved, isEmpty);
+          } else {
+            expect(session.moveTo(family.netFrames.first), isNotNull);
+            expect(
+              container.read(noticeTriggerProvider(NoticeId.layoutLock)),
+              promptBefore,
+            );
+            session.end();
+            expect(sink.saved, hasLength(1));
+          }
+        },
+      );
     });
   }
 

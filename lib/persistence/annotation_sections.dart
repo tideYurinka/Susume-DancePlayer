@@ -97,8 +97,9 @@ class MarkerAnnotationsValue {
     Object.hashAll(halfBeatLines),
     Object.hashAll(emphasizedSegments),
     Object.hashAll([
-      for (final entry in segmentDensities.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key)))
+      for (final entry
+          in segmentDensities.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key)))
         Object.hash(entry.key, entry.value),
     ]),
     Object.hashAll(localMirrorFragments),

@@ -26,11 +26,7 @@ void main() {
       bundle: bundle,
     );
 
-    expect(
-      _headerRects(tester),
-      aboutHeader,
-      reason: '同一个应用信息头，落在同一处',
-    );
+    expect(_headerRects(tester), aboutHeader, reason: '同一个应用信息头，落在同一处');
   });
 
   testWidgets('横线只出现在名单页：关于页没有这条线', (tester) async {
@@ -53,11 +49,7 @@ void main() {
         .getBottomLeft(find.byKey(const Key('about_app_info_header')))
         .dy;
     final dividerTop = tester.getTopLeft(divider).dy;
-    expect(
-      dividerTop,
-      greaterThanOrEqualTo(headerBottom),
-      reason: '横线在头部之下',
-    );
+    expect(dividerTop, greaterThanOrEqualTo(headerBottom), reason: '横线在头部之下');
   });
 
   testWidgets('横线之下是组名「贡献者」与逐位名单：头像或占位、显示名与角色', (tester) async {
@@ -98,10 +90,7 @@ void main() {
     );
 
     // 头像：盘上有那张图就画它。
-    final avatar = find.descendant(
-      of: alphaRow,
-      matching: find.byType(Image),
-    );
+    final avatar = find.descendant(of: alphaRow, matching: find.byType(Image));
     expect(avatar, findsOneWidget);
     expect(
       (tester.widget<Image>(avatar).image as AssetImage).assetName,

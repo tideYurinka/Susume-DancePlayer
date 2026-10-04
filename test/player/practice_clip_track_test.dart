@@ -21,7 +21,8 @@ import 'package:dance_learning_app/player/annotation_editor.dart'
         annotationEditorProvider,
         practiceClipsProvider;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/system_ui.dart' show systemUiControllerProvider;
+import 'package:dance_learning_app/player/system_ui.dart'
+    show systemUiControllerProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -48,7 +49,10 @@ void main() {
     late File materialOutputFile;
 
     void setWideView(WidgetTester tester) {
-      tester.view.physicalSize = const Size(1920, 1080); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
+      tester.view.physicalSize = const Size(
+        1920,
+        1080,
+      ); // 合成档 960.0×540.0dp（dpr 2），非设备基准。
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
     }
@@ -100,12 +104,12 @@ void main() {
           listen: false,
         );
 
-    Future<void> enterCompareAndRecordSegment(
-      WidgetTester tester,
-    ) async {
+    Future<void> enterCompareAndRecordSegment(WidgetTester tester) async {
       // 激活学习段 2（10s–18s，建线落点吸附八拍点）：录制 = 段首起、段尾停。
       final editor = containerOf(tester).read(annotationEditorProvider);
-      containerOf(tester).read(beatTrackStateProvider.notifier).replace(
+      containerOf(tester)
+          .read(beatTrackStateProvider.notifier)
+          .replace(
             BeatTrackState.ready(
               BeatGrid(
                 model: 'madmom_downbeat_rnn_full.onnx',
