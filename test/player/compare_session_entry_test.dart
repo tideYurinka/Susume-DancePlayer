@@ -394,7 +394,8 @@ void main() {
     });
 
     testWidgets('互斥：校准会话进行中拒绝进入对比态（模式一位不动、会话不退出）', (tester) async {
-      setWideView(tester);
+      // 平板横置（常规档）：三枚仍内联常驻顶栏，「音画同步」按槽键直定位。
+      useNamedViewport(tester, ViewportTier.tablet, landscape: true);
       await pumpPlayer(tester, avSyncSeam: true);
       await singleTapShow(tester);
       // 点「音画同步」开气泡（挂载即进入校准会话）：进入是异步链（设备
@@ -428,7 +429,8 @@ void main() {
     });
 
     testWidgets('互斥反向：对比态内进校准会话先退对比态', (tester) async {
-      setWideView(tester);
+      // 平板横置（常规档）：三枚仍内联常驻顶栏，「音画同步」按槽键直定位。
+      useNamedViewport(tester, ViewportTier.tablet, landscape: true);
       await pumpPlayer(tester, avSyncSeam: true);
       await singleTapShow(tester);
       await tester.tap(find.byKey(const Key('tool_compare')));

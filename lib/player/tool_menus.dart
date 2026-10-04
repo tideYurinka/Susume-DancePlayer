@@ -144,6 +144,41 @@ Future<T?> _openUpwardMenu<T>(
 /// 工具菜单竖向外边距估算值（菜单路由的菜单容器竖向 padding 上下各 8）。
 const double _kToolMenuVerticalPadding = 16.0;
 
+/// 「更多」菜单（紧凑档横屏顶栏）：承载「音画同步」→「取景调整」→
+/// 「节拍提示」三项——次序与搬走前顶栏里这一段一致，三项**纯文字条目**、
+/// 无菜单标题。走工具菜单的统一打开路径（向上弹出、锚定「更多」钮自身）与
+/// 互斥单开登记，本菜单是该登记管理的第三个菜单。
+///
+/// 条目键沿用三枚槽自身的槽键（紧凑档横屏下这三枚不常驻，同一时刻不会有
+/// 第二份同键件）；选中即关菜单（[PopupMenuItem] 弹出路由的既定行为）再由
+/// 本处执行动作——动作本体只有一份，槽位与条目共调。
+extension _ControlLayerMoreMenu on ControlLayerState {
+  Future<void> _showMoreMenu(BuildContext anchor) async {
+    // 菜单与气泡不并存：开菜单前先收当前气泡（倍速/步进或节拍侧），
+    // 菜单不被气泡盖住。
+    ref.read(speedBubbleSessionProvider.notifier).close();
+    final items = [
+      PopupMenuItem<VoidCallback?>(
+        key: Key(kPlayToolAvSync.key),
+        value: _activateAvSync,
+        child: Text(kPlayToolAvSync.label),
+      ),
+      PopupMenuItem<VoidCallback?>(
+        key: Key(kPlayToolFramingAdjust.key),
+        value: _toggleFramingAdjust,
+        child: Text(kPlayToolFramingAdjust.label),
+      ),
+      PopupMenuItem<VoidCallback?>(
+        key: Key(kPlayToolBeatPrompt.key),
+        value: _activateBeatPrompt,
+        child: Text(kPlayToolBeatPrompt.label),
+      ),
+    ];
+    final action = await _openUpwardMenu(anchor, ref, items);
+    action?.call();
+  }
+}
+
 /// 「自动分段」菜单的渲染装配：门事实在此组装（条目动作见
 /// [autoSegmentEntryActions]），渲染层逐条目问 verdict。
 Future<void> _showAutoSegmentMenu(BuildContext context, WidgetRef ref) async {

@@ -53,6 +53,8 @@ void main() {
     final declaredPlayToolKeys = {
       for (final row in [
         kPlayToolRowLandscapeTopBar,
+        // 紧凑档横屏顶栏：第五份行集，同进本护栏。
+        kPlayToolRowLandscapeTopBarCompact,
         kPlayToolRowPortraitTitleBar,
         // 竖屏视频工具栏拆两行，两行都进本护栏。
         kPlayToolRowPortraitVideoToolbarTop,

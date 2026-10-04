@@ -223,6 +223,17 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   /// 为 CompositedTransformTarget；同一互斥气泡会话。
   final LayerLink _avSyncLink = LayerLink();
 
+  /// 「更多」钮锚点：紧凑档横屏下音画同步与节拍提示（含节拍侧另两个气泡）
+  /// 的气泡锚点改挂这枚钮（这两枚在紧凑档横屏不常驻顶栏）——见
+  /// [_buildBubbleOverlay]。
+  final LayerLink _moreLink = LayerLink();
+
+  /// 此刻横屏顶栏是否走紧凑档行集：档位判据（[editorIsCompact]——只读逻辑
+  /// 尺寸、不吃字号档）与「是不是横屏」两件事实的合成。消费点只有两处
+  /// （顶栏行集选择、气泡锚点选择），共用本读点，不各算一次。
+  bool get _compactLandscape =>
+      !widget.skeleton.portrait && editorIsCompact(MediaQuery.sizeOf(context));
+
   /// 会话域句柄（本层只经它触碰窗口、落点与拖动标记）。
   TrackBandSession get _session => widget.session;
 
@@ -527,8 +538,11 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                 ),
                 if (!portrait) ...[
                   const SizedBox(width: kTopBarToolsGapWidth),
+                  // 横屏顶栏行集按**档位判据结果**选（紧凑档 → 紧凑行集，
+                  // 三枚搬进「更多」；常规档 → 原行集）：选择只有
+                  // [playToolLandscapeTopBarRow] 一处。
                   _playToolRow(
-                    kPlayToolRowLandscapeTopBar,
+                    playToolLandscapeTopBarRow(compact: _compactLandscape),
                     maxWidth: toolsMaxWidth,
                   ),
                 ] else ...[
@@ -645,6 +659,22 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     bubble.open(mode);
   }
 
+  /// 音画同步动作本体（槽位与「更多」菜单条目共调，只有这一份）。
+  ///
+  /// 互斥：从对比态进校准会话先走对比态退出（回编辑面，
+  /// 单画面），再开气泡——校准会话自身的统一退出路径（含丢弃试听
+  /// 值）照旧。两条互相冲突的播放态主张（进入即暂停 vs 进入即续播）
+  /// 从此只有一个成立。
+  void _activateAvSync() {
+    if (ref.read(playerSessionProvider).isCompare) {
+      ref.read(playerSessionProvider.notifier).enter(PlayerSessionMode.editing);
+    }
+    _toggleBubble(SpeedBubbleMode.avSync);
+  }
+
+  /// 节拍提示动作本体（槽位与「更多」菜单条目共调，只有这一份）。
+  void _activateBeatPrompt() => _toggleBubble(SpeedBubbleMode.beat);
+
   /// 气泡覆盖层：锚定对应工具图标下方、点气泡外收起（接线为共享
   /// [SpeedBubbleHost]，与观看态同一组件与状态来源）。「节拍提示」
   /// 工具气泡并入同一宿主，锚定其工具下方。
@@ -652,16 +682,24 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   /// 气泡**水平中心**与触发按钮中心对齐
   /// （bottomCenter/topCenter）；
   /// 居中放不下时由宿主水平钳制进屏（近右缘图标下右缘不溢出）。
+  ///
+  /// 紧凑档横屏下音画同步与节拍提示（含节拍侧另两个气泡）的锚点改挂
+  /// 「更多」钮：这两枚在紧凑档横屏不常驻顶栏、各自的原锚点不在场
+  /// （`showWhenUnlinked: false` 会让气泡不显示），故按同一档位判据取
+  /// [_moreLink]。
   Widget _buildBubbleOverlay() {
+    final compactLandscape = _compactLandscape;
     return SpeedBubbleHost(
       linkFor: (mode) => switch (mode) {
         SpeedBubbleMode.speed => _speedSettingsLink,
-        SpeedBubbleMode.avSync => _avSyncLink,
+        SpeedBubbleMode.avSync => compactLandscape ? _moreLink : _avSyncLink,
         // 节拍侧三气泡（节拍提示／节拍对齐／节拍倍频，/03）锚
-        // **同一入口链接**（「节拍提示」工具）。
+        // **同一入口链接**（「节拍提示」工具）——后两个从「节拍提示」气泡
+        // 内部打开，锚点必须与入口同一个。
         SpeedBubbleMode.beat ||
         SpeedBubbleMode.beatAlign ||
-        SpeedBubbleMode.beatDensity => _beatPromptLink,
+        SpeedBubbleMode.beatDensity =>
+          compactLandscape ? _moreLink : _beatPromptLink,
       },
       targetAnchor: Alignment.bottomCenter,
       followerAnchor: Alignment.topCenter,

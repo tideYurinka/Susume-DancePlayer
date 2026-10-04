@@ -36,6 +36,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/compare_framing_harness.dart' show tapFramingEntry;
 import '../helpers/device_viewport.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -108,10 +109,11 @@ void main() {
     }
   }
 
-  /// 点顶栏「取景调整」进单画面取景。
+  /// 点生效顶栏的「取景调整」进单画面取景：常规档横屏与竖屏下是内联槽位，
+  /// 紧凑档横屏下由「更多」钮的向上弹出菜单承载（本文件的横屏基准是紧凑档）。
   Future<void> enterSingleFraming(WidgetTester tester) async {
     await openEditor(tester);
-    await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+    await tapFramingEntry(tester);
     await tester.pumpAndSettle();
   }
 

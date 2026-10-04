@@ -13,6 +13,7 @@ import 'package:dance_learning_app/help/content_registry.dart'
         HandsOnCriterion,
         autoSegmentMenuAnchorKey,
         badgeAutoSegmentUnitId,
+        badgeAvSyncUnitId,
         badgeBeatPromptUnitId,
         badgeHalfBeatUnitId,
         badgeLocalMirrorUnitId,
@@ -98,6 +99,7 @@ import 'package:dance_learning_app/player/annotation_edit.dart';
 import 'package:dance_learning_app/player/editor_skeleton.dart'
     show
         EditorSkeleton,
+        editorIsCompact,
         editorSkeletonFor,
         portraitPictureAreaRect,
         portraitRotateButtonRect;
@@ -121,8 +123,10 @@ import 'package:dance_learning_app/player/av_sync_session.dart'
 import 'package:dance_learning_app/player/play_tool_table.dart'
     show
         kPlayToolLocalMirror,
+        kPlayToolRowLandscapeTopBarCompact,
         kPlayToolRowPortraitVideoToolbarBottom,
-        kPlayToolRowPortraitVideoToolbarTop;
+        kPlayToolRowPortraitVideoToolbarTop,
+        playToolLandscapeTopBarRow;
 import 'package:dance_learning_app/player/tool_slots.dart';
 import 'package:dance_learning_app/player/track_row_table.dart'
     show TrackRowTable;
@@ -2254,17 +2258,18 @@ Finder slotText(Key slot, String text) =>
 
     Finder topBarTool(String key) => find.byKey(Key(key));
 
-    testWidgets('宽敞视口：全部工具固定槽位内联、无「更多」入口、最右工具贴顶栏右内缘', (
+    testWidgets('常规档横屏（平板）宽敞视口：全部工具固定槽位内联、无「更多」入口、最右工具贴顶栏右内缘', (
       tester,
     ) async {
-      setWideView(tester);
+      // 平板横置 1180×820dp（常规档）：12 个位置全部带标签内联。
+      useNamedViewport(tester, ViewportTier.tablet, landscape: true);
       await pumpControlLayer(tester);
 
       expect(find.byKey(const Key('tool_more')), findsNothing);
       // 整体右对齐：最右工具（查看引导）右缘贴顶栏右内缘（水平内边距 4）。
       // 成员与次序归表直测（play_tool_table_test），此处只钉右对齐几何。
       final guideRight = tester.getRect(topBarTool('tool_guide')).right;
-      expect(guideRight, closeTo(960 - 4, 2));
+      expect(guideRight, closeTo(1180 - 4, 2));
     });
 
     testWidgets('默认视口（800 逻辑宽）：顶栏 11 槽全部内联、无「更多」入口', (
@@ -5568,9 +5573,9 @@ Finder slotText(Key slot, String text) =>
       expectTwoRows();
     });
 
-    testWidgets('横屏顶栏逐位不变：十枚工具仍内联一行、无竖屏视频工具栏', (tester) async {
-      // 真机横屏基准 2736×1264 @3.5 = 781.7×361.1dp。
-      useNamedViewport(tester, ViewportTier.compact, landscape: true);
+    testWidgets('常规档横屏（平板）顶栏逐位不变：十枚工具仍内联一行、无「更多」、无竖屏视频工具栏', (tester) async {
+      // 平板横置 1180×820dp（该档最短边 820 ≥ 600 → 常规档）。
+      useNamedViewport(tester, ViewportTier.tablet, landscape: true);
       await pumpControlLayer(tester);
       expect(tester.takeException(), isNull);
 
@@ -5579,12 +5584,16 @@ Finder slotText(Key slot, String text) =>
         findsNothing,
         reason: '横屏不出现竖屏那两行',
       );
-      expect(find.byKey(const Key('tool_more')), findsNothing);
+      expect(
+        find.byKey(const Key('tool_more')),
+        findsNothing,
+        reason: '常规档无「更多」入口',
+      );
       for (final key in allTools) {
         expect(
           inBar(find.byKey(Key(key))),
           findsOneWidget,
-          reason: '$key 仍内联在横屏顶栏',
+          reason: '$key 仍内联在常规档横屏顶栏',
         );
       }
       final tops = {
@@ -5592,30 +5601,417 @@ Finder slotText(Key slot, String text) =>
           tester.getRect(find.byKey(Key(key))).top.round(),
       };
       expect(tops, hasLength(1), reason: '十枚工具仍在同一行');
-      // 横屏编辑面同样没有提示行。
+      // 常规档横屏编辑面同样没有提示行。
       expect(find.byKey(const Key('editor_landscape_prompt')), findsNothing);
     });
 
-    testWidgets('窄横屏视口：加了「取景调整」的顶栏仍不溢出、十枚入口可直接点到', (tester) async {
-      // 640×420dp 合成档横置（非设备基准）：可用宽放不下带标签十槽，按既有
-      // 「放不下收标签」兜底收成图标形态——不溢出、无「更多」、逐枚可点。
+    testWidgets('紧凑档横屏：三枚搬进「更多」、生效行集十位仍收在屏内且逐枚可直接点到', (tester) async {
+      // 640×420dp 合成档横置（非设备基准）：最短边 420 < 600 → 紧凑档。
+      // 可用宽放不下带标签十位，按既有「放不下收标签」兜底收成图标形态
+      // ——不溢出、逐枚可点。遍历的是**本视口生效的那份行集**。
       tester.view.physicalSize = const Size(1280, 840);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
       await pumpControlLayer(tester);
       expect(tester.takeException(), isNull, reason: '窄视口顶栏不溢出');
 
-      expect(find.byKey(const Key('tool_more')), findsNothing, reason: '无溢出入口');
+      expect(
+        find.byKey(const Key('tool_more')),
+        findsOneWidget,
+        reason: '紧凑档横屏有「更多」',
+      );
+      for (final key in ['tool_av_sync', 'tool_framing_adjust', 'tool_beat_prompt']) {
+        expect(
+          find.byKey(Key(key)),
+          findsNothing,
+          reason: '$key 已搬进「更多」，不常驻紧凑档横屏顶栏',
+        );
+      }
       final screenWidth =
           tester.view.physicalSize.width / tester.view.devicePixelRatio;
-      for (final key in allTools) {
-        expect(inBar(find.byKey(Key(key))), findsOneWidget, reason: '$key 在顶栏');
-        expect(find.byKey(Key(key)).hitTestable(), findsOneWidget,
-            reason: '$key 可直接点到');
-        expect(tester.getRect(find.byKey(Key(key))).right,
-            lessThanOrEqualTo(screenWidth),
-            reason: '$key 在屏宽内');
+      final effective = playToolLandscapeTopBarRow(
+        compact: editorIsCompact(
+          Size(
+            screenWidth,
+            tester.view.physicalSize.height / tester.view.devicePixelRatio,
+          ),
+        ),
+      );
+      expect(effective, same(kPlayToolRowLandscapeTopBarCompact));
+      for (final slot in effective.slots) {
+        expect(
+          inBar(find.byKey(Key(slot.key))),
+          findsOneWidget,
+          reason: '${slot.label} 在顶栏',
+        );
+        expect(
+          find.byKey(Key(slot.key)).hitTestable(),
+          findsOneWidget,
+          reason: '${slot.label} 可直接点到',
+        );
+        expect(
+          tester.getRect(find.byKey(Key(slot.key))).right,
+          lessThanOrEqualTo(screenWidth),
+          reason: '${slot.label} 在屏宽内',
+        );
       }
+    });
+  });
+
+  group('紧凑档横屏顶栏：「更多」承载音画同步 / 取景调整 / 节拍提示', () {
+    /// 真机横屏基准（compact 档转置 = 781.7×361.1dp，最短边 < 600 → 紧凑档）。
+    void setCompactLandscape(WidgetTester tester) {
+      useNamedViewport(tester, ViewportTier.compact, landscape: true);
+    }
+
+    /// 平板横置（1180×820dp，最短边 ≥ 600 → 常规档）。
+    void setRegularLandscape(WidgetTester tester) {
+      useNamedViewport(tester, ViewportTier.tablet, landscape: true);
+    }
+
+    /// 定长等待（播放循环带持续动画、pumpAndSettle 不收敛时的统一时长）。
+    const settlePump = Duration(milliseconds: 400);
+
+    /// 搬进「更多」的三枚：紧凑档横屏下不常驻顶栏。
+    const movedKeys = [
+      'tool_av_sync',
+      'tool_framing_adjust',
+      'tool_beat_prompt',
+    ];
+    const movedLabels = ['音画同步', '取景调整', '节拍提示'];
+
+    Finder moreButton() => find.byKey(const Key('tool_more'));
+    Finder menuItems() => find.byType(PopupMenuItem<VoidCallback?>);
+
+    /// 泵出播放页 → 唤出控制层（编辑态）。取景两路要真宿主提交待办，
+    /// 故用整页 harness 而非直接挂载控制层。
+    Future<ProviderContainer> pumpEditingPlayer(
+      WidgetTester tester, {
+      InMemoryPrivateJsonStorage? guideStorage,
+      bool wrapGuideHost = false,
+    }) async {
+      await pumpPlayer(
+        tester,
+        engine: FakePlaybackEngine(duration: const Duration(seconds: 30)),
+        wrapGuideHost: wrapGuideHost,
+        guideStorage: guideStorage,
+      );
+      await singleTapShow(tester);
+      await tester.pumpAndSettle();
+      return ProviderScope.containerOf(
+        tester.element(find.byType(PlayerPage)),
+        listen: false,
+      );
+    }
+
+    testWidgets('紧凑档横屏：三枚不在顶栏、「更多」落在「全局镜像」左侧，生效行集同排', (tester) async {
+      setCompactLandscape(tester);
+      await pumpControlLayer(tester);
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const Key('control_layer_video_toolbar')),
+        findsNothing,
+        reason: '横屏不出现竖屏那两行',
+      );
+
+      for (final key in movedKeys) {
+        expect(
+          find.byKey(Key(key)),
+          findsNothing,
+          reason: '$key 已搬进「更多」，不常驻紧凑档横屏顶栏',
+        );
+      }
+      expect(moreButton(), findsOneWidget);
+      expect(
+        tester.getRect(moreButton()).center.dx,
+        lessThan(
+          tester.getRect(find.byKey(const Key('tool_mirror'))).center.dx,
+        ),
+        reason: '「更多」落在「全局镜像」左侧（三枚原本所在的一段）',
+      );
+      final tops = {
+        for (final slot in kPlayToolRowLandscapeTopBarCompact.slots)
+          tester.getRect(find.byKey(Key(slot.key))).top.round(),
+      };
+      expect(tops, hasLength(1), reason: '生效行集全部槽仍同一行');
+    });
+
+    testWidgets('常规档横屏（平板）：三枚仍内联常驻、「更多」不在场', (tester) async {
+      setRegularLandscape(tester);
+      await pumpControlLayer(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(moreButton(), findsNothing);
+      for (final key in movedKeys) {
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('control_layer_top_bar')),
+            matching: find.byKey(Key(key)),
+          ),
+          findsOneWidget,
+          reason: '$key 仍内联在常规档横屏顶栏',
+        );
+      }
+    });
+
+    testWidgets('点「更多」向上弹出菜单：三项纯文字条目、无菜单标题、次序与搬走前一致', (tester) async {
+      setCompactLandscape(tester);
+      await pumpControlLayer(tester);
+      final more = tester.getRect(moreButton());
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+
+      expect(menuItems(), findsNWidgets(3), reason: '菜单只有三项、没有菜单标题条目');
+      final viewport =
+          Offset.zero & (tester.view.physicalSize / tester.view.devicePixelRatio);
+      for (var i = 0; i < movedKeys.length; i++) {
+        final item = find.byKey(Key(movedKeys[i]));
+        expect(item, findsOneWidget, reason: '${movedLabels[i]} 条目在场');
+        // 纯文字条目：条目里只有那一个文字，没有图标。
+        expect(
+          find.descendant(of: item, matching: find.byType(Text)),
+          findsOneWidget,
+          reason: '${movedLabels[i]} 是文字条目',
+        );
+        expect(
+          find.descendant(of: item, matching: find.byType(Icon)),
+          findsNothing,
+          reason: '${movedLabels[i]} 不写图标',
+        );
+        expect(
+          find.descendant(of: item, matching: find.text(movedLabels[i])),
+          findsOneWidget,
+        );
+        final itemRect = tester.getRect(item);
+        // 弹出路径锚定「更多」钮：菜单横位压在该钮一带（不是飘到屏的另一头）。
+        // 顶栏贴着屏幕顶、竖向上没有余量，菜单路由按既有兜底把它收在屏顶
+        // （与底栏的「添加」菜单同一条向上弹出路径与同一份边缘兜底）。
+        expect(
+          itemRect.right,
+          greaterThan(more.left),
+          reason: '${movedLabels[i]} 与「更多」钮横向重叠',
+        );
+        expect(
+          itemRect.left,
+          lessThan(more.right),
+          reason: '${movedLabels[i]} 与「更多」钮横向重叠',
+        );
+        expect(itemRect.left, greaterThanOrEqualTo(viewport.left));
+        expect(itemRect.right, lessThanOrEqualTo(viewport.right));
+        expect(itemRect.top, greaterThanOrEqualTo(viewport.top));
+        expect(
+          itemRect.bottom,
+          lessThan(viewport.center.dy),
+          reason: '菜单自顶栏一带弹出，不铺到屏幕下半',
+        );
+        if (i > 0) {
+          expect(
+            itemRect.top,
+            greaterThan(tester.getRect(find.byKey(Key(movedKeys[i - 1]))).top),
+            reason: '${movedLabels[i]} 排在 ${movedLabels[i - 1]} 之下',
+          );
+        }
+      }
+
+      // 点外部收起。
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+      expect(menuItems(), findsNothing);
+    });
+
+    testWidgets('菜单「音画同步」条目开出气泡、气泡锚在「更多」钮正下方、「更多」不点亮', (tester) async {
+      setCompactLandscape(tester);
+      await pumpControlLayer(tester);
+      final more = tester.getRect(moreButton());
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_av_sync')));
+      // 校准会话持续收脉冲（不可 pumpAndSettle）：固定帧推进到落定。
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const Key('av_sync_bubble')), findsOneWidget);
+      expect(find.byKey(const Key('av_sync_readout_row')), findsOneWidget);
+      final bubble = tester.getRect(find.byKey(const Key('av_sync_bubble')));
+      expect(
+        bubble.top,
+        greaterThanOrEqualTo(more.bottom - 4),
+        reason: '音画同步气泡锚在「更多」钮下方',
+      );
+      expect(
+        bubble.center.dx,
+        closeTo(more.center.dx, 12),
+        reason: '气泡水平中心与「更多」钮对齐',
+      );
+      expect(
+        toolIconColor(tester, 'tool_more'),
+        isNot(kHighlightAmber),
+        reason: '气泡展开不是生效态——「更多」不点亮',
+      );
+    });
+
+    testWidgets('菜单「节拍提示」条目开出气泡、锚在「更多」钮下方', (tester) async {
+      setCompactLandscape(tester);
+      await pumpControlLayer(tester);
+      final more = tester.getRect(moreButton());
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_beat_prompt')));
+      await pumpPastMarquee(tester);
+
+      expect(find.byKey(const Key('beat_prompt_panel')), findsOneWidget);
+      expect(
+        tester.getRect(find.byKey(const Key('beat_prompt_panel'))).top,
+        greaterThanOrEqualTo(more.bottom - 4),
+        reason: '节拍提示面板锚在「更多」钮下方',
+      );
+    });
+
+    testWidgets('菜单与气泡不并存：气泡开着时点「更多」先收气泡（点外遮罩承接），再点才开菜单', (tester) async {
+      setCompactLandscape(tester);
+      await pumpControlLayer(tester);
+
+      await tester.tap(find.byKey(const Key('tool_speed_settings')));
+      await pumpPastMarquee(tester);
+      expect(find.byKey(const Key('speed_bubble')), findsOneWidget);
+
+      // 气泡开着时「更多」被点外收起遮罩盖住——下按落在遮罩上、
+      // 不落在钮上（这正是「先收气泡」的那一次点按）。
+      await tester.tap(moreButton(), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(
+        menuItems(),
+        findsNothing,
+        reason: '气泡开着时那次点按由点外收起遮罩承接，菜单不弹',
+      );
+      expect(find.byKey(const Key('speed_bubble')), findsNothing, reason: '先收气泡');
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      expect(menuItems(), findsNWidgets(3));
+      expect(
+        find.byKey(const Key('speed_bubble')),
+        findsNothing,
+        reason: '菜单与气泡不并存',
+      );
+    });
+
+    testWidgets('菜单「取景调整」条目进单画面取景；「完成」回编辑态', (tester) async {
+      setCompactLandscape(tester);
+      final container = await pumpEditingPlayer(tester);
+
+      expect(find.byKey(const Key('tool_framing_adjust')), findsNothing);
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+      await tester.pump(settlePump);
+      await tester.pump();
+
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.framing,
+      );
+      expect(controlLayer(), findsNothing);
+      expect(find.byKey(const Key('framing_bar')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('framing_done')));
+      await tester.pump(settlePump);
+      await tester.pump();
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.editing,
+      );
+      expect(controlLayer(), findsOneWidget);
+    });
+
+    testWidgets('紧凑档横屏对比态：行集同样生效，菜单里的「取景调整」进分屏取景调节态', (tester) async {
+      setCompactLandscape(tester);
+      final container = await pumpEditingPlayer(tester);
+      container
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.compareEditing);
+      await tester.pump(settlePump);
+      await tester.pump();
+
+      expect(moreButton(), findsOneWidget, reason: '对比-控制层共用同一顶栏与行集选择点');
+      expect(find.byKey(const Key('tool_framing_adjust')), findsNothing);
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+      await tester.pump(settlePump);
+      await tester.pump();
+
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.compareFraming,
+        reason: '对比态经「更多」里的同一条路径进分屏取景',
+      );
+      expect(find.byKey(const Key('framing_bar')), findsOneWidget);
+    });
+
+    /// 只留一个气泡单元待走（其余单元按已看过装配，免得前置单元的步插话）。
+    InMemoryPrivateJsonStorage onlyStepPending(String unitId) {
+      final flags = {
+        for (final field in onboardingFlagFields.values) field: true,
+      };
+      flags[onboardingFlagFields[unitId]!] = false;
+      return InMemoryPrivateJsonStorage(initial: {'onboarding': flags});
+    }
+
+    testWidgets('就地引导（音画同步）：气泡没开时该步不出场；经「更多」开出后仍锚在气泡里那一行', (
+      tester,
+    ) async {
+      setCompactLandscape(tester);
+      await pumpEditingPlayer(
+        tester,
+        wrapGuideHost: true,
+        guideStorage: onlyStepPending(badgeAvSyncUnitId),
+      );
+
+      // 气泡没打开：不出现孤零零的引导步（锚点缺席即放行、不出场）。
+      expect(find.byKey(const Key('guide_bubble')), findsNothing);
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_av_sync')));
+      // 校准会话持续收脉冲；判定链路是异步 Future + 锚点帧尾重查。
+      for (var i = 0; i < 8; i++) {
+        await tester.pump();
+      }
+
+      final steps = guideStepsOfUnit(badgeAvSyncUnitId);
+      expect(find.text(guideStepMessage(steps.single.id)), findsOneWidget);
+      // 高亮框仍落在气泡里含 ＋/－ 的那一行上（不是「更多」钮、不是空处）。
+      expectGuidePointsAt(
+        tester,
+        find.byKey(const Key('av_sync_readout_row')),
+      );
+    });
+
+    testWidgets('就地引导（节拍提示）：气泡没开时该步不出场；经「更多」开出后仍锚在气泡里那一栏', (
+      tester,
+    ) async {
+      setCompactLandscape(tester);
+      await pumpEditingPlayer(
+        tester,
+        wrapGuideHost: true,
+        guideStorage: onlyStepPending(badgeBeatPromptUnitId),
+      );
+
+      expect(find.byKey(const Key('guide_bubble')), findsNothing);
+
+      await tester.tap(moreButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tool_beat_prompt')));
+      await pumpPastMarquee(tester);
+
+      final steps = guideStepsOfUnit(badgeBeatPromptUnitId);
+      expect(find.text(guideStepMessage(steps[0].id)), findsOneWidget);
+      expectGuidePointsAt(tester, find.byKey(const Key('beat_anim_column')));
     });
   });
 

@@ -43,6 +43,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/android_camera_platform.dart';
 import '../helpers/beat_test_seam.dart';
+import '../helpers/compare_framing_harness.dart' show tapFramingEntry;
 import '../helpers/track_band_session_harness.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -370,9 +371,10 @@ void main() {
       await collapseToCompareWatching(tester);
 
       await singleTapShow(tester);
-      // 「取景」槽已退役：进取景调节态经顶栏
-      // 「取景调整」入口（对比-控制层分派到分屏路径）。
-      await tester.tap(find.byKey(const Key('tool_framing_adjust')));
+      // 「取景」槽已退役：进取景调节态经生效顶栏
+      // 「取景调整」入口（对比-控制层分派到分屏路径）；本视口是紧凑档
+      // 横屏，这枚入口由「更多」钮的向上弹出菜单承载。
+      await tapFramingEntry(tester);
       await tester.pumpAndSettle();
       expect(
         container.read(playerSessionProvider).mode,

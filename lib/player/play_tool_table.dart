@@ -1,11 +1,14 @@
 /// 看片工具槽表：看片工具的声明单一来源。
 ///
 /// **模块面**：[PlayToolIcon]（图标 token）→ [PlayToolSlot]（一条槽的
-/// 声明：槽键、文案、图标、门清单、软门标记）→ 四份具名行集
-/// [kPlayToolRowLandscapeTopBar]（横屏顶栏，十条工具加两条分隔线，十二个
-/// 位置）/ [kPlayToolRowPortraitTitleBar]（竖屏标题栏，三条）/
+/// 声明：槽键、文案、图标、门清单、软门标记）→ 五份具名行集
+/// [kPlayToolRowLandscapeTopBar]（常规档横屏顶栏，十条工具加两条分隔线，
+/// 十二个位置）/ [kPlayToolRowLandscapeTopBarCompact]（紧凑档横屏顶栏，
+/// 八条加两条分隔线，十个位置）/ [kPlayToolRowPortraitTitleBar]
+/// （竖屏标题栏，三条）/
 /// [kPlayToolRowPortraitVideoToolbarTop] 与
 /// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）；
+/// 横屏顶栏选哪一份由纯件 [playToolLandscapeTopBarRow] 按档位判据结果一处决定；
 /// 行集成员 [PlayToolRowItem]（一条槽的引用，或一条分隔线）。槽身份
 /// [PlayToolSlotId] 是唯一消费点穷尽 `switch` 装配活值的判定依据——加槽
 /// 漏补装配即编译报错。可点性派生
@@ -28,7 +31,7 @@
 /// Flutter）。派生状态（可点性、生效标签、生效激活位）由视图在装配时
 /// 算出，不存进表。
 ///
-/// **一条工具一条声明**：十条槽各一条 `const` 声明，四份行集引用同一份
+/// **一条工具一条声明**：十一条槽各一条 `const` 声明，五份行集引用同一份
 /// ——同一条槽出现在多份行集时结构上不可能出现两份可能分家的编码。
 /// 「分隔线不进竖屏行」是行集里明写的成员事实（竖屏三份行集不含分隔线
 /// 成员），不再依赖任何字段的缺省值。
@@ -53,6 +56,7 @@ enum PlayToolIcon {
   compare, // Icons.compare（对比练习）
   cropFree, // Icons.crop_free（取景调整）
   helpOutline, // Icons.help_outline（查看引导）
+  more, // Icons.more_horiz（更多）
 }
 
 /// 槽身份：唯一消费点的穷尽 `switch` 按它装配活值——新增一条槽
@@ -69,6 +73,7 @@ enum PlayToolSlotId {
   compare,
   framingAdjust,
   guide,
+  more,
 }
 
 /// 单条看片工具槽的声明：槽键、文案、图标、门清单、软门标记与引导锚点。
@@ -116,8 +121,8 @@ class PlayToolSlot {
   final bool carriesGuideAnchor;
 }
 
-/// 十条槽声明（唯一一份）：横屏顶栏、竖屏标题栏、竖屏视频工具栏三份
-/// 行集引用同一批，不内联复制。
+/// 十一条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
+/// 两行共五份行集引用同一批，不内联复制。
 
 /// 撤销（硬启用位 = 有历史可撤销）。
 const PlayToolSlot kPlayToolUndo = PlayToolSlot(
@@ -228,6 +233,20 @@ const PlayToolSlot kPlayToolGuide = PlayToolSlot(
   softGate: false,
 );
 
+/// 更多（紧凑档横屏顶栏的溢出容器入口）：向上弹出菜单承载
+/// 「音画同步」「取景调整」「节拍提示」三枚（紧凑档下这三枚不常驻顶栏），
+/// 位置即三枚原本所在的一段（「全局镜像」左侧）。无门、非软门；
+/// **不承载引导锚点**——搬进菜单的两枚工具的引导锚点在气泡内部，
+/// 本入口自身不是任何引导步的锚。
+const PlayToolSlot kPlayToolMore = PlayToolSlot(
+  id: PlayToolSlotId.more,
+  key: 'tool_more',
+  label: '更多',
+  icon: PlayToolIcon.more,
+  gates: [],
+  softGate: false,
+);
+
 /// 行集成员：一条槽的引用，或一条分隔线。分隔线是行集里的成员，不靠
 /// 任何字段的缺省值表达「进不进某行」。
 class PlayToolRowItem {
@@ -277,6 +296,32 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolCompare),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
+
+/// 紧凑档横屏顶栏：八条工具加两条分隔线，十个位置——撤销 → 重做 → ｜ →
+/// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 查看引导。
+/// 「更多」落在三枚搬走前所在的一段（「全局镜像」左侧），
+/// 「全局镜像 → 局部镜像 → 倍速设置」这组视图设置的相邻关系不被打断；
+/// 音画同步 / 取景调整 / 节拍提示改由「更多」的向上弹出菜单承载，
+/// 次序与搬走前顶栏一致。
+const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
+  PlayToolRowItem.slot(kPlayToolUndo),
+  PlayToolRowItem.slot(kPlayToolRedo),
+  PlayToolRowItem.separator(),
+  PlayToolRowItem.slot(kPlayToolMore),
+  PlayToolRowItem.slot(kPlayToolMirror),
+  PlayToolRowItem.slot(kPlayToolLocalMirror),
+  PlayToolRowItem.slot(kPlayToolSpeedSettings),
+  PlayToolRowItem.separator(),
+  PlayToolRowItem.slot(kPlayToolCompare),
+  PlayToolRowItem.slot(kPlayToolGuide),
+]);
+
+/// 横屏顶栏行集选择（**唯一读点**）：吃档位判据的结果（
+/// [editorIsCompact] 的返回值——判据本身住在播放页几何骨架，本表不重算），
+/// 紧凑档给紧凑行集 [kPlayToolRowLandscapeTopBarCompact]、常规档给原行集
+/// [kPlayToolRowLandscapeTopBar]。行集与档位的对应只有这一处。
+PlayToolRowSet playToolLandscapeTopBarRow({required bool compact}) =>
+    compact ? kPlayToolRowLandscapeTopBarCompact : kPlayToolRowLandscapeTopBar;
 
 /// 竖屏标题栏：三条——撤销 → 重做 → 查看引导（返回键与标题之后）。
 const PlayToolRowSet kPlayToolRowPortraitTitleBar = PlayToolRowSet([
