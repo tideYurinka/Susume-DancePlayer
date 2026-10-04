@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 用户可见应用名：测试版。桌面图标与系统列表里带「测试版」是刻意的——
+     测试者手机上会同时躺着正式版与测试版，名字是唯一的辨认线索（ADR-0003）。 -->
+<resources>
+    <string name="app_name">Susume 测试版</string>
+</resources>

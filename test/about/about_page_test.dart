@@ -490,6 +490,35 @@ void main() {
     expect(find.text(appDisplayName), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('测试版：版本行只读——没有状态格与按钮，写出版本号、构建标识与一句说明', (tester) async {
+    await _pumpAboutPage(
+      tester,
+      identity: InstallIdentity.test,
+      buildId: 'abc1234',
+      version: '0.2.0-test',
+    );
+
+    expect(
+      tester.widget<Text>(find.byKey(const Key('about_version_value'))).data,
+      '0.2.0-test',
+    );
+    expect(find.text('构建 abc1234'), findsOneWidget);
+    expect(find.byKey(const Key('about_version_test_note')), findsOneWidget);
+    expect(
+      find.byKey(const Key('about_version_action')),
+      findsNothing,
+      reason: '测试版不参与更新，不摆一个按下去永远没结果的入口',
+    );
+    expect(find.byKey(const Key('about_version_status')), findsNothing);
+  });
+
+  testWidgets('测试版：没有构建标识时不写那一行', (tester) async {
+    await _pumpAboutPage(tester, identity: InstallIdentity.test);
+
+    expect(find.byKey(const Key('about_version_test_note')), findsOneWidget);
+    expect(find.byKey(const Key('about_build_id')), findsNothing);
+  });
 }
 
 /// 版本行里会被状态推动的几何：整行矩形、左端版本值的矩形、右端按钮的矩形。
@@ -554,6 +583,8 @@ Future<void> _pumpAboutPage(
   bool realVersion = false,
   UpdateGateway? gateway,
   int localBuildNumber = 1,
+  InstallIdentity identity = InstallIdentity.official,
+  String buildId = '',
   Size viewport = const Size(1000, 2000),
   double textScale = 1.0,
 }) async {
@@ -570,6 +601,8 @@ Future<void> _pumpAboutPage(
         if (!realVersion)
           aboutAppVersionProvider.overrideWith((ref) => version),
         localBuildNumberProvider.overrideWith((ref) => localBuildNumber),
+        installIdentityProvider.overrideWithValue(identity),
+        appBuildIdProvider.overrideWithValue(buildId),
         if (gateway != null) updateGatewayProvider.overrideWithValue(gateway),
       ],
       child: const MaterialApp(home: AboutPage()),

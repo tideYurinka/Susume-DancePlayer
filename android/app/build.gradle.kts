@@ -16,6 +16,19 @@ if (hasReleaseSigning) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
+// 测试签名（ADR-0003）：与正式签名**分开**的一把钥，凭据只在
+// android/key-test.properties 一处（同样在 .gitignore 里）。测试版靠它原地
+// 覆盖升级，正式版的升级凭据因此不落到测试者手里。缺这个文件时不留任何
+// 回落（回落 debug 签名会让测试包逐机不同，测试者只能卸载重装——就地升级
+// 这条不变量会静默失效），失败点落在真去签测试版的那一刻：见 signingConfigs
+// 里 test 那一项的注释。
+val testKeystoreProperties = Properties()
+val testKeystorePropertiesFile = rootProject.file("key-test.properties")
+val hasTestSigning = testKeystorePropertiesFile.exists()
+if (hasTestSigning) {
+    testKeystorePropertiesFile.inputStream().use { testKeystoreProperties.load(it) }
+}
+
 android {
     namespace = "top.yurinka.susume"
     compileSdk = flutter.compileSdkVersion
@@ -32,6 +45,8 @@ android {
     defaultConfig {
         // 定死的安装身份：装出去的包在系统里永久叫这个名字，
         // 改它等于换一个应用——已安装用户只能卸载重装，本机数据一起丢。
+        // 这是**正式版**的身份；测试版与调试版只在这上面加后缀（见下方
+        // productFlavors 与 buildTypes.debug），不改这一处字面量。
         applicationId = "top.yurinka.susume"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -67,16 +82,30 @@ android {
                 storePassword = keystoreProperties.getProperty("storePassword")
             }
         }
+        // 测试 keystore 与正式那份同一套四项凭据、同一条解析规矩。缺
+        // key-test.properties 时故意指向一个不存在的文件：空签名配置会被静默
+        // 放过（实测 validateSigning 与 APK 路径上的签名版本任务都照样成功），
+        // 指向不存在的文件至少让 `signingReport` 说实话，并让 bundle 那条路
+        // 当场失败；APK 那条路由文件末尾的 requireTestSigning 明着挡。
+        create("test") {
+            if (hasTestSigning) {
+                keyAlias = testKeystoreProperties.getProperty("keyAlias")
+                keyPassword = testKeystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(testKeystoreProperties.getProperty("storeFile"))
+                storePassword = testKeystoreProperties.getProperty("storePassword")
+            } else {
+                storeFile = rootProject.file("susume-test.jks")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // 没有 key.properties 时用 debug key，让 `flutter run --release` 可用。
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // 这里**不选签名**：构建类型的 signingConfig 优先级高于 flavor，一旦
+            // 在构建类型上写死，测试版就会被正式钥签掉（Gradle 不报错，只有
+            // `./gradlew :app:signingReport` 看得见）。用哪把钥整条留给
+            // productFlavors，本文件只有那一处。
+            //
             // 当前 release 未开 minify；预置节拍识别（onnxruntime JNI）keep
             // 规则（proguard-rules.pro），将来开启 minify 必须真机回归节拍
             // 分析。
@@ -84,6 +113,44 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        // 调试版身份：`flutter run` 装的那一份与正式版同名同签名的日子到此为止。
+        // 后缀只叠在正式身份之后，`prod` flavor 的 debug 构建就是它。
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+    }
+
+    // 三份安装身份（ADR-0003）：flavor 决定「正式版 / 测试版」，构建类型再叠
+    // 一层「调试版」后缀，四组 applicationId 里真正对外的是三个——正式版
+    // （prod × release）、测试版（beta × release）、调试版（prod × debug）。
+    // 身份字面量只留 defaultConfig 一处，flavor 只加后缀，身份护栏按这条纪律
+    // 断言（见 test/release/android_identity_test.dart）。
+    //
+    // 测试版这份 flavor 叫 `beta` 而不是 `test`：AGP 把 `test` 前缀留给单元
+    // 测试源集（`ProductFlavor names cannot start with 'test'`），这是构建侧
+    // 的既有约束，与词表术语**测试版**无关——身份后缀仍是 `.test`。
+    flavorDimensions += "install"
+
+    productFlavors {
+        create("prod") {
+            dimension = "install"
+            // 正式版的钥：没有 key.properties 时回落到 debug key，让
+            // `flutter run --release` 仍可用。
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
+        create("beta") {
+            dimension = "install"
+            // 测试版与正式版并存：换身份即换数据目录、换签名升级链。
+            applicationIdSuffix = ".test"
+            // 版本名带身份标记：安装器、关于页与诊断信息都读得出这是哪一份。
+            // 构建标识（git 短哈希）另经 --dart-define 注入，不进版本名。
+            versionNameSuffix = "-test"
+            signingConfig = signingConfigs.getByName("test")
         }
     }
 }
@@ -96,6 +163,31 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+// 测试版打包前的前置检查（ADR-0003）：缺 android/key-test.properties 就直接
+// 失败，并说清该做什么。**不靠 AGP 兜底**——实测 APK 路径上的签名版本任务
+// （writeBetaReleaseSigningConfigVersions）缺钥也照样通过：失败要么晚到签名那
+// 一刻（那时已白编了几分钟，措辞也是 Gradle 的），要么根本不失败。这一道只挂
+// 在测试版的打包任务上：正式版与 flutter run 一概不受影响。
+val requireTestSigning = tasks.register("requireTestSigning") {
+    group = "verification"
+    description = "构建测试版前确认测试 keystore 凭据存在"
+    doLast {
+        if (!hasTestSigning) {
+            throw GradleException(
+                "缺 android/key-test.properties：测试版必须用测试 keystore 签名" +
+                    "（生成办法见 README「测试包」一节）；不回落正式钥，也不回落 " +
+                    "debug 签名——回落会让测试包逐机签名不同，测试者只能卸载重装。",
+            )
+        }
+    }
+}
+
+tasks.matching {
+    it.name == "packageBetaRelease" || it.name == "bundleBetaRelease"
+}.configureEach {
+    dependsOn(requireTestSigning)
 }
 
 // 出站分享 FileProvider：androidx.core 的 FileProvider 把包文件换 content

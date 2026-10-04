@@ -46,10 +46,10 @@ void main() {
     );
     // 问题描述原文在 issue.txt 里。
     expect(utf8.decode(entries['issue.txt']!), contains('视频加载不出来'));
-    // device.json 五项齐全。
+    // device.json 六项齐全。
     final decoded = jsonDecode(utf8.decode(entries['device.json']!));
     expect(decoded, testDeviceSnapshot.toJson());
-    expect((decoded as Map).keys, hasLength(5));
+    expect((decoded as Map).keys, hasLength(6));
     // 日志按目录原文进包，上一份存在才放。
     expect(utf8.decode(entries['logs/log.txt']!), contains('[节拍] 第一行'));
     expect(utf8.decode(entries['logs/log.1.txt']!), contains('旧行'));

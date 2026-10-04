@@ -145,6 +145,10 @@ class AboutUpdateNotesRow extends ConsumerWidget {
 ///
 /// 中间格宽高写死、按钮空心与实心同形，所以七态换来换去都不推动行高与两侧位置；
 /// 本机版本值只显示版本名，构建号不进屏。
+///
+/// **测试版**下它是另一副样子：那一份身份不参与更新（ADR-0003），于是没有状态
+/// 格、没有按钮，只写本机版本号、测试包自己的构建标识与一句说明——不摆一个按
+/// 下去永远没结果的入口。
 class AboutVersionRow extends ConsumerWidget {
   const AboutVersionRow({super.key});
 
@@ -169,10 +173,13 @@ class AboutVersionRow extends ConsumerWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final version = ref.watch(aboutAppVersionProvider).value ?? '';
+    if (ref.watch(installIdentityProvider) == InstallIdentity.test) {
+      return _testRow(theme, muted, ref.watch(appBuildIdProvider), version);
+    }
     final state = ref.watch(updateProvider);
     final status = state.versionRowStatus;
     final downloading = status == VersionRowStatus.downloading;
-    final version = ref.watch(aboutAppVersionProvider).value ?? '';
     return Padding(
       key: const Key('about_version_row'),
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -248,6 +255,38 @@ class AboutVersionRow extends ConsumerWidget {
           // `helpTapTargetButtonStyle`）：可点层撑到下限、视觉件居中其内，
           // 那颗定尺寸按钮本身的尺寸与两侧位置不因此变。
           _action(ref, state, status),
+        ],
+      ),
+    );
+  }
+
+  /// 测试版的版本行：本机版本号、测试包的构建标识（有才写）与一句说明。构建
+  /// 标识只在这里与 `device.json` 露面——用户可见的版本号仍然只有版本名。
+  Widget _testRow(
+    ThemeData theme,
+    TextStyle? muted,
+    String buildId,
+    String version,
+  ) {
+    return Padding(
+      key: const Key('about_version_row'),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('版本号', style: theme.textTheme.bodyLarge),
+          Text(version, key: const Key('about_version_value'), style: muted),
+          if (buildId.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('构建 $buildId', key: const Key('about_build_id'), style: muted),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            '测试版不参与自动更新，新测试包由作者直接发给你',
+            key: const Key('about_version_test_note'),
+            style: muted,
+          ),
         ],
       ),
     );

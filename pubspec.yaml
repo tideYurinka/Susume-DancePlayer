@@ -74,6 +74,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # 默认 flavor：三份安装身份（ADR-0003）里，不带 `--flavor` 的命令（`flutter
+  # run`、`flutter build apk`）落在**正式版**；测试版必须显式 `--flavor beta`。
+  # 没有这一行时 AGP 9 会把两个 flavor 的 release 变体都构建一遍，再以「找不到
+  # app-release.apk」收场——出错方式与原因毫无关联。
+  default-flavor: prod
   # 节拍识别模型资产随包（离线可用）：纯 RNN ONNX 模型 + filterbank 常量；
   # APK 增长估 +10–18MB/ABI（单 arm64 分发）。
   assets:

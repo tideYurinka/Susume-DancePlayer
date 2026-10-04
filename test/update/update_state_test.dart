@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dance_learning_app/core/app_identity.dart';
 import 'package:dance_learning_app/update/update_check.dart';
 import 'package:dance_learning_app/update/update_gateway.dart';
 import 'package:dance_learning_app/update/update_state.dart';
@@ -12,15 +13,18 @@ import '../helpers/update_manifest_fixture.dart';
 /// 更新状态机：一台机器两个读面（版本行与提示条），假网关直测每一态与两种失败
 /// 的分野——**检查结论**说有没有新版，**下载阶段**说包在做什么，两者互相独立。
 void main() {
-  /// 起一台状态机：更新网关与本机构建号换成确定的替身。
+  /// 起一台状态机：更新网关与本机构建号换成确定的替身；[identity] 是这台机器
+  /// 认的**安装身份**，测试版那一路由它注入。
   ({ProviderContainer container, UpdateController controller}) startMachine({
     required UpdateGateway gateway,
     int? localBuildNumber = 1,
+    InstallIdentity identity = InstallIdentity.official,
   }) {
     final container = ProviderContainer(
       overrides: [
         updateGatewayProvider.overrideWithValue(gateway),
         localBuildNumberProvider.overrideWith((ref) async => localBuildNumber),
+        installIdentityProvider.overrideWithValue(identity),
       ],
     );
     addTearDown(container.dispose);
@@ -32,6 +36,38 @@ void main() {
 
   UpdateState stateOf(ProviderContainer container) =>
       container.read(updateProvider);
+
+  group('测试版不参与更新', () {
+    test('测试身份下不发检查：一次都不读版本清单，结论停在未检查', () async {
+      final gateway = FakeUpdateGateway(
+        manifestScript: [updateManifestFixture(buildNumber: 99)],
+      );
+      final machine = startMachine(
+        gateway: gateway,
+        identity: InstallIdentity.test,
+      );
+
+      await machine.controller.check();
+
+      expect(gateway.fetchCalls, 0, reason: '版本清单里没有身份字段，测试版一次都不该读');
+      final state = stateOf(machine.container);
+      expect(state.conclusion, UpdateConclusion.notChecked);
+      expect(state.versionRowStatus, VersionRowStatus.notChecked);
+      expect(state.promptVisible, isFalse, reason: '两个读面一起安静');
+    });
+
+    test('正式身份下照常检查（对照组）', () async {
+      final gateway = FakeUpdateGateway(
+        manifestScript: [updateManifestFixture(buildNumber: 99)],
+      );
+      final machine = startMachine(gateway: gateway);
+
+      await machine.controller.check();
+
+      expect(gateway.fetchCalls, 1);
+      expect(stateOf(machine.container).conclusion, UpdateConclusion.available);
+    });
+  });
 
   group('检查结论', () {
     test('还没查过：未检查，提示条不出现', () {

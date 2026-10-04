@@ -12,6 +12,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/app_identity.dart';
 import 'update_check.dart';
 import 'update_gateway.dart';
 import 'update_manifest.dart';
@@ -149,6 +150,10 @@ class UpdateController extends Notifier<UpdateState> {
   /// 查一次。启动静默检查与手动检查走的是同一个它：结论写进同一台机器，因此
   /// 两个读面结论一致、同一时间只有一次请求在飞。
   Future<void> check() async {
+    // 测试版不参与更新（ADR-0003）：**版本清单**里没有身份字段，读同一份清单
+    // 只会被推一份正式身份的安装包。整条链路在这里断掉——**更新提示条**与
+    // **版本行**读的都是这台状态机，两处因此一起安静。
+    if (ref.read(installIdentityProvider) == InstallIdentity.test) return;
     if (state.inFlight != UpdateInFlight.none ||
         state.phase == UpdateDownloadPhase.downloading) {
       return;

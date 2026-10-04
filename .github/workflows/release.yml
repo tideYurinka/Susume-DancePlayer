@@ -1,18 +1,20 @@
-# 发布流水线（release-and-update 票 03 建、票 04 加守卫与手动内测包）。
+# 发布流水线（release-and-update 票 03 建、票 04 加守卫与手动内测包；
+# 内测包那条已于 ADR-0003 迁出）。
 #
-# 触发：
-#   - 推 `v*` tag：先在构建**之前**过三道守卫（tag 与 pubspec 版本一致、
-#     构建号不与远端冲突、不降级），再构建 arm64 release 包、用正式 keystore
-#     签名、经 S3 兼容接口上传到 R2，并挂一份同源镜像到 GitHub Release
-#     （包与版本清单两个资产，更新说明取同一条 tag 注解）。
-#     镜像只是多一个下载面：App 更新检查读的仍是 R2 上的固定清单，
-#     GitHub Release 不参与更新判定。
-#   - workflow_dispatch：不推 tag 也能出一份内测包，作为构建产物归档；它不
-#     过 R2 上传，不碰固定地址的版本清单。
+# 触发：推 `v*` tag。先在构建**之前**过三道守卫（tag 与 pubspec 版本一致、
+# 构建号不与远端冲突、不降级），再构建 arm64 release 包、用正式 keystore
+# 签名、经 S3 兼容接口上传到 R2，并挂一份同源镜像到 GitHub Release
+# （包与版本清单两个资产，更新说明取同一条 tag 注解）。
+# 镜像只是多一个下载面：App 更新检查读的仍是 R2 上的固定清单，
+# GitHub Release 不参与更新判定。
+#
+# 这条流水线只出**正式版**（`--flavor prod`，安装身份 top.yurinka.susume）。
+# **测试版**是另一份安装身份，由 .github/workflows/test-apk.yml 单独出：两者
+# 不共用 keystore、不共用 environment、也不共用产物（ADR-0003）。
 #
 # 发布门：整个 job 绑在 `release` environment 上。环境配了必需审批人，所以
-# 无论 tag 推送还是手动触发，job 都要等人批过才碰得到 keystore 与 R2 凭据；
-# 环境的审批记录同时是「谁批的这次发布」的审计来源。
+# tag 推送也要等人批过才碰得到 keystore 与 R2 凭据；环境的审批记录同时是
+# 「谁批的这次发布」的审计来源。
 #
 # 产物形状（spec「对象布局与缓存」）：
 #   releases/<版本名>/susume-<版本名>-arm64.apk  永久保留，immutable 长缓存
@@ -28,7 +30,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -52,7 +53,7 @@ jobs:
       GITHUB_REF_NAME: ${{ github.ref_name }}
       PUBLIC_ORIGIN: https://dl.yurinka.top
       REMOTE_MANIFEST: /tmp/remote-latest.json
-      APK: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+      APK: build/app/outputs/flutter-apk/app-arm64-v8a-prod-release.apk
       MANIFEST: latest.json
 
     steps:
@@ -66,7 +67,6 @@ jobs:
       # 静默绕过）。
       - name: 守卫：取远端已发布的版本清单
         id: guard-remote
-        if: github.event_name == 'push'
         run: |
           set -uo pipefail
           status=$(curl -sS -o "${REMOTE_MANIFEST}" -w '%{http_code}' \
@@ -91,7 +91,6 @@ jobs:
       # （覆盖检查、地板棘轮）。
       - name: 守卫：tag 与版本一致、构建号不冲突不降级
         id: guard
-        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           python3 tool/release_guard.py \
@@ -150,7 +149,8 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          flutter build apk --release --target-platform android-arm64 --split-per-abi \
+          flutter build apk --release --flavor prod \
+            --target-platform android-arm64 --split-per-abi \
             -P force-version-code-ignoring-abi=true
           test -f "${APK}" || {
             echo "没有产出预期的 arm64 包：${APK}" >&2
@@ -167,12 +167,21 @@ jobs:
           fi
           # 产物的 versionCode 必须就是 pubspec.yaml 的 `n`：将来谁改了
           # split / ABI 设置，这条契约不能悄悄坏掉。
+          #
+          # 同时断言安装身份：发布出去的包必须是**正式版**。加了 flavor 之后
+          # 「构建出哪个身份」由一个开关决定，而这条开关错了照样能出一个签名
+          # 完好、能装能升的包——只是那份包属于另一个 App（ADR-0003）。
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           AAPT2=$(ls "${SDK_ROOT}"/build-tools/*/aapt2 | tail -1)
           "${AAPT2}" dump badging "${APK}" > /tmp/badging.txt
+          PKG=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
           BUILT_CODE=$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
           PUBSPEC_CODE=$(sed -n 's/^version: *[0-9.]*+\([0-9]*\).*/\1/p' pubspec.yaml | head -1)
-          echo "产物 versionCode=${BUILT_CODE}，pubspec 构建号=${PUBSPEC_CODE}"
+          echo "产物 package=${PKG} versionCode=${BUILT_CODE}，pubspec 构建号=${PUBSPEC_CODE}"
+          test "${PKG}" = "top.yurinka.susume" || {
+            echo "产物不是正式身份：package=${PKG}，期望 top.yurinka.susume" >&2
+            exit 1
+          }
           test "${BUILT_CODE}" = "${PUBSPEC_CODE}" || {
             echo "产物 versionCode 与 pubspec.yaml 的构建号不一致" >&2
             exit 1
@@ -180,7 +189,6 @@ jobs:
 
       - name: 上传：生成版本清单
         id: manifest
-        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           python3 tool/release_manifest.py \
@@ -190,7 +198,6 @@ jobs:
 
       - name: 上传：发布到 R2
         id: upload
-        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           VERSION_NAME=$(python3 -c "import json;print(json.load(open('${MANIFEST}'))['version_name'])")
@@ -214,7 +221,6 @@ jobs:
       # 拦「构建号重复」同一条纪律）。
       - name: 上传：挂 GitHub Release 镜像
         id: gh-release
-        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -231,15 +237,6 @@ jobs:
             --title "Susume ${VERSION_NAME}" \
             --notes-file /tmp/release-notes.md \
             --verify-tag
-
-      # 手动触发只归档一份内测包：不上传 R2，也不动固定地址的清单。
-      - name: 手动：归档内测包
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
-        with:
-          name: susume-arm64-beta-${{ github.run_number }}
-          path: ${{ env.APK }}
-          if-no-files-found: error
 
       - name: 失败阶段结论
         if: failure()

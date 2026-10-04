@@ -10,5 +10,8 @@ GeneratedPluginRegistrant.java
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore
 key.properties
+# 测试版的那一份凭据（ADR-0003）：与正式凭据分开的一把测试 keystore，
+# 同样不入库。
+key-test.properties
 **/*.keystore
 **/*.jks

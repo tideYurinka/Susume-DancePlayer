@@ -60,12 +60,45 @@ Susume 是一个面向扒舞与日常练习场景的本地舞蹈工具。核心�
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --release --target-platform android-arm64
+flutter build apk --release --flavor prod --target-platform android-arm64
 ```
 
 `test/` 与 `lib/` 同构分目录，`test/helpers/` 放接缝替身与测试夹具。
 
 正式签名读 `android/key.properties`（keystore 与凭据都不入库）；没有该文件时回落到 debug 签名。
+
+### 三份安装身份
+
+装出去的 Susume 有三份**安装身份**（ADR-0003）：**正式版**、**测试版**与**调试版**。身份由 Gradle 的 flavor（`prod` / `beta`）与构建类型相乘得到，各自持有一份私有数据目录与一条签名升级链——三份可以同时装在一台手机上，互相读不到对方的数据。
+
+| 身份 | applicationId | 怎么出 | 签名 |
+|---|---|---|---|
+| 正式版 | `top.yurinka.susume` | 推 `v*` tag（`release.yml`），或本机 `flutter build apk --release --flavor prod` | `android/key.properties` |
+| 测试版 | `top.yurinka.susume.test` | `tool/build_test_apk.sh`，或手动触发 `test-apk.yml` | `android/key-test.properties` |
+| 调试版 | `top.yurinka.susume.debug` | `flutter run` | debug keystore |
+
+`pubspec.yaml` 的 `flutter: default-flavor: prod` 让不带 `--flavor` 的命令仍有确定落点：日常 `flutter run` 装的是**调试版**，碰不到手机上那份正式版。测试版必须显式 `--flavor beta`——这份 flavor 不能叫 `test`，AGP 把 `test` 前缀留给了单元测试源集。
+
+### 测试包
+
+测试版与正式版并存、数据不互通，因此它读不到正式版的舞库、标注与统计：测试版从零开始，要搬数据只能走 `.susume` 包或备份的导出/导入（测试期若抬高过文档版本，搬回正式版会被判只读读）。
+
+一次性生成测试签名那把钥（口令由你设；**生成后请与正式钥一样备份**——换掉它，已装测试版的测试者只能卸载重装）：
+
+```bash
+tool/gen_test_keystore.sh
+```
+
+之后本机出包：
+
+```bash
+tool/build_test_apk.sh
+# 产物：build/app/outputs/flutter-apk/app-arm64-v8a-beta-release.apk
+```
+
+脚本把 git 短哈希作为构建标识注入 `device.json` 与关于页，用来分辨同一版本名的两次测试包。测试版不读版本清单、不进下载页，新包由作者直接递给测试者；它自己的「关于」页也只写版本号与构建标识，没有检查入口。
+
+要在 CI 上出测试包，把生成脚本打印的 base64 与口令填成仓库 secret（`ANDROID_TEST_KEYSTORE_BASE64`、`ANDROID_TEST_KEYSTORE_PASSWORD`）与 variable（`ANDROID_TEST_KEY_ALIAS`），再手动触发 `test-apk` 流水线——它只归档产物，不写更新源、不碰正式钥。
 
 `tool/` 下是离线工具：合成分拍夹具、跨发布版本夹具、相位探针。`tool/help_assets/` 由真机截图与录屏生成帮助条目资产，设备序列号经环境变量 `ADB_SERIAL` 传入。
 

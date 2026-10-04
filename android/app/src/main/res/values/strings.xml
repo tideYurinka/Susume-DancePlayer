@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 用户可见应用名：正式版。测试版由 flavor 覆盖（android/app/src/beta/
+     res/values/strings.xml），清单里的 android:label 因此只指向这个名字。 -->
+<resources>
+    <string name="app_name">Susume</string>
+</resources>

@@ -32,4 +32,22 @@ void main() {
 
     expect(snapshot.appVersion, '0.1.0');
   });
+
+  test('测试版构建标识进诊断信息：与版本名一起分辨两次测试包', () async {
+    mockVersion(version: '0.2.0-test', buildNumber: '7');
+
+    final snapshot = await loadDeviceSnapshot(buildId: 'abc1234');
+
+    expect(snapshot.appVersion, '0.2.0-test+7');
+    expect(snapshot.buildId, 'abc1234');
+    expect(snapshot.toJson()['buildId'], 'abc1234');
+  });
+
+  test('没有构建标识时该项是空串：正式版不假装有', () async {
+    mockVersion(version: '0.2.0', buildNumber: '7');
+
+    final snapshot = await loadDeviceSnapshot(buildId: '');
+
+    expect(snapshot.toJson()['buildId'], '');
+  });
 }

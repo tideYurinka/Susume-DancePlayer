@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../about/about_page.dart';
+import '../core/app_identity.dart';
 import '../core/text_extent.dart';
 import '../dance/cover_frame_providers.dart';
 import '../dance/dance_library.dart';
@@ -224,7 +225,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final library = ref.watch(danceLibrarySnapshotProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Susume'),
+        title: const Text(appShortName),
         actions: [
           GuideAnchor(
             // 首启第 2 步的锚点：只包一层上报矩形，钮本身不动（定位 key 不变）。

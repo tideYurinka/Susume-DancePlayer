@@ -1,0 +1,143 @@
+# 测试包流水线（ADR-0003）：手动触发，构建**测试版**（安装身份
+# top.yurinka.susume.test，与正式版并存、数据不互通）并归档成构建产物。
+#
+# 它不写 R2、不碰固定地址的版本清单，也不碰正式 keystore——测试版用它自己那把
+# 测试 keystore 签名，正式版的升级凭据因此不出现在这条流水线上。与 release.yml
+# 分开是刻意的：正式发布绑在 `release` environment（有必需审批人）上，而测试包
+# 是常出的东西；两条流水线各持自己那把钥的 secret，不共用一个 environment。
+#
+# 出包前提：仓库 secret `ANDROID_TEST_KEYSTORE_BASE64` 与
+# `ANDROID_TEST_KEYSTORE_PASSWORD`、variable `ANDROID_TEST_KEY_ALIAS`。
+# 本机那一份由 tool/gen_test_keystore.sh 生成，它顺带打印 base64 与要填的键名。
+name: test-apk
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-apk:
+    name: 构建 arm64 测试包
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_TEST_KEY_ALIAS: ${{ vars.ANDROID_TEST_KEY_ALIAS }}
+      ANDROID_TEST_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_TEST_KEYSTORE_PASSWORD }}
+      ANDROID_TEST_KEYSTORE_B64: ${{ secrets.ANDROID_TEST_KEYSTORE_BASE64 }}
+      EXPECTED_INSTALL_ID: top.yurinka.susume.test
+      APK: build/app/outputs/flutter-apk/app-arm64-v8a-beta-release.apk
+
+    steps:
+      - name: 取源码
+        uses: actions/checkout@v7
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 安装 Android 命令行工具
+        uses: android-actions/setup-android@v4
+
+      # 与 release.yml 同一套工具链：节拍识别的 DSP/AAudio 原生库必须真的编出来
+      # 并进包，缺 NDK / CMake 时这一步之后的构建就出不了包。
+      - name: 安装构建所需的 NDK 与 CMake
+        run: |
+          set -euo pipefail
+          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
+
+      - name: 签名：还原测试 keystore
+        id: test-keystore
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_TEST_KEYSTORE_B64}" ]; then
+            echo "缺少 ANDROID_TEST_KEYSTORE_BASE64：测试版必须用测试 keystore 签名" >&2
+            exit 1
+          fi
+          # 还原测试 keystore（二进制不进仓库，只在 runner 的工作目录里存在）
+          printf '%s' "${ANDROID_TEST_KEYSTORE_B64}" \
+            | base64 --decode > android/susume-test.jks
+          # android/key-test.properties 的 storeFile 按 android/ 解析（见
+          # android/app/build.gradle.kts 的 rootProject.file）。
+          {
+            echo "storeFile=susume-test.jks"
+            echo "keyAlias=${ANDROID_TEST_KEY_ALIAS}"
+            echo "storePassword=${ANDROID_TEST_KEYSTORE_PASSWORD}"
+            echo "keyPassword=${ANDROID_TEST_KEYSTORE_PASSWORD}"
+          } > android/key-test.properties
+
+      - name: 构建：arm64 测试包
+        run: |
+          set -euo pipefail
+          flutter pub get
+          # 构建标识进 device.json 与关于页：作者要能分辨同一版本名的两次测试包。
+          BUILD_ID=$(git rev-parse --short HEAD)
+          flutter build apk --release --flavor beta \
+            --target-platform android-arm64 --split-per-abi \
+            -P force-version-code-ignoring-abi=true \
+            --dart-define=SUSUME_BUILD_ID="${BUILD_ID}"
+          test -f "${APK}" || {
+            echo "没有产出预期的 arm64 测试包：${APK}" >&2
+            exit 1
+          }
+          # 包必须是 arm64-only，且原生库（节拍 DSP、AAudio 渲染）真的在里面。
+          unzip -l "${APK}" | grep -q 'lib/arm64-v8a/libbeat_native.so' || {
+            echo "包内没有 arm64 节拍原生库：原生构建没有进包" >&2
+            exit 1
+          }
+          if unzip -l "${APK}" | grep -q 'lib/armeabi'; then
+            echo "包里混进了非 arm64 的原生库" >&2
+            exit 1
+          fi
+          # 身份、版本名与构建号三条断言：测试包的 applicationId 必须是测试身份、
+          # 版本名必须带 -test 标记、versionCode 必须就是 pubspec.yaml 的 `n`。
+          # 发错身份的包与发错版本的包一样，都不许悄悄过去。
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          AAPT2=$(ls "${SDK_ROOT}"/build-tools/*/aapt2 | tail -1)
+          "${AAPT2}" dump badging "${APK}" > /tmp/badging.txt
+          PKG=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          VERSION_NAME=$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          BUILT_CODE=$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          PUBSPEC_CODE=$(sed -n 's/^version: *[0-9.]*+\([0-9]*\).*/\1/p' pubspec.yaml | head -1)
+          echo "产物 package=${PKG} versionName=${VERSION_NAME} versionCode=${BUILT_CODE}，pubspec 构建号=${PUBSPEC_CODE}"
+          test "${PKG}" = "${EXPECTED_INSTALL_ID}" || {
+            echo "产物不是测试身份：package=${PKG}，期望 ${EXPECTED_INSTALL_ID}" >&2
+            exit 1
+          }
+          case "${VERSION_NAME}" in
+            *-test) ;;
+            *)
+              echo "产物版本名没带 -test 身份标记：${VERSION_NAME}" >&2
+              exit 1
+              ;;
+          esac
+          test "${BUILT_CODE}" = "${PUBSPEC_CODE}" || {
+            echo "产物 versionCode 与 pubspec.yaml 的构建号不一致" >&2
+            exit 1
+          }
+
+      # 只归档，不发布：测试包由作者直接发给测试者，不进更新源、不进下载页。
+      - name: 归档：测试包
+        uses: actions/upload-artifact@v7
+        with:
+          name: susume-arm64-test-${{ github.run_number }}
+          path: ${{ env.APK }}
+          if-no-files-found: error
+
+      - name: 失败阶段结论
+        if: failure()
+        run: |
+          stage="构建"
+          if [ "${{ steps['test-keystore'].outcome }}" = "failure" ]; then
+            stage="签名（测试 keystore / 凭据）"
+          fi
+          echo "测试包失败：失败阶段 = ${stage}"
+          echo "::error::测试包在「${stage}」阶段失败"
