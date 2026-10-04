@@ -202,6 +202,19 @@ void main() {
     await tester.pumpAndSettle();
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('import_video_button')));
+      final copied = File(p.join(videosDir.path, 'dance.mp4'));
+      // 导入返回时条目已落盘（#15），「索引有 1 条」因此早于播放页 push 与
+      // 引擎取源：单独等索引会在播放尚未开始时通过，随后断言
+      // `engine1.source!` 撞空值。同步点与首个用例同口径——复制完成、
+      // 播放页已 push 且引擎已有 source——再等索引条目落盘。
+      await pollUntil(
+        () =>
+            copied.existsSync() &&
+            tester.any(find.byType(PlayerPage)) &&
+            engine1.source != null,
+        onTick: () => tester.pump(),
+        reason: '导入应复制到私有目录、push 播放器页并让引擎取源',
+      );
       await waitForIndexEntries(tester, indexFile, 1);
     });
     await tester.pumpAndSettle();
