@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../annotation/learning_segment_attributes.dart';
+import '../core/device_clock.dart';
 import '../dance/dance_library_providers.dart';
 import '../persistence/practice_plan.dart';
 import '../persistence/practice_plan_providers.dart';
@@ -19,7 +20,7 @@ final practiceRemindersProvider =
       final entries = await store.entries();
       final events = await store.events();
       final library = await ref.watch(danceLibrarySnapshotProvider.future);
-      final now = DateTime.now();
+      final now = ref.watch(deviceClockProvider)();
       final entryByVideoId = <String, DancePlanEntry>{
         for (final entry in entries) entry.videoId: entry,
       };

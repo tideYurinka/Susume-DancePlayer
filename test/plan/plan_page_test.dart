@@ -31,6 +31,7 @@ import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/plan_wheel_driver.dart';
 import '../helpers/semantics_assertions.dart';
+import '../helpers/test_clock.dart';
 
 /// 包装内存实现，统计装载次数（「首次进入才装载」的断言口径）。
 class _CountingPlanStorage implements PracticePlanStorage {
@@ -54,11 +55,8 @@ int _selectedTab(WidgetTester tester) =>
 
 String _dayKey(DateTime day) => planDayKey(day);
 
-/// 本月 15 号：恒在本月，月视图与时间轴当前段都能容纳。
-DateTime get _ddlDay {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, 15);
-}
+/// 本月 15 号：恒在本月，月视图与时间轴当前段都能容纳（相对虚拟今天）。
+DateTime get _ddlDay => DateTime(testToday.year, testToday.month, 15);
 
 PracticeSessionRecord _record(DateTime start, double seconds, String videoId) =>
     PracticeSessionRecord(
@@ -96,6 +94,7 @@ Future<_CountingPlanStorage> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...testClockOverrides(),
         practicePlanStorageProvider.overrideWithValue(counting),
         practiceStatsStoreProvider.overrideWithValue(
           PracticeStatsStore(statsStorage),
@@ -789,9 +788,16 @@ void main() {
       tester.widget<Text>(find.byKey(const Key('plan_panel_practice'))).data,
       '1:02:00',
     );
-    // 下栏行 = 当天到期 DDL 的舞。
+    // 下栏行 = 当天到期 DDL 的舞（「演出」文案只认下栏那一行；日程组另有
+    // 一条「即将到期」行也带同一场合标签，故按容器收窄，不数全页）。
     expect(find.byKey(const Key('plan_panel_ddl_v1')), findsOneWidget);
-    expect(find.textContaining('演出'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('plan_day_panel')),
+        matching: find.textContaining('演出'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('下栏点舞行 push 该舞详情页', (tester) async {

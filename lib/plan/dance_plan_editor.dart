@@ -270,7 +270,7 @@ class DanceDdlEditorPage extends StatefulWidget {
   final bool reviewReminders;
   final String checklistKeyPrefix;
 
-  /// 滚轮年列基准日（测试注入）；默认今天。
+  /// 滚轮年列基准日（装配层传设备时钟读面）；默认今天。
   final DateTime? today;
 
   @override

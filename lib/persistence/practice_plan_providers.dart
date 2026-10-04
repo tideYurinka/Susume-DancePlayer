@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../annotation/learning_segment_attributes.dart';
 import '../annotation/learning_segments.dart' show learningSegmentsOf;
+import '../core/device_clock.dart';
 import '../persistence/marker_document.dart';
 import '../persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
@@ -67,6 +68,8 @@ final Provider<PracticePlanStore> practicePlanStoreProvider =
       return PracticePlanStore(
         ref.watch(practicePlanStorageProvider),
         masteryOf: ref.watch(practicePlanMasteryResolverProvider),
+        // 到期落档补判与界面同取设备时钟读面（测试覆写成虚拟今天）。
+        clock: ref.watch(deviceClockProvider),
         onChanged: observers == null
             ? null
             : () {

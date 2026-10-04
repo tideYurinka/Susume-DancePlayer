@@ -43,6 +43,7 @@ import '../helpers/in_memory_push_port.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/plan_wheel_driver.dart';
 import '../helpers/semantics_assertions.dart';
+import '../helpers/test_clock.dart';
 
 /// 舞详情计划区部件测试：只断言 DDL 设 / 改 / 清
 /// 与清单打勾后读面随之变化、无 DDL 时的入口态；落盘口径归存储层直测。
@@ -68,6 +69,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(initial: VideoIndex(entries: [_entry])),
           ),

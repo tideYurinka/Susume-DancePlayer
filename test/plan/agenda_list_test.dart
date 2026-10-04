@@ -6,10 +6,10 @@ import 'package:dance_learning_app/plan/practice_reminders.dart';
 import 'package:dance_learning_app/persistence/team_check_gate.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-DateTime get _today {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-}
+import '../helpers/test_clock.dart';
+
+/// 虚拟今天：本文件的日期全部由它派生，不读真实日期。
+DateTime get _today => testToday;
 
 DancePlanEntry _ddlEntry(
   String videoId,

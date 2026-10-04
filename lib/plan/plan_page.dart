@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../annotation/learning_segment_attributes.dart';
+import '../core/device_clock.dart';
 import '../core/hit_layer.dart';
 import '../core/hit_target.dart' show hitTargetStart, kHitTargetMinSize;
 import '../core/local_day.dart';
@@ -37,7 +38,13 @@ class _PlanPageState extends ConsumerState<PlanPage> {
   DateTime? _selectedDay;
 
   /// 日历所示月（零点，与选中日分离）：初值为页面装载时的当前月。
-  DateTime _shownMonth = planMonthOf(DateTime.now());
+  late DateTime _shownMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _shownMonth = planMonthOf(ref.read(deviceClockProvider)());
+  }
 
   /// 切月：更新所示月；真正换了月才清除选中日（下栏随之收起）。
   void _showMonth(DateTime month) {
@@ -105,7 +112,7 @@ class _PlanPageState extends ConsumerState<PlanPage> {
     };
     // 三类计划日分列：时间轴标记、日历圆点与空态判定同一份归集。
     final marks = planMarksByKind(list, events: eventList);
-    final now = DateTime.now();
+    final now = ref.watch(deviceClockProvider)();
     final currentMonth = planMonthOf(now);
     final shownMonth = _shownMonth;
     final selectedDay = _selectedDay;
@@ -215,6 +222,7 @@ class _PlanPageState extends ConsumerState<PlanPage> {
       MaterialPageRoute(
         builder: (_) => EventEditorPage(
           day: day,
+          today: ref.read(deviceClockProvider)(),
           dances: [
             for (final dance in library?.dances ?? const [])
               PlanEditorDance(
@@ -241,6 +249,7 @@ class _PlanPageState extends ConsumerState<PlanPage> {
       MaterialPageRoute(
         builder: (_) => TeamCheckEditorPage(
           day: day,
+          today: ref.read(deviceClockProvider)(),
           dances: [
             for (final dance in library?.dances ?? const [])
               PlanEditorDance(

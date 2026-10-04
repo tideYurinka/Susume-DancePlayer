@@ -19,6 +19,7 @@ import '../helpers/in_memory_practice_plan_storage.dart';
 import '../helpers/in_memory_push_port.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
+import '../helpers/test_clock.dart';
 
 /// 推送同步接线：舞名表从视频索引的署名缓存读出（未署名回退
 /// 文件名，与卡片标题同一处口径）；改名成功后补一次同步，已排标题随新名
@@ -41,6 +42,7 @@ void main() {
   ProviderContainer build(VideoIndex index) {
     final container = ProviderContainer(
       overrides: [
+        ...testClockOverrides(),
         systemPushPortProvider.overrideWithValue(port),
         videoIndexStoreProvider.overrideWithValue(
           InMemoryVideoIndexStorage(initial: index),
@@ -67,15 +69,14 @@ void main() {
   }
 
   /// 落一条目标在 3 天后、提前 1 天提醒的 DDL（提前与自动两条来源都落在
-  /// 将来）。
+  /// 将来；相对虚拟今天）。
   Future<void> seedDdl(ProviderContainer container) async {
-    final now = DateTime.now();
     await container
         .read(practicePlanStoreProvider)
         .setDdl(
           videoId: 'v1',
           ddl: DanceDdl(
-            date: DateTime(now.year, now.month, now.day + 3),
+            date: testToday.add(const Duration(days: 3)),
             leadDays: 1,
           ),
         );

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../annotation/learning_segment_attributes.dart';
+import '../core/device_clock.dart';
 import '../import/import_providers.dart' show videoIndexStoreProvider;
 import '../persistence/practice_plan_providers.dart';
 import '../persistence/song_signature.dart' show signatureDisplayText;
@@ -74,7 +75,7 @@ final Provider<Future<void> Function()> planPushSyncProvider =
                   entry.displayName,
                 ),
             },
-            now: DateTime.now(),
+            now: ref.read(deviceClockProvider)(),
           );
         } on Object {
           // 排程降级为不投递，不影响计划数据。

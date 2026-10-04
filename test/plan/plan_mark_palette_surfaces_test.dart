@@ -24,14 +24,13 @@ import '../helpers/in_memory_practice_plan_storage.dart';
 import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
+import '../helpers/test_clock.dart';
 
 /// 计划标记配色铺到日历圆点、点日下栏与日程列表行首图标。三处都取
 /// [planMarkColor] 同一出处，只表达类型；逾期 / 落档 / 完全掌握不改颜色。
 
-DateTime get _today {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-}
+/// 虚拟今天：本文件的日期全部由它派生，不读真实日期。
+DateTime get _today => testToday;
 
 /// 本月 15 号：恒落在月视图网格内，可点选。
 DateTime get _day => DateTime(_today.year, _today.month, 15);
@@ -105,6 +104,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...testClockOverrides(),
         practicePlanStorageProvider.overrideWithValue(planStorage),
         practiceStatsStoreProvider.overrideWithValue(
           PracticeStatsStore(InMemoryPracticeStatsStorage()),

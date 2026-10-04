@@ -26,6 +26,7 @@ import '../helpers/in_memory_practice_stats_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/semantics_assertions.dart';
+import '../helpers/test_clock.dart';
 
 VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
   videoId: videoId,
@@ -37,10 +38,8 @@ VideoIndexEntry _entry(String videoId) => VideoIndexEntry(
   lastOpenedAt: DateTime(2026, 9, 1),
 );
 
-DateTime get _today {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-}
+/// 虚拟今天：本文件的日期全部由它派生，不读真实日期。
+DateTime get _today => testToday;
 
 /// 计划 JSON：v1 有一条后天的 DDL（未过、未落档 = 有目标），可选复习提醒
 /// 开关。该舞无练习记录（从未练 = 超阈值）、无学习段（未练档）。
@@ -69,6 +68,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...testClockOverrides(),
         practicePlanStorageProvider.overrideWithValue(planStorage),
         practiceStatsStoreProvider.overrideWithValue(
           PracticeStatsStore(InMemoryPracticeStatsStorage()),

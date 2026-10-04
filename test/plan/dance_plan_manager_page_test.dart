@@ -25,6 +25,7 @@ import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/plan_wheel_driver.dart';
 import '../helpers/semantics_assertions.dart';
+import '../helpers/test_clock.dart';
 
 /// 各舞计划管理页部件测试：入口可达、行内容齐全、
 /// 两组分组、搜索与筛选、编辑框保存后落盘且本页与计划页刷新、空舞库引导。
@@ -66,6 +67,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(planStorage),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(initial: index),
@@ -90,6 +92,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(
             InMemoryPracticePlanStorage(),
           ),
@@ -419,6 +422,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...testClockOverrides(),
           practicePlanStorageProvider.overrideWithValue(storage),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(
@@ -448,8 +452,7 @@ void main() {
     await tester.tap(find.byKey(const Key('plan_manage_row_v1')));
     await tester.pumpAndSettle();
 
-    final now = DateTime.now();
-    final ddlDay = DateTime(now.year, now.month, 15);
+    final ddlDay = DateTime(testToday.year, testToday.month, 15);
     await selectPlanDate(
       tester,
       'dance_plan_dialog_date',

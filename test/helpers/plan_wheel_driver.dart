@@ -2,16 +2,15 @@ import 'package:dance_learning_app/plan/plan_wheel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'test_clock.dart';
+
 /// 计划滚轮测试驱动：按档位滑选某一列，等价于用户滑选。
 ///
 /// 一次 `drag` 后松手会带一点甩动惯性，落点受列内容长度影响可能差一档；
 /// 这里滑选到目标档位后按实际落点补齐，保证用例断言的是值而非手感。
 
-/// 本地日（测试统一取今天零点）。
-DateTime localToday() {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
-}
+/// 本地日（测试统一取 [testToday] 虚拟今天，与设备时钟读面覆写同源）。
+DateTime localToday() => testToday;
 
 /// 把全屏编辑页的 ListView 滚到某个控件可见：compact 档视口更矮，编辑页
 /// 内滚轮多且可贴到屏幕上下缘，捏不到不落在滚轮上的起拖点，故直接驱动
