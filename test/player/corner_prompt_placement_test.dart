@@ -27,6 +27,10 @@ import 'package:dance_learning_app/player/notice.dart'
 import 'package:dance_learning_app/player/note_editor.dart'
     show NoteTextEditorPanel, noteTextEditorTargetProvider;
 import 'package:dance_learning_app/player/player_page.dart';
+import 'package:dance_learning_app/player/editor_skeleton.dart'
+    show kEditorToolbarHeight;
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player/practice_clip_playback.dart'
     show practiceClipEngineProvider;
 import 'package:dance_learning_app/player/resume_position.dart'
@@ -72,6 +76,15 @@ void main() {
   /// 号机竖屏基准屏与横屏基准屏（padding 为 0，逻辑尺寸即实数）。
   const portrait = Size(361.1, 781.7);
   const landscape = Size(781.7, 361.1);
+
+  /// 编辑态紧凑档两轨皆空时的整带高（备注轨与局部镜像轨不占行）。
+  final compactEmptyBandHeight = TrackRowTable.normal
+      .withoutRows(const {TrackRowId.note, TrackRowId.localMirror})
+      .totalHeight;
+
+  /// 横屏紧凑档（两轨皆空）的占用区上缘 = 屏高 − 底栏 52 − 整带高。
+  final landscapeCompactChromeTop =
+      landscape.height - kEditorToolbarHeight - compactEmptyBandHeight;
 
   /// 单击唤出控制层（等自定义双击识别器判定孤立单击）。
   Future<void> singleTapShow(WidgetTester tester) async {
@@ -466,11 +479,15 @@ void main() {
       await singleTapShow(tester);
       await tester.pump(const Duration(seconds: 4));
       expect(engine.isPlaying, isFalse, reason: '前置：播放到尾停在尾点');
-      // 紧凑档下两轨皆空：空备注轨与空局部镜像轨不占行，整带高 122 而非
-      // 全行集 208，中带多出 86dp——原先放不下的卡此刻放得下。
-      // 占用区上缘 = 361.1 − 底栏 52 − 整带 122 = 187.1。
+      // 紧凑档下两轨皆空：空备注轨与空局部镜像轨不占行，整带高取
+      // [compactEmptyBandHeight]，中带多出的部分正是全行集与它的差——
+      // 原先放不下的卡此刻放得下。
       final card = tester.getRect(find.byKey(const Key('loop_prompt')));
-      expect(card.bottom, closeTo(187.1 - 24, 0.05), reason: '底 = 占用区上缘 − 24');
+      expect(
+        card.bottom,
+        closeTo(landscapeCompactChromeTop - 24, 0.05),
+        reason: '底 = 占用区上缘 − 24',
+      );
       expect(card.top, greaterThanOrEqualTo(52), reason: '不压顶栏');
       expect(
         card.bottom,

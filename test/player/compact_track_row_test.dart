@@ -25,6 +25,8 @@ import 'package:dance_learning_app/player/settings_persistence.dart'
     show videoDocumentCoordinatorProvider;
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:flutter/material.dart';
@@ -60,11 +62,23 @@ void main() {
   const mirrorLabel = ValueKey('track_prefix_label_localMirror');
   const learningLabel = ValueKey('track_prefix_label_learning');
 
-  /// normal 全行集整带高：36 + 30 + 48 + 24 + 30 + 10 × 4 = 208。
-  const normalHeight = 208.0;
+  final normalHeight = TrackRowTable.normal.totalHeight;
 
-  /// 紧凑档剪掉空备注轨与空局部镜像轨（48 + 24 + 30 + 10 × 2）。
-  const trimmedHeight = 122.0;
+  /// 紧凑档某行不在场时的整带高：normal 全行集剪掉这些行。
+  double bandHeightWithout(Set<TrackRowId> rows) =>
+      TrackRowTable.normal.withoutRows(rows).totalHeight;
+
+  /// 两轨皆空（剪掉空备注轨与空局部镜像轨）。
+  final trimmedHeight = bandHeightWithout(const {
+    TrackRowId.note,
+    TrackRowId.localMirror,
+  });
+
+  /// 备注轨在场、镜像轨空（剪掉空局部镜像轨）。
+  final noteOnlyHeight = bandHeightWithout(const {TrackRowId.localMirror});
+
+  /// 镜像轨在场、备注轨空（剪掉空备注轨）。
+  final mirrorOnlyHeight = bandHeightWithout(const {TrackRowId.note});
 
   Future<ProviderContainer> pumpPlayer(WidgetTester tester) async {
     await tester.pumpWidget(
@@ -158,7 +172,11 @@ void main() {
     expect(find.byKey(noteRow), findsOneWidget);
     expect(find.byKey(noteLabel), findsOneWidget);
     // 备注轨（36）+ 学习段（48）+ 节拍（24）+ 手柄带（30）+ 10 × 3。
-    expect(bandHeight(tester), 168);
+    expect(
+      bandHeight(tester),
+      noteOnlyHeight,
+      reason: '备注轨在场、空局部镜像轨不占行',
+    );
 
     expect(editor.submit(const RemoveNote(index: 0)).applied, isTrue);
     await tester.pump();
@@ -184,7 +202,11 @@ void main() {
     expect(find.byKey(mirrorRow), findsOneWidget);
     expect(find.byKey(mirrorLabel), findsOneWidget);
     // 镜像轨（30）+ 学习段（48）+ 节拍（24）+ 手柄带（30）+ 10 × 3。
-    expect(bandHeight(tester), 162);
+    expect(
+      bandHeight(tester),
+      mirrorOnlyHeight,
+      reason: '镜像轨在场、空备注轨不占行',
+    );
 
     // 扳开关不改轨道的有无（只跟着片段数走）。
     container.read(localMirrorEnabledProvider.notifier).replace(false);
@@ -242,7 +264,10 @@ void main() {
     expect(find.byKey(mirrorRow), findsNothing);
     expect(find.byKey(handleRow), findsNothing);
     // 练习视频轨（48）+ 学习段（48）+ 节拍（24）+ 10 × 2。
-    expect(bandHeight(tester), 140);
+    expect(
+      bandHeight(tester),
+      TrackRowTable.compare.withoutRows(const {TrackRowId.note}).totalHeight,
+    );
   });
 
   testWidgets('紧凑档对比态：有备注时备注轨在场（裁剪只跟片段数走）', (tester) async {
@@ -265,7 +290,7 @@ void main() {
     expect(find.byKey(noteRow), findsOneWidget);
     expect(find.byKey(practiceRow), findsOneWidget);
     // 对比行集全行集（186）里备注轨在场。
-    expect(bandHeight(tester), 186);
+    expect(bandHeight(tester), TrackRowTable.compare.totalHeight);
   });
 
   for (final landscape in const [false, true]) {

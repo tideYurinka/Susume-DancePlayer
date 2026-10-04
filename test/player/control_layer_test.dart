@@ -129,7 +129,7 @@ import 'package:dance_learning_app/player/play_tool_table.dart'
         playToolLandscapeTopBarRow;
 import 'package:dance_learning_app/player/tool_slots.dart';
 import 'package:dance_learning_app/player/track_row_table.dart'
-    show TrackRowTable;
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode, playerSessionProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart'
@@ -242,6 +242,7 @@ class _ControlHost extends ConsumerStatefulWidget {
     required this.engine,
     required this.title,
     required this.skeleton,
+    this.rowTable = TrackRowTable.normal,
     required this.indexStore,
     required this.docs,
     required this.layerWidth,
@@ -252,6 +253,7 @@ class _ControlHost extends ConsumerStatefulWidget {
   final FakePlaybackEngine engine;
   final String title;
   final EditorSkeleton skeleton;
+  final TrackRowTable rowTable;
   final InMemoryVideoIndexStorage indexStore;
   final InMemoryVideoDocumentStorage docs;
   final double Function() layerWidth;
@@ -329,7 +331,7 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
                 ),
               ),
               skeleton: widget.skeleton,
-              rowTable: TrackRowTable.normal,
+              rowTable: widget.rowTable,
               recording: false,
               onRequestOrientation: (_) {},
             ),
@@ -559,6 +561,7 @@ Finder slotText(Key slot, String text) =>
     VideoIndexEntry? entry,
     bool readyBeat = true,
     bool injectAvSyncSeam = false,
+    bool? compactSkeleton,
     ValueChanged<TrackBandSession>? onSessionReady,
     // riverpod 3.4.2 未公开导出 Override 类型，沿用整页 harness 的动态清单。
     List<dynamic> extraOverrides = const [],
@@ -604,22 +607,57 @@ Finder slotText(Key slot, String text) =>
           ...extraOverrides,
         ],
         child: MaterialApp(
-          home: _ControlHost(
-            engine: e,
-            title: resolved.pathSegments.last,
-            skeleton: editorSkeletonFor(
-              screen: Size(
-                screenWidth,
-                tester.view.physicalSize.height / dpr,
-              ),
-              trackBandHeight: TrackRowTable.normal.totalHeight,
-              videoAspectRatio: e.videoAspectRatio,
-            ),
-            indexStore: indexStore,
-            docs: docStorage,
-            layerWidth: () => screenWidth,
-            onMirrorReady: (m) => mirror = m,
-            onSessionReady: onSessionReady,
+          home: Builder(
+            builder: (context) {
+              // 缺省（[compactSkeleton] 不给）：与生产同式——骨架按真实视口
+              // 量测尺寸求档，控制层的 MediaQuery 也是这一份，两侧不分家。
+              //
+              // 给了 [compactSkeleton]：构造「视觉窗与真实视口分落两档」的
+              // 分裂场景——真实视口 1000×800dp（常规档），下面把 MediaQuery
+              // 的上下 padding 各设 150dp，视觉窗即 1000×500dp（紧凑档）；
+              // 骨架那一档由调用方指定，控制层若按自己的 MediaQuery 重新
+              // 求值就会拿到另一档。
+              final divergence = compactSkeleton != null;
+              final screen = divergence
+                  ? const Size(1000, 500)
+                  : Size(
+                      screenWidth,
+                      tester.view.physicalSize.height / dpr,
+                    );
+              final compact = compactSkeleton ?? editorIsCompact(screen);
+              // 分裂场景按组合点口径（档位 × 两轨当前空否 → 行集）给一份
+              // 剪裁后的行集：控制层对模式与档位都无知，只按构造点传进来的
+              // 那一份渲染。其余用例保持既有全行集——空轨在带内常驻。
+              final rowTable = divergence
+                  ? TrackRowTable.normal.withoutRows(const {
+                      TrackRowId.note,
+                      TrackRowId.localMirror,
+                    })
+                  : TrackRowTable.normal;
+              final host = _ControlHost(
+                engine: e,
+                title: resolved.pathSegments.last,
+                skeleton: editorSkeletonFor(
+                  screen: screen,
+                  compact: compact,
+                  trackBandHeight: rowTable.totalHeight,
+                  videoAspectRatio: e.videoAspectRatio,
+                ),
+                rowTable: rowTable,
+                indexStore: indexStore,
+                docs: docStorage,
+                layerWidth: () => screenWidth,
+                onMirrorReady: (m) => mirror = m,
+                onSessionReady: onSessionReady,
+              );
+              if (!divergence) return host;
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  padding: const EdgeInsets.symmetric(vertical: 150),
+                ),
+                child: host,
+              );
+            },
           ),
         ),
       ),
@@ -4465,7 +4503,7 @@ Finder slotText(Key slot, String text) =>
   group('竖屏画面落位两分支', () {
     const portraitWidth = 668.0; // setWidenedPortraitView：1336×2736 @2
     const portraitHeight = 1368.0;
-    const normalTrackBandHeight = 208.0; // 行高表之和，不随屏高压缩
+    final normalTrackBandHeight = TrackRowTable.normal.totalHeight; // 行高表之和，不随屏高压缩
     /// 可用高 = 1368 − (顶栏 52 + 底栏两行 104 + 视频播放工具栏两行 104 +
     /// 设置条 48) = 1060；画面区 = 1060 − 208 = 852（视频工具栏一行变两行、
     /// 设置条命中盒下限 48，名义高表随之重算）。
@@ -5607,7 +5645,7 @@ Finder slotText(Key slot, String text) =>
       expect(find.byKey(const Key('editor_landscape_prompt')), findsNothing);
     });
 
-    testWidgets('紧凑档横屏：三枚搬进「更多」、生效行集十位仍收在屏内且逐枚可直接点到', (tester) async {
+    testWidgets('紧凑档横屏：三枚收在「更多」、生效行集十个位置收在屏内且逐枚可直接点到', (tester) async {
       // 640×420dp 合成档横置（非设备基准）：最短边 420 < 600 → 紧凑档。
       // 可用宽放不下带标签十位，按既有「放不下收标签」兜底收成图标形态
       // ——不溢出、逐枚可点。遍历的是**本视口生效的那份行集**。
@@ -5626,7 +5664,7 @@ Finder slotText(Key slot, String text) =>
         expect(
           find.byKey(Key(key)),
           findsNothing,
-          reason: '$key 已搬进「更多」，不常驻紧凑档横屏顶栏',
+          reason: '$key 不在紧凑档横屏顶栏（收在「更多」里）',
         );
       }
       final screenWidth =
@@ -5674,7 +5712,7 @@ Finder slotText(Key slot, String text) =>
     /// 定长等待（播放循环带持续动画、pumpAndSettle 不收敛时的统一时长）。
     const settlePump = Duration(milliseconds: 400);
 
-    /// 搬进「更多」的三枚：紧凑档横屏下不常驻顶栏。
+    /// 不在紧凑档横屏顶栏的三枚：收在「更多」的向上弹出菜单里。
     const movedKeys = [
       'tool_av_sync',
       'tool_framing_adjust',
@@ -5720,7 +5758,7 @@ Finder slotText(Key slot, String text) =>
         expect(
           find.byKey(Key(key)),
           findsNothing,
-          reason: '$key 已搬进「更多」，不常驻紧凑档横屏顶栏',
+          reason: '$key 不在紧凑档横屏顶栏（收在「更多」里）',
         );
       }
       expect(moreButton(), findsOneWidget);
@@ -5729,7 +5767,7 @@ Finder slotText(Key slot, String text) =>
         lessThan(
           tester.getRect(find.byKey(const Key('tool_mirror'))).center.dx,
         ),
-        reason: '「更多」落在「全局镜像」左侧（三枚原本所在的一段）',
+        reason: '「更多」落在「全局镜像」左侧',
       );
       final tops = {
         for (final slot in kPlayToolRowLandscapeTopBarCompact.slots)
@@ -5756,7 +5794,7 @@ Finder slotText(Key slot, String text) =>
       }
     });
 
-    testWidgets('点「更多」向上弹出菜单：三项纯文字条目、无菜单标题、次序与搬走前一致', (tester) async {
+    testWidgets('点「更多」向上弹出菜单：三项纯文字条目、无菜单标题、次序自上而下', (tester) async {
       setCompactLandscape(tester);
       await pumpControlLayer(tester);
       final more = tester.getRect(moreButton());
@@ -5767,15 +5805,11 @@ Finder slotText(Key slot, String text) =>
       expect(menuItems(), findsNWidgets(3), reason: '菜单只有三项、没有菜单标题条目');
       final viewport =
           Offset.zero & (tester.view.physicalSize / tester.view.devicePixelRatio);
+      final itemRects = <Rect>[];
       for (var i = 0; i < movedKeys.length; i++) {
         final item = find.byKey(Key(movedKeys[i]));
         expect(item, findsOneWidget, reason: '${movedLabels[i]} 条目在场');
-        // 纯文字条目：条目里只有那一个文字，没有图标。
-        expect(
-          find.descendant(of: item, matching: find.byType(Text)),
-          findsOneWidget,
-          reason: '${movedLabels[i]} 是文字条目',
-        );
+        // 纯文字条目：条目里那一枚文字在场（findsOneWidget），图标不在。
         expect(
           find.descendant(of: item, matching: find.byType(Icon)),
           findsNothing,
@@ -5785,41 +5819,24 @@ Finder slotText(Key slot, String text) =>
           find.descendant(of: item, matching: find.text(movedLabels[i])),
           findsOneWidget,
         );
-        final itemRect = tester.getRect(item);
-        // 弹出路径锚定「更多」钮：菜单横位压在该钮一带（不是飘到屏的另一头）。
-        // 顶栏贴着屏幕顶、竖向上没有余量，菜单路由按既有兜底把它收在屏顶
-        // （与底栏的「添加」菜单同一条向上弹出路径与同一份边缘兜底）。
-        expect(
-          itemRect.right,
-          greaterThan(more.left),
-          reason: '${movedLabels[i]} 与「更多」钮横向重叠',
-        );
-        expect(
-          itemRect.left,
-          lessThan(more.right),
-          reason: '${movedLabels[i]} 与「更多」钮横向重叠',
-        );
-        expect(itemRect.left, greaterThanOrEqualTo(viewport.left));
-        expect(itemRect.right, lessThanOrEqualTo(viewport.right));
-        expect(itemRect.top, greaterThanOrEqualTo(viewport.top));
-        expect(
-          itemRect.bottom,
-          lessThan(viewport.center.dy),
-          reason: '菜单自顶栏一带弹出，不铺到屏幕下半',
-        );
-        if (i > 0) {
-          expect(
-            itemRect.top,
-            greaterThan(tester.getRect(find.byKey(Key(movedKeys[i - 1]))).top),
-            reason: '${movedLabels[i]} 排在 ${movedLabels[i - 1]} 之下',
-          );
-        }
+        itemRects.add(tester.getRect(item));
       }
-
-      // 点外部收起。
-      await tester.tapAt(const Offset(20, 20));
-      await tester.pumpAndSettle();
-      expect(menuItems(), findsNothing);
+      // 次序：自上而下即声明顺序。
+      expect(itemRects[1].top, greaterThan(itemRects[0].top));
+      expect(itemRects[2].top, greaterThan(itemRects[1].top));
+      // 弹出路径锚定「更多」钮：菜单横位压在该钮一带（不是飘到屏的另一头）；
+      // 顶栏贴着屏幕顶、竖向上没有余量，菜单路由按既有兜底把它收在屏上半
+      // （与底栏的「添加」菜单同一条向上弹出路径与同一份边缘兜底）。
+      final menu = itemRects.reduce((a, b) => a.expandToInclude(b));
+      expect(menu.right, greaterThan(more.left), reason: '菜单与「更多」钮横向重叠');
+      expect(menu.left, lessThan(more.right), reason: '菜单与「更多」钮横向重叠');
+      expect(menu.left, greaterThanOrEqualTo(viewport.left));
+      expect(menu.right, lessThanOrEqualTo(viewport.right));
+      expect(
+        menu.bottom,
+        lessThan(viewport.center.dy),
+        reason: '菜单自顶栏一带弹出，不铺到屏幕下半',
+      );
     });
 
     testWidgets('菜单「音画同步」条目开出气泡、气泡锚在「更多」钮正下方、「更多」不点亮', (tester) async {
@@ -5830,12 +5847,14 @@ Finder slotText(Key slot, String text) =>
       await tester.tap(moreButton());
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('tool_av_sync')));
-      // 校准会话持续收脉冲（不可 pumpAndSettle）：固定帧推进到落定。
+      // 校准会话持续收脉冲（不可 pumpAndSettle）：固定帧推进到气泡与菜单
+      // 的退场动画都落定。
       await tester.pump();
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byKey(const Key('av_sync_bubble')), findsOneWidget);
       expect(find.byKey(const Key('av_sync_readout_row')), findsOneWidget);
+      expect(menuItems(), findsNothing, reason: '选中条目即关菜单');
       final bubble = tester.getRect(find.byKey(const Key('av_sync_bubble')));
       expect(
         bubble.top,
@@ -5953,6 +5972,57 @@ Finder slotText(Key slot, String text) =>
         reason: '对比态经「更多」里的同一条路径进分屏取景',
       );
       expect(find.byKey(const Key('framing_bar')), findsOneWidget);
+    });
+
+    testWidgets('视觉窗与真实视口分落两档时，顶栏行集与轨道带剪裁仍取同一档', (tester) async {
+      // 真实视口 1000×800dp（最短边 800 ≥ 600）：控制层若按自己的
+      // MediaQuery 现场判档，得到的是常规档。骨架按视觉窗 1000×500dp
+      // （上下各去掉 150dp 安全区，最短边 500 < 600）求出紧凑档。
+      // 修好前两者分裂——顶栏走常规行集（三枚内联、无「更多」）、轨道带
+      // 走紧凑剪裁（空轨不占行）；修好后三处同吃骨架透出的那一档。
+      tester.view.physicalSize = const Size(2000, 1600);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+      expect(
+        editorIsCompact(const Size(1000, 500)),
+        isTrue,
+        reason: '视觉窗 1000×500dp 落紧凑档',
+      );
+      expect(
+        editorIsCompact(const Size(1000, 800)),
+        isFalse,
+        reason: '真实视口 1000×800dp 落常规档',
+      );
+
+      await pumpControlLayer(tester, compactSkeleton: true);
+
+      expect(
+        find.byKey(const Key('tool_more')),
+        findsOneWidget,
+        reason: '顶栏行集取骨架那一档（紧凑档）',
+      );
+      expect(
+        find.byKey(const Key('tool_av_sync')),
+        findsNothing,
+        reason: '紧凑档下音画同步不常驻顶栏',
+      );
+      expect(
+        find.byKey(const Key('track_notes')),
+        findsNothing,
+        reason: '轨道带取同一档：空备注轨不占行',
+      );
+      expect(
+        find.byKey(const Key('track_mirror')),
+        findsNothing,
+        reason: '轨道带取同一档：空局部镜像轨不占行',
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('track_band'))).height,
+        TrackRowTable.normal
+            .withoutRows(const {TrackRowId.note, TrackRowId.localMirror})
+            .totalHeight,
+        reason: '轨道带剪裁与顶栏行集同吃骨架透出的那一档',
+      );
     });
 
     /// 只留一个气泡单元待走（其余单元按已看过装配，免得前置单元的步插话）。

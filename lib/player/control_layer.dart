@@ -224,15 +224,16 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   final LayerLink _avSyncLink = LayerLink();
 
   /// 「更多」钮锚点：紧凑档横屏下音画同步与节拍提示（含节拍侧另两个气泡）
-  /// 的气泡锚点改挂这枚钮（这两枚在紧凑档横屏不常驻顶栏）——见
+  /// 的气泡锚点就挂这枚钮（这两枚在紧凑档横屏不常驻顶栏）——见
   /// [_buildBubbleOverlay]。
   final LayerLink _moreLink = LayerLink();
 
-  /// 此刻横屏顶栏是否走紧凑档行集：档位判据（[editorIsCompact]——只读逻辑
-  /// 尺寸、不吃字号档）与「是不是横屏」两件事实的合成。消费点只有两处
-  /// （顶栏行集选择、气泡锚点选择），共用本读点，不各算一次。
+  /// 此刻横屏顶栏是否走紧凑档行集：「这一帧是不是紧凑档」
+  /// （[EditorSkeleton.compact]——宿主按本次布局屏尺寸求值一次）与
+  /// 「是不是横屏」两件事实的合成。消费点三处（横屏顶栏行集选择、
+  /// 气泡锚点选择、轨道带剪裁），三处读同一份取值。
   bool get _compactLandscape =>
-      !widget.skeleton.portrait && editorIsCompact(MediaQuery.sizeOf(context));
+      !widget.skeleton.portrait && widget.skeleton.compact;
 
   /// 会话域句柄（本层只经它触碰窗口、落点与拖动标记）。
   TrackBandSession get _session => widget.session;
@@ -539,7 +540,8 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                 if (!portrait) ...[
                   const SizedBox(width: kTopBarToolsGapWidth),
                   // 横屏顶栏行集按**档位判据结果**选（紧凑档 → 紧凑行集，
-                  // 三枚搬进「更多」；常规档 → 原行集）：选择只有
+                  // 音画同步/取景调整/节拍提示收在「更多」的向上弹出菜单里；
+                  // 常规档 → 常规行集）：选择只有
                   // [playToolLandscapeTopBarRow] 一处。
                   _playToolRow(
                     playToolLandscapeTopBarRow(compact: _compactLandscape),
@@ -683,10 +685,10 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   /// （bottomCenter/topCenter）；
   /// 居中放不下时由宿主水平钳制进屏（近右缘图标下右缘不溢出）。
   ///
-  /// 紧凑档横屏下音画同步与节拍提示（含节拍侧另两个气泡）的锚点改挂
-  /// 「更多」钮：这两枚在紧凑档横屏不常驻顶栏、各自的原锚点不在场
-  /// （`showWhenUnlinked: false` 会让气泡不显示），故按同一档位判据取
-  /// [_moreLink]。
+  /// 紧凑档横屏下音画同步与节拍提示（含节拍侧另两个气泡）的锚点在「更多」
+  /// 钮上：这两枚不在紧凑档横屏顶栏，各自工具的锚点不在场
+  /// （`showWhenUnlinked: false` 会让气泡不显示），故本层按同一档位取
+  /// [_moreLink]。常规档下两枚常驻顶栏，各读自己的锚点。
   Widget _buildBubbleOverlay() {
     final compactLandscape = _compactLandscape;
     return SpeedBubbleHost(

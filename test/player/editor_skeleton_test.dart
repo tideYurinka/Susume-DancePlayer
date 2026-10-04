@@ -1,6 +1,8 @@
 import 'dart:ui' show Rect, Size;
 
 import 'package:dance_learning_app/player/editor_skeleton.dart';
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowTable;
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kHitTargetMinSize, kCornerPromptCardPaddingV;
 import 'package:flutter_test/flutter_test.dart';
@@ -13,8 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   /// 本机竖屏真机基准（1264×2736 @3.5 = 361.1×781.7dp）。
   const portraitScreen = Size(361.1, 781.7);
-  const normalTrackBandHeight = 208.0; // normal 行集整带高（行高表之和）
-  const compareTrackBandHeight = 186.0; // compare 行集整带高
+  // 两份具名行集的整带高（取值来源 = 行表自身，见 track_row_table_test）。
+  final normalTrackBandHeight = TrackRowTable.normal.totalHeight;
+  final compareTrackBandHeight = TrackRowTable.compare.totalHeight;
 
   /// 名义可用高（画面区从它再扣轨道带）：781.7 − (顶栏 52 + 底栏两行 104 +
   /// 视频播放工具栏两行 104 + 设置条 48) = 473.7；画面区高 = 本值 − 轨道带高
@@ -26,11 +29,13 @@ void main() {
 
   EditorSkeleton skeletonFor({
     Size screen = portraitScreen,
-    double trackBandHeight = normalTrackBandHeight,
+    bool compact = false,
+    double? trackBandHeight,
     double? aspectRatio,
   }) => editorSkeletonFor(
     screen: screen,
-    trackBandHeight: trackBandHeight,
+    compact: compact,
+    trackBandHeight: trackBandHeight ?? normalTrackBandHeight,
     videoAspectRatio: aspectRatio,
   );
 
@@ -56,6 +61,23 @@ void main() {
       expect(editorIsCompact(const Size(700, 600)), isFalse);
       expect(editorIsCompact(const Size(600, 700)), isFalse);
       expect(editorIsCompact(const Size(1180, 820)), isFalse, reason: '平板横屏');
+    });
+
+    test('骨架原样透出送进来的那一档：不按屏尺寸自行重判', () {
+      // 送 599 那一档的判据结果、屏本身按 600 判常规档——透出的仍是送进来的
+      // 那一份（同屏各消费点因此不会分裂成两档）。
+      final compact = skeletonFor(
+        screen: const Size(600, 800),
+        compact: true,
+      );
+      expect(compact.compact, isTrue);
+      final normal = skeletonFor(screen: const Size(599, 800));
+      expect(normal.compact, isFalse, reason: '缺省 = 常规档');
+      expect(
+        skeletonFor(screen: const Size(781.7, 361.1), compact: true).compact,
+        isTrue,
+        reason: '横屏行同样透出送来那一档',
+      );
     });
   });
 
@@ -357,6 +379,7 @@ void main() {
 
     test('编辑态贴底分支：矩形 = 画面带（带顶按系统栏换算）', () {
       const stick = EditorSkeleton(
+        compact: false,
         portrait: true,
         pictureAreaHeight: 200,
         picturePlacement: PicturePlacement.stickToBottom,
@@ -373,6 +396,7 @@ void main() {
 
     test('编辑态背景位（骨架非贴底）：同观看态整屏 contain 居中', () {
       const background = EditorSkeleton(
+        compact: false,
         portrait: true,
         pictureAreaHeight: 200,
         picturePlacement: PicturePlacement.background,
@@ -479,13 +503,13 @@ void main() {
 
   group('左下角提示卡锚', () {
     // 号机基准：361.1 × 781.7dp、竖屏顶内缩 39.4、
-    // 系统手势让路带取既有代表值：左 16 / 底 44、普通态轨道带 208dp。
+    // 系统手势让路带取既有代表值：左 16 / 底 44、普通态轨道带为 normal 整带高。
     const portrait = Size(361.1, 781.7);
     const landscape = Size(781.7, 361.1);
     const deviceTopInset = 39.4;
     const yieldLeft = 16.0;
     const yieldBottom = 44.0;
-    const trackBand = 208.0;
+    final trackBand = normalTrackBandHeight;
 
     // 八格表的画面矩形（八格表原值）。
     const bandRect = Rect.fromLTWH(0, 166.6, 361.1, 203.1); // 竖屏编辑·贴底画面带

@@ -76,6 +76,9 @@ const double kEditorCompactShortestSideThreshold = 600;
 /// 与编辑面方向判据 [editorIsPortrait] 并列，同样只读这一次布局的屏尺寸——
 /// 只看逻辑尺寸、不吃字号档、与设备方向锁无关，故同一台机器竖横两向、
 /// 1.0× 与 1.6× 字号下都得到同一档。
+///
+/// 全仓的阈值算术只有本函数这一处；组合根每帧调它一次，结果经
+/// [EditorSkeleton.compact] 递给各消费点——消费方读那一份，不各算一次。
 bool editorIsCompact(Size screen) =>
     math.min(screen.width, screen.height) < kEditorCompactShortestSideThreshold;
 
@@ -91,12 +94,18 @@ enum PicturePlacement {
 /// 一次骨架分配的答案：画面区高、画面落位两分支的几何。
 class EditorSkeleton {
   const EditorSkeleton({
+    required this.compact,
     required this.portrait,
     required this.pictureAreaHeight,
     required this.picturePlacement,
     required this.pictureBandHeight,
     required this.pictureBandTop,
   });
+
+  /// 本次量测的屏尺寸落哪一档（[editorIsCompact] 的结果，原样透出）。
+  /// 紧凑档 = 顶栏走紧凑行集、空轨不占行；消费方一律读它，不按自己的
+  /// 屏尺寸重算一遍。
+  final bool compact;
 
   /// 是否走竖屏行（[editorIsPortrait] 的结果，原样透出）。假 = 横屏编辑面，
   /// 以下几何全部为 0、由既有布局接手。
@@ -133,6 +142,7 @@ class EditorSkeleton {
   @override
   bool operator ==(Object other) =>
       other is EditorSkeleton &&
+      other.compact == compact &&
       other.portrait == portrait &&
       other.pictureAreaHeight == pictureAreaHeight &&
       other.picturePlacement == picturePlacement &&
@@ -141,6 +151,7 @@ class EditorSkeleton {
 
   @override
   int get hashCode => Object.hash(
+    compact,
     portrait,
     pictureAreaHeight,
     picturePlacement,
@@ -152,6 +163,9 @@ class EditorSkeleton {
 /// 骨架分配纯函数（[EditorSkeleton] 的唯一出口；零 widget 环境直测）。
 ///
 /// - [screen]：编辑面可用屏尺寸（已扣系统栏；调用方传 SafeArea 内的尺寸）。
+/// - [compact]：本次屏尺寸落哪一档（[editorIsCompact] 的结果；缺省 = 常规
+///   档）。本库不自己再算一次——顶栏行集、气泡锚点与轨道带剪裁都读
+///   [EditorSkeleton.compact] 这一个结果，同一屏上三者不会分裂成两档。
 /// - [trackBandHeight]：本态轨道带整带高（行高表之和，不随屏高压缩）。
 /// - [videoAspectRatio]：**源画面**宽高比（宽/高）；null 或非正 = 未知。
 /// - [framingAspectRatio]：**取景选区内容**宽高比（宽/高）；
@@ -166,13 +180,15 @@ class EditorSkeleton {
 /// 选区比源画面更「高」时左右留黑、画面顶边不上移。
 EditorSkeleton editorSkeletonFor({
   required Size screen,
+  bool compact = false,
   required double trackBandHeight,
   required double? videoAspectRatio,
   double? framingAspectRatio,
 }) {
   if (!editorIsPortrait(screen)) {
     // 横屏编辑面不分配骨架：画面仍居中于剩余空间（既有形态）。
-    return const EditorSkeleton(
+    return EditorSkeleton(
+      compact: compact,
       portrait: false,
       pictureAreaHeight: 0,
       picturePlacement: PicturePlacement.background,
@@ -205,6 +221,7 @@ EditorSkeleton editorSkeletonFor({
   final stick = known && containHeight <= pictureAreaHeight;
   final bandHeight = stick ? math.min(containHeight, unframedHeight) : 0.0;
   return EditorSkeleton(
+    compact: compact,
     portrait: true,
     pictureAreaHeight: pictureAreaHeight,
     picturePlacement: stick

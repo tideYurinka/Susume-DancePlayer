@@ -37,6 +37,7 @@ import '../helpers/semantics_assertions.dart';
 /// 贴底骨架（骨架分配用例）：画面带宽 100，贴画面区下缘（顶 100 = 画面区
 /// 200 − 带高 100，与 `editorSkeletonFor` 的实际分配一致）。
 const EditorSkeleton stickSkeleton = EditorSkeleton(
+  compact: false,
   portrait: true,
   pictureAreaHeight: 200,
   picturePlacement: PicturePlacement.stickToBottom,
@@ -46,6 +47,7 @@ const EditorSkeleton stickSkeleton = EditorSkeleton(
 
 /// 观看态背景位骨架：不落带（走整屏 contain）。
 const EditorSkeleton backgroundSkeleton = EditorSkeleton(
+  compact: false,
   portrait: true,
   pictureAreaHeight: 200,
   picturePlacement: PicturePlacement.background,

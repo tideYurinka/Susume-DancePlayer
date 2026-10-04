@@ -232,11 +232,11 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         onTap: _openGuideUnits,
       ),
       // 「更多」：紧凑档横屏顶栏承载的三枚（音画同步 / 取景调整 /
-      // 节拍提示）的入口，落在三枚原本所在的一段（「全局镜像」左侧）。
-      // 点开向上弹出菜单（[_showMoreMenu]），锚点 = 本钮自身（
-      // [onTapWithAnchor]）。气泡展开与模式进入都不是生效态——本槽不点亮；
-      // 音画同步与节拍提示的气泡锚点改挂本钮（紧凑档横屏下这两枚不常驻
-      // 顶栏，[_buildBubbleOverlay] 按同一档位判据取 [_moreLink]）。
+      // 节拍提示）的入口，落在「全局镜像」左侧。点开向上弹出菜单
+      // （[_showMoreMenu]），锚点 = 本钮自身（[onTapWithAnchor]）。气泡展开
+      // 与模式进入都不是生效态——本槽不点亮；音画同步与节拍提示的气泡锚也
+      // 接在本钮（紧凑档横屏下这两枚不常驻顶栏，[_buildBubbleOverlay]
+      // 取 [_moreLink]，两枚气泡才有在场锚点）。
       PlayToolSlotId.more => _PlayToolView(
         slot: slot,
         tappable: true,
@@ -572,9 +572,9 @@ class _PlayToolView {
 
   final VoidCallback? onTap;
 
-  /// 非空时点按把**本槽自身的 `BuildContext`** 交给动作（与底排
-  /// `_BottomToolEntry.onInvoke` 同款口径）——今天只有「更多」用它把槽位盒当
-  /// 向上弹出菜单的锚点。与 [onTap] 互斥使用（同一条槽只给一个）。
+  /// 点按动作的另一种形态：非空时把**本槽自身的 `BuildContext`** 交给动作，
+  /// 槽位盒因此可直接当锚点用——今天只有「更多」用它把本钮当向上弹出菜单的
+  /// 锚点。两者不并用；都用时以本项为准，无锚点需求的槽只给 [onTap]。
   final void Function(BuildContext anchor)? onTapWithAnchor;
 
   /// 当前展示标签（激活态且有激活标签时用激活标签）。

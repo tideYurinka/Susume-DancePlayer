@@ -386,9 +386,13 @@ void main() {
       expect(find.byKey(const Key('track_learning')), findsOneWidget);
       expect(find.byKey(const Key('track_beat')), findsOneWidget);
       expect(find.byKey(const Key('track_handle_strip_row')), findsOneWidget);
-      // 36 + 30 + 48 + 24 + 30 + 10 × 4（worked example）。
+      // 36 + 30 + 48 + 24 + 30 + 10 × 4（worked example）：表自身的整带高
+      // 与渲染出来的带宽同值。
       expect(TrackRowTable.normal.totalHeight, 208);
-      expect(tester.getSize(find.byKey(const Key('track_band'))).height, 208);
+      expect(
+        tester.getSize(find.byKey(const Key('track_band'))).height,
+        TrackRowTable.normal.totalHeight,
+      );
     });
   });
 
@@ -423,7 +427,10 @@ void main() {
       expect(practiceY, lessThan(learningY));
       expect(learningY, lessThan(beatY));
       // 整带高 = 48+36+48+24 + 10×3（worked example）。
-      expect(tester.getSize(find.byKey(const Key('track_band'))).height, 186);
+      expect(
+        tester.getSize(find.byKey(const Key('track_band'))).height,
+        TrackRowTable.compare.totalHeight,
+      );
     });
 
     testWidgets('跨面一致性：渲染行 == 对比行集声明逐位相等', (tester) async {

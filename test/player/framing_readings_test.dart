@@ -26,6 +26,8 @@ import 'package:dance_learning_app/player/beat_analysis.dart'
 import 'package:dance_learning_app/player/compare_framing_view.dart'
     show compareFramingPictureRect;
 import 'package:dance_learning_app/player/editor_skeleton.dart';
+import 'package:dance_learning_app/player/track_row_table.dart'
+    show TrackRowId, TrackRowTable;
 import 'package:dance_learning_app/player/framing_selection_view.dart'
     show FramingSelectionView;
 import 'package:dance_learning_app/player/framing_session_state.dart'
@@ -65,9 +67,11 @@ void main() {
   const screen = Size(361.1, 781.7);
 
   /// 紧凑档真机基准下两轨皆空：空备注轨与空局部镜像轨不占行，整带高 =
-  /// 剪裁后逐行行高之和 + 行间间隙 = 48 + 24 + 30 + 10 × 2 = 122（全行集
-  /// 208）；画面区因此比常驻空轨时高 86dp。
-  const trackBandHeight = 122.0;
+  /// 剪裁后逐行行高之和 + 行间间隙（全行集见 [TrackRowTable.normal]）；
+  /// 画面区因此比常驻空轨时更高。
+  final trackBandHeight = TrackRowTable.normal
+      .withoutRows(const {TrackRowId.note, TrackRowId.localMirror})
+      .totalHeight;
 
   /// 真机竖屏编辑态骨架（源 16:9）未取景的落位：画面区 351.7、带 203.12。
   final unframedSkeleton = editorSkeletonFor(

@@ -313,9 +313,12 @@ class TrackBandGeometry {
     );
   }
 
-  /// 行归属：某纵向局部坐标落在哪一行，委派轨道行表 [rows]（默认具名行集
-  /// `normal`）。横向不可映射时安静返回空——「整带无可用映射则整带无
-  /// 命中」，纵向坐标本身与带宽/总时长无关，此门禁是有意并入同一谓词。
+  /// 行归属：某纵向局部坐标落在哪一行，委派轨道行表 [rows]。生产调用方
+  /// （`track_hit_resolution.dart`）**总是显式传**本态生效的那份行集——
+  /// 紧凑档下备注轨与局部镜像轨可能不在其中，缺省具名行集 `normal` 只是
+  /// 「与档位无关」一类调用（含直测）的取值。横向不可映射时安静返回空——
+  /// 「整带无可用映射则整带无命中」，纵向坐标本身与带宽/总时长无关，此
+  /// 门禁是有意并入同一谓词。
   TrackRowId? rowAt(double dy, {TrackRowTable rows = TrackRowTable.normal}) {
     if (!isMappable) return null;
     return rows.rowAt(dy);

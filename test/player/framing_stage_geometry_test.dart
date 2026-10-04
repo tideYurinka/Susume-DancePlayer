@@ -15,6 +15,7 @@ void main() {
   /// 竖屏编辑面贴底骨架（与画面件/注解层消费的同一份带几何：带 100、
   /// 带顶 50、画面区 200）。
   const stickSkeleton = EditorSkeleton(
+    compact: false,
     portrait: true,
     pictureAreaHeight: 200,
     picturePlacement: PicturePlacement.stickToBottom,

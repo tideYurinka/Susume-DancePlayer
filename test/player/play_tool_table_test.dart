@@ -82,7 +82,7 @@ void main() {
       expect(items[7].isSeparator, isTrue, reason: '倍速设置与对比练习之间');
       expect(items[8].slot, same(kPlayToolCompare));
       expect(items[9].slot, same(kPlayToolGuide));
-      // 搬进「更多」菜单的三枚不再常驻紧凑档横屏顶栏。
+      // 三枚收在「更多」菜单里，不在紧凑档横屏顶栏。
       expect(
         items.any((i) =>
             i.slot == kPlayToolAvSync ||
@@ -224,7 +224,7 @@ void main() {
       expect(
         kPlayToolMore.carriesGuideAnchor,
         isFalse,
-        reason: '「更多」不承载引导锚点（搬进菜单的两枚引导锚点在气泡内部）',
+        reason: '「更多」不承载引导锚点（那两枚的引导锚点在各自气泡内部）',
       );
     });
 

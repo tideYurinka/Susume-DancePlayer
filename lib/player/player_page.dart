@@ -196,6 +196,8 @@ const List<NoticeSpec> kNoticeSpecs = [
 /// 不占行（行背景、片头标签、命中一并离场），省下的行留给画面；落下第一条
 /// 片段那一刻该行出现，删掉最后一条那一刻收走。
 ///
+/// - [compact] 由调用方按本帧屏尺寸求值一次后传入（与骨架同源），本处不
+///   重算——本行集与顶栏行集、气泡锚点因此同吃一份档位。
 /// - 「当前空否」只读片段清单：备注轨 = 备注清单为空、镜像轨 = 局部镜像片段
 ///   清单为空；**不看「局部镜像」开关**（轨道的有无只跟着片段数走）。
 /// - 装载未完成时按全行集渲染：此刻清单尚未读回，未知不当已知，也避免与
@@ -208,12 +210,12 @@ const List<NoticeSpec> kNoticeSpecs = [
 /// 按同一门禁目标重新登记即覆盖；选中读面已按现势条数校验越界。
 TrackRowTable _rowTableForTier({
   required TrackRowTable full,
-  required Size screen,
+  required bool compact,
   required bool loading,
   required bool notesEmpty,
   required bool mirrorEmpty,
 }) {
-  if (loading || !editorIsCompact(screen)) return full;
+  if (loading || !compact) return full;
   return full.withoutRows({
     if (notesEmpty) TrackRowId.note,
     if (mirrorEmpty) TrackRowId.localMirror,
@@ -1514,11 +1516,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       media.size.width,
       media.size.height - media.padding.top - media.padding.bottom,
     );
-    // 档位判定与骨架分配读同一份屏尺寸：档位只看尺寸、不吃字号档，视口
-    // 一变（小窗/分屏/转屏）即随这次布局重算。
+    // 档位判定：本帧只在此求值一次（阈值算术的唯一函数 [editorIsCompact]），
+    // 结果转交骨架透出——轨道带剪裁、顶栏行集与气泡锚点三处读同一份
+    // （[EditorSkeleton.compact]）。只看屏尺寸、不吃字号档，视口一变
+    // （小窗/分屏/转屏）即随这次布局重算。
+    final compact = editorIsCompact(screen);
     final rowTable = _rowTableForTier(
       full: fullRowTable,
-      screen: screen,
+      compact: compact,
       loading: ref.watch(loadGateActiveProvider),
       // 只订阅「空否」这一个派生位：行集只随它与档位变，逐条编辑不重建整页。
       notesEmpty: ref.watch(
@@ -1540,6 +1545,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         : null;
     final skeleton = editorSkeletonFor(
       screen: screen,
+      compact: compact,
       trackBandHeight: rowTable.totalHeight,
       videoAspectRatio: sourceAspectRatio,
       framingAspectRatio: framingAspectRatio,

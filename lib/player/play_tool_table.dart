@@ -234,10 +234,9 @@ const PlayToolSlot kPlayToolGuide = PlayToolSlot(
 );
 
 /// 更多（紧凑档横屏顶栏的溢出容器入口）：向上弹出菜单承载
-/// 「音画同步」「取景调整」「节拍提示」三枚（紧凑档下这三枚不常驻顶栏），
-/// 位置即三枚原本所在的一段（「全局镜像」左侧）。无门、非软门；
-/// **不承载引导锚点**——搬进菜单的两枚工具的引导锚点在气泡内部，
-/// 本入口自身不是任何引导步的锚。
+/// 「音画同步」「取景调整」「节拍提示」三枚，位置在「全局镜像」左侧。
+/// 无门、非软门；**不承载引导锚点**——那三枚工具的引导锚点都在各自气泡
+/// 内部，本入口自身不是任何引导步的锚。
 const PlayToolSlot kPlayToolMore = PlayToolSlot(
   id: PlayToolSlotId.more,
   key: 'tool_more',
@@ -299,10 +298,9 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
 
 /// 紧凑档横屏顶栏：八条工具加两条分隔线，十个位置——撤销 → 重做 → ｜ →
 /// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 查看引导。
-/// 「更多」落在三枚搬走前所在的一段（「全局镜像」左侧），
-/// 「全局镜像 → 局部镜像 → 倍速设置」这组视图设置的相邻关系不被打断；
-/// 音画同步 / 取景调整 / 节拍提示改由「更多」的向上弹出菜单承载，
-/// 次序与搬走前顶栏一致。
+/// 「更多」落在「全局镜像」左侧，使「全局镜像 → 局部镜像 → 倍速设置」
+/// 这组视图设置的相邻关系不被打断；音画同步 / 取景调整 / 节拍提示由
+/// 「更多」的向上弹出菜单承载，次序为音画同步 → 取景调整 → 节拍提示。
 const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolUndo),
   PlayToolRowItem.slot(kPlayToolRedo),

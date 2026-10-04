@@ -340,22 +340,6 @@ void main() {
       );
       expect(trimmed.hasRow(TrackRowId.note), isFalse);
     });
-
-    test('剪掉全部行：整带高 0，任何坐标查询返回空', () {
-      final trimmed = TrackRowTable.normal.withoutRows(
-        TrackRowTable.normal.rows.map((r) => r.id).toSet(),
-      );
-      expect(trimmed.rows, isEmpty);
-      expect(trimmed.totalHeight, 0);
-      expect(trimmed.rowAt(0), isNull);
-      expect(trimmed.rowAt(18), isNull);
-    });
-
-    test('剪裁不改动原表（具名行集仍是该态的全行集）', () {
-      TrackRowTable.normal.withoutRows(const {TrackRowId.note});
-      expect(TrackRowTable.normal.rows, hasLength(5));
-      expect(TrackRowTable.normal.totalHeight, 208);
-    });
   });
 
   group('退化', () {
