@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/video_identity.dart';
+import 'local_video_source.dart';
 import 'picked_video.dart';
 import '../persistence/video_index.dart';
+import '../dance/video_copy_presence.dart';
 import 'video_picker.dart';
+import 'video_recovery.dart';
 
 /// 已复制到应用私有目录、可直接播放的视频。
 class ImportedVideo {
@@ -42,7 +45,7 @@ class ImportedVideo {
   }
 }
 
-/// 建舞分支的返回值：导入副本 + 内容哈希（新舞身份）。
+/// 建舞分支的返回值：导入副本 + 视频标识（新舞身份）。
 class ImportedDance {
   const ImportedDance({required this.video, required this.videoId});
 
@@ -50,13 +53,16 @@ class ImportedDance {
   final String videoId;
 }
 
-/// 导入管道：选择 → 复制到应用私有目录 → 清理选择器缓存；
-/// 后台计算 xxHash64 视频标识并读写视频索引（index.json）。
+/// 导入管道：选择 → 复制到应用私有目录 → 同步算 xxHash64 视频标识
+/// （复制后的副本读一遍）→ 写视频索引（index.json）→ 清理选择器缓存。
 ///
 /// 打开视频（[open]）时先用「大小 + 文件名」快速键先行匹配索引：
-/// 命中立即播放既有私有副本（不等待哈希），后台校验哈希一致则刷新
-/// 最近打开时间，不一致（同名同大小不同内容）按新视频导入、旧条目
-/// 保留；未命中走首次导入路径（复制后立即返回，哈希后台计算）。
+/// 命中且副本在场立即播放既有私有副本（不等待哈希），后台校验哈希一致则
+/// 刷新最近打开时间，不一致（同名同大小不同内容）按新视频导入、旧条目
+/// 保留；命中而副本不在（**副本丢失**）走**找回**——标识相符即把副本放回
+/// 条目记录的原路径（帮助文档那句「重新导入同一支视频即可接回」由此成立），
+/// 不符仍按新视频导入；未命中走首次导入路径——复制后同步算副本摘要并落
+/// 条目，因此返回时条目已在清单里，随后任何一次打开都不再等后台哈希落盘。
 class VideoImporter {
   VideoImporter(
     this._picker,
@@ -64,6 +70,8 @@ class VideoImporter {
     required this.indexStore,
     required this.hasher,
     this.now = DateTime.now,
+    this.copyPresence = const FileVideoCopyPresence(),
+    this.recovery,
   });
 
   final VideoPicker _picker;
@@ -72,11 +80,24 @@ class VideoImporter {
   /// 视频索引读写（index.json；接口形态供测试注入内存实现）。
   final VideoIndexStorage indexStore;
 
-  /// 内容哈希计算（测试可注入门控/桩实现）。
+  /// 视频标识计算（测试可注入门控/桩实现）。
   final ContentHasher hasher;
 
   /// 时钟（测试注入固定时间，保证最近打开时间可断言）。
   final DateTime Function() now;
+
+  /// 副本存在性判定注入点（**副本丢失**事实的唯一来源）：快速键命中后
+  /// 先问它副本在不在，再决定是直接用既有副本还是走找回。
+  final VideoCopyPresence copyPresence;
+
+  /// 找回动作（快速键命中而副本不在时走它）；null = 按本管道同一套件装配。
+  /// 生产装配传入 [videoRecoveryProvider] 的同一实例，与找回面上的那条
+  /// 找回是同一条动作。
+  final VideoRecovery? recovery;
+
+  late final VideoRecovery _recoveryAction =
+      recovery ??
+      VideoRecovery(_picker, indexStore: indexStore, hasher: hasher);
 
   /// 完整导入：选择视频 → 打开（快速键匹配或首次导入）。
   ///
@@ -89,8 +110,10 @@ class VideoImporter {
 
   /// 打开已选中的视频（快速键先行匹配）。
   ///
-  /// 返回后即可进入播放：首次导入复制完成即返回（哈希后台计算），
-  /// 快速键命中直接返回既有私有副本（哈希校验后台进行）。
+  /// 首次导入：复制 → **同步**算一遍副本摘要 → 落条目，返回时索引里
+  /// 已有该条目（打开不再等后台哈希落盘；摘要仍在后台 isolate 计算，
+  /// 只是这里等它算完）。快速键命中直接返回既有私有副本，
+  /// 内容校验仍在后台对账；命中而副本不在则走找回（[VideoRecovery]）。
   Future<ImportedVideo> open(PickedVideo picked) async {
     final source = _sourceFileOf(picked);
     final sizeBytes = picked.sizeBytes ?? await source.length();
@@ -101,6 +124,11 @@ class VideoImporter {
     final candidates = index.byFastKey(key);
     if (candidates.isNotEmpty) {
       final entry = candidates.first;
+      // 命中而副本不在：今天那条路只刷新显示信息、路径仍指着不存在的
+      // 文件；改走找回——标识相符即把副本放回条目记录的原路径。
+      if (!copyPresence.exists(entry.filePath)) {
+        return _openWithMissingCopy(entry, picked);
+      }
       unawaited(_reconcileInBackground(picked, key));
       return ImportedVideo(
         name: entry.displayName,
@@ -109,20 +137,66 @@ class VideoImporter {
       );
     }
 
-    // 首次导入：复制到私有目录并清理选择器缓存 → 立即返回，
-    // 后台计算 xxHash64 并写入索引（不阻塞进入播放）。
-    final imported = await copyToPrivateDir(picked);
-    unawaited(_hashAndIndex(imported));
-    return imported.copyWith(isNewImport: true);
+    // 首次导入：复制到私有目录 → 同步算副本摘要 → 写条目再返回，
+    // 返回即索引已落盘（不再有后台收尾那一段看不见的尾巴）。
+    final dance = await _copyHashAndIndex(picked);
+    return dance.video.copyWith(isNewImport: true);
   }
 
-  /// 建舞分支：从分享包建一支新舞——既有管道的
-  /// 复制进私有目录、算内容哈希、建索引三步全真，只是哈希同步等待：
-  /// 导入编排要拿内容哈希挂组员方案，不能等后台收尾。返回导入副本与
-  /// 内容哈希（新舞的身份）。
-  Future<ImportedDance> importDanceFile(PickedVideo picked) async {
+  /// 快速键命中而副本不在：走找回（与找回面同一条动作）。
+  ///
+  /// - 标识相符（重新导入的正是这支）：副本放回条目记录的原路径，打开的是
+  ///   接回来的那支舞——既有条目，不弹命名框；
+  /// - 标识不符（同名同大小不同内容）：按新视频导入、旧条目保留（与副本在
+  ///   场时的对账口径同一条）；
+  /// - 出错：如实向上抛（界面出声），条目的身份与路径不变。
+  Future<ImportedVideo> _openWithMissingCopy(
+    VideoIndexEntry entry,
+    PickedVideo picked,
+  ) async {
+    final outcome = await _recoveryAction.restoreFrom(entry, picked);
+    return switch (outcome) {
+      VideoCopyRestored(entry: final restored) => ImportedVideo(
+        name: restored.displayName,
+        uri: File(restored.filePath).uri,
+        sizeBytes: restored.sizeBytes,
+      ),
+      VideoIsNotThisDance(:final picked, :final videoId) =>
+        (await _copyHashAndIndex(
+          picked,
+          knownVideoId: videoId,
+        )).video.copyWith(isNewImport: true),
+      VideoRecoveryFailed(:final error, :final stackTrace) =>
+        Error.throwWithStackTrace(error, stackTrace),
+      VideoRecoveryCancelled() => throw StateError('找回不会取消：这里已经拿着用户选中的文件'),
+    };
+  }
+
+  /// 建舞分支：另建一支新舞——与首次导入同一条「复制进私有目录 → 算副本
+  /// 摘要 → 落条目」路径，返回导入副本与视频标识（新舞的身份）；导入编排
+  /// 要拿标识挂组员方案，因此摘要是同步等的。
+  ///
+  /// [knownVideoId] = 调用方已经算出的这支视频的**视频标识**（找回路径上
+  /// 「不是这支」的结局就是它）：传入时不再读副本，总读取次数因此不增加；
+  /// 缺省为 null = 没有已知标识，按副本算（既有调用点行为不变）。
+  Future<ImportedDance> importDanceFile(
+    PickedVideo picked, {
+    String? knownVideoId,
+  }) => _copyHashAndIndex(picked, knownVideoId: knownVideoId);
+
+  /// 首次导入与建舞分支共用的落盘路径：复制 → 同步算副本摘要 → 落条目。
+  ///
+  /// 摘要读的是复制后的副本（源文件在清缓存后可能已不在）；
+  /// [knownVideoId] 传入时不再读副本——身份在核对源文件时已经算出
+  /// （找回路径上「同名同大小不同内容」那一条），总读取次数因此不增加。
+  /// 任一步失败都向上抛，由调用方处置——不做静默兜底。
+  Future<ImportedDance> _copyHashAndIndex(
+    PickedVideo picked, {
+    String? knownVideoId,
+  }) async {
     final imported = await copyToPrivateDir(picked);
-    final videoId = await hasher.hashFile(File(imported.uri.toFilePath()));
+    final videoId =
+        knownVideoId ?? await hasher.hashFile(File(imported.uri.toFilePath()));
     await indexStore.update(
       (index) => index.upsert(_entryFor(imported, videoId)),
     );
@@ -145,19 +219,6 @@ class VideoImporter {
       uri: target.uri,
       sizeBytes: await target.length(),
     );
-  }
-
-  /// 首次导入的后台收尾：哈希私有副本并写入索引（新增/合并条目）。
-  Future<void> _hashAndIndex(ImportedVideo imported) async {
-    try {
-      final videoId = await hasher.hashFile(File(imported.uri.toFilePath()));
-      await indexStore.update(
-        (index) => index.upsert(_entryFor(imported, videoId)),
-      );
-    } on Object catch (error) {
-      // 后台收尾失败不影响已开始的播放；索引保持原状，下次打开重算。
-      debugPrint('视频索引后台写入失败：$error');
-    }
   }
 
   /// 快速键命中后的后台校验与索引对账：
@@ -201,32 +262,20 @@ class VideoImporter {
     }
   }
 
-  /// 导入源必须物化成本地文件。
-  ///
-  /// 非 `file://` 源无可复制的文件：file_picker 会先把所选文件物化到缓存，
-  /// 正常应为 file://。
-  File _sourceFileOf(PickedVideo picked) {
-    if (picked.sourceUri.scheme != 'file') {
-      throw StateError(
-        '暂不支持非本地文件的导入源（${picked.sourceUri.scheme}）；'
-        'file_picker 会先把所选文件物化到缓存，正常应为 file://。',
-      );
-    }
-    return File(picked.sourceUri.toFilePath());
-  }
+  /// 导入源必须物化成本地文件（判据与文案见 [localSourceFileOf]）。
+  File _sourceFileOf(PickedVideo picked) =>
+      localSourceFileOf(picked, what: '导入源');
 
-  /// 由已导入的视频与内容哈希构造索引条目。
-  VideoIndexEntry _entryFor(ImportedVideo imported, String videoId) {
-    return VideoIndexEntry(
-      videoId: videoId,
-      displayName: imported.name,
-      filePath: imported.uri.toFilePath(),
-      sizeBytes: imported.sizeBytes,
-      fastKey: fastKeyFor(name: imported.name, sizeBytes: imported.sizeBytes),
-      mirrored: false,
-      lastOpenedAt: now(),
-    );
-  }
+  /// 由已导入的视频与它的视频标识构造索引条目（字段清单见
+  /// [VideoIndexEntry.forVideoCopy]）。
+  VideoIndexEntry _entryFor(ImportedVideo imported, String videoId) =>
+      VideoIndexEntry.forVideoCopy(
+        videoId: videoId,
+        displayName: imported.name,
+        filePath: imported.uri.toFilePath(),
+        sizeBytes: imported.sizeBytes,
+        lastOpenedAt: now(),
+      );
 
   /// 目标文件名去冲突：同名时在扩展名前插入 ` (n)` 序号，不覆盖旧文件。
   Future<File> _uniqueTarget(Directory directory, String name) async {

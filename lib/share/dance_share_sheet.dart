@@ -47,12 +47,18 @@ class DanceShareSheet extends ConsumerStatefulWidget {
 }
 
 class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
-  late bool _includeSourceVideo = widget.initialIncludeSourceVideo;
+  /// 带源视频：勾选初值还要过**副本丢失**那一关——源视频副本不在时带不上，
+  /// 包体只剩我的标注方案（丢的是视频副本，不是标注方案；整支舞不因此冻住）。
+  late bool _includeSourceVideo =
+      widget.initialIncludeSourceVideo && !widget.dance.copyMissing;
   late bool _includeMastery = widget.initialIncludeMastery;
   late final Set<String> _selectedClipIds = Set.of(widget.initialClipIds);
   bool _sending = false;
   _SharePrecheck? _precheck;
   bool _loadFailed = false;
+
+  /// 源视频副本不在：勾选框置灰并说明（不是用户能改的取舍）。
+  bool get _sourceVideoMissing => widget.dance.copyMissing;
 
   @override
   void initState() {
@@ -207,10 +213,15 @@ class _DanceShareSheetState extends ConsumerState<DanceShareSheet> {
                     children: [
                       CheckboxListTile(
                         key: const Key('share_sheet_source_video'),
-                        title: const Text('带源视频'),
+                        title: Text(
+                          _sourceVideoMissing ? '带源视频（副本丢失）' : '带源视频',
+                        ),
                         value: _includeSourceVideo,
-                        onChanged: (v) =>
-                            setState(() => _includeSourceVideo = v ?? false),
+                        onChanged: _sourceVideoMissing
+                            ? null
+                            : (v) => setState(
+                                () => _includeSourceVideo = v ?? false,
+                              ),
                       ),
                       CheckboxListTile(
                         key: const Key('share_sheet_mastery'),

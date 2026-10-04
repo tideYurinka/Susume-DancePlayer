@@ -38,6 +38,7 @@ import 'package:dance_learning_app/update/update_check.dart';
 import 'package:dance_learning_app/update/update_gateway.dart';
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
 import 'package:dance_learning_app/dance/cover_generation_queue.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,7 @@ import '../helpers/fake_system_ui.dart';
 import '../helpers/fake_system_volume.dart';
 import '../helpers/fake_update_gateway.dart';
 import '../helpers/fake_video_picker.dart';
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
 import '../helpers/in_memory_private_json_storage.dart';
@@ -447,6 +449,39 @@ void main() {
     expect(find.byType(PlayerPage), findsNothing, reason: '详情行与卡片主体不抢同一次点按');
   });
 
+  testWidgets('副本丢失：卡片带丢失标记、点开进找回面而不是播放页、也不排队取帧', (tester) async {
+    useNamedViewport(tester, ViewportTier.compact);
+    final harness = _Harness(
+      index: VideoIndex(entries: [_entry('v1'), _entry('v2')]),
+      copyPresence: FakeVideoCopyPresence(
+        missingPaths: const {'/videos/v1.mp4'},
+      ),
+    );
+    await harness.pump(tester);
+
+    // 只有副本不在的那张卡带标记。
+    expect(find.byKey(const Key('dance_card_copy_missing_v1')), findsOneWidget);
+    expect(find.byKey(const Key('dance_card_copy_missing_v2')), findsNothing);
+    // 丢失期间不可用：封面取帧不排队（在场的舞照常排队）。
+    expect(
+      [for (final request in harness.coverRunner.requested) request.videoId],
+      ['v2'],
+    );
+
+    // 点开丢失的舞：进找回面，不进播放页。
+    await tester.tap(find.byKey(const Key('dance_card_open_v1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('dance_recovery_page')), findsOneWidget);
+    expect(find.byType(PlayerPage), findsNothing);
+
+    // 副本在场的舞照旧进播放页。
+    harness.navigator(tester).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dance_card_open_v2')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsOneWidget);
+  });
+
   testWidgets('空库：空态可达导入（导入入口常驻）', (tester) async {
     final harness = _Harness();
     await harness.pump(tester);
@@ -528,9 +563,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsOneWidget);
 
-    // 后台哈希在会话期间落盘（导入不等它，见 VideoImporter）。
-    await importer.landIndexEntry();
-
+    // 导入返回时条目已在册（见 VideoImporter）：从播放器回到首页即出新卡。
     harness.navigator(tester).pop();
     await tester.pumpAndSettle();
 
@@ -539,7 +572,7 @@ void main() {
     expect(_inCard('v1', 'v1'), findsOneWidget);
   });
 
-  testWidgets('导入后立刻回首页：索引落盘前不出现、落盘后自然出现', (tester) async {
+  testWidgets('导入返回即索引就绪：立刻回首页，新卡当场出现（首页不再轮询等落盘）', (tester) async {
     final harness = _Harness();
     final importer = _StubImporter(
       storage: harness.indexStorage,
@@ -551,15 +584,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('import_video_button')));
     await tester.pumpAndSettle();
+    // 不额外等任何时限、不手工补落索引：回首页即出现。
     harness.navigator(tester).pop();
-    await tester.pumpAndSettle();
-
-    // 后台哈希还没落盘：该舞不出现（不点开一个空条目）。
-    expect(find.byKey(const Key('dance_library_empty')), findsOneWidget);
-
-    // 后台哈希落盘：首页自己重算，新卡出现，无需再操作一次。
-    await importer.landIndexEntry();
-    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dance_library_empty')), findsNothing);
@@ -583,11 +609,9 @@ void main() {
     final harness = _Harness(
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
+        // 已有节拍数据：打开这一趟不触发分析/自动分段改写区间。
         'v1': _documents(
-          markers: const MarkersDocument(
-            rangeStartMs: 10000,
-            rangeEndMs: 130000,
-          ),
+          markers: _markersWithBeat(rangeStartMs: 10000, rangeEndMs: 130000),
           local: const LocalDocument.empty(),
         ),
       },
@@ -823,10 +847,7 @@ void main() {
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
         'v1': _documents(
-          markers: const MarkersDocument(
-            rangeStartMs: 10000,
-            rangeEndMs: 120000,
-          ),
+          markers: _markersWithBeat(rangeStartMs: 10000, rangeEndMs: 120000),
           local: const LocalDocument.empty(),
         ),
       },
@@ -841,7 +862,7 @@ void main() {
 
     // 用户改了首线（10s → 20s）后回到首页：读面重算，旧图不再算就绪。
     await harness.documents['v1']!.saveMarkers(
-      const MarkersDocument(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
+      _markersWithBeat(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
     );
     await tester.tap(find.byKey(const Key('dance_card_open_v1')));
     await tester.pumpAndSettle();
@@ -862,10 +883,7 @@ void main() {
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
         'v1': _documents(
-          markers: const MarkersDocument(
-            rangeStartMs: 10000,
-            rangeEndMs: 120000,
-          ),
+          markers: _markersWithBeat(rangeStartMs: 10000, rangeEndMs: 120000),
           local: const LocalDocument.empty(),
         ),
       },
@@ -885,7 +903,7 @@ void main() {
       const Duration(seconds: 20),
     );
     await harness.documents['v1']!.saveMarkers(
-      const MarkersDocument(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
+      _markersWithBeat(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
     );
     await tester.tap(find.byKey(const Key('dance_card_open_v1')));
     await tester.pumpAndSettle();
@@ -901,10 +919,7 @@ void main() {
       index: VideoIndex(entries: [_entry('v1')]),
       documents: {
         'v1': _documents(
-          markers: const MarkersDocument(
-            rangeStartMs: 10000,
-            rangeEndMs: 120000,
-          ),
+          markers: _markersWithBeat(rangeStartMs: 10000, rangeEndMs: 120000),
           local: const LocalDocument.empty(),
         ),
       },
@@ -931,7 +946,7 @@ void main() {
 
     // 首线改到 20s 后回首页：旧结果不能复用，必须按新位置再取一次。
     await harness.documents['v1']!.saveMarkers(
-      const MarkersDocument(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
+      _markersWithBeat(rangeStartMs: 20000, rangeEndMs: 120000).toJson(),
     );
     await tester.tap(find.byKey(const Key('dance_card_open_v1')));
     await tester.pumpAndSettle();
@@ -970,8 +985,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PlayerPage), findsOneWidget);
 
-    // 导入（含后台哈希落盘）不成封面：导入路径不做任何取帧。
-    await importer.landIndexEntry();
+    // 导入（条目随导入返回已在册）不成封面：导入路径不做任何取帧。
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(harness.coverRunner.requested, isEmpty);
@@ -1009,9 +1023,11 @@ class _Harness {
     this.planEntries,
     List<PracticeSessionRecord> records = const [],
     InMemoryCoverCache? coverCache,
+    VideoCopyPresence? copyPresence,
   }) : indexStorage = indexStore ?? InMemoryVideoIndexStorage(initial: index),
        statsStorage = InMemoryPracticeStatsStorage(),
        coverCache = coverCache ?? InMemoryCoverCache(),
+       copyPresence = copyPresence ?? FakeVideoCopyPresence(),
        engine = FakePlaybackEngine() {
     if (records.isNotEmpty) {
       statsStorage.rawJson = PracticeStatsDocument(sessions: records).toJson();
@@ -1027,6 +1043,9 @@ class _Harness {
 
   /// 封面缓存替身（默认一份封面也没有 = 卡片先出占位图）。
   final InMemoryCoverCache coverCache;
+
+  /// 副本存在性替身（缺省 = 副本都在场；丢失用例喂假）。
+  final VideoCopyPresence copyPresence;
 
   /// 取帧队列的执行替身：记录请求（可见优先次序）；默认不取帧。
   late final _FakeCoverRunner coverRunner;
@@ -1057,6 +1076,7 @@ class _Harness {
             (videoId) => documents[videoId] ?? InMemoryVideoDocumentStorage(),
           ),
           coverCacheProvider.overrideWith((ref) => coverCache),
+          videoCopyPresenceProvider.overrideWithValue(copyPresence),
           coverGenerationQueueProvider.overrideWith(
             (ref) => CoverGenerationQueue(run: coverRunner.run),
           ),
@@ -1117,10 +1137,12 @@ class _FakeCoverRunner {
       _gates[videoId]!.complete(ready);
 }
 
-/// 导入替身：真实导入链的文件复制与后台哈希在 fake async 时钟下不可完成，
-/// 故只替换 [VideoImporter.import]；索引条目由用例在想要的时刻落盘
-/// （[landIndexEntry]），其余构造参数取一用即报错的桩——真走回真实管道时
-/// 立刻失败，不静默写进临时目录。
+/// 导入替身：真实导入链的文件复制与摘要计算在 fake async 时钟下不可完成，
+/// 故只替换 [VideoImporter.import]；其余构造参数取一用即报错的桩——真走回
+/// 真实管道时立刻失败，不静默写进临时目录。
+///
+/// [import] 照实模拟导入的返回时点：条目**随返回即在册**（票 #15 的同步落盘
+/// 语义），因此首页不需要任何「等后台落盘」的等待。
 class _StubImporter extends VideoImporter {
   _StubImporter({
     required VideoIndexStorage storage,
@@ -1139,11 +1161,10 @@ class _StubImporter extends VideoImporter {
   final ImportedVideo imported;
 
   @override
-  Future<ImportedVideo?> import() async => imported;
-
-  /// 模拟后台哈希把索引条目落盘（时机由用例决定）。
-  Future<void> landIndexEntry() =>
-      _storage.update((index) => index.upsert(entry));
+  Future<ImportedVideo?> import() async {
+    await _storage.update((index) => index.upsert(entry));
+    return imported;
+  }
 }
 
 /// 永不返回的索引存储：首页停在加载态。
@@ -1192,3 +1213,21 @@ InMemoryVideoDocumentStorage _documents({
   markers: markers.toJson(),
   local: local.toJson(),
 );
+
+/// 已有节拍数据的公开标记文件：打开这支舞不触发后台分析/自动分段，故
+/// 「打开→回首页」这一趟不改盘上的区间与分段（封面位置等读取面照原样可断言）。
+MarkersDocument _markersWithBeat({
+  required int rangeStartMs,
+  required int rangeEndMs,
+}) => MarkersDocument(rangeStartMs: rangeStartMs, rangeEndMs: rangeEndMs)
+    .withBeat(
+      BeatGrid(
+        model: 'madmom_downbeat_rnn_full.onnx',
+        fps: 100,
+        generatedAt: DateTime.utc(2026, 9, 1),
+        beats: const [
+          BeatPoint(t: 0.5, down: true),
+          BeatPoint(t: 1.0, down: false),
+        ],
+      ),
+    );

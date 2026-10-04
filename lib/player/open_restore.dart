@@ -20,6 +20,7 @@ import '../beat_track_state/beat_track_state.dart'
     show BeatTrackState, beatTrackStateProvider;
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
+import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
 import '../import/import_providers.dart'
     show contentHasherProvider, videoIndexStoreProvider;
 import '../persistence/video_index.dart' show VideoIndexEntry;
@@ -45,6 +46,7 @@ import 'beat_analysis.dart' show beatAnalysisRunnerProvider;
 import 'beat_prompt_memory.dart' show beatPromptMemoryProvider;
 import 'framing_session_state.dart' show framingStateProvider;
 import 'dancer_roster_controller.dart' show dancerRosterControllerProvider;
+import 'load_gate.dart' show loadGateActiveProvider;
 import 'notice.dart' show NoticeId, noticeTriggerProvider;
 import '../persistence/load_table.dart' show LoadDefaults, LoadRowId, LoadTable;
 import 'loop_prompt.dart' show tailGuardLog;
@@ -67,22 +69,22 @@ import 'song_loudness.dart'
 import 'speed_control.dart' show speedControlProvider;
 
 /// 按视频打开恢复（改经打开会话）：宿主在
-/// 播放页装配「打开会话」（建立序列 = 定身份 → 读两份文档 → 建基线快照 →
-/// 置已建立），本入口消费会话给出的身份与文档快照，按序完成——
+/// 播放页装配「打开会话」（建立序列 = 按路径定身份 → 读两份文档 → 建基线快照
+/// → 置已建立），本入口消费会话给出的身份与文档快照，按序完成——
 ///
 /// 1. 打开即按新视频语义复位会话态与设置（上一视频的偏好/激活不得串入；
 ///    恢复命中时随后被覆盖）。节拍轨复位占位并取消上一视频的在途分析
 ///    （一次只分析一个、中断不写半截）。恢复前清经模块公开入口
 ///    `clearForVideoRestore`。
-/// 2. 会话未识别身份（摘要失败 / 文档不可读）→ 按无标注空态，不接保存
+/// 2. 会话无身份（兜底摘要失败 / 文档不可读）→ 按无标注空态，不接保存
 ///    编排、无落盘目标；
-/// 3. 名册装载、节拍分析、续播改经会话给出的身份与文档快照；无条目时
-///    身份取内容摘要，按新视频语义且照常落盘（内容寻址）；
-/// 4. markers 存在（非空态）且条目命中 → 以其署名/镜像回写 index 缓存
+/// 3. 名册装载、节拍分析、续播改经会话给出的身份与文档快照；身份按路径取
+///    自条目（查不到才兜底算一次并补建条目），照常落盘（内容寻址）；
+/// 4. markers 存在（非空态）且条目在册 → 以其署名/镜像回写 index 缓存
 ///    （仅差异时写盘，恢复本身不写 markers/local）；
-/// 5. 注入 per-video [AnnotationSaveOrchestrator]（首建初值 = 命中条目的
-///    署名缓存 + 镜像过渡值；无条目 / 摘要不符按新视频缺省值），此后标注
-///    编辑提交即时落盘。
+/// 5. 注入 per-video [AnnotationSaveOrchestrator]（首建初值 = 条目在册时的
+///    署名缓存 + 镜像过渡值；无条目按新视频缺省值），此后标注编辑提交即时
+///    落盘。
 ///
 /// 建立序列不对索引条目做任何等待：那一份 600 次 × 100ms 的重试与取消
 /// 逻辑整体删除，「条目尚未落盘」不再是错误状态。
@@ -136,10 +138,17 @@ class VideoOpenRestorer {
   /// 只调本方法一次，建立会话、按装载表逐行恢复与随后几段域会话的启动都在
   /// 这里收口编排。
   ///
+  /// 「装载未完成」门的开合归本模块持有：建立序列之前置位——对象集本身来自
+  /// 尚未装载的文档；打开恢复（[resolve]，含把标注对象集放上时间线那一段）
+  /// 落定即落位，同一序列后面的命名框 / 镜像询问 / 署名解析因此不再拖住它。
+  /// 无实体文件（不存在 / 平台路径不可用）时不置位：没有可装载的内容，
+  /// 「正在装载」不该留下。页面不再碰门的开合，只读门事实。
+  ///
   /// 次序与既有实现逐位一致：
   ///
-  /// 1. 定身份（建立序列的异常按无身份收场、不阻塞播放）；
-  /// 2. [resolve] 后台进行（不阻塞播放），与偏好/署名/镜像三段并行；
+  /// 1. 按路径定身份（命中条目即取、不读视频内容；查不到才兜底算一次并补建
+  ///    条目；建立序列的异常按无身份收场、不阻塞播放）；
+  /// 2. [resolve] 落定（打开恢复不再后台跑：门的落定点就是它的落定）；
   /// 3. 偏好恢复与「变更即存」订阅（[OpenLoadHost.openSettings]）；
   /// 4. 统计会话启动（署名解析前，避免解析窗口内的播放记到上一支舞）；
   /// 5. 署名解析（[OpenLoadHost.startSignature]），落定后交给统计域；
@@ -159,29 +168,69 @@ class VideoOpenRestorer {
       coordinatorFor: (videoId) =>
           _ref.read(videoDocumentCoordinatorProvider(videoId)),
     );
+    final gate = _ref.read(loadGateActiveProvider.notifier);
+    if (_shouldArmLoadGate(session.filePath)) gate.begin();
     try {
-      await session.establish();
-    } on Object {
-      // 建立序列异常：无身份、按空态。
+      try {
+        await session.establish();
+      } on Object {
+        // 建立序列异常：无身份、按空态。
+      }
+      if (!host.isMounted()) return;
+      // 打开恢复接线：落定即落位门（见 [resolve] 的收尾）；恢复失败按无
+      // 标注空态，且不阻塞后续域会话。
+      try {
+        await resolve(
+          session: session,
+          videoDuration: videoDuration,
+          scheme: scheme,
+        );
+      } on Object {
+        // 打开恢复失败：门已在其收尾落位，标注按空态。
+      }
+      if (!host.isMounted()) return;
+      await host.openSettings(session);
+      host.startStats();
+      await host.startSignature(session);
+      if (!host.isMounted()) return;
+      host.syncStatsVideoContext();
+      await host.promptNaming(isNewImport: askNaming);
+      await host.resolveMirror(session);
+    } finally {
+      // 兜底落位：建立序列没走完、宿主中途卸载时，门也不留成一个永远
+      // 挡写的门。
+      if (_ref.mounted) gate.settle();
     }
-    if (!host.isMounted()) return;
-    // 打开恢复接线：后台进行、不阻塞播放；失败按无标注空态。
-    unawaited(
-      resolve(session: session, videoDuration: videoDuration, scheme: scheme),
-    );
-    await host.openSettings(session);
-    host.startStats();
-    await host.startSignature(session);
-    if (!host.isMounted()) return;
-    host.syncStatsVideoContext();
-    await host.promptNaming(isNewImport: askNaming);
-    await host.resolveMirror(session);
   }
 
   /// 打开恢复（流程见库头注释）。[session] 由播放页装配并已建立；
   /// [scheme] = 这次打开带的方案参数，缺省 = 不带参数（详情页方案区各行与
   /// 首页卡片各带一份）。
+  ///
+  /// **落定即落位「装载未完成」门**（门由本模块持有，见 [open]）：本恢复
+  /// 收尾——标注对象集与熟练度都放上时间线那一段走完——就是门的落定点，
+  /// 不是「建立序列走完」，因此不留「门已经落下、对象集还没上来」的窗口；
+  /// 恢复抛异常时同样落位，不留一个永远挡写的门。
   Future<void> resolve({
+    required OpenSession session,
+    required Duration videoDuration,
+    SchemeOpen scheme = const AutoSchemeOpen(),
+  }) async {
+    try {
+      await _resolve(
+        session: session,
+        videoDuration: videoDuration,
+        scheme: scheme,
+      );
+    } finally {
+      // 容器已销毁（测试拆场 / 树先于在途链退场）时不读已销毁的 ref：
+      // 门随容器一同消逝，无需落位。
+      if (_ref.mounted) _ref.read(loadGateActiveProvider.notifier).settle();
+    }
+  }
+
+  /// 打开恢复本体（流程与门的落定点见 [resolve]）。
+  Future<void> _resolve({
     required OpenSession session,
     required Duration videoDuration,
     SchemeOpen scheme = const AutoSchemeOpen(),
@@ -269,10 +318,11 @@ class VideoOpenRestorer {
           await _ref
               .read(dancerRosterControllerProvider)
               .startForVideo(coordinator);
-          // 恢复是后台进行的长链：页面已销毁时不再往下读 provider。
+          // 恢复是会被宿主中途舍弃的长链：页面已销毁时不再往下读 provider。
           if (!_ref.mounted) return;
         case LoadRowId.resume:
-          // 续播位置按条目，仅「条目命中且摘要相符」的这支舞才有旧位置。
+          // 续播位置按条目：条目在册（按路径命中，或兜底补建）的这支舞才有
+          // 旧位置。
           if (entry != null) await _applyResumePosition(entry, videoDuration);
         // 偏好 / 镜像 / 署名：执行归宿主调用点（播放页 `_open` 的偏好
         // 编排、镜像控制器、署名控制器），会话侧按表跳过。
@@ -283,9 +333,9 @@ class VideoOpenRestorer {
       }
     }
 
-    // markers 存在且条目命中 → 以其署名/镜像回写 index 缓存；摘要不符 /
-    // 无条目时不把新内容的现值写到旧条目上。回写只看我的公开文档——
-    // 组员方案装载时署名缓存仍以我的文件为准。
+    // markers 存在且条目在册 → 以其署名/镜像回写 index 缓存；无条目时索引
+    // 里没有可写的这支舞。回写只看我的公开文档——组员方案装载时署名缓存仍
+    // 以我的文件为准。
     if (entry != null &&
         session.markers != const marker_doc.MarkersDocument.empty()) {
       await _writeBackSignatureCache(videoId, session.markers);
@@ -388,8 +438,8 @@ class VideoOpenRestorer {
     );
   }
 
-  /// 续播接线（续播行为）：内容哈希校验通过
-  /// 后按 index 的续播位置决策——有效位置 seek（页面打开即播 → 自动续播），
+  /// 续播接线（续播行为）：按路径取到的条目身份即这支舞，
+  /// 据此读 index 的续播位置决策——有效位置 seek（页面打开即播 → 自动续播），
   /// 位置超出头部阈值再弹「从头播放？」小卡；头部阈值内静默续播；上次
   /// 到尾（含记录值 0）从头播放、不弹卡。续播位置越自定义尾线钳回尾线
   /// （续播恢复钳制：打开不再落到尾线右侧，跨尾线拦截照常生效），
@@ -544,4 +594,13 @@ class VideoOpenRestorer {
       // 回写失败不阻塞播放（非关键路径，下次打开再对账）。
     }
   }
+
+  /// 「装载未完成」门要不要置位：没有实体视频副本（不存在 / 平台路径不可用）
+  /// 时不置位——没有可装载的内容，「正在装载」不该留下。
+  ///
+  /// 「副本在不在」只问 [videoCopyPresenceProvider] 这一处（见词条「副本
+  /// 丢失」），本模块不自己查一次文件系统；副本丢失的判定与拦截发生在打开
+  /// 入口之前。
+  bool _shouldArmLoadGate(String filePath) =>
+      _ref.read(videoCopyPresenceProvider).exists(filePath);
 }

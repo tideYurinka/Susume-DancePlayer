@@ -305,8 +305,9 @@ class VideoSettingsPersistence {
         // 不入撤销史、不受锁定分段门禁；
         // 组员方案装载期间不落盘——方案的值生效，调整只改会话值（沿「续播
         // 位置读而不写」的先例）。目标值与盘上现值相同即无事发生：打开恢复
-        // 的装载（与用户改动共用同一写入口，而恢复是后台进行、订阅可能先
-        // 挂上）因此不落盘、也不对只读文件弹提示。
+        // 的装载（与用户改动共用同一写入口）因此不落盘、也不对只读文件弹
+        // 提示；打开恢复如今在本订阅挂上之前就落定，装载本身更不产生写
+        // 事件。
         if (framingDirty && framingWritable) {
           final markers = await coordinator.readMarkersOutcome();
           if (markers.document.framingSelection != framingSource) {

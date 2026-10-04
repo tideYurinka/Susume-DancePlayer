@@ -18,6 +18,7 @@ import 'package:dance_learning_app/player/level_control.dart'
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
 import 'package:dance_learning_app/dance/cover_frame_providers.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_providers.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_store.dart';
 import 'package:dance_learning_app/persistence/member_scheme_store.dart';
@@ -33,6 +34,7 @@ import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_cover_generator.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fake_system_volume.dart';
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/in_memory_cover_cache.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
 import '../helpers/in_memory_member_scheme_storage.dart';
@@ -77,6 +79,9 @@ void main() {
             (id) => InMemoryVideoDocumentStorage(),
           ),
           coverCacheProvider.overrideWith((ref) => InMemoryCoverCache()),
+          // 副本存在性替身：本文件用假路径，缺省按副本在场（丢失状态归
+          // `dance_recovery_page_test` / `dance_detail_page_test`）。
+          videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
           coverGeneratorProvider.overrideWith(
             (ref) async => FakeCoverGenerator(cache: InMemoryCoverCache()),
           ),

@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:dance_learning_app/annotation/note_sticker.dart';
 import 'package:dance_learning_app/core/playback/playback_loop_providers.dart';
 import 'package:dance_learning_app/core/video_identity.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart'
+    show VideoCopyPresence, videoCopyPresenceProvider;
 import 'package:dance_learning_app/import/import_providers.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
 import 'package:dance_learning_app/annotation/learning_segment_attributes.dart';
@@ -46,6 +48,10 @@ import 'package:dance_learning_app/player/open_restore.dart'
     show OpenLoadHost, VideoOpenRestorer, videoOpenRestorerProvider;
 import 'package:dance_learning_app/player/framing_session_state.dart'
     show framingStateProvider;
+import 'package:dance_learning_app/player/dancer_roster_controller.dart'
+    show dancerRosterControllerProvider;
+import 'package:dance_learning_app/player/load_gate.dart'
+    show loadGateActiveProvider;
 import 'package:dance_learning_app/player/preview_snap.dart'
     show previewSnapEnabledProvider;
 import 'package:dance_learning_app/player/scheme_open.dart'
@@ -57,23 +63,46 @@ import 'package:dance_learning_app/persistence/marker_document.dart'
     as marker_doc;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import '../helpers/fake_beat_pipeline.dart';
 import '../helpers/fake_brightness.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_ui.dart';
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_member_scheme_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 
-/// 抛错哈希（哈希计算失败的兜底路径用）。
+/// 抛错哈希（兜底定身份的失败路径用：条目命中时一调用就失败即证伪「读内容」）。
 class ThrowingHasher implements ContentHasher {
   const ThrowingHasher();
 
   @override
   Future<String> hashFile(File file) async => throw StateError('hash failed');
+}
+
+/// 闸控摘要：把建立序列停在算指纹那一步，用来观察「装载未完成」
+/// 门的置位时刻（建立前置位）。
+class _GatedHasher implements ContentHasher {
+  final Completer<String> digest = Completer<String>();
+
+  @override
+  Future<String> hashFile(File file) => digest.future;
+}
+
+/// 真实副本文件（兜底补建条目按副本读大小与名字，故补建场景用真文件）。
+Future<File> writeTempVideo({int sizeBytes = 8}) async {
+  final directory = await Directory.systemTemp.createTemp('open_restore_test');
+  addTearDown(() async {
+    if (await directory.exists()) await directory.delete(recursive: true);
+  });
+  final file = File(p.join(directory.path, 'a.mp4'));
+  await file.writeAsBytes(List<int>.filled(sizeBytes, 3));
+  return file;
 }
 
 /// 带写盘计数的按视频文档存储（打开恢复不得触发多余写盘断言用）。
@@ -283,13 +312,17 @@ Probe makeProbe({
   Map<String, dynamic> markers = const {},
   Map<String, dynamic> local = const {},
   FakeBeatPipeline? pipeline,
-  VideoDocumentStorage Function(String videoId)? storageFor,
   MemberSchemeStorage? memberSchemeStorage,
+
+  /// 副本存在性替身：缺省「副本都在场」（喂假路径，不碰真实文件系统）；
+  /// 门时序用例因此不需要一份真文件在盘上。
+  VideoCopyPresence? copyPresence,
+  List<Override> extraOverrides = const [],
 }) {
   final docStorage = CountingVideoDocumentStorage(
     InMemoryVideoDocumentStorage(markers: markers, local: local),
   );
-  final documentStorage = storageFor ?? (String videoId) => docStorage;
+  VideoDocumentStorage documentStorage(String videoId) => docStorage;
   final indexStorage = InMemoryVideoIndexStorage(
     initial: index ?? VideoIndex(entries: [entryFor()]),
   );
@@ -300,6 +333,9 @@ Probe makeProbe({
       videoIndexStoreProvider.overrideWithValue(indexStorage),
       contentHasherProvider.overrideWithValue(hasher),
       videoDocumentStorageFactoryProvider.overrideWithValue(documentStorage),
+      videoCopyPresenceProvider.overrideWithValue(
+        copyPresence ?? FakeVideoCopyPresence(),
+      ),
       // 节拍分析注入 fake：本文件用例不消费节拍，避免真实管线启动。
       beatAnalysisPipelineProvider.overrideWithValue(
         pipeline ?? FakeBeatPipeline(),
@@ -308,6 +344,7 @@ Probe makeProbe({
         memberSchemeStorageProvider.overrideWith(
           (ref, videoId) => memberSchemeStorage,
         ),
+      ...extraOverrides,
     ],
   );
   // 容器内无 widget 监听，保持恢复目标 provider 存活（等价播放页的
@@ -619,42 +656,31 @@ void main() {
     expect(probe.container.read(delayedLoopProvider), DelayedLoopBeats.four);
   });
 
-  test('内容哈希不一致：按新视频处理（不载旧标注、旧条目/旧文件保留、身份取摘要）', () async {
-    // 旧条目（hash-old）的文档与新内容（different-content）的文档分属两个文件。
-    final oldStorage = CountingVideoDocumentStorage(
-      InMemoryVideoDocumentStorage(markers: markersJson(), local: localJson()),
-    );
-    final newStorage = CountingVideoDocumentStorage(
-      InMemoryVideoDocumentStorage(),
-    );
+  test('条目命中即取身份：摘要一调用就失败也照常载入这支舞的标注（打开不读内容）', () async {
     final probe = makeProbe(
-      hasher: const FixedHasher('different-content'),
-      index: VideoIndex(entries: [entryFor(videoId: 'hash-old')]),
-      storageFor: (videoId) => videoId == 'hash-old' ? oldStorage : newStorage,
+      // 打开路径触发任何内容摘要都判失败——条目命中时它一次都不该被调用。
+      hasher: const ThrowingHasher(),
+      markers: markersJson(),
+      local: localJson(),
     );
     await probe.open();
 
     final timeline = probe.container.read(annotationTimelineProvider);
-    expect(timeline.segmentLines, isEmpty);
-    expect(probe.container.read(selectedLearningSegmentsProvider), isEmpty);
-    expect(probe.container.read(layoutLockedProvider), isFalse);
+    expect(timeline.segmentLines, hasLength(1), reason: '按条目身份载入旧标注');
+    expect(probe.container.read(selectedLearningSegmentsProvider), isNotEmpty);
+    expect(probe.container.read(layoutLockedProvider), isTrue);
     expect(
       probe.container.read(annotationSaveSinkProvider),
       isNotNull,
-      reason: '按新视频语义仍可落盘（身份取摘要）',
+      reason: '身份来自条目 → 照常接通保存',
     );
-    // 旧条目保留、旧文件不被读也不被写。
-    expect(probe.indexStorage.current.findById('hash-old'), isNotNull);
-    expect(oldStorage.markersSnapshot, markersJson());
-    expect(oldStorage.localSnapshot, localJson());
-    expect(oldStorage.markersWrites, 0);
-    expect(oldStorage.localWrites, 0);
-    expect(newStorage.markersWrites, 0);
+    expect(probe.docStorage.markersWrites, 0, reason: '恢复本身不写盘');
   });
 
-  test('内容哈希计算失败：按新视频处理，不载旧标注', () async {
+  test('兜底摘要失败（副本不在）：无身份空态，不载标注、不接保存编排', () async {
     final probe = makeProbe(
       hasher: const ThrowingHasher(),
+      index: VideoIndex.empty,
       markers: markersJson(),
       local: localJson(),
     );
@@ -665,14 +691,16 @@ void main() {
       isEmpty,
     );
     expect(probe.container.read(annotationSaveSinkProvider), isNull);
+    expect(probe.indexStorage.current.entries, isEmpty, reason: '兜底失败不补建');
   });
 
-  test('索引无条目（条目尚未落盘）：空态但照常接通保存——身份取内容摘要', () async {
+  test('按路径无条目：兜底算一次定身份并补建条目，空态但照常接通保存', () async {
+    final video = await writeTempVideo();
     final probe = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: VideoIndex.empty,
     );
-    await probe.open();
+    await probe.open(filePath: video.path);
 
     expect(
       probe.container.read(annotationTimelineProvider).segmentLines,
@@ -684,18 +712,22 @@ void main() {
       reason: '「无条目 ⇒ 不接保存编排」这条语义已删除',
     );
     expect(probe.docStorage.markersWrites, 0, reason: '恢复本身不写盘');
+    final created = probe.indexStorage.current.findByFilePath(video.path);
+    expect(created?.videoId, kVideoId, reason: '兜底定身份后补建条目');
+    expect(created?.sizeBytes, 8, reason: '条目按副本现算大小');
   });
 
-  test('端到端：刚导入就打开（索引无条目）→ 标注落盘 → 重开后仍在', () async {
+  test('端到端：兜底定身份落标注 → 重开按路径命中、不再兜底', () async {
+    final video = await writeTempVideo();
     final probeA = makeProbe(
       hasher: const FixedHasher(kVideoId),
       index: VideoIndex.empty,
       // 分析失败：异常态不触发自动分段，本用例只验证标注落盘。
       pipeline: FakeBeatPipeline(error: '无有效音轨'),
     );
-    await probeA.open();
+    await probeA.open(filePath: video.path);
 
-    // 刚导入就打开：无索引条目，身份取内容摘要，标注经会话协调器落盘。
+    // 无索引条目：身份取兜底算出的摘要，标注经会话协调器落盘。
     final outcome = probeA.container
         .read(annotationEditorProvider)
         .submit(const AddSegmentLine(at: Duration(seconds: 30)));
@@ -705,21 +737,21 @@ void main() {
     final persisted = probeA.docStorage.markersSnapshot;
     expect(persisted['annotations']['segmentLines'], hasLength(1));
 
-    // 重开：同一内容身份寻址到同一份文档；索引仍无条目。
+    // 重开：索引里已有兜底补建的条目 → 按路径命中；摘要一调用就失败也不影响。
     final probeB = makeProbe(
-      hasher: const FixedHasher(kVideoId),
-      index: VideoIndex.empty,
+      hasher: const ThrowingHasher(),
+      index: probeA.indexStorage.current,
       markers: persisted,
       pipeline: FakeBeatPipeline(error: '无有效音轨'),
     );
-    await probeB.open();
+    await probeB.open(filePath: video.path);
 
     final timeline = probeB.container.read(annotationTimelineProvider);
     expect(timeline.segmentLines, hasLength(1));
     expect(
       timeline.segmentLines.single.position,
       const Duration(seconds: 30),
-      reason: '无索引条目时打开的标注落盘后重开仍在',
+      reason: '兜底补建条目后重开不再兜底、同一身份寻址到同一份文档',
     );
   });
 
@@ -995,11 +1027,16 @@ void main() {
         host.indexOf('promptNaming'),
         lessThan(host.indexOf('resolveMirror')),
       );
-      // resolve 后台进行（不阻塞 open 返回）：排空它在途链再收尾容器。
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // 打开恢复已随 open 落定（不再后台跑）：open 返回即能读到标注对象集，
+      // 没有留一个看不见的后台尾巴。
+      expect(
+        probe.container.read(annotationTimelineProvider).segmentLines.length,
+        1,
+        reason: 'open 返回即恢复落定，不留后台尾巴',
+      );
     });
 
-    test('open 建立的身份按内容摘要落定：非首次导入照常传给下游会话', () async {
+    test('open 建立的身份按路径条目落定：非首次导入照常传给下游会话', () async {
       final probe = makeProbe(
         hasher: const FixedHasher(kVideoId),
         markers: markersJson(withBeat: true),
@@ -1016,7 +1053,144 @@ void main() {
       expect(host.namingIsNewImport, isFalse, reason: '非首次导入场景照实传给命名框');
       expect(host.signatureSession?.videoId, kVideoId);
       expect(host.signatureSession?.identified, isTrue);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+  });
+
+  group('装载门归打开恢复持有', () {
+    test('建立前置位：建立序列还在途、打开恢复未开始，门已挡住写入口', () async {
+      final hasher = _GatedHasher();
+      // 门问的是副本存在性注入点：这条路径并不在盘上（也不在索引里，建立
+      // 序列因此停在算摘要那一步），替身说在场即置位——「副本在不在」只有
+      // 这一个答案来源，这里不再自己查一次文件系统。
+      const gatePath = '/videos/gate.mp4';
+      final presence = FakeVideoCopyPresence();
+      final probe = makeProbe(
+        hasher: hasher,
+        markers: markersJson(),
+        copyPresence: presence,
+      );
+      final host = _RecordingOpenLoadHost();
+
+      final opening = probe.restorer.open(
+        source: Uri.file(gatePath),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        presence.consulted,
+        contains(gatePath),
+        reason: '门要不要置位只问存在性注入点这一处',
+      );
+      expect(
+        probe.container.read(loadGateActiveProvider),
+        isTrue,
+        reason: '建立序列在途：对象集来自尚未装载的文档，写入口此刻全被同一道门挡下',
+      );
+      expect(host.calls, isEmpty, reason: '建立未落定，打开恢复与后段域会话都还没开始');
+
+      hasher.digest.complete(kVideoId);
+      await opening;
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+    });
+
+    test('打开恢复落定即落位：署名解析 / 命名框 / 镜像询问都不再拖住门', () async {
+      for (final call in const [
+        'startSignature',
+        'promptNaming',
+        'resolveMirror',
+      ]) {
+        final probe = makeProbe(
+          hasher: const FixedHasher(kVideoId),
+          markers: markersJson(),
+          local: localJson(),
+        );
+        final host = _RecordingOpenLoadHost()..gated.add(call);
+
+        final opening = probe.restorer.open(
+          source: Uri.file(kFilePath),
+          videoDuration: kDuration,
+          askNaming: true,
+          host: host,
+        );
+        await host.enteredOf(call);
+
+        expect(
+          probe.container.read(loadGateActiveProvider),
+          isFalse,
+          reason: '$call 还在途：门已随打开恢复落定，不再被后段交互拖住',
+        );
+        expect(
+          probe.container.read(annotationTimelineProvider).segmentLines.length,
+          1,
+          reason: '门落下的那一刻，标注对象集已就位上时间线',
+        );
+        expect(probe.container.read(learningMasteryProvider), {
+          1: LearningMastery.learning,
+        }, reason: '熟练度随对象集一同就位，不是等文档读完就算落定');
+
+        host.release(call);
+        await opening;
+        expect(probe.container.read(loadGateActiveProvider), isFalse);
+      }
+    });
+
+    test('无实体文件不置位：没有可装载的内容，门不起', () async {
+      final hasher = _GatedHasher();
+      const missingPath = '/videos/not-on-disk.mp4';
+      final probe = makeProbe(
+        hasher: hasher,
+        copyPresence: FakeVideoCopyPresence(missingPaths: const {missingPath}),
+      );
+      final host = _RecordingOpenLoadHost();
+
+      final opening = probe.restorer.open(
+        source: Uri.file(missingPath),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+
+      hasher.digest.complete(kVideoId);
+      await opening;
+      expect(probe.container.read(loadGateActiveProvider), isFalse);
+    });
+
+    test('打开恢复抛异常时门仍会落下：不留一个永远挡写的门', () async {
+      final probe = makeProbe(
+        hasher: const FixedHasher(kVideoId),
+        markers: markersJson(),
+        extraOverrides: [
+          // 名册装载行一读就炸：异常落在打开恢复内部（此前各行的标注
+          // 对象集已就位），门必须照样落位，后续域会话照常启动。
+          dancerRosterControllerProvider.overrideWith(
+            (ref) => throw StateError('roster boom'),
+          ),
+        ],
+      );
+      final host = _RecordingOpenLoadHost();
+
+      await probe.restorer.open(
+        source: Uri.file(kFilePath),
+        videoDuration: kDuration,
+        askNaming: false,
+        host: host,
+      );
+
+      expect(
+        probe.container.read(loadGateActiveProvider),
+        isFalse,
+        reason: '打开恢复抛异常也必须落位，否则写入口永远被挡',
+      );
+      expect(
+        host.indexOf('startSignature'),
+        isNonNegative,
+        reason: '打开恢复失败不阻塞后续域会话',
+      );
     });
   });
 
@@ -1154,7 +1328,28 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
   OpenSession? mirrorSession;
   bool? namingIsNewImport;
 
+  /// 闸控的调用名：该段会话停在入口等 [release]，用来观察门与后段交互的
+  /// 相对时序（门落下的那一刻，后段在不在途）。
+  final Set<String> gated = <String>{};
+  final Map<String, Completer<void>> _entered = <String, Completer<void>>{};
+  final Map<String, Completer<void>> _released = <String, Completer<void>>{};
+
   int indexOf(String call) => calls.indexOf(call);
+
+  /// 该段会话进入入口的完成信号（可在会话开始前取）。
+  Future<void> enteredOf(String call) =>
+      _entered.putIfAbsent(call, Completer<void>.new).future;
+
+  /// 放行闸控的该段会话。
+  void release(String call) =>
+      _released.putIfAbsent(call, Completer<void>.new).complete();
+
+  Future<void> _enter(String call) async {
+    calls.add(call);
+    _entered.putIfAbsent(call, Completer<void>.new).complete();
+    if (!gated.contains(call)) return;
+    await _released.putIfAbsent(call, Completer<void>.new).future;
+  }
 
   @override
   bool isMounted() {
@@ -1164,7 +1359,7 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> openSettings(OpenSession session) async {
-    calls.add('openSettings');
+    await _enter('openSettings');
     settingsSession = session;
   }
 
@@ -1175,7 +1370,7 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> startSignature(OpenSession session) async {
-    calls.add('startSignature');
+    await _enter('startSignature');
     signatureSession = session;
   }
 
@@ -1186,13 +1381,13 @@ class _RecordingOpenLoadHost implements OpenLoadHost {
 
   @override
   Future<void> promptNaming({required bool isNewImport}) async {
-    calls.add('promptNaming');
+    await _enter('promptNaming');
     namingIsNewImport = isNewImport;
   }
 
   @override
   Future<void> resolveMirror(OpenSession session) async {
-    calls.add('resolveMirror');
+    await _enter('resolveMirror');
     mirrorSession = session;
   }
 }

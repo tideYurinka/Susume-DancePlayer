@@ -27,9 +27,10 @@ enum VideoIndexEntryField {
 
 /// 视频索引（index.json）——import 域。
 ///
-/// 每条索引对应一个已导入视频（[VideoIndexEntry]）；打开视频时先用
-/// 快速键（大小 + 文件名）先行匹配立即恢复播放，后台哈希校验一致则
-/// 刷新最近打开时间，不一致按新视频导入（旧条目保留）。
+/// 每条索引对应一个已导入视频（[VideoIndexEntry]）；导入时先用快速键
+/// （大小 + 文件名）先行匹配立即恢复播放，后台哈希对账一致则刷新最近打开
+/// 时间，不一致按新视频导入（旧条目保留）。打开一支已有的舞按 [filePath]
+/// 命中条目即取身份，不读视频内容。
 ///
 /// JSON 字段对应：
 /// `videoId` ← video_id（内容 xxHash64）、`displayName` ← 显示名、
@@ -53,6 +54,30 @@ class VideoIndexEntry {
     this.extra = const {},
   });
 
+  /// 由一份已落位的**视频副本**与它的 [videoId] 新建条目：显示名、路径与
+  /// 大小都取自这份副本，快速键由显示名与大小派生（[fastKeyFor]）——落条目
+  /// 的字段清单只有这一处，导入首建与打开兜底补建共用。
+  ///
+  /// 镜像组态在这里落**缺省**（未作答）：同 videoId 已有条目时
+  /// [VideoIndex.upsert] 经 [preservedMirrorStateOf] 保住既有组态，本条目
+  /// 里的缺省因此不会把用户既有选择冲回默认——保留发生在合并那一步，不在
+  /// 这里。
+  factory VideoIndexEntry.forVideoCopy({
+    required String videoId,
+    required String displayName,
+    required String filePath,
+    required int sizeBytes,
+    required DateTime lastOpenedAt,
+  }) => VideoIndexEntry(
+    videoId: videoId,
+    displayName: displayName,
+    filePath: filePath,
+    sizeBytes: sizeBytes,
+    fastKey: fastKeyFor(name: displayName, sizeBytes: sizeBytes),
+    mirrored: false,
+    lastOpenedAt: lastOpenedAt,
+  );
+
   /// 视频标识：内容 xxHash64（小写十六进制）。
   final String videoId;
 
@@ -73,10 +98,10 @@ class VideoIndexEntry {
 
   /// 是否已询问过镜像：区分「用户答过『否』」与「还没问过」。
   ///
-  /// 首次导入时由后台哈希创建条目（默认 false）；用户作答后由
+  /// 首次导入时随内容摘要落条目（默认 false）；用户作答后由
   /// [VideoIndex.setMirrorAnswerByFilePath] 置 true。播放器打开时凭此判定
-  /// 「首次打开需询问」还是「按历史应用」——消除「后台哈希先于
-  /// resolve 落盘导致首次打开被误判为有历史」的竞态。
+  /// 「首次打开需询问」还是「按历史应用」——不靠条目是否已落盘判定，
+  /// 消除「条目落盘先于 resolve 导致首次打开被误判为有历史」的竞态。
   final bool mirrorAsked;
 
   /// 局部镜像总开关：与全局 [mirrored] 同一条过渡值通路——
@@ -237,8 +262,8 @@ class VideoIndexEntry {
   }
 
   /// 保留 [other] 的镜像组态（[mirrored]/[mirrorAsked]/[localMirrorEnabled]），
-  /// 其余字段取本条目——导入刷新场景用：镜像组态**按 video_id 存取**，后台
-  /// 哈希新落盘的条目不得把用户既有选择冲回缺省。字段清单集中在这一处，新增
+  /// 其余字段取本条目——导入刷新场景用：镜像组态**按 video_id 存取**，导入
+  /// 新落盘的条目不得把用户既有选择冲回缺省。字段清单集中在这一处，新增
   /// 镜像类字段只改这里（[VideoIndex.upsert] 因此不必手抄字段表）。
   VideoIndexEntry preservedMirrorStateOf(VideoIndexEntry other) => copyWith(
     mirrored: other.mirrored,
@@ -307,10 +332,10 @@ class VideoIndex {
     return null;
   }
 
-  /// 按应用私有目录副本路径精确查找（镜像历史恢复用）。
+  /// 按应用私有目录副本路径精确查找（打开时定身份与镜像历史恢复用）。
   ///
-  /// 导入后副本路径不变且与 videoId 一一对应，播放器打开时以
-  /// 自身 source 路径匹配，无需等后台哈希即可恢复镜像偏好。
+  /// 导入后副本路径不变且与 videoId 一一对应，打开一支舞以自身 source 路径
+  /// 匹配即可取到条目与镜像偏好——不读视频内容、不等任何摘要。
   VideoIndexEntry? findByFilePath(String filePath) {
     for (final e in entries) {
       if (e.filePath == filePath) return e;
@@ -338,9 +363,9 @@ class VideoIndex {
 
   /// 按应用私有目录副本路径记录镜像作答（持久化路径）。
   ///
-  /// 播放器打开时只有副本路径（video_id 可能仍在后台计算），按路径找
-  /// 条目写入镜像状态并标记「已询问」；未命中原样返回（后台哈希尚未
-  /// 落盘，调用方据此重试）。
+  /// 播放器打开时只有副本路径，按路径找条目写入镜像状态并标记
+  /// 「已询问」；索引里没有该副本路径的条目时原样返回（同一实例，调用方
+  /// 据此跳过写盘，不重试）。
   VideoIndex setMirrorAnswerByFilePath(
     String filePath, {
     required bool mirrored,

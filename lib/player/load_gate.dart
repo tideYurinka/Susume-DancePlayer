@@ -1,10 +1,14 @@
 /// 「装载未完成」门与「正在装载」提示声明。
 ///
-/// 打开会话建立之前，会写盘的入口被同一道门挡住：置灰、可点、点击报
-/// 「正在装载」短暂提示身份（判定表见 `tool_slots.dart`，门事实由本模块的
+/// 会写盘的入口被同一道门挡住：置灰、可点、点击报「正在装载」短暂提示身份
+/// （判定表见 `tool_slots.dart`，门事实由本模块的
 /// [loadGateActiveProvider] 持有）。提示纯视觉：与锁定分段提示同构的居中
 /// 轻提示——不拦截触摸、不与手势争 arena，不产生任何模型变更；被挡下的
 /// 操作本身不执行。
+///
+/// **开合归打开恢复持有**（`open_restore.dart`）：建立序列之前置位、打开
+/// 恢复（标注对象集放上时间线那一段）落定即落位；无实体文件不置位。页面与
+/// 其余模块只读门事实，不开关它。
 library;
 
 import 'package:flutter/material.dart';
@@ -14,19 +18,19 @@ import 'notice.dart' show NoticeId, NoticeSpec, noticeTriggerProvider;
 import 'tool_slots.dart' show PageWriteEntryId, PageWriteEntryTable;
 import 'visual_tokens.dart' show kNoticeTextStyle;
 
-/// 「装载未完成」门：打开会话建立之前为 true——对象集
+/// 「装载未完成」门：打开恢复落定之前为 true——对象集
 /// 本身来自尚未装载的文档，此刻所有会写盘的入口读同一状态、被同一道门挡住
-/// （置灰、可点、弹「正在装载」）；建立落定后置 false，入口自动恢复可用
+/// （置灰、可点、弹「正在装载」）；打开恢复落定后置 false，入口自动恢复可用
 /// （无需重开页面）。会话级内存态，
 /// 默认 false（未在打开路径上的场景不受门影响）。
 class LoadGateModel extends Notifier<bool> {
   @override
   bool build() => false;
 
-  /// 开始装载（进打开路径即置位）。
+  /// 置位（打开恢复在建立序列之前调）。
   void begin() => state = true;
 
-  /// 装载落定（建立序列走完，含无身份收场）。
+  /// 落位（打开恢复落定即调，含异常与无身份收场）。
   void settle() => state = false;
 }
 

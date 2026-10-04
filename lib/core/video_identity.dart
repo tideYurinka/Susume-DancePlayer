@@ -1,7 +1,8 @@
 // 视频标识（core 域）：
-// 主标识 = 视频内容摘要（xxHash64，十六进制，导入时后台计算并持久化到索引）；
-// 打开视频时先用「大小 + 文件名」快速键先行匹配索引立即恢复关联，
-// 再以内容摘要校验，不一致按新视频处理（按新视频语义，旧条目保留）。
+// 主标识 = 视频内容摘要（xxHash64，十六进制，导入时复制完成后同步计算并持久化到索引）；
+// 导入用它回答「新拿来的这份文件是不是库里已有的那支」——快速键先行匹配、
+// 再以内容摘要对账，不一致按新视频处理（按新视频语义，旧条目保留）。
+// 打开一支舞不读整片：身份由条目按路径承载（见 `OpenSession`）。
 
 import 'dart:io';
 import 'dart:isolate';
@@ -14,8 +15,8 @@ import 'dart:typed_data';
 String fastKeyFor({required String name, required int sizeBytes}) =>
     '$sizeBytes:$name';
 
-/// 视频内容摘要计算（xxHash64）。抽象以便测试注入门控/桩实现，
-/// 证明导入/打开流程不等待摘要（后台计算）。
+/// 视频内容摘要计算（xxHash64）。抽象以便测试注入门控/桩实现：导入等结果、
+/// 「按路径查不到条目」的兜底各读一次内容，打开路径命中条目时一次都不读。
 abstract interface class ContentHasher {
   /// 计算 [file] 的内容摘要，返回 16 位小写十六进制字符串。
   Future<String> hashFile(File file);

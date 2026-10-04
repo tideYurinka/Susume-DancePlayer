@@ -47,8 +47,8 @@ class SongSignatureController extends ChangeNotifier {
   String? _filePath;
   String? _videoId;
 
-  /// 会话给出的已确认条目（仅摘要相符时非空）：无 markers 时的署名现值
-  /// 与首建初值只读它——摘要不符 / 无条目时按新视频，不套用旧条目。
+  /// 会话给出的条目（打开路径按路径命中，或兜底定身份后补建）：无 markers
+  /// 时的署名现值与首建初值只读它——无条目时按新视频缺省，不套用旧条目。
   VideoIndexEntry? _entry;
   bool _disposed = false;
 
@@ -149,7 +149,7 @@ class SongSignatureController extends ChangeNotifier {
   }
 
   /// 双写持久化：index 署名缓存按路径写，且只在索引条目与已确认身份一致时
-  /// 才写（条目未落盘 = 无操作，缺省由下次打开经 markers 回写补齐；摘要不符
+  /// 才写（条目不在册 = 无操作，缺省由下次打开经 markers 回写补齐；身份不符
   /// 时旧条目保留、不被写）；markers 锚定会话给出的 videoId。写失败静默，
   /// 不抛到 UI。
   Future<void> _persist(SongSignature signature) async {

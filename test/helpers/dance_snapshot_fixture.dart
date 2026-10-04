@@ -12,19 +12,26 @@ const Map<String, dynamic> testDanceMarkers = {
 };
 
 /// 表单页测试用的一支舞读面快照：只关心列表要用的三样——标题（署名优先、
-/// 显示名兜底）、视频标识与最近打开时间；其余读面量按空态兜底。
+/// 显示名兜底）、视频标识与最近打开时间；其余读面量按空态兜底（缺省按视频
+/// 副本在场，[copyMissing] 供副本丢失用例喂那一面）。
+///
+/// [filePath]/[sizeBytes] 缺省是不存在的假路径与 1 字节；找回用例要断言
+/// 「副本回到条目记录的原路径」时喂一份可写路径与真实大小。
 DanceSnapshot danceSnapshotFixture({
   required String videoId,
   required String displayName,
   SongSignature? signature,
   required DateTime lastOpenedAt,
   int importOrder = 0,
+  bool copyMissing = false,
+  String? filePath,
+  int sizeBytes = 1,
 }) => DanceSnapshot(
   entry: VideoIndexEntry(
     videoId: videoId,
     displayName: displayName,
-    filePath: '/videos/$videoId.mp4',
-    sizeBytes: 1,
+    filePath: filePath ?? '/videos/$videoId.mp4',
+    sizeBytes: sizeBytes,
     fastKey: 'fast-$videoId',
     mirrored: false,
     lastOpenedAt: lastOpenedAt,
@@ -40,5 +47,6 @@ DanceSnapshot danceSnapshotFixture({
   coverPosition: Duration.zero,
   coverReady: false,
   coverAspectRatio: kCoverPlaceholderAspectRatio,
+  copyMissing: copyMissing,
   urgency: null,
 );

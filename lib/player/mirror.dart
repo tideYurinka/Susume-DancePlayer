@@ -37,21 +37,23 @@ enum MirrorPhase {
 /// 镜像状态机：首次打开询问、按 video_id 持久化、再次打开
 /// 自动应用历史设置并提示。
 ///
-/// - [resolve]：打开视频后消费打开会话给出的已确认身份（[videoId] 与
+/// - [resolve]：打开视频后消费打开会话给出的身份与条目（[videoId] 与
 ///   [entry]）——markers 存在 → 直接应用；否则 [entry] 命中且
 ///   [VideoIndexEntry.mirrorAsked]（已询问过）→ 立即应用到引擎并进入
 ///   [MirrorPhase.historyApplied]（提示「已按历史应用镜像」，无需确认）；
-///   [entry] 为 null（新视频 / 摘要不符）或未询问过（哈希先落盘）→ 首次
-///   打开，进入 [MirrorPhase.asking] 等待用户作答；
+///   [entry] 缺失（会话无身份，或兜底补建没成）或未询问过 → 首次打开，
+///   进入 [MirrorPhase.asking] 等待用户作答；
 /// - [chooseMirrored]：用户作答（是/否）→ 立即应用到引擎（渲染层翻转，
 ///   不修改源文件字节），并按 video_id 持久化（同时标记「已询问」）；
-///   首次导入时后台哈希可能尚未落盘（索引条目未出现），内部重试直到
-///   条目出现或放弃；
+///   条目由打开会话保证在册（按路径命中，或兜底定身份后补建），故作答
+///   即写、不重试；
 /// - 镜像为渲染层翻转：播放器页读取 [MirrorController.mirrored] 对画面
 ///   控件做水平 [Transform]，不触碰视频文件。
 ///
-/// 身份来源：解析条目这一步交给打开会话，本控制器不再自行按路径
-/// 轮询索引；文档写入锚定会话给出的 videoId，首建初值只取已确认条目。
+/// 身份来源：解析条目这一步交给打开会话——按路径命中即取条目身份、全程
+/// 不读视频内容，查不到才兜底算一次并补建条目；本控制器不再自行按路径
+/// 轮询索引、也不等任何后台摘要落盘。文档写入锚定会话给出的 videoId，
+/// 首建初值只取会话给出的条目。
 ///
 /// 镜像真值：公开标记文件为真值来源——打开会话建立基线时它已在盘
 /// （[resolve] 的 `baselineMarkers`；含将来收到分享标记文件的场景）
@@ -60,14 +62,14 @@ enum MirrorPhase {
 /// 过渡值为种子）不在真值之列——命名答案不是镜像答案。作答 /
 /// 控制层切换双写 index + markers（markers 不存在则按首建初值规则创建）。
 ///
-/// 本控制器不持有索引的所有权；[dispose] 只取消提示倒计时与持久化重试。
+/// 本控制器不持有索引的所有权；[dispose] 只取消提示倒计时。
 ///
 /// 镜像两层开关：本控制器同时管**全局镜像**
 /// （[mirrored]，整片开关）与**局部镜像**总开关
 /// （[localMirrorEnabled]，回答"要不要按片段集合把部分区间反相"）。两个
 /// 字段的落盘路径与生命周期逐点相同——打开视频时读、切换时双写 markers +
 /// index、markers 不存在时按首建初值规则创建、markers 为真值时回写 index
-/// 缓存、条目未落盘时的重试兜底；拆成两个控制器等于把同一条管线写两遍。
+/// 缓存；拆成两个控制器等于把同一条管线写两遍。
 ///
 /// 局部镜像总开关是**视图开关**：真值在公开标记文件的 `meta` 段（随分享
 /// 迁移），切换即写盘、不入撤销/重做史、不受锁定分段门禁。渲染层与顶栏
@@ -80,8 +82,6 @@ class MirrorController extends ChangeNotifier {
     this.onLocalMirrorEnabledChanged,
     this.onWriteRejected,
     this.hintDuration = const Duration(seconds: 2),
-    this.persistRetryInterval = const Duration(milliseconds: 100),
-    this.maxPersistRetries = 600,
   });
 
   final VideoIndexStorage _indexStore;
@@ -103,12 +103,6 @@ class MirrorController extends ChangeNotifier {
   /// 「已按历史应用镜像」提示的展示时长（随后自动消失）。
   final Duration hintDuration;
 
-  /// 首次导入后镜像作答的持久化重试间隔（索引条目由后台哈希落盘）。
-  final Duration persistRetryInterval;
-
-  /// 持久化重试上限（大视频哈希耗时较长，默认 600×100ms = 60s 兜底）。
-  final int maxPersistRetries;
-
   MirrorPhase _phase = MirrorPhase.idle;
   bool _mirrored = false;
   bool _localMirrorEnabled = true;
@@ -117,8 +111,9 @@ class MirrorController extends ChangeNotifier {
   /// 打开会话给出的已确认身份（镜像读写都锚定它，不各自解析索引条目）。
   String? _videoId;
 
-  /// 会话给出的已确认条目（仅摘要相符时非空）：镜像历史判定与首建初值
-  /// 只读它——摘要不符 / 无条目时按新视频，不套用旧条目。
+  /// 会话给出的条目（打开路径按路径命中，或兜底定身份后补建；会话无身份
+  /// 或兜底没补建成时为 null）：镜像历史判定与首建初值只读它——无条目时按
+  /// 新视频缺省，不套用任何旧条目。
   VideoIndexEntry? _entry;
   Timer? _hintTimer;
   bool _disposed = false;
@@ -132,18 +127,17 @@ class MirrorController extends ChangeNotifier {
   /// 局部镜像总开关当前值（顶栏「局部镜像」槽的琥珀态、合成输入之一）。
   bool get localMirrorEnabled => _localMirrorEnabled;
 
-  /// 打开视频成功后调用：消费打开会话给出的已确认身份（[videoId] 与
+  /// 打开视频成功后调用：消费打开会话给出的身份与条目（[videoId] 与
   /// [entry]），不再自行轮询索引条目。
   ///
-  /// [videoId] 为 null（会话未识别身份：摘要失败 / 文档不可读）→ 保持默认
+  /// [videoId] 为 null（会话无身份：兜底摘要失败 / 文档不可读）→ 保持默认
   /// （不询问、不提示），不阻塞播放。
   ///
   /// 打开时公开标记文件已在盘 → 直接应用它两个镜像开关（不询问、不看
   /// index 过渡值；含将来收到分享标记文件的场景），并按同步规则把两个开关
   /// 回写 index 缓存；不在盘则 [entry] 命中且「已询问过」→ 立即应用 index
-  /// 历史设置并提示「已按历史应用镜像」；[entry] 为 null 或未询问过 → 首次
-  /// 打开，进入询问阶段（摘要不符时 [entry] 为 null，按新视频语义，不套用
-  /// 旧条目）。
+  /// 历史设置并提示「已按历史应用镜像」；[entry] 缺失或未询问过 → 首次
+  /// 打开，进入询问阶段（无条目时按新视频语义，不套用旧条目）。
   ///
   /// [baselineMarkers] = 打开会话建立基线时公开标记文件**在盘**的内容
   /// （`OpenSession.markersOnDisk`，唯一基线）；null = 打开时不存在（或
@@ -178,8 +172,7 @@ class MirrorController extends ChangeNotifier {
     }
 
     if (entry == null || !entry.mirrorAsked) {
-      // 首次打开：无条目或条目未标记「已询问」（消除与后台哈希落盘
-      // 的竞态——哈希先落盘时仍询问，用户不会被漏问）。
+      // 首次打开：无条目或条目未标记「已询问」（用户不会被漏问）。
       _phase = MirrorPhase.asking;
       notifyListeners();
       return;
@@ -206,7 +199,7 @@ class MirrorController extends ChangeNotifier {
   ///
   /// 视图开关语义：不进撤销/重做史、不受锁定分段门禁（门禁在装配层就不
   /// 过问本槽）。写盘走与全局镜像逐点相同的通路——双写 index + markers、
-  /// 条目未落盘时重试兜底、写失败静默（值道已更新，下次打开仍可恢复）。
+  /// 写失败静默（值道已更新，下次打开仍可恢复）。
   void setLocalMirrorEnabled(bool value) {
     if (_disposed || value == _localMirrorEnabled) return;
     _applyLocalMirrorEnabled(value);
@@ -225,8 +218,7 @@ class MirrorController extends ChangeNotifier {
   }
 
   /// 用户作答（是/否）：立即应用到引擎（渲染层翻转），并按 video_id
-  /// 持久化到索引（同时标记「已询问」；首次导入时条目可能尚未落盘，
-  /// 由内部重试兜底）。
+  /// 持久化到索引（同时标记「已询问」；条目由打开会话保证在册，故作答即写）。
   Future<void> chooseMirrored(bool value) async {
     if (_disposed) return;
     _mirrored = value;
@@ -238,10 +230,8 @@ class MirrorController extends ChangeNotifier {
     }
   }
 
-  /// 按 [filePath] 找到索引条目后写镜像作答；条目未出现（后台哈希
-  /// 尚未落盘）则按 [persistRetryInterval] 重试，直到成功或
-  /// [maxPersistRetries] 次 / 已 dispose 为止。markers 写入锚定会话给出的
-  /// [MirrorController._videoId]，不随重试找到的条目漂移。
+  /// 按 [filePath] 找到索引条目写镜像作答（同时标记「已询问」）。
+  /// markers 写入锚定会话给出的 [MirrorController._videoId]。
   Future<void> _persist(String filePath, bool value) => _persistThrough(
     filePath,
     // 作答按 video_id 存取并标记「已询问」；该标记就位才算条目可用。
@@ -253,8 +243,8 @@ class MirrorController extends ChangeNotifier {
   );
 
   /// 局部镜像总开关的落盘：与 [_persist] 逐点相同的通路——先把
-  /// 过渡值写进 index 缓存（条目未出现即重试），条目就位后双写 markers。
-  /// 写失败静默（值道已更新，下次打开仍可恢复）。
+  /// 过渡值写进 index 缓存，条目在册即双写 markers。写失败静默（值道已更新，
+  /// 下次打开仍可恢复）。
   Future<void> _persistLocalMirrorEnabled(String filePath, bool value) =>
       _persistThrough(
         filePath,
@@ -269,14 +259,15 @@ class MirrorController extends ChangeNotifier {
         failureLog: '局部镜像总开关持久化失败',
       );
 
-  /// 两个镜像开关共用的落盘通路：写 index 过渡值（条目未出现则按
-  /// [persistRetryInterval] 重试，直到成功或 [maxPersistRetries] 次 / 已
-  /// dispose），条目就位后写 markers；写失败静默（内存态已更新，下次打开
-  /// 仍可恢复），不抛到 UI。
+  /// 两个镜像开关共用的落盘通路：写 index 过渡值，条目在册即写 markers；
+  /// 写失败静默（内存态已更新，下次打开仍可恢复），不抛到 UI。
   ///
-  /// 索引条目按路径取，但只在条目身份与会话给出的已确认身份一致时才写
-  /// （摘要不符时旧条目保留、不被写）；身份不符时索引没有可写目标，答案
-  /// 直接落新身份文档。
+  /// 不做「条目未落盘就等它落盘」的重试：条目由打开会话保证在册（按路径
+  /// 命中，或兜底定身份后补建），作答时按路径必能找到它。
+  ///
+  /// 索引条目按路径取，但只在条目身份与会话给出的身份一致时才写（身份不符
+  /// 时旧条目保留、不被写）；身份不符时索引没有可写目标，答案直接落新身份
+  /// 文档。
   Future<void> _persistThrough(
     String filePath, {
     required VideoIndex Function(VideoIndex index) writeIndex,
@@ -284,37 +275,29 @@ class MirrorController extends ChangeNotifier {
     required Future<void> Function() writeMarkers,
     required String failureLog,
   }) async {
+    if (_disposed) return;
     final videoId = _videoId;
-    for (
-      var attempt = 0;
-      attempt < maxPersistRetries && !_disposed;
-      attempt++
-    ) {
-      try {
-        final index = await _indexStore.update((current) {
-          final existing = current.findByFilePath(filePath);
-          if (existing != null &&
-              videoId != null &&
-              existing.videoId != videoId) {
-            return current; // 摘要不符：旧条目保留，不被写。
-          }
-          return writeIndex(current);
-        });
-        final entry = index.findByFilePath(filePath);
-        if (entry != null && videoId != null && entry.videoId != videoId) {
-          // 摘要不符：索引没有本文档的条目，答案只落新身份文档。
-          unawaited(writeMarkers());
-          return;
+    try {
+      final index = await _indexStore.update((current) {
+        final existing = current.findByFilePath(filePath);
+        if (existing != null &&
+            videoId != null &&
+            existing.videoId != videoId) {
+          return current; // 身份不符：旧条目保留，不被写。
         }
-        if (entry != null && entryReady(entry)) {
-          unawaited(writeMarkers());
-          return;
-        }
-      } on Object catch (error) {
-        debugPrint('$failureLog：$error');
+        return writeIndex(current);
+      });
+      final entry = index.findByFilePath(filePath);
+      if (entry != null && videoId != null && entry.videoId != videoId) {
+        // 身份不符：索引没有本文档的条目，答案只落新身份文档。
+        unawaited(writeMarkers());
         return;
       }
-      await Future<void>.delayed(persistRetryInterval);
+      if (entry != null && entryReady(entry)) {
+        unawaited(writeMarkers());
+      }
+    } on Object catch (error) {
+      debugPrint('$failureLog：$error');
     }
   }
 
@@ -323,8 +306,8 @@ class MirrorController extends ChangeNotifier {
   /// 协调器串行写链内进行，不受并发首写竞态影响；写失败静默（index 过渡值
   /// 兜底，不阻塞 UI）。
   ///
-  /// 文档寻址与首建初值都取会话给出的已确认身份（[MirrorController._videoId]
-  /// / [MirrorController._entry]）：摘要不符 / 无条目时不套用重试找到的旧条目。
+  /// 文档寻址与首建初值都取会话给出的身份与条目（[MirrorController._videoId]
+  /// / [MirrorController._entry]）：无条目时按新视频缺省，不套用旧条目。
   Future<void> _patchMarkers(
     MarkersDocument Function(MarkersDocument seeded) patch,
   ) async {
@@ -358,8 +341,8 @@ class MirrorController extends ChangeNotifier {
   }
 
   /// markers 真值回写 index 两个镜像缓存（同步规则，不触碰
-  /// 「已询问」标记）；摘要不符（索引条目身份与已确认身份不同）时不回写旧
-  /// 条目。失败静默。
+  /// 「已询问」标记）；索引条目身份与会话给出的身份不同时不回写旧条目。
+  /// 失败静默。
   Future<void> _writeBackIndexMirror(
     String filePath,
     MarkersDocument markers,

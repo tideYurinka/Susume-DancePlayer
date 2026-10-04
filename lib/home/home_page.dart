@@ -24,11 +24,8 @@ import '../package/scheme_import_flow.dart';
 import '../share_channel/share_channel.dart';
 import 'cover_placeholder.dart';
 import 'dance_detail_page.dart';
+import 'dance_open.dart';
 import 'prep_settings_page.dart';
-
-/// 新导入等索引落盘的预算：后台 SHA-256 → 索引写通常在秒级完成。
-const int _indexWriteRetryLimit = 30;
-const Duration _indexWriteRetryInterval = Duration(milliseconds: 500);
 
 /// 首页 = 舞库：两列卡片列出全部已导入的舞——大封面（底部渐变
 /// 暗底上压熟练度百分比与已练遍数一行白字）、最多两行的署名标题、通栏
@@ -178,15 +175,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     final video = result;
     // 首次导入的新视频：进播放器前弹歌曲命名框；
     // 既有条目/遗留旧视频不弹。
+    // 导入返回时条目已落盘（见 VideoImporter）——回到本页由 [_openPlayer]
+    // 收尾重算读面，新卡随即出现，不必等任何后台落盘。
     await _openPlayer(video.uri, askNaming: video.isNewImport);
-    // 索引条目由后台哈希落盘（导入不等它，含哈希不一致的重导）：
-    // 回到首页时可能还没写，落盘前不出现、落盘后自然出现。
-    if (mounted) await _waitForImportedIndexEntry(video.uri);
   }
 
   /// 点卡片主体：打开该舞续播（续播位置与「从头播放？」归播放器侧）。
-  Future<void> _openDance(DanceSnapshot dance) =>
-      _openPlayer(File(dance.entry.filePath).uri);
+  /// 副本丢失的舞由 [openDance] 送进找回面——本页不自己判存在性。
+  Future<void> _openDance(DanceSnapshot dance) async {
+    await openDance(context, dance);
+    if (!mounted) return;
+    _reloadLibrary();
+  }
 
   /// 打开一支舞的播放器；回到本页后重算读面（本次练习的统计已落盘）。
   Future<void> _openPlayer(Uri source, {bool askNaming = false}) async {
@@ -217,23 +217,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   void _openHelpCenter() {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const HelpCenterPage()));
-  }
-
-  /// 等本次导入的索引条目落盘：按副本路径轮询索引，条目出现即重算读面让
-  /// 新卡出现（既有条目第一轮即命中，只多一次读）；页面不在场或预算用尽
-  /// 即停，不遗留挂起工作。
-  Future<void> _waitForImportedIndexEntry(Uri uri) async {
-    final filePath = uri.toFilePath();
-    final indexStore = ref.read(videoIndexStoreProvider);
-    for (var i = 0; i < _indexWriteRetryLimit && mounted; i++) {
-      final index = await indexStore.load();
-      if (!mounted) return;
-      if (index.findByFilePath(filePath) != null) {
-        _reloadLibrary();
-        return;
-      }
-      await Future<void>.delayed(_indexWriteRetryInterval);
-    }
   }
 
   @override
@@ -593,8 +576,11 @@ class _DanceCardState extends ConsumerState<_DanceCard> {
   }
 
   /// 进入可见区即排队取帧（只排一次；失败本会话不重试）。
+  /// 副本丢失的舞不排队：源文件不在，取帧不可用（卡片照常出占位图与丢失
+  /// 标记）。
   void _onScroll() {
     if (!mounted || _requested || _ready) return;
+    if (widget.dance.copyMissing) return;
     if (!_isVisible()) return;
     _requested = true;
     _scrollable?.position.removeListener(_onScroll);
@@ -718,7 +704,8 @@ class _DanceCardState extends ConsumerState<_DanceCard> {
 
   /// 封面区：按图片自身比例（竖屏 3:4 / 横屏 4:3）；未就绪按 3:4 占位。
   /// 底部渐变暗底（黑 0 → 约 0.65，覆盖下方约一半）上压左下角一行白字信息
-  /// 条（熟练度百分比 · 已练遍数）；右上角一枚角标，单枚。
+  /// 条（熟练度百分比 · 已练遍数）；右上角一枚角标，单枚；**副本丢失**的舞
+  /// 左上角多一枚丢失标记（点开这样一支舞进的是找回面）。
   Widget _cover(DanceCardBadge? badge) {
     final theme = Theme.of(context);
     final videoId = widget.dance.videoId;
@@ -806,9 +793,42 @@ class _DanceCardState extends ConsumerState<_DanceCard> {
                   right: 6,
                   child: _BadgeMark(badge: badge, videoId: videoId),
                 ),
+              if (widget.dance.copyMissing)
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: _CopyMissingMark(videoId: videoId),
+                ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// 副本丢失标记：**视频副本**不在本机——点开这支舞进的是找回面，不是播放页。
+/// 事实来自舞库读面（存在性判定唯一来源），本件只渲染。
+class _CopyMissingMark extends StatelessWidget {
+  const _CopyMissingMark({required this.videoId});
+
+  final String videoId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      key: Key('dance_card_copy_missing_$videoId'),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.error,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '副本丢失',
+        style: theme.textTheme.labelSmall!.copyWith(
+          color: theme.colorScheme.onError,
+        ),
       ),
     );
   }

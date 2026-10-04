@@ -39,15 +39,18 @@ import 'dance_library_writes.dart';
 import 'dance_practice_totals.dart';
 import 'practice_distribution.dart';
 import 'segment_practice_aggregation.dart';
+import 'video_copy_presence.dart';
 
 /// 整库读面：一次装入索引 + 每支舞的公开标记文件与本地文档 +
 /// 一次统计聚合，排序在快照上做。封面就绪 = 对应缓存文件存在（封面位置
-/// 随快照从公开标记文件读出）。
+/// 随快照从公开标记文件读出）；副本丢失 = 条目记录的副本路径不在盘上
+/// （存在性判定经注入点问一次，见 `video_copy_presence.dart`）。
 final danceLibrarySnapshotProvider =
     FutureProvider.autoDispose<DanceLibrarySnapshot>((ref) async {
       final indexStore = ref.watch(videoIndexStoreProvider);
       final storageFor = ref.watch(videoDocumentStorageFactoryProvider);
       final statsStore = ref.watch(practiceStatsStoreProvider);
+      final copyPresence = ref.watch(videoCopyPresenceProvider);
 
       final index = await indexStore.load();
       final (markersByVideoId, localByVideoId) = await _loadDocuments(
@@ -64,6 +67,7 @@ final danceLibrarySnapshotProvider =
         markersByVideoId: markersByVideoId,
         localByVideoId: localByVideoId,
         practiceByVideoId: practiceByVideoId,
+        copyExists: copyPresence.exists,
         planGoalByVideoId: planGoalByVideoId,
         now: now,
         coverAspectRatios: await _coverAspectRatios(ref, {
@@ -194,7 +198,7 @@ final danceLibraryWritesProvider = Provider.autoDispose<DanceLibraryWrites>((
   );
 });
 
-/// 写后失效（页面层入口）：页面自己读到落盘变化（导入的后台索引写、练完
+/// 写后失效（页面层入口）：页面自己读到落盘变化（导入的索引落条目、练完
 /// 一段）后重算时经此入口——与 [invalidateDanceLibrary] 同一口径：读面与
 /// 分布读面仍然一起作废。Riverpod 没有公共的 Ref/WidgetRef 共同超类型，
 /// 故这一处列两遍读面（相邻同源，新增读面两处一起加）。
@@ -204,7 +208,8 @@ void invalidateDanceLibraryFrom(WidgetRef ref) {
 }
 
 /// 删除动作的依赖端口：四个来源都在本文件既有注入点上，不新增 seam；
-/// 两个入口共用同一份装配。
+/// 两个入口共用同一份装配。副本存在性用读面同一处判定（[VideoCopyPresence]）
+/// ——「副本在不在」这个问题全 App 只有这一个答案来源。
 typedef _DanceDeletionPorts = ({
   VideoIndexStorage indexStore,
   VideoDocumentStorage Function(String videoId) documentStorageFor,
@@ -212,6 +217,7 @@ typedef _DanceDeletionPorts = ({
   MaterialManifestStore manifestStore,
   MemberSchemeStorage Function(String videoId) memberSchemeStorageFor,
   FourBeatBucketStore bucketStore,
+  VideoCopyPresence copyPresence,
   Future<void> Function(String videoId) deleteCover,
   Future<void> Function(String videoId) deletePlanForDance,
 });
@@ -225,6 +231,7 @@ final _danceDeletionPortsProvider = Provider<_DanceDeletionPorts>(
     memberSchemeStorageFor: (videoId) =>
         ref.watch(memberSchemeStorageProvider(videoId)),
     bucketStore: ref.watch(fourBeatBucketStoreProvider),
+    copyPresence: ref.watch(videoCopyPresenceProvider),
     // 封面缓存目录解析只在这一步发生（缓存不做成 provider 的同步依赖）。
     deleteCover: (videoId) async =>
         (await ref.read(coverCacheProvider.future)).deleteFor(videoId),
@@ -265,7 +272,9 @@ Future<void> _deleteDance(_DanceDeletionPorts ports, String videoId) async {
   await ports.indexStore.update((index) => index.remove(videoId));
 
   // ② 文件 best-effort：单步失败静默吞掉，不回滚索引、不阻断其余步骤。
-  await _bestEffort(() => _deleteFileIfPresent(entry.filePath)); // 视频副本
+  await _bestEffort(
+    () => _deleteVideoCopy(ports.copyPresence, entry.filePath),
+  ); // 视频副本（副本丢失的舞此处是空操作，删除照常成立）
   await _bestEffort(() => ports.documentStorageFor(videoId).delete()); // 两份文档
   await _bestEffort(
     () => ports.memberSchemeStorageFor(videoId).delete(),
@@ -304,11 +313,20 @@ Future<void> _bestEffort(Future<void> Function() step) async {
   }
 }
 
-/// 删除文件；缺失视作已删。同步文件操作：widget 测试的 fake async 时钟下
-/// 异步文件 IO 不可完成（与素材库删除同款）。
-Future<void> _deleteFileIfPresent(String path) async {
-  final file = File(path);
-  if (file.existsSync()) file.deleteSync();
+/// 删除视频副本；副本不在（**副本丢失**）视作已删，是空操作——删一支丢失的
+/// 舞照常成立，不留半个残骸。存在性问的是 [VideoCopyPresence] 那一处判定。
+/// 删除本身是同步文件操作：widget 测试的 fake async 时钟下异步文件 IO 不可
+/// 完成（与素材库删除同款）。
+///
+/// 空操作由本步自己保证，不指望调用方的兜底：判定说在、删的一刻恰好不在
+/// （竞态）时，只有「文件不存在」一类错误被吞掉，别的错误照旧向上走。
+Future<void> _deleteVideoCopy(VideoCopyPresence presence, String path) async {
+  if (!presence.exists(path)) return;
+  try {
+    File(path).deleteSync();
+  } on PathNotFoundException {
+    // 谓词判在、删的一刻文件恰好没了：对不存在的文件删除是空操作。
+  }
 }
 
 /// 按 videoId 读该舞的两份文档（缺失/损坏由文档层兜底为空态）。

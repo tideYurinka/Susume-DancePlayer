@@ -11,6 +11,7 @@ import 'package:dance_learning_app/persistence/song_signature.dart';
 import 'package:dance_learning_app/persistence/video_document_store.dart';
 import 'package:dance_learning_app/player/open_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import '../helpers/video_document_write_test_helpers.dart';
 import '../helpers/fixed_hasher.dart';
@@ -73,8 +74,20 @@ OpenSession sessionFor({
   coordinatorFor: coordinatorFor,
 );
 
+/// 真实副本文件：兜底定身份要按副本读大小与文件名，故补建条目场景用真文件
+/// （摘要本身仍由桩给出）。
+Future<File> writeTempVideo({int sizeBytes = 16}) async {
+  final directory = await Directory.systemTemp.createTemp('open_session_test');
+  addTearDown(() async {
+    if (await directory.exists()) await directory.delete(recursive: true);
+  });
+  final file = File(p.join(directory.path, 'a.mp4'));
+  await file.writeAsBytes(List<int>.filled(sizeBytes, 7));
+  return file;
+}
+
 void main() {
-  test('建立序列·条目命中且摘要相符：身份取条目、读该身份两份文档为基线', () async {
+  test('建立序列·条目命中：身份取条目、读该身份两份文档为基线，全程不读视频内容', () async {
     final index = InMemoryVideoIndexStorage(
       initial: VideoIndex(entries: [entryFor()]),
     );
@@ -85,7 +98,8 @@ void main() {
     final requested = <String>[];
     final session = sessionFor(
       indexStore: index,
-      hasher: const FixedHasher(kVideoId),
+      // 一调用就失败：打开路径触发任何内容摘要都判失败（不读整片的证伪手段）。
+      hasher: const _ThrowingHasher(),
       coordinatorFor: (videoId) {
         requested.add(videoId);
         return VideoDocumentCoordinator(storage);
@@ -95,10 +109,10 @@ void main() {
     await session.establish();
 
     expect(session.established, isTrue);
-    expect(session.identity, OpenIdentityKind.matched);
+    expect(session.identity, OpenIdentityKind.entryHit);
     expect(session.videoId, kVideoId);
     expect(session.entry, isNotNull);
-    expect(requested, [kVideoId], reason: '文档按确定的身份寻址');
+    expect(requested, [kVideoId], reason: '文档按条目身份寻址');
     expect(
       session.markers.segmentLines.single.position,
       const Duration(seconds: 60),
@@ -110,37 +124,37 @@ void main() {
       session.markers,
       reason: '在盘与否一并留下：镜像真值只认打开时已在盘的文档',
     );
+    expect(
+      index.current.findByFilePath(kFilePath),
+      entryFor(),
+      reason: '命中条目的打开路径不写索引',
+    );
   });
 
-  test('建立序列·条目命中但摘要不符：身份取摘要、按新视频、旧条目保留', () async {
-    final oldEntry = entryFor(videoId: 'hash-old');
+  test('建立序列·条目命中而内容已变：身份仍取条目（打开不再校验相符）', () async {
     final index = InMemoryVideoIndexStorage(
-      initial: VideoIndex(entries: [oldEntry]),
+      initial: VideoIndex(entries: [entryFor()]),
     );
-    final requested = <String>[];
     final session = sessionFor(
       indexStore: index,
+      // 摘要会给出另一个身份：打开路径若还拿它校验，本条就会落空。
       hasher: const FixedHasher('hash-new'),
-      coordinatorFor: (videoId) {
-        requested.add(videoId);
-        return VideoDocumentCoordinator(InMemoryVideoDocumentStorage());
-      },
+      coordinatorFor: (_) => VideoDocumentCoordinator(
+        InMemoryVideoDocumentStorage(markers: markersJson()),
+      ),
     );
 
     await session.establish();
 
-    expect(session.established, isTrue);
-    expect(session.identity, OpenIdentityKind.contentChanged);
-    expect(session.videoId, 'hash-new');
-    expect(session.entry, isNull, reason: '不套用旧条目（登记的行为修正）');
-    expect(requested, ['hash-new'], reason: '按新视频读新身份的两份文档');
-    expect(index.current.findById('hash-old'), isNotNull, reason: '旧条目保留');
-    expect(session.markers, const MarkersDocument.empty());
+    expect(session.identity, OpenIdentityKind.entryHit);
+    expect(session.videoId, kVideoId, reason: '身份取条目，不算摘要、也不比对');
+    expect(session.entry, isNotNull);
     expect(
-      session.markersOnDisk,
-      isNull,
-      reason: '打开时不存在 → 不是镜像真值（首次导入的命名框首建不在此列）',
+      session.markers.segmentLines,
+      hasLength(1),
+      reason: '条目身份不变 → 这支舞的旧标注照常加载',
     );
+    expect(index.current.findById('hash-new'), isNull, reason: '不按摘要建条目');
   });
 
   test('建立序列·公开标记文件损坏不可读：在盘判据按无真值（null）', () async {
@@ -162,27 +176,43 @@ void main() {
     expect(session.markersOnDisk, isNull, reason: '损坏按无真值，走 index 路径');
   });
 
-  test('建立序列·无条目：身份取摘要，按新视频语义且可落盘', () async {
+  test('建立序列·按路径无条目：兜底算一次摘要定身份，并按它补建条目', () async {
+    final video = await writeTempVideo();
+    final index = InMemoryVideoIndexStorage(initial: VideoIndex.empty);
     final storage = InMemoryVideoDocumentStorage();
     final requested = <String>[];
-    final session = sessionFor(
-      indexStore: InMemoryVideoIndexStorage(initial: VideoIndex.empty),
+    final session = OpenSession(
+      filePath: video.path,
+      indexStore: index,
       hasher: const FixedHasher(kVideoId),
       coordinatorFor: (videoId) {
         requested.add(videoId);
         return VideoDocumentCoordinator(storage);
       },
+      now: () => DateTime(2026, 9, 2),
     );
 
     await session.establish();
 
-    expect(session.identity, OpenIdentityKind.newVideo);
-    expect(session.videoId, kVideoId, reason: '身份取摘要（内容寻址）');
-    expect(session.entry, isNull);
+    expect(session.identity, OpenIdentityKind.fallbackHash);
+    expect(session.videoId, kVideoId, reason: '身份取兜底算出的摘要（内容寻址）');
     expect(requested, [kVideoId]);
+    final created = index.current.findByFilePath(video.path);
+    expect(created, isNotNull, reason: '兜底定身份后补建条目：下次打开不再兜底');
+    expect(created!.videoId, kVideoId);
+    expect(created.displayName, 'a.mp4');
+    expect(created.filePath, video.path);
+    expect(created.sizeBytes, 16);
+    expect(
+      created.fastKey,
+      fastKeyFor(name: 'a.mp4', sizeBytes: 16),
+      reason: '快速键按副本现算，导入对账据此识别同一支舞',
+    );
+    expect(created.lastOpenedAt, DateTime(2026, 9, 2));
+    expect(created.mirrorAsked, isFalse, reason: '补建条目不假装用户答过镜像');
 
-    // 可落盘：会话协调器写入即落到摘要寻址的文档——后台任务算出的身份与
-    // 解析算出的必然相同，故此刻的写入与哈希落盘后的打开同址。
+    // 可落盘：会话协调器写入即落到摘要寻址的文档——兜底算出的身份与此后
+    // 任何一次打开必然相同，故此刻的写入与条目落盘后的打开同址。
     await session.coordinator!.patchMarkers(
       (current) => current.withSegmentLines(const [
         SegmentLine(position: Duration(seconds: 30)),
@@ -191,11 +221,39 @@ void main() {
     expect(
       storage.markersSnapshot['annotations']['segmentLines'],
       hasLength(1),
-      reason: '无索引条目时仍可落盘',
+      reason: '兜底定身份后仍可落盘',
     );
   });
 
-  test('建立序列·索引不可读：按无条目语义（身份取摘要）', () async {
+  test('建立序列·兜底补建后再打开同一支舞：按路径命中、不再兜底', () async {
+    final video = await writeTempVideo();
+    final index = InMemoryVideoIndexStorage(initial: VideoIndex.empty);
+    final first = OpenSession(
+      filePath: video.path,
+      indexStore: index,
+      hasher: const FixedHasher(kVideoId),
+      coordinatorFor: (_) =>
+          VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
+    );
+    await first.establish();
+    expect(first.identity, OpenIdentityKind.fallbackHash);
+
+    // 同一支舞再打开：索引里已有条目 → 按路径命中；摘要一调用就失败也不影响。
+    final again = OpenSession(
+      filePath: video.path,
+      indexStore: index,
+      hasher: const _ThrowingHasher(),
+      coordinatorFor: (_) =>
+          VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
+    );
+    await again.establish();
+
+    expect(again.identity, OpenIdentityKind.entryHit);
+    expect(again.videoId, kVideoId);
+    expect(again.entry, index.current.findByFilePath(video.path));
+  });
+
+  test('建立序列·索引不可读：按无条目语义兜底定身份，补建写失败不阻塞打开', () async {
     final session = sessionFor(
       indexStore: ThrowingIndexStorage(),
       hasher: const FixedHasher(kVideoId),
@@ -205,40 +263,29 @@ void main() {
 
     await session.establish();
 
-    expect(session.identity, OpenIdentityKind.newVideo);
+    expect(session.established, isTrue);
+    expect(session.identity, OpenIdentityKind.fallbackHash);
     expect(session.videoId, kVideoId);
-    expect(session.entry, isNull);
   });
 
-  test('建立序列·摘要计算失败：不识别身份、不建写链（行为不变）', () async {
-    final session = sessionFor(
-      indexStore: InMemoryVideoIndexStorage(
-        initial: VideoIndex(entries: [entryFor()]),
-      ),
-      hasher: const FixedHasher(kVideoId),
-      coordinatorFor: (_) =>
-          VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
-    );
-    final failed = OpenSession(
-      filePath: kFilePath,
-      indexStore: InMemoryVideoIndexStorage(
-        initial: VideoIndex(entries: [entryFor()]),
-      ),
-      hasher: const _ThrowingHasher(),
+  test('建立序列·副本不在：兜底读不到内容 → 无身份空态、不补建条目', () async {
+    final index = InMemoryVideoIndexStorage(initial: VideoIndex.empty);
+    final session = OpenSession(
+      filePath: '/videos/missing.mp4',
+      indexStore: index,
+      // 真读一遍副本：副本不在即抛错（与真实摘要计算的失败面同款）。
+      hasher: const _FileReadingHasher(),
       coordinatorFor: (_) =>
           VideoDocumentCoordinator(InMemoryVideoDocumentStorage()),
     );
 
-    await failed.establish();
-
-    expect(failed.established, isTrue);
-    expect(failed.videoId, isNull);
-    expect(failed.identity, isNull);
-    expect(failed.coordinator, isNull, reason: '无身份 → 无落盘目标');
-
-    // 同一接缝的正常支不受影响。
     await session.establish();
-    expect(session.videoId, kVideoId);
+
+    expect(session.established, isTrue);
+    expect(session.videoId, isNull);
+    expect(session.identity, isNull);
+    expect(session.coordinator, isNull, reason: '无身份 → 无落盘目标');
+    expect(index.current.entries, isEmpty, reason: '兜底失败不补建条目');
   });
 
   group('建立序列·含旧取景键的 v3 文件打开即复位', () {
@@ -361,4 +408,18 @@ class _ThrowingHasher implements ContentHasher {
 
   @override
   Future<String> hashFile(File file) async => throw StateError('hash failed');
+}
+
+/// 真读副本文件的摘要桩：副本不在时与真实摘要计算同款抛错（大小即伪摘要）。
+class _FileReadingHasher implements ContentHasher {
+  const _FileReadingHasher();
+
+  @override
+  Future<String> hashFile(File file) async {
+    var total = 0;
+    await for (final chunk in file.openRead()) {
+      total += chunk.length;
+    }
+    return 'digest-$total';
+  }
 }

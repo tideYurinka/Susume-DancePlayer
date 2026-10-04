@@ -164,6 +164,7 @@ void main() {
         localByVideoId: const {},
         practiceByVideoId: const {},
         coverAspectRatios: const {'v2': 4 / 3},
+        copyExists: (_) => true,
       );
 
       final byId = {for (final dance in snapshot.dances) dance.videoId: dance};
@@ -171,6 +172,49 @@ void main() {
       expect(byId['v1']!.coverAspectRatio, 3 / 4);
       expect(byId['v2']!.coverReady, isTrue);
       expect(byId['v2']!.coverAspectRatio, 4 / 3);
+    });
+  });
+
+  group('视频副本丢失事实', () {
+    test('副本不在：读面带丢失事实，其余读数照旧', () {
+      const missingPath = '/videos/missing.mp4';
+      final consulted = <String>[];
+      final snapshot = composeDanceLibrarySnapshot(
+        index: VideoIndex(
+          entries: [
+            _entry(videoId: 'v1', displayName: 'missing.mp4'),
+            _entry(videoId: 'v2', displayName: 'here.mp4'),
+          ],
+        ),
+        markersByVideoId: {
+          'v1': _markers(
+            rangeStartMs: 10000,
+            rangeEndMs: 120000,
+            segmentLines: const [SegmentLine(position: Duration(seconds: 60))],
+          ),
+        },
+        localByVideoId: const {
+          'v1': LocalDocument(mastery: {0: LearningMastery.mastered}),
+        },
+        practiceByVideoId: const {},
+        coverAspectRatios: const {'v1': 4 / 3},
+        copyExists: (path) {
+          consulted.add(path);
+          return path != missingPath;
+        },
+      );
+
+      final byId = {for (final dance in snapshot.dances) dance.videoId: dance};
+      // 逐舞独立：按条目记录的副本路径问一句，只有不在盘上的那支带丢失事实。
+      expect(byId['v1']!.copyMissing, isTrue);
+      expect(byId['v2']!.copyMissing, isFalse);
+      // 一次装入里每支舞只问一次（无巡检、无轮询）。
+      expect(consulted, ['/videos/missing.mp4', '/videos/here.mp4']);
+      // 丢的是视频副本，不是标注：其余读数原样（熟练度、封面引用、标题都不动）。
+      // 两段里只有第 0 段置「掌握」：(4 + 0) / 2 × 25 = 50。
+      expect(byId['v1']!.masteryPercent, 50.0);
+      expect(byId['v1']!.coverReady, isTrue);
+      expect(byId['v1']!.title, 'missing');
     });
   });
 
@@ -579,6 +623,7 @@ void main() {
             lastPracticedAt: DateTime(2026, 9, 12),
           ),
         },
+        copyExists: (_) => true,
       );
 
       // 未练组按导入次序倒序（后导入在前），不受打开刷新的最近打开时间影响。
@@ -627,6 +672,7 @@ void main() {
             lastPracticedAt: DateTime(2026, 9, 11),
           ),
         },
+        copyExists: (_) => true,
       );
 
       expect(snapshot.dances, hasLength(1));
@@ -639,6 +685,7 @@ void main() {
         markersByVideoId: const {},
         localByVideoId: const {},
         practiceByVideoId: const {},
+        copyExists: (_) => true,
       );
 
       expect(snapshot.dances.single.urgency, isNull);
@@ -653,6 +700,7 @@ void main() {
         practiceByVideoId: const {},
         planGoalByVideoId: {'v1': (DateTime(2026, 10, 1), false)},
         now: now,
+        copyExists: (_) => true,
       );
 
       expect(

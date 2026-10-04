@@ -35,13 +35,19 @@ const _contexts = [
 
 /// `lib/home` 允许的 player import：页面导航（打开播放页 / 组员方案 / 命名）
 /// 与 `cover_picker_page` 的 scrub 链路（`ScrubSession` 依赖播放呈现层的
-/// `GestureFeedbackController` 类型，仍住 `lib/player`）。
+/// `GestureFeedbackController` 类型，仍住 `lib/player`）。打开一支舞的唯一
+/// 入口（`dance_open.dart`：副本在场进播放页、副本丢失进找回面）是同一类
+/// 导航边。
 const _homeAllowedPlayerImports = <String, Set<String>>{
   'lib/home/home_page.dart': {'lib/player/player_page.dart'},
   'lib/home/dance_detail_page.dart': {
     'lib/player/player_page.dart',
     'lib/player/scheme_open.dart',
     'lib/player/song_naming.dart',
+  },
+  'lib/home/dance_open.dart': {
+    'lib/player/player_page.dart',
+    'lib/player/scheme_open.dart',
   },
   'lib/home/cover_picker_page.dart': {'lib/player/scrub_session.dart'},
 };

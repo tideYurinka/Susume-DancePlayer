@@ -24,9 +24,9 @@ class PracticeClipsModel extends Notifier<List<PracticeClip>> {
   List<PracticeClip> build() => const [];
 
   /// 装载（以文档值为准）：换会话 `装载(空)`、读到文档后
-  /// `装载(doc.practiceClips)`，两次都在装载门窗口内（装载门与一个
-  /// loader / 一个 persister 不变）。装载不自动播放、不改播放位置；经规范
-  /// 化落表。
+  /// `装载(doc.practiceClips)`——两次相邻发生、中间只夹一次本地文档读
+  ///（一个 loader / 一个 persister 不变），随后才挂「变更即存」订阅。
+  /// 装载不自动播放、不改播放位置；经规范化落表。
   void restore(List<PracticeClip> clips) =>
       _replace(normalizePracticeClipTable(clips));
 

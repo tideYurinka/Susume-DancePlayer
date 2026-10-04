@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
@@ -55,6 +56,12 @@ class _FixedHasher implements ContentHasher {
 
   @override
   Future<String> hashFile(File file) async => value;
+}
+
+/// 永不完成的摘要桩：证明打开路径一次都不读视频内容（触发即挂住）。
+class _NeverHasher implements ContentHasher {
+  @override
+  Future<String> hashFile(File file) => Completer<String>().future;
 }
 
 const Duration kDuration = Duration(minutes: 3);
@@ -429,14 +436,27 @@ void main() {
       expect(probe.container.read(resumePromptProvider), isFalse);
     });
 
-    test('内容哈希不一致（按新视频处理）：不按旧位置续播', () async {
+    test('续播不等内容读取：摘要永不完成，打开仍当场 seek 到上次位置', () async {
+      final probe = _makeProbe(
+        entry: _entry(lastPositionMs: 60000),
+        // 一调用就永不返回：打开路径只要还读一次内容，本条即挂住/落空。
+        hasher: _NeverHasher(),
+      );
+      await probe.open();
+      expect(probe.engine.seekCalls, [const Duration(seconds: 60)]);
+      expect(probe.container.read(resumePromptProvider), isTrue);
+    });
+
+    test('条目命中即这支舞：摘要不同也按条目续播（内容对账归导入域）', () async {
       final probe = _makeProbe(
         entry: _entry(videoId: 'hash-old', lastPositionMs: 60000),
         hasher: const _FixedHasher('hash-new'),
       );
       await probe.open();
-      expect(probe.engine.seekCalls, isEmpty);
-      expect(probe.container.read(resumePromptProvider), isFalse);
+      expect(probe.engine.seekCalls, [
+        const Duration(seconds: 60),
+      ], reason: '打开不再拿摘要校验内容，身份由条目按路径承载');
+      expect(probe.container.read(resumePromptProvider), isTrue);
     });
   });
 
