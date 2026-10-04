@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dance_learning_app/core/video_identity.dart';
+import 'package:dance_learning_app/dance/video_copy_presence.dart';
 import 'package:dance_learning_app/import/picked_video.dart';
 import 'package:dance_learning_app/import/video_importer.dart';
 import 'package:dance_learning_app/persistence/video_index.dart';
@@ -9,6 +10,7 @@ import 'package:dance_learning_app/import/video_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fake_video_picker.dart';
 import '../helpers/gated_hasher.dart';
 import '../helpers/recording_hasher.dart';
@@ -53,6 +55,7 @@ void main() {
     VideoIndexStore? indexStore,
     ContentHasher? hasher,
     DateTime Function()? now,
+    VideoCopyPresence? copyPresence,
   }) {
     return VideoImporter(
       picker,
@@ -62,6 +65,7 @@ void main() {
           VideoIndexStore(File(p.join(tempDir.path, 'index.json'))),
       hasher: hasher ?? const XxHash64ContentHasher(),
       now: now ?? () => DateTime(2026, 9, 1, 12),
+      copyPresence: copyPresence ?? const FileVideoCopyPresence(),
     );
   }
 
@@ -541,6 +545,161 @@ void main() {
       expect(index.entries.single.videoId, afterFirst.entries.single.videoId);
       expect(p.basename(index.entries.single.filePath), 'b.mp4');
       expect(index.entries.single.lastOpenedAt, DateTime(2026, 9, 4, 12));
+    });
+
+    test('快速键命中而副本不在 + 标识相符：走找回，副本放回条目记录的原路径', () async {
+      final src = await writeSource('dance.mp4', [1, 2, 3]);
+      final s = VideoIndexStore(File(p.join(tempDir.path, 'index.json')));
+      // 条目还在、副本不在（恢复了一份不带媒体的整机备份）。
+      final gonePath = p.join(tempDir.path, 'videos', 'gone.mp4');
+      await s.update(
+        (index) => index.upsert(
+          VideoIndexEntry(
+            videoId: 'dance-content-id',
+            displayName: 'old-name.mp4',
+            filePath: gonePath,
+            sizeBytes: 3,
+            fastKey: fastKeyFor(name: 'dance.mp4', sizeBytes: 3),
+            mirrored: false,
+            lastOpenedAt: DateTime(2026, 9, 1),
+          ),
+        ),
+      );
+      final hasher = RecordingHasher('dance-content-id');
+      final presence = FakeVideoCopyPresence(missingPaths: {gonePath});
+      final picked = PickedVideo(
+        name: 'dance.mp4',
+        sourceUri: src.uri,
+        sizeBytes: 3,
+      );
+
+      final opened = await importer(
+        picker: FakeVideoPicker(picked),
+        indexStore: s,
+        hasher: hasher,
+        copyPresence: presence,
+      ).open(picked);
+
+      expect(
+        presence.consulted,
+        contains(gonePath),
+        reason: '副本在不在只在存在性注入点上问',
+      );
+      expect(
+        opened.uri.toFilePath(),
+        gonePath,
+        reason: '打开的是条目记录的原路径，不是一条指着不存在文件的路径',
+      );
+      expect(await File(gonePath).readAsBytes(), [1, 2, 3], reason: '副本已接回');
+      expect(opened.isNewImport, isFalse, reason: '接回的是既有条目：不弹命名框');
+      expect(hasher.hashedPaths, [src.path], reason: '核对算的是这次选中的源文件');
+
+      final entry = (await s.load()).entries.single;
+      expect(entry.videoId, 'dance-content-id', reason: '身份不动');
+      expect(entry.filePath, gonePath, reason: '路径不动');
+      expect(entry.sizeBytes, 3, reason: '大小不动');
+      expect(entry.displayName, 'dance.mp4', reason: '显示名随这次选中的文件名刷新');
+      expect(entry.fastKey, fastKeyFor(name: 'dance.mp4', sizeBytes: 3));
+      expect(
+        entry.lastOpenedAt,
+        DateTime(2026, 9, 1),
+        reason: '只刷新显示名与快速键，不动其余',
+      );
+    });
+
+    test('快速键命中而副本不在 + 标识不符：按新视频导入、旧条目保留', () async {
+      final src = await writeSource('dance.mp4', [9, 9, 9]);
+      final s = VideoIndexStore(File(p.join(tempDir.path, 'index.json')));
+      final gonePath = p.join(tempDir.path, 'videos', 'gone.mp4');
+      await s.update(
+        (index) => index.upsert(
+          VideoIndexEntry(
+            videoId: 'old-id',
+            displayName: 'old-name.mp4',
+            filePath: gonePath,
+            sizeBytes: 3,
+            fastKey: fastKeyFor(name: 'dance.mp4', sizeBytes: 3),
+            mirrored: false,
+            lastOpenedAt: DateTime(2026, 9, 1),
+          ),
+        ),
+      );
+      final picked = PickedVideo(
+        name: 'dance.mp4',
+        sourceUri: src.uri,
+        sizeBytes: 3,
+      );
+
+      final hasher = RecordingHasher('new-id');
+      final opened = await importer(
+        picker: FakeVideoPicker(picked),
+        indexStore: s,
+        hasher: hasher,
+        copyPresence: FakeVideoCopyPresence(missingPaths: {gonePath}),
+      ).open(picked);
+
+      expect(
+        hasher.hashedPaths,
+        [src.path],
+        reason: '核对读一遍源文件；标识已知，不再读一遍新副本（总读取次数不增加）',
+      );
+      expect(opened.uri.toFilePath(), isNot(gonePath));
+      expect(File(opened.uri.toFilePath()).existsSync(), isTrue);
+      expect(opened.isNewImport, isTrue, reason: '按新视频导入：进播放器前弹命名框');
+      expect(opened.name, 'dance.mp4');
+
+      final entries = (await s.load()).entries;
+      expect(entries, hasLength(2), reason: '同内容不合并、不同内容不覆盖');
+      final old = entries.firstWhere((e) => e.videoId == 'old-id');
+      expect(old.filePath, gonePath, reason: '旧条目保留原路径（仍是副本丢失）');
+      expect(old.displayName, 'old-name.mp4');
+      final created = entries.firstWhere((e) => e.videoId == 'new-id');
+      expect(created.filePath, opened.uri.toFilePath());
+      expect(created.sizeBytes, 3);
+    });
+
+    test('快速键命中且副本在场：不走找回（既有副本照常直接用）', () async {
+      final src = await writeSource('dance.mp4', [1, 2, 3]);
+      final s = VideoIndexStore(File(p.join(tempDir.path, 'index.json')));
+      final present = File(p.join(tempDir.path, 'videos', 'present.mp4'))
+        ..createSync(recursive: true)
+        ..writeAsBytesSync([1, 2, 3]);
+      await s.update(
+        (index) => index.upsert(
+          VideoIndexEntry(
+            videoId: 'dance-content-id',
+            displayName: 'old-name.mp4',
+            filePath: present.path,
+            sizeBytes: 3,
+            fastKey: fastKeyFor(name: 'dance.mp4', sizeBytes: 3),
+            mirrored: false,
+            lastOpenedAt: DateTime(2026, 9, 1),
+          ),
+        ),
+      );
+      final hasher = RecordingHasher('dance-content-id');
+      final picker = FakeVideoPicker(
+        PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 3),
+      );
+
+      final opened = await importer(
+        picker: picker,
+        indexStore: s,
+        hasher: hasher,
+      ).open(
+        PickedVideo(name: 'dance.mp4', sourceUri: src.uri, sizeBytes: 3),
+      );
+
+      expect(opened.uri.toFilePath(), present.path);
+      // 副本在场：仍走后台对账（刷新最近打开时间），不是找回——找回只刷新
+      // 显示名与快速键，绝不碰最近打开时间。
+      final afterReconcile = await waitForIndex(
+        s,
+        (i) => i.entries.single.lastOpenedAt == DateTime(2026, 9, 1, 12),
+      );
+      expect(afterReconcile.entries.single.displayName, 'dance.mp4');
+      expect(hasher.hashedPaths, [src.path]);
+      expect(await present.readAsBytes(), [1, 2, 3], reason: '既有副本原地未动');
     });
 
     test('open 非 file:// 源抛出明确错误', () async {
