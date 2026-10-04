@@ -73,6 +73,20 @@ SongSignature sanitizeSignature(
   );
 }
 
+/// 文件名回落名（「歌曲署名」的回落规则，见 `lib/annotation/CONTEXT.md`
+/// 词条）：把文件名当**名字**用时取的名字——去掉最后一个 `.` 及其之后，
+/// 当且仅当该点不在开头且后面非空。不查扩展名白名单、不改大小写、不替换
+/// 非法字符（`a.b.mp4 → a.b`、`dance → dance`、`.mp4 → .mp4`、
+/// `.hidden.mp4 → .hidden`、`DANCE.MP4 → DANCE`、`dance. → dance.`）。
+///
+/// **本仓唯一一处去扩展名**：凡是把文件名当名字用的读面都过它；把文件名当
+/// **文件**用的地方（快速键、私有副本取唯一名）保持原始文件名。
+String songFallbackName(String fileName) {
+  final dot = fileName.lastIndexOf('.');
+  if (dot <= 0 || dot == fileName.length - 1) return fileName;
+  return fileName.substring(0, dot);
+}
+
 /// 署名显示串（渲染层拼接）：`「版本舞者」歌曲名 -
 /// 版本注记`；空版本舞者/空注记省略对应部分；[signature] 为 null 或
 /// 歌曲名为空（未署名）时回退 [fallback]（文件名）。

@@ -11,6 +11,9 @@ import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_providers.dart';
 import 'package:dance_learning_app/persistence/four_beat_bucket_store.dart';
 import 'package:dance_learning_app/persistence/practice_stats.dart';
+import 'package:dance_learning_app/persistence/practice_stats_recorder.dart';
+import 'package:dance_learning_app/player/practice_accounting_providers.dart'
+    show practiceStatsRecorderProvider;
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/persistence/marker_document.dart';
@@ -28,6 +31,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_brightness.dart';
 import '../helpers/fake_playback_engine.dart';
+import '../helpers/fake_practice_facts.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_four_beat_bucket_storage.dart';
@@ -92,6 +96,7 @@ void main() {
     Map<String, dynamic> markers = const {},
     bool markersPresent = false,
     List<dynamic> extraOverrides = const [],
+    FakePlaybackEngine? engine,
   }) async {
     final index = InMemoryVideoIndexStorage(
       initial: VideoIndex(entries: entries),
@@ -113,7 +118,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          playbackEngineProvider.overrideWithValue(FakePlaybackEngine()),
+          playbackEngineProvider.overrideWithValue(
+            engine ?? FakePlaybackEngine(),
+          ),
           systemUiControllerProvider.overrideWithValue(FakeSystemUi()),
           screenBrightnessControllerProvider.overrideWithValue(
             FakeScreenBrightnessController(),
@@ -218,7 +225,7 @@ void main() {
       null;
 
   group('导入命名框', () {
-    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退文件名', (tester) async {
+    testWidgets('新导入无署名：页面经命名会话弹出命名框，歌曲名初值为空、保存置灰，预览回退去扩展名名', (tester) async {
       await pumpPlayer(tester, askNaming: true, entries: [unsignedEntry()]);
 
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
@@ -229,10 +236,10 @@ void main() {
       // 空歌名 → 保存置灰。
       expect(saveEnabled(tester), isFalse);
 
-      // 预览首行：空歌名显示文件名回退串。
+      // 预览首行：空歌名显示文件名回退串（「文件名回落名」= 去扩展名）。
       String previewText() =>
           tester.widget<Text>(find.byKey(const Key('naming_preview'))).data!;
-      expect(previewText(), 'dance.mp4');
+      expect(previewText(), 'dance');
 
       // 输入三字段：预览实时更新（歌名仍空 → 整串回退文件名，不含舞者/注记）。
       await tester.enterText(find.byKey(const Key('naming_dancer_field')), '如');
@@ -242,7 +249,7 @@ void main() {
         '9人版',
       );
       await tester.pump();
-      expect(previewText(), 'dance.mp4');
+      expect(previewText(), 'dance');
 
       // 歌名填入 → 保存可用，预览按真实歌名。
       await tester.enterText(
@@ -258,6 +265,32 @@ void main() {
       await tester.tap(find.byKey(const Key('naming_save')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('song_naming_dialog')), findsNothing);
+    });
+
+    testWidgets('点退路钮（跳过）：公开标记文件真值与索引署名缓存双写去扩展名名', (tester) async {
+      final (index, docs) = await pumpPlayer(
+        tester,
+        askNaming: true,
+        entries: [unsignedEntry()],
+      );
+
+      // 输入框里的半成品不落盘：退路钮 = 按文件名命名。
+      await tester.enterText(find.byKey(const Key('naming_song_field')), '改一半');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('naming_skip')));
+      await tester.pumpAndSettle();
+
+      const applied = SongSignature(song: 'dance');
+      expect(
+        MarkersDocument.fromJson(docs.markersSnapshot).signature,
+        applied,
+        reason: '公开标记文件真值 = 去扩展名的文件名',
+      );
+      expect(
+        index.current.entries.single.signatureCache,
+        applied,
+        reason: '索引署名缓存 = 去扩展名的文件名',
+      );
     });
   });
 
@@ -843,11 +876,11 @@ void main() {
       return (stats, buckets);
     }
 
-    testWidgets('顶栏显示署名显示串；未署名回退文件名', (tester) async {
+    testWidgets('顶栏显示署名显示串；未署名回退去扩展名的文件名', (tester) async {
       await pumpPlayer(tester, askNaming: false, entries: [unsignedEntry()]);
       await singleTapShowControlLayer(tester);
       expect(find.byKey(const Key('control_layer_title')), findsOneWidget);
-      expect(find.text('dance.mp4'), findsOneWidget);
+      expect(find.text('dance'), findsOneWidget);
     });
 
     testWidgets('顶栏标题本身即改名入口，标题区内不另设第二枚钮', (tester) async {
@@ -925,16 +958,16 @@ void main() {
       );
     });
 
-    testWidgets('未署名视频（标题回退文件名）同样可点 = 补命名：初值为文件名', (tester) async {
+    testWidgets('未署名视频（标题回退去扩展名名）同样可点 = 补命名：初值为去扩展名名', (tester) async {
       await pumpPlayer(tester, askNaming: false, entries: [unsignedEntry()]);
       await singleTapShowControlLayer(tester);
-      expect(find.text('dance.mp4'), findsOneWidget);
+      expect(find.text('dance'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('control_layer_rename')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('song_naming_dialog')), findsOneWidget);
-      expect(fieldText(tester, 'naming_song_field'), 'dance.mp4');
+      expect(fieldText(tester, 'naming_song_field'), 'dance');
       expect(fieldText(tester, 'naming_dancer_field'), isEmpty);
       expect(fieldText(tester, 'naming_remark_field'), isEmpty);
 
@@ -945,6 +978,43 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('补命名'), findsOneWidget);
+    });
+  });
+
+  group('练舞统计回落名', () {
+    testWidgets('未署名播放入账的舞名取去扩展名名（与顶栏/命名框同一读面）', (tester) async {
+      final engine = FakePlaybackEngine();
+      final facts = FakePracticeFactsSource(engine);
+      final store = PracticeStatsStore(InMemoryPracticeStatsStorage());
+      var now = DateTime.parse('2026-09-05T20:00:00');
+      final recorder = PracticeStatsRecorder(
+        facts: facts.stream,
+        store: store,
+        clock: () => now,
+      );
+      addTearDown(recorder.dispose);
+
+      await pumpPlayer(
+        tester,
+        askNaming: false,
+        entries: [unsignedEntry()],
+        engine: engine,
+        extraOverrides: [
+          practiceStatsRecorderProvider.overrideWithValue(recorder),
+        ],
+      );
+
+      // 播放一分钟再停：暂停即结算落盘。
+      now = now.add(const Duration(minutes: 1));
+      await engine.pause();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        (await store.records()).single.signature,
+        const SongSignature(song: 'dance'),
+        reason: '统计记账的回落名 = 去扩展名的文件名',
+      );
     });
   });
 }

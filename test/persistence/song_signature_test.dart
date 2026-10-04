@@ -51,6 +51,44 @@ void main() {
     });
   });
 
+  group('songFallbackName（文件名回落名：去扩展名，全仓唯一一处）', () {
+    test('去最后一个点及其之后：a.b.mp4 → a.b', () {
+      expect(songFallbackName('a.b.mp4'), 'a.b');
+    });
+
+    test('无点原样：dance → dance', () {
+      expect(songFallbackName('dance'), 'dance');
+    });
+
+    test('点在开头（隐藏文件）原样：.mp4 → .mp4', () {
+      expect(songFallbackName('.mp4'), '.mp4');
+    });
+
+    test('.hidden.mp4 → .hidden', () {
+      expect(songFallbackName('.hidden.mp4'), '.hidden');
+    });
+
+    test('不改大小写：DANCE.MP4 → DANCE', () {
+      expect(songFallbackName('DANCE.MP4'), 'DANCE');
+    });
+
+    test('点后为空原样：dance. → dance.', () {
+      expect(songFallbackName('dance.'), 'dance.');
+    });
+
+    test('空串 → 空串', () {
+      expect(songFallbackName(''), '');
+    });
+
+    test('不查扩展名白名单：任何后缀照去', () {
+      expect(songFallbackName('舞.mkv2'), '舞');
+    });
+
+    test('不替换非法字符：只去扩展名，其余原样', () {
+      expect(songFallbackName('a b:c?.mp4'), 'a b:c?');
+    });
+  });
+
   group('signatureDisplayText（显示串渲染）', () {
     test('未署名回退文件名', () {
       expect(signatureDisplayText(null, 'dance.mp4'), 'dance.mp4');
