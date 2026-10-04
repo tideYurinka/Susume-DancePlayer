@@ -435,8 +435,9 @@ class PointerBurstTracker {
     }
     _downPositions[pointer] = position;
     _burstPositions.add(position);
-    if (_downPositions.length > _maxPointers)
+    if (_downPositions.length > _maxPointers) {
       _maxPointers = _downPositions.length;
+    }
     return ended;
   }
 
