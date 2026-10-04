@@ -1231,9 +1231,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   /// 命名对话框呈现（「域出编排与提交、页面出对话框」接线）：
-  /// 命名会话域交来初值、回退文本与是否可点框外收起，本页负责按构建上下文
-  /// 弹出 [SongNamingDialog] 并交回用户结论；页面已卸载时交回 null（不提交）。
+  /// 命名会话域交来场景、初值、回退文本与是否可点框外收起，本页负责按构建
+  /// 上下文弹出 [SongNamingDialog]（场景原样透传，不反推）并交回用户结论；
+  /// 页面已卸载时交回 null（不提交）。
   Future<SongNamingResult?> _presentNaming({
+    required SongNamingScene scene,
     required SongNamingInitial initial,
     required String fallbackFileName,
     required bool barrierDismissible,
@@ -1243,6 +1245,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       context: context,
       barrierDismissible: barrierDismissible,
       builder: (_) => SongNamingDialog(
+        scene: scene,
         initialSong: initial.song,
         initialDancer: initial.dancer,
         initialRemark: initial.remark,

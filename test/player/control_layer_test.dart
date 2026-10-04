@@ -186,7 +186,7 @@ import '../helpers/in_memory_private_json_storage.dart';
 import 'package:dance_learning_app/player/mirror.dart' show MirrorController;
 import 'package:dance_learning_app/player/practice_mirror.dart';
 import 'package:dance_learning_app/player/song_naming.dart'
-    show SongNamingDialog;
+    show SongNamingDialog, SongNamingScene;
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
 
@@ -323,6 +323,7 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
                 showDialog<void>(
                   context: context,
                   builder: (_) => SongNamingDialog(
+                    scene: SongNamingScene.rename,
                     initialSong: widget.title,
                     fallbackText: widget.title,
                   ),

@@ -12,6 +12,7 @@ import '../dance/mastery_label.dart' show kMasteredLabel, kNotMasteredLabel;
 import '../dance/practice_distribution.dart';
 import '../persistence/member_scheme_store.dart'
     show MemberSchemeRecord, memberSchemeStoreProvider, memberSchemesProvider;
+import '../persistence/song_signature.dart' show songFallbackName;
 import 'dance_detail_plan_section.dart' show DancePlanSection;
 import '../player/player_page.dart';
 import '../player/scheme_open.dart'
@@ -144,19 +145,24 @@ class _DanceDetailPageState extends ConsumerState<DanceDetailPage> {
   /// 改名：同款三字段编辑（版本舞者与版本注记可选），保存后经舞库管理写
   /// 落盘（署名真值先、索引署名缓存后），并作废读面——卡片与详情随即显示
   /// 新名，不必重开页面。
+  ///
+  /// 未署名舞的初值与该框的回退文本都取「文件名回落名」（去扩展名的显示
+  /// 名）——与播放页顶栏、命名框、统计记账同一读面。
   Future<void> _rename(DanceSnapshot dance) async {
+    final fallbackName = songFallbackName(dance.entry.displayName);
     final initial = resolveSongNamingInitial(
       scene: SongNamingScene.rename,
       current: dance.signature,
-      fallbackFileName: dance.entry.displayName,
+      fallbackFileName: fallbackName,
     );
     final result = await showDialog<SongNamingResult>(
       context: context,
       builder: (_) => SongNamingDialog(
+        scene: SongNamingScene.rename,
         initialSong: initial.song,
         initialDancer: initial.dancer,
         initialRemark: initial.remark,
-        fallbackText: dance.entry.displayName,
+        fallbackText: fallbackName,
       ),
     );
     if (!mounted || result == null || !result.confirmed) return;

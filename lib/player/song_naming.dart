@@ -12,22 +12,31 @@ export 'song_naming_contract.dart';
 /// 三字段编辑：版本舞者（可填）、歌曲名（必填且初值由宿主给出——导入
 /// 为空、改名现歌名）、版本注记（可填），表单首行实时预览显示串。「保存」
 /// 在歌曲名 trim 非空时可用，经 [Navigator.pop] 返回 [SongNamingResult]
-/// （[confirmed] = true）；「跳过」返回 [SongNamingResult]（[confirmed] =
-/// false，由宿主决定语义——导入命名按文件名署名、改名不改）。
+/// （[confirmed] = true）。
+///
+/// 退路钮与标题随**场景**（必填参数 [scene]）：导入命名标题「命名」、退路钮
+/// 「跳过（按文件名命名）」+ `naming_skip`（返回 [SongNamingResult]
+/// [confirmed] = false，由宿主按文件名回落名署名）；改名标题「重命名」、
+/// 退路钮「取消」+ `naming_cancel`（[confirmed] = false，由宿主按不改处理）。
 class SongNamingDialog extends StatefulWidget {
   const SongNamingDialog({
     super.key,
+    required this.scene,
     required this.initialSong,
     this.initialDancer = '',
     this.initialRemark = '',
     this.fallbackText = '',
   });
 
+  /// 命名场景：导入命名 / 改名。退路钮的文案与测试键、标题都由它决定——
+  /// 对话框不靠别的字段反推。
+  final SongNamingScene scene;
+
   /// 歌曲名初值（导入命名 = 空；改名 = 现歌名）。
   final String initialSong;
 
-  /// 预览回退文本（文件名）：歌曲名为空时预览与保存后的实际落盘值
-  /// （回退文件名）保持一致。
+  /// 预览回退文本（文件名回落名）：歌曲名为空时预览与保存后的实际落盘值
+  /// （回退文件名回落名）保持一致。
   final String fallbackText;
 
   /// 版本舞者初值（改名带出现值）。
@@ -122,13 +131,20 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
       Navigator.of(context)
           .pop(SongNamingResult(confirmed: confirmed, signature: _draft));
 
-  /// 「跳过」动作（顶部栏专用；浮层内不出现）：返回 confirmed:false，由
-  /// 宿主决定语义（导入按文件名署名 / 改名不改）。
-  Widget _skipButton() => TextButton(
-    key: const Key('naming_skip'),
-    onPressed: () => _pop(false),
-    child: const Text('跳过'),
-  );
+  /// 退路钮（顶部栏专用；浮层内不出现）：返回 confirmed:false，由宿主按场景
+  /// 收口语义（导入 = 按文件名回落名署名 / 改名 = 取消，什么都不改）。
+  /// 文案与测试键都由场景决定——钮上说出按下去会发生什么。
+  Widget _fallbackButton() {
+    final isImport = widget.scene == SongNamingScene.import;
+    return TextButton(
+      key: Key(isImport ? 'naming_skip' : 'naming_cancel'),
+      onPressed: () => _pop(false),
+      child: Text(isImport ? '跳过（按文件名命名）' : '取消'),
+    );
+  }
+
+  /// 顶部栏标题：导入命名「命名」（这支舞还没有名字可「重」）、改名「重命名」。
+  String get _title => widget.scene == SongNamingScene.import ? '命名' : '重命名';
 
   /// 「保存」动作（顶部栏与浮层共用）：歌名 trim 非空才可用。
   Widget _saveButton() => FilledButton(
@@ -225,7 +241,7 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
       : _NamingField.song;
 
   /// 横屏键盘弹起的浮层单行：字段名｜输入｜「输入X」切字段钮｜保存
-  /// 浮层内不出现「跳过」。
+  /// 浮层内不出现退路钮（导入/改名都一样）。
   Widget _buildOverlayRow() {
     final target = _overlaySwitchTarget;
     return Padding(
@@ -282,8 +298,8 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
                           : Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 顶部栏：跳过/保存与标题同一行。竖屏单侧空间
-                                // 不足分居两端（左跳过右保存）；横屏两动作并排
+                                // 顶部栏：退路钮/保存与标题同一行。竖屏单侧空间
+                                // 不足分居两端（左退路右保存）；横屏两动作并排
                                 // 聚在右上角。
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(
@@ -297,21 +313,21 @@ class _SongNamingDialogState extends State<SongNamingDialog> {
                                         ? [
                                             Expanded(
                                               child: Text(
-                                                '重命名',
+                                                _title,
                                                 textAlign: TextAlign.center,
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .titleMedium,
                                               ),
                                             ),
-                                            _skipButton(),
+                                            _fallbackButton(),
                                             _saveButton(),
                                           ]
                                         : [
-                                            _skipButton(),
+                                            _fallbackButton(),
                                             Expanded(
                                               child: Text(
-                                                '重命名',
+                                                _title,
                                                 textAlign: TextAlign.center,
                                                 style: Theme.of(context)
                                                     .textTheme

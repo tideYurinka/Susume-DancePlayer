@@ -2,10 +2,12 @@ import '../persistence/song_signature.dart';
 import 'song_naming_contract.dart';
 import '../stats/song_signature.dart';
 
-/// 命名对话框的呈现接缝：域把初值、回退文本与是否可点框外收起
+/// 命名对话框的呈现接缝：域把**场景**、初值、回退文本与是否可点框外收起
 /// 交给宿主，宿主（widget 层）负责按构建上下文弹出命名框并交回用户结论。
+/// 场景显式传递（导入命名 / 改名），宿主不再靠「是否可点框外收起」反推。
 /// 返回值 null = 页面已卸载或点框外收起，域按「不提交」处理。
 typedef SongNamingPresenter = Future<SongNamingResult?> Function({
+  required SongNamingScene scene,
   required SongNamingInitial initial,
   required String fallbackFileName,
   required bool barrierDismissible,
@@ -39,7 +41,8 @@ class SongNamingSession {
 
   final SongSignatureController _signatureController;
 
-  /// 未署名时的回退文件名（与顶栏回退一致）。
+  /// 未署名时的回退文件名回落名（与顶栏回退一致；由调用侧的读面经
+  /// `songFallbackName` 取好——域不自行去扩展名）。
   final String Function() _fallbackFileName;
 
   final SongNamingPresenter _presentNaming;
@@ -61,12 +64,14 @@ class SongNamingSession {
   /// 实时预览），保存提交署名、取消（含点框外）= 不改名。
   Future<void> rename() => _presentAndCommit(SongNamingScene.rename);
 
-  /// 场景决定对话框与结论语义：导入命名不可点框外收起、跳过 = 按文件名
-  /// 署名（之后不再弹）；改名可点框外收起、跳过/取消 = 不改名。
+  /// 场景决定对话框（文案、测试键、标题）与结论语义：导入命名不可点框外
+  /// 收起、退路钮 = 按文件名回落名署名（之后不再弹）；改名可点框外收起、
+  /// 退路钮（取消）/点框外 = 不改名。场景显式交给宿主，宿主不反推。
   Future<void> _presentAndCommit(SongNamingScene scene) async {
     final fallback = _fallbackFileName();
     final isImport = scene == SongNamingScene.import;
     final result = await _presentNaming(
+      scene: scene,
       initial: resolveSongNamingInitial(
         scene: scene,
         current: _signatureController.signature,
