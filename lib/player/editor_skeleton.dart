@@ -17,6 +17,8 @@
 ///
 /// **方向判定是一条具名纯件**：[editorIsPortrait] 是全仓读「编辑面此刻是不是
 /// 竖屏」的唯一函数——调用侧不得再手写 `size.height > size.width`。
+/// **档位判定同样是一条具名纯件**：[editorIsCompact] 是全仓读「编辑面此刻
+/// 是不是紧凑档」的唯一函数（阈值 600dp，取视口最短边）。
 ///
 /// **宽高比未知**：按观看态背景位处理（先出画），首帧就绪后调用侧带真实宽高
 /// 比重算重排——打开瞬间不闪一次错误布局。
@@ -62,6 +64,20 @@ const double kEditorSettingsClusterHeight = kHitTargetMinSize;
 /// 编辑面此刻是不是竖屏（**方向判定的唯一函数**）：屏高大于屏宽即竖屏。
 /// 与设备方向锁无关（方向是设备事实），只读这一次布局的屏尺寸。
 bool editorIsPortrait(Size screen) => screen.height > screen.width;
+
+/// 紧凑档阈值（dp）：视口**最短边**小于本值即紧凑档（599 紧凑、600 常规）。
+/// 现有手机视口最短边 ≤ 480dp、常见平板最短边 ≥ 600dp，分离带很宽；
+/// 600dp 同时是 Material 3 compact 的口径。
+const double kEditorCompactShortestSideThreshold = 600;
+
+/// 编辑面此刻是不是紧凑档（**档位判定的唯一函数**）：屏宽与屏高中的较小值
+/// 小于 [kEditorCompactShortestSideThreshold] 即紧凑档。
+///
+/// 与编辑面方向判据 [editorIsPortrait] 并列，同样只读这一次布局的屏尺寸——
+/// 只看逻辑尺寸、不吃字号档、与设备方向锁无关，故同一台机器竖横两向、
+/// 1.0× 与 1.6× 字号下都得到同一档。
+bool editorIsCompact(Size screen) =>
+    math.min(screen.width, screen.height) < kEditorCompactShortestSideThreshold;
 
 /// 画面落位两条分支。
 enum PicturePlacement {

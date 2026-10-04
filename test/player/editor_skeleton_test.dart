@@ -42,6 +42,23 @@ void main() {
     });
   });
 
+  group('紧凑档判定（唯一读点）', () {
+    test('阈值两侧：最短边 599 判紧凑档、600 判常规档', () {
+      expect(editorIsCompact(const Size(599, 800)), isTrue);
+      expect(editorIsCompact(const Size(600, 800)), isFalse);
+      expect(editorIsCompact(const Size(361.1, 781.7)), isTrue, reason: '手机竖屏');
+      expect(editorIsCompact(const Size(820, 1180)), isFalse, reason: '平板竖屏');
+    });
+
+    test('最短边取宽高较小者：朝向对调得到同一档', () {
+      expect(editorIsCompact(const Size(700, 599)), isTrue);
+      expect(editorIsCompact(const Size(599, 700)), isTrue);
+      expect(editorIsCompact(const Size(700, 600)), isFalse);
+      expect(editorIsCompact(const Size(600, 700)), isFalse);
+      expect(editorIsCompact(const Size(1180, 820)), isFalse, reason: '平板横屏');
+    });
+  });
+
   group('横屏行（布局逐位不变）', () {
     test('横屏屏：不分配骨架（画面带 0、画面区 0）', () {
       final s = skeletonFor(

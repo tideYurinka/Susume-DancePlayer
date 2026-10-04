@@ -1,12 +1,14 @@
-import 'package:flutter/widgets.dart';
+import 'package:dance_learning_app/player/editor_skeleton.dart'
+    show editorIsCompact;
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'device_viewport.dart';
 
 void main() {
   group('具名视口档档表', () {
-    test('四档各只声明一个 (物理尺寸, 像素比) 二元组', () {
-      expect(ViewportTier.values, hasLength(4));
+    test('五档各只声明一个 (物理尺寸, 像素比) 二元组', () {
+      expect(ViewportTier.values, hasLength(5));
       expect(
         ViewportTier.small.physicalSize,
         const Size(320, 640),
@@ -27,6 +29,11 @@ void main() {
         const Size(480, 1000),
       );
       expect(ViewportTier.large.devicePixelRatio, 1.0);
+      expect(
+        ViewportTier.tablet.physicalSize,
+        const Size(820, 1180),
+      );
+      expect(ViewportTier.tablet.devicePixelRatio, 1.0);
     });
 
     test('逻辑尺寸由二元组折出', () {
@@ -43,6 +50,76 @@ void main() {
       expect(
         ViewportTier.large.logicalSize,
         const Size(480, 1000),
+      );
+      expect(
+        ViewportTier.tablet.logicalSize,
+        const Size(820, 1180),
+      );
+    });
+  });
+
+  group('具名视口档落哪一档', () {
+    test('现有四档全落紧凑档、平板档落常规档', () {
+      const compactTiers = [
+        ViewportTier.small,
+        ViewportTier.compact,
+        ViewportTier.regular,
+        ViewportTier.large,
+      ];
+      for (final tier in compactTiers) {
+        expect(
+          editorIsCompact(tier.logicalSize),
+          isTrue,
+          reason: '${tier.name} 落紧凑档',
+        );
+      }
+      expect(
+        editorIsCompact(ViewportTier.tablet.logicalSize),
+        isFalse,
+        reason: 'tablet 820×1180 落常规档',
+      );
+      expect(
+        editorIsCompact(
+          Size(
+            ViewportTier.tablet.logicalSize.height,
+            ViewportTier.tablet.logicalSize.width,
+          ),
+        ),
+        isFalse,
+        reason: 'tablet 横屏 1180×820 仍落常规档',
+      );
+    });
+
+    testWidgets('字号档不参与档位判定：同一视口在 1.0× 与 1.6× 下同一档', (tester) async {
+      Future<({bool compact, double textScale})> tierAt(
+        double textScale,
+      ) async {
+        useNamedViewport(tester, ViewportTier.small, textScale: textScale);
+        late bool compact;
+        late double scale;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final media = MediaQuery.of(context);
+                compact = editorIsCompact(media.size);
+                scale = media.textScaler.scale(10) / 10;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        return (compact: compact, textScale: scale);
+      }
+
+      final atNormal = await tierAt(1.0);
+      final atLarge = await tierAt(1.6);
+      expect(atNormal.textScale, 1.0);
+      expect(atLarge.textScale, 1.6, reason: '两次环境确实换了字号档');
+      expect(
+        atLarge.compact,
+        atNormal.compact,
+        reason: '同一尺寸在 1.0× 与 1.6× 下得到同一档',
       );
     });
   });
