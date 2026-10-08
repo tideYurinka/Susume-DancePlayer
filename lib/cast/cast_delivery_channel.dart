@@ -36,9 +36,18 @@ abstract interface class CastDeliveryChannel {
 
 /// 递出通道的注入点：真实实现起本机 HTTP 服务；测试 override 注入脚本化
 /// 替身，或直接用真实实现打环回。
-final castDeliveryChannelProvider = Provider<CastDeliveryChannel>(
-  (ref) => LanCastDeliveryChannel(),
-);
+///
+/// 注入的是**取一份新通道的工厂**（`CastDeliveryChannel Function()`），不是
+/// 通道本身：一个通道实例是**一次性**的（[CastDeliveryChannel.close] 之后
+/// [CastDeliveryChannel.serve] 抛 [CastDeliveryClosed]），而「投 → 断开 →
+/// 重选 → 再投」在会话之外要反复进行——每次起投取一份新的、收尾关掉当次那
+/// 一份。容器级单例在这里会把第二次起投变成必然失败（与
+/// `castSessionFactoryProvider` 同款：接缝注入点给工厂，不留跨会话复用的
+/// 实例）。
+final castDeliveryChannelFactoryProvider =
+    Provider<CastDeliveryChannel Function()>(
+      (ref) => LanCastDeliveryChannel.new,
+    );
 
 /// 一次 `Range` 请求的解析结局。
 sealed class CastRangeRequest {

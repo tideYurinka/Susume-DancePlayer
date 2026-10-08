@@ -95,6 +95,7 @@ class CastRenderSettings {
     this.beatCountVisible = false,
     this.beatAnimationStyle = '',
     this.beatOverlay = '',
+    this.stickerOverlay = '',
     this.framing = '',
     this.halfBeatSoundEnabled = false,
     this.metronomeVolumePercent = 50,
@@ -123,6 +124,17 @@ class CastRenderSettings {
   /// 换一把缓存键（否则会命中一份落位不对的旧副本）。故它进设置快照的记号。
   final String beatOverlay;
 
+  /// **备注贴纸的尺寸记号**（`#21` 整改；空 = 这次不装贴纸）：逐条贴纸的
+  /// **归一化尺寸分数**（`CastSticker.sizeToken`，次序即请求里的贴纸次序）。
+  ///
+  /// 贴纸的**内容**（文本、几何、时间窗、名册取色）已在
+  /// [CastRenderRequest.annotationFingerprint] 里；**尺寸**不是——两个分数是
+  /// 装配期从「上屏量测到的墨迹逻辑尺寸 ÷ 上屏画面矩形」现算的
+  /// （`player/cast_render_wiring.dart`），于是系统字号缩放与画面矩形（转屏）
+  /// 都会改产物却没有痕迹。按 [beatOverlay] 的既有先例，把它们收进设置快照
+  /// 的记号：改系统字号或换画面矩形即换键（否则会命中一份大小不对的旧副本）。
+  final String stickerOverlay;
+
   /// 取景选区的规范串（空 = 未取景 = 整帧）。
   final String framing;
 
@@ -145,6 +157,7 @@ class CastRenderSettings {
     beatCountVisible ? 'bc1' : 'bc0',
     'ba:$beatAnimationStyle',
     'bov:$beatOverlay',
+    'sto:$stickerOverlay',
     'fr:$framing',
     halfBeatSoundEnabled ? 'hb1' : 'hb0',
     'vol:$metronomeVolumePercent',
@@ -251,6 +264,14 @@ class CastSticker {
   /// 时间窗（半开）是否为空：空窗不装任何节点。
   bool get visible => endMs > startMs;
 
+  /// 进缓存键的**尺寸分量**记号：两个归一化分数由「上屏量测的墨迹逻辑尺寸 ÷
+  /// 上屏画面矩形」派生（装配处 `player/cast_render_wiring.dart`），系统字号
+  /// 缩放与画面矩形（转屏）都会改它们——键少收这一样就会命中一份大小不对的
+  /// 旧副本。与 `CastBeatPlacement.token` 同款先例（那边记的是落位）。
+  String get sizeToken =>
+      'st:${widthFraction.toStringAsFixed(6)}x'
+      '${heightFraction.toStringAsFixed(6)}';
+
   @override
   bool operator ==(Object other) =>
       other is CastSticker &&
@@ -340,7 +361,10 @@ class CastRenderRequest {
   /// 与上屏求值读**同一份**取值：装配处（`player/cast_render_wiring.dart`）
   /// 读一次 `noteStickersProvider`，一路进标注指纹、一路在这里成图与落位。
   /// 它**不是缓存键的独立分量**：贴纸内容（文本、几何、时间窗）已在
-  /// [annotationFingerprint] 里；只有名册取色影响这张图，名册同样在指纹里。
+  /// [annotationFingerprint] 里（只有名册取色影响这张图，名册同样在指纹里）；
+  /// **尺寸**（由系统字号与上屏画面矩形现算的两个分数）在
+  /// [CastRenderSettings.stickerOverlay] 记号里——两处合起来，贴纸的任一样
+  /// 变了都换键。
   final List<CastSticker> stickers;
 
   /// **数拍层**（`#30`；null = 不装这一层：没勾画面类、数拍显示关着、

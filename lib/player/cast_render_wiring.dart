@@ -139,6 +139,16 @@ List<CastSticker> buildCastStickers({
   return sheets;
 }
 
+/// 贴纸**尺寸分量**的记号（进缓存键的设置快照；空 = 这次不装贴纸）。
+///
+/// 逐条取 [CastSticker.sizeToken]（次序即请求里的贴纸次序）——两个尺寸分数是
+/// 上面从「墨迹逻辑尺寸 ÷ 上屏画面矩形」现算的，**不在标注指纹里**（指纹收的
+/// 是文档里那份几何与尺寸系数），于是系统字号缩放与画面矩形（转屏）都会改
+/// 产物却没有痕迹。这一条记号把它们收进键，与数拍层的 `beatOverlay` 同款。
+String castStickerOverlayToken(List<CastSticker> stickers) => [
+  for (final sticker in stickers) sticker.sizeToken,
+].join('|');
+
 /// **逐拍静态数字的时间窗**（`#30`）：源时间轴上连续覆盖 `[0, duration]` 的一串
 /// 半开窗，每格带那一刻该画的文字（null = 这一段不显示数拍）。
 ///
@@ -337,8 +347,10 @@ buildCastBeatOverlay({
 /// 局部镜像片段在此**读一次**、喂两处：标注指纹与 [CastRenderRequest
 /// .mirrorFragments]（画面滤镜链的镜像闸门按它成窗）。**取景**同样在此读一次、
 /// 喂两处：设置快照的规范串（缓存键）与 [CastRenderRequest.framingSelection]
-/// （画面链的裁切窗口）。**备注**同样读一次、喂两处：标注指纹与
-/// [CastRenderRequest.stickers]。**数拍层**（`#30`）同样读一次、喂两处：
+/// （画面链的裁切窗口）。**备注**同样读一次、喂三处：标注指纹、
+/// [CastRenderRequest.stickers]（第二路输入）与设置快照里的**尺寸记号**
+/// （`stickerOverlay`；尺寸分数在这一处现算，不在指纹里——见
+/// [castStickerOverlayToken]）。**数拍层**（`#30`）同样读一次、喂两处：
 /// 设置快照里的落位记号（缓存键）与 [CastRenderRequest.beatOverlay]。渲染参数
 /// 与上屏取值因此读的是同一份取值，不是两处各自读一遍、各自对齐的口径。
 ///
@@ -369,9 +381,18 @@ CastRenderRequest castRenderRequestFor(
   // 取景读**一次**，喂两处：缓存键的规范串与画面链的裁切窗口。两处同源，
   // 与上屏（`player_page.dart` 的画面件）取的也是同一个 provider 取值。
   final framing = read(framingStateProvider).source;
-  // 备注与名册各读**一次**、喂两处：指纹（含名册取色）与第二路输入（贴纸）。
+  // 备注与名册各读**一次**、喂三处：指纹（含名册取色）、第二路输入（贴纸）
+  // 与设置快照里的**尺寸记号**（尺寸分数是下面刚算出来的，不在指纹里）。
   final notes = read(noteStickersProvider);
   final roster = read(dancerRosterProvider);
+  final stickers = choices.picture
+      ? buildCastStickers(
+          notes: notes,
+          rosterColors: noteMentionRosterColors(roster),
+          pictureSize: pictureRect?.size ?? Size.zero,
+          textScaler: textScaler,
+        )
+      : const <CastSticker>[];
   final beat = buildCastBeatOverlay(
     read: read,
     duration: timeline.videoDuration,
@@ -395,6 +416,7 @@ CastRenderRequest castRenderRequestFor(
       beatCountVisible: read(beatOverlayContentVisibleProvider),
       beatAnimationStyle: read(beatAnimationStyleProvider).name,
       beatOverlay: beat?.placement.token ?? '',
+      stickerOverlay: castStickerOverlayToken(stickers),
       framing: castFramingToken(framing),
       halfBeatSoundEnabled: halfBeatEnabled,
       metronomeVolumePercent: read(metronomeVolumeProvider),
@@ -412,14 +434,7 @@ CastRenderRequest castRenderRequestFor(
     ),
     mirrorFragments: mirrorFragments,
     framingSelection: framing,
-    stickers: choices.picture
-        ? buildCastStickers(
-            notes: notes,
-            rosterColors: noteMentionRosterColors(roster),
-            pictureSize: pictureRect?.size ?? Size.zero,
-            textScaler: textScaler,
-          )
-        : const [],
+    stickers: stickers,
     beatOverlay: beat?.overlay,
     beatClicks: buildCastBeatClicks(
       grid: grid,

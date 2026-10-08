@@ -31,7 +31,8 @@ void main() {
       isA<DlnaCastSessionFactory>(),
     );
     expect(
-      container.read(castDeliveryChannelProvider),
+      // 递出通道给的是**取一份新通道的工厂**（一次性通道，见接缝注释）。
+      container.read(castDeliveryChannelFactoryProvider)(),
       isA<LanCastDeliveryChannel>(),
     );
     expect(
@@ -43,13 +44,13 @@ void main() {
   test('四条接缝都能注入脚本化替身', () async {
     final discovery = FakeCastReceiverDiscovery();
     final factory = FakeCastSessionFactory();
-    final delivery = FakeCastDeliveryChannel();
+    final delivery = FakeCastDeliveryChannelFactory();
     final executor = FakeCastRenderExecutor();
     final container = ProviderContainer(
       overrides: [
         castReceiverDiscoveryProvider.overrideWithValue(discovery),
         castSessionFactoryProvider.overrideWithValue(factory),
-        castDeliveryChannelProvider.overrideWithValue(delivery),
+        castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
         castRenderExecutorProvider.overrideWithValue(executor),
       ],
     );
@@ -64,6 +65,14 @@ void main() {
     expect(discovery.discoverCalls, 1);
     expect(factory.connectCalls, 0);
     expect(delivery.served, isEmpty);
+    // 工厂每次给一份**新的**通道：一次性通道不能被两次起投共用。
+    expect(
+      identical(
+        container.read(castDeliveryChannelFactoryProvider)(),
+        container.read(castDeliveryChannelFactoryProvider)(),
+      ),
+      isFalse,
+    );
     expect(container.read(castRenderExecutorProvider), same(executor));
     expect(executor.ran, isFalse);
   });

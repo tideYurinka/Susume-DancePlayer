@@ -27,6 +27,7 @@ library;
 
 import 'dart:ui' show Rect, Size;
 
+import '../cast/cast_beat_count.dart' show castOverlayPlacementUsable;
 import 'beat_animation.dart' show BeatAnimationStyle;
 import 'beat_count_layout.dart'
     show beatNumbersCanvasSize, beatNumbersCenterInContent;
@@ -59,13 +60,15 @@ class CastBeatPlacement {
   final double heightFraction;
 
   /// 可用：四个数都有限、尺寸为正（否则不装这一层，宁可不画也不画错）。
-  bool get usable =>
-      centerX.isFinite &&
-      centerY.isFinite &&
-      widthFraction.isFinite &&
-      heightFraction.isFinite &&
-      widthFraction > 0 &&
-      heightFraction > 0;
+  ///
+  /// 判定只有一条（[castOverlayPlacementUsable]，投屏域声明）：数拍层的
+  /// `CastBeatCountOverlay.usable` 与这里调的是同一个函数。
+  bool get usable => castOverlayPlacementUsable(
+    centerX: centerX,
+    centerY: centerY,
+    widthFraction: widthFraction,
+    heightFraction: heightFraction,
+  );
 
   /// 进缓存键的记号：位置一动产物就变（用户把浮层挪一下再投，不该命中旧副本）。
   String get token =>

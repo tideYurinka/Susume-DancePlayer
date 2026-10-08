@@ -51,8 +51,13 @@ library;
 
 import '../annotation/framing_selection.dart';
 import '../surface_direction/surface_direction.dart';
-import 'cast_framing_gate.dart' show castFramingActive, castRatioLiteral;
-import 'cast_mirror_gate.dart' show castSeconds;
+import 'cast_framing_gate.dart'
+    show
+        castFramingActive,
+        castOverlayXExpression,
+        castOverlayYExpression,
+        castRatioLiteral;
+import 'cast_mirror_gate.dart' show castHalfOpenWindowExpression;
 import 'cast_render_request.dart';
 
 /// 贴纸在**上屏画面矩形**（取景后那一块 = 投屏副本的帧）里的落位：中心 + 尺寸
@@ -77,11 +82,11 @@ class CastStickerPlacement {
   /// 落位高（帧高的比例）。
   final double height;
 
-  /// `overlay` 的横向表达式：`(W*中心)-(w/2)`（`w` 是被缩放后的第二路宽度）。
-  String get overlayX => '(W*${castRatioLiteral(centerX)})-(w/2)';
+  /// `overlay` 的横向表达式（与数拍层共用一处）。
+  String get overlayX => castOverlayXExpression(centerX);
 
   /// `overlay` 的纵向表达式。
-  String get overlayY => '(H*${castRatioLiteral(centerY)})-(h/2)';
+  String get overlayY => castOverlayYExpression(centerY);
 
   @override
   bool operator ==(Object other) =>
@@ -121,10 +126,9 @@ class CastStickerSegment {
   /// 这一段的落位。
   final CastStickerPlacement placement;
 
-  /// 这一段的 `enable` 表达式：半开区间 `[起, 止)` → `gte(t,起)*lt(t,止)`，
-  /// **不用 `between`**（它两端都含、会多一帧）。
-  String get enableExpression =>
-      'gte(t,${castSeconds(startMs / 1000)})*lt(t,${castSeconds(endMs / 1000)})';
+  /// 这一段的 `enable` 表达式：半开区间 `[起, 止)`（与镜像闸门共用一处，
+  /// 判的都是**源时间轴**——贴纸节点排在倍速 `setpts` 之前）。
+  String get enableExpression => castHalfOpenWindowExpression(startMs, endMs);
 
   @override
   String toString() =>

@@ -43,7 +43,8 @@ class CastRenderProgress {
   /// 已渲染到的位置（ffmpeg 报的 `time`）。
   final Duration rendered;
 
-  /// 产物总时长（进度的分母；素材时长）。
+  /// 产物总时长（进度的分母）：素材时长按**投屏倍速档**换算过来的产物期望
+  /// 时长（0.5× 档是它的两倍）——不是源时长本身。
   final Duration total;
 
   /// 0..1 的完成比例（总时长未知时恒 0，界面按不定态画）。
@@ -74,7 +75,8 @@ class CastRenderJob {
   /// 交给 ffmpeg 的参数表（`cast_render_plan.dart` 装配）。
   final List<String> arguments;
 
-  /// 产物总时长（进度分母）。
+  /// 产物总时长（进度分母）：**按投屏倍速档换算过的**素材时长（0.5× 档是
+  /// 两倍；`setpts=PTS/rate` 的直接后果，装配见 `cast_render_orchestrator.dart`）。
   final Duration total;
 }
 

@@ -46,7 +46,7 @@ void main() {
 
   late Directory root;
   late FakeCastSessionFactory factory;
-  late FakeCastDeliveryChannel delivery;
+  late FakeCastDeliveryChannelFactory delivery;
   late FakeCastRenderExecutor executor;
   late ProviderContainer container;
 
@@ -103,12 +103,12 @@ void main() {
   setUp(() {
     root = Directory.systemTemp.createTempSync('cast_speed_run_test');
     factory = FakeCastSessionFactory();
-    delivery = FakeCastDeliveryChannel();
+    delivery = FakeCastDeliveryChannelFactory();
     executor = FakeCastRenderExecutor();
     container = ProviderContainer(
       overrides: [
         castSessionFactoryProvider.overrideWithValue(factory),
-        castDeliveryChannelProvider.overrideWithValue(delivery),
+        castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
         castRenderExecutorProvider.overrideWithValue(executor),
         castRenderCacheDirectoryProvider.overrideWithValue(() async => root),
       ],
@@ -166,7 +166,9 @@ void main() {
 
     test('后台渲染不阻塞前台：渲染挂着时遥控照旧、会话照旧', () async {
       executor.runGate = Completer<void>();
-      executor.progressScript = const [Duration(seconds: 3)]; // 60 秒素材 → 5%
+      // 分母是**产物**的时长：60 秒素材在 0.5× 档上是 120 秒的副本，
+      // 走到 6 秒即 5%（分母错用源时长会在这一刻读到 10%）。
+      executor.progressScript = const [Duration(seconds: 6)];
 
       await startWith(
         tiers: [

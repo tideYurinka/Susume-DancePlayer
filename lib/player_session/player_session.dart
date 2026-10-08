@@ -256,8 +256,9 @@ class PlayerSessionModel extends Notifier<PlayerSession> {
   /// 收起控制层 = 回观看态（待命态随收起退出由结构承载）。对比-控制层
   /// 收起 = 退到对比-播放态（对比态开关语义：收起不退出对比，退出经
   /// 顶栏槽或返回箭头）；投屏-控制层收起 = 退到投屏-观看态（同理：收起不
-  /// 退出投屏）；投屏-观看态本就收起，是幂等 no-op——不把投屏态误收回
-  /// 普通观看态（那会让投屏会话悬挂）。穷尽 switch：加取值即编译报错。
+  /// 离开投屏态、也不断开投屏）；投屏-观看态本就收起，是幂等 no-op——不把
+  /// 投屏态误收回普通观看态（那会让投屏会话悬挂）。穷尽 switch：加取值即
+  /// 编译报错。
   PlayerSessionEntryResult collapse() => switch (state.mode) {
     PlayerSessionMode.compareEditing => enter(
       PlayerSessionMode.compareWatching,

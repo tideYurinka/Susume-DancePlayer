@@ -121,8 +121,37 @@ class CastBeatCountOverlay {
   /// 有没有可画的格（时间窗非空且至少一格真的要画数字）。
   bool get hasVisibleRow => rows.any((row) => row.visible);
 
+  /// 落位四个数可用（非有限 / 非正尺寸都不装这一层）。判定与播放页
+  /// `CastBeatPlacement.usable` 是同一条（[castOverlayPlacementUsable]，
+  /// 那边 import 本文件）。
+  bool get usable => castOverlayPlacementUsable(
+    centerX: centerX,
+    centerY: centerY,
+    widthFraction: widthFraction,
+    heightFraction: heightFraction,
+  );
+
   @override
   String toString() =>
       'CastBeatCountOverlay(${rows.length} 格, $centerX/$centerY, '
       '$widthFraction×$heightFraction)';
 }
+
+/// 归一化落位四分量可用：都有限、尺寸为正——否则**不装这一层**（宁可不画也
+/// 不画错，与「探测不到一律按不显示处理」同口径）。
+///
+/// **唯一一份判定**：数拍层的 [CastBeatCountOverlay.usable]（本域）与播放页的
+/// `CastBeatPlacement.usable`（`player/cast_beat_placement.dart`）都调它——
+/// 两个值对象的语义与生命周期不同（见 `lib/cast/CONTEXT.md`），判定只有一条。
+bool castOverlayPlacementUsable({
+  required double centerX,
+  required double centerY,
+  required double widthFraction,
+  required double heightFraction,
+}) =>
+    centerX.isFinite &&
+    centerY.isFinite &&
+    widthFraction.isFinite &&
+    heightFraction.isFinite &&
+    widthFraction > 0 &&
+    heightFraction > 0;

@@ -38,6 +38,7 @@ import 'cast_render_cache.dart';
 import 'cast_render_executor.dart';
 import 'cast_render_plan.dart';
 import 'cast_render_request.dart';
+import 'cast_speed_tier.dart' show castCopyDuration;
 
 /// 一次编排的结局。
 enum CastRenderExit {
@@ -152,7 +153,13 @@ class CastRenderOrchestrator {
         stickerPaths: [for (final file in stickerFiles) file.path],
       );
       final verdict = await executor.run(
-        CastRenderJob(arguments: arguments, total: request.duration),
+        CastRenderJob(
+          arguments: arguments,
+          // 分母是**产物**的期望时长，不是源时长：`setpts=PTS/rate` 让 0.5×
+          // 档的产物长一倍，拿源时长当分母会在 ffmpeg 走到源片时长那一刻
+          // 就报 100%（那时产物还有一半没渲完）。
+          total: castCopyDuration(request.duration, request.speedTier),
+        ),
         onProgress: onProgress,
       );
       if (verdict != CastRenderVerdict.succeeded) {

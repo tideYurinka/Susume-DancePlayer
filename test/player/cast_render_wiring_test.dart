@@ -365,6 +365,70 @@ void main() {
       expect(scaled.widthFraction, greaterThan(plain.widthFraction));
     });
 
+    test('改系统字号即换键：尺寸分数进设置快照，不是键之外的暗箱', () {
+      final plain = requestFrom(
+        container(notes: const [note]),
+        pictureRect: pictureRect,
+      );
+      final scaled = requestFrom(
+        container(notes: const [note]),
+        pictureRect: pictureRect,
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(
+        scaled.stickers.single.widthFraction,
+        isNot(plain.stickers.single.widthFraction),
+        reason: '前置：系统字号确实改了尺寸分数',
+      );
+      expect(
+        scaled.settings.stickerOverlay,
+        isNot(plain.settings.stickerOverlay),
+      );
+      expect(
+        scaled.cacheKey,
+        isNot(plain.cacheKey),
+        reason: '尺寸分量变一次就换一把键：改字号后不命中旧副本',
+      );
+    });
+
+    test('换画面矩形（转屏）即换键：同一个贴纸的尺寸分数变了', () {
+      final wide = requestFrom(
+        container(notes: const [note]),
+        pictureRect: const Rect.fromLTWH(0, 0, 960, 540),
+      );
+      final narrow = requestFrom(
+        container(notes: const [note]),
+        pictureRect: const Rect.fromLTWH(0, 0, 480, 270),
+      );
+
+      expect(
+        narrow.stickers.single.widthFraction,
+        isNot(wide.stickers.single.widthFraction),
+      );
+      expect(
+        wide.settings.stickerOverlay,
+        isNot(narrow.settings.stickerOverlay),
+      );
+      expect(
+        wide.cacheKey,
+        isNot(narrow.cacheKey),
+        reason: '画面矩形派生占比 → 进键 → 换屏就重渲',
+      );
+    });
+
+    test('没备注 / 不勾画面类：贴纸记号是空串（不白换键）', () {
+      expect(requestFrom(container()).settings.stickerOverlay, isEmpty);
+      expect(
+        requestFrom(
+          container(notes: const [note]),
+          choices: const CastRenderChoices(picture: false, sound: true),
+          pictureRect: pictureRect,
+        ).settings.stickerOverlay,
+        isEmpty,
+      );
+    });
+
     test('画面矩形量不到：整批不装（不拿一个错的比例去烤副本）', () {
       expect(requestFrom(container(notes: const [note])).stickers, isEmpty);
       expect(

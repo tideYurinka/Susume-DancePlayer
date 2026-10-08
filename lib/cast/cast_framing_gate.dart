@@ -63,6 +63,19 @@ String castRatioLiteral(double value) {
   return text == '-0' ? '0' : text;
 }
 
+/// `overlay` 的横向落位表达式：`(W*中心)-(w/2)`——`W` 是主片帧宽，`w` 是被
+/// `scale2ref` 缩放后的第二路宽（帧的比例），故这是「按帧的比例把第二路居中
+/// 落到归一化中心」。
+///
+/// 贴纸层与数拍层（`cast_sticker_gate.dart` / `cast_beat_gate.dart`）共用这
+/// 一处：两层都是第二路输入 + 一个 `overlay`，落位写法必须逐字一致。
+String castOverlayXExpression(double centerX) =>
+    '(W*${castRatioLiteral(centerX)})-(w/2)';
+
+/// `overlay` 的纵向落位表达式（与 [castOverlayXExpression] 同款）。
+String castOverlayYExpression(double centerY) =>
+    '(H*${castRatioLiteral(centerY)})-(h/2)';
+
 /// 缩放的输出尺寸表达式：把裁切尺寸截到偶数。`iw`/`ih` 在 `scale` 里读的是
 /// **裁切之后**的尺寸，故这一步是「给编码器的第二道兜底」，正常档下它与裁切
 /// 尺寸一致（不是一次多余的缩放）。

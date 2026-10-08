@@ -37,7 +37,8 @@
 library;
 
 import 'cast_beat_count.dart';
-import 'cast_framing_gate.dart' show castRatioLiteral;
+import 'cast_framing_gate.dart'
+    show castOverlayXExpression, castOverlayYExpression, castRatioLiteral;
 
 /// 数拍层在画面链里装出来的东西：进 `filter_complex` 的节点 + 链尾标签。
 class CastBeatCountGraph {
@@ -52,18 +53,12 @@ class CastBeatCountGraph {
 
 /// 这条层要不要装：没有可画的格、落位退化（非有限 / 非正）都**不装**
 /// ——宁可不画也不画错（与「探测不到一律按不显示处理」同口径）。
-bool castBeatCountActive(CastBeatCountOverlay? overlay) {
-  if (overlay == null) return false;
-  if (!overlay.hasVisibleRow) return false;
-  return _usable(overlay.centerX) &&
-      _usable(overlay.centerY) &&
-      _usable(overlay.widthFraction) &&
-      _usable(overlay.heightFraction) &&
-      overlay.widthFraction > 0 &&
-      overlay.heightFraction > 0;
-}
-
-bool _usable(double value) => value.isFinite;
+///
+/// 落位那四个数的判定不在这里写第二遍：它是 [CastBeatCountOverlay.usable]，
+/// 而与播放页 `CastBeatPlacement.usable` 共用同一条判定（见
+/// `castOverlayPlacementUsable`）。
+bool castBeatCountActive(CastBeatCountOverlay? overlay) =>
+    overlay != null && overlay.hasVisibleRow && overlay.usable;
 
 /// `-f concat` 清单的正文：逐格 `file` + `duration`，末尾重列最后一格。
 ///
@@ -121,8 +116,8 @@ CastBeatCountGraph castBeatCountGraph({
           '[$scaled][$ref]',
       '[$scaled]format=rgba[$alpha]',
       '[$ref][$alpha]overlay='
-          'x=(W*${castRatioLiteral(overlay.centerX)})-(w/2):'
-          'y=(H*${castRatioLiteral(overlay.centerY)})-(h/2):'
+          'x=${castOverlayXExpression(overlay.centerX)}:'
+          'y=${castOverlayYExpression(overlay.centerY)}:'
           'format=rgb:eof_action=repeat[$endLabel]',
     ],
     endLabel: endLabel,

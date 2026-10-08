@@ -1,4 +1,4 @@
-/// **投屏缓存**（设备级私有目录里的一块渲染缓存区，ADR-0005）：把一份渲染
+/// **投屏缓存**（设备级私有目录里的一块投屏缓存区，ADR-0005）：把一份渲染
 /// **请求**（按它的缓存键）对到盘上的一份**投屏副本**。
 ///
 /// ## 它管两件事：**键 → 产物** 与 **缓存账**
@@ -54,7 +54,7 @@ import 'package:path_provider/path_provider.dart';
 import '../core/video_identity.dart' show XxHash64;
 import 'cast_render_request.dart';
 
-/// 渲染缓存基目录：应用支持目录下 `cast_render/`——**独立于** `materials/`
+/// 投屏缓存基目录：应用支持目录下 `cast_render/`——**独立于** `materials/`
 /// （练习素材）与出站分享目录，按 ADR-0005 的落位口径。生产默认实现；
 /// 测试经 [castRenderCacheDirectoryProvider] 覆盖成临时目录。
 Future<Directory> defaultCastRenderCacheDirectory() =>
@@ -69,13 +69,13 @@ Future<Directory> defaultCastRenderCacheDirectory() =>
 /// 腾出去（投屏副本可再生——重渲一次而已，占满用户的盘才是真代价）。
 const int kCastRenderCacheLimitBytes = 2 * 1024 * 1024 * 1024;
 
-/// 渲染缓存基目录注入点（返回目录解析器的 provider seam；测试覆盖为临时
+/// 投屏缓存基目录注入点（返回目录解析器的 provider seam；测试覆盖为临时
 /// 目录，不触 path_provider）。
 final castRenderCacheDirectoryProvider = Provider<Future<Directory> Function()>(
   (ref) => defaultCastRenderCacheDirectory,
 );
 
-/// 投屏渲染缓存目录（`<基目录>/`）。
+/// 投屏缓存目录（`<基目录>/`）。
 class CastRenderCache {
   const CastRenderCache({
     required this.directory,
@@ -315,7 +315,7 @@ class CastRenderCache {
 /// 缓存区里一把键那一份的账：目录、最近使用时间、占的字节数。
 typedef _CacheEntry = ({Directory directory, DateTime lastUsedAt, int bytes});
 
-/// 渲染缓存注入点（唯一实例）。
+/// 投屏缓存注入点（唯一实例）。
 final castRenderCacheProvider = Provider<CastRenderCache>(
   (ref) =>
       CastRenderCache(directory: ref.watch(castRenderCacheDirectoryProvider)),

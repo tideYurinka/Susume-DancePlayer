@@ -73,7 +73,7 @@ void main() {
   late FakeCameraCaptureService camera;
   late FakeCastReceiverDiscovery discovery;
   late FakeCastSessionFactory factory;
-  late FakeCastDeliveryChannel delivery;
+  late FakeCastDeliveryChannelFactory delivery;
 
   const receiverName = '客厅电视';
 
@@ -130,7 +130,7 @@ void main() {
           ),
           castReceiverDiscoveryProvider.overrideWithValue(discovery),
           castSessionFactoryProvider.overrideWithValue(factory),
-          castDeliveryChannelProvider.overrideWithValue(delivery),
+          castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
           videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
           // 节拍分析挂起：数拍浮层的显隐由测试自行置开（画面开关那条断言
           // 要的是「投屏态不挂它」，不是分析结果）。
@@ -213,7 +213,7 @@ void main() {
       ],
     );
     factory = FakeCastSessionFactory();
-    delivery = FakeCastDeliveryChannel();
+    delivery = FakeCastDeliveryChannelFactory();
   });
 
   testWidgets('画面区默认黑底 + 指路提示；开关打开后才出现本地画面', (tester) async {

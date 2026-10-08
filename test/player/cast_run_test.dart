@@ -20,9 +20,13 @@ import '../helpers/fake_cast_session.dart';
 /// 投屏运行域直测：起投（起通道 → 连 → 推 → 播）、断开（停服 + 断连 + 回
 /// 编辑态）、复位触发断开、遥控镜像与失败收口。经 #23 那三条接缝的脚本化
 /// 替身，不碰真网络、不启动 widget。
+///
+/// 递出通道经**替身工厂**注入（与生产装配同款）：每次起投一份新的，且替身
+/// 如实建模真通道的一次性（停服之后再要地址抛 `CastDeliveryClosed`）——
+/// 「断开 → 重选 → 再投」这条路上复用一份已停的通道会当场露馅。
 void main() {
   late FakeCastSessionFactory factory;
-  late FakeCastDeliveryChannel delivery;
+  late FakeCastDeliveryChannelFactory delivery;
   late ProviderContainer container;
 
   CastReceiver receiverNamed(String name) => CastReceiver(
@@ -45,11 +49,11 @@ void main() {
 
   setUp(() {
     factory = FakeCastSessionFactory();
-    delivery = FakeCastDeliveryChannel();
+    delivery = FakeCastDeliveryChannelFactory();
     container = ProviderContainer(
       overrides: [
         castSessionFactoryProvider.overrideWithValue(factory),
-        castDeliveryChannelProvider.overrideWithValue(delivery),
+        castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
       ],
     );
     addTearDown(container.dispose);
@@ -164,6 +168,56 @@ void main() {
     });
   });
 
+  group('断开后再投（递出通道是一次性的）', () {
+    test('替身如实建模真通道的一次性：停服之后再要地址抛 CastDeliveryClosed', () async {
+      final channel = FakeCastDeliveryChannel();
+      await channel.serve(file);
+      await channel.close();
+
+      await expectLater(channel.serve(file), throwsA(isA<CastDeliveryClosed>()));
+    });
+
+    test('投 → 断开 → 重选 → 再投：第二次起投取一份新通道，推片 + 起播重新发生', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await run().disconnect();
+      await pumpEventQueue();
+
+      // 反向钉住「断开后不停服会漏」：断开的那一刻当次那一份必须已经停了
+      // （停服漏了，出站服务与在飞连接会一直挂到进程结束）。
+      expect(delivery.channels, hasLength(1), reason: '第一次起投一份通道');
+      expect(delivery.closeCalls, 1, reason: '断开时把当次那一份停掉，不是留着');
+      expect(delivery.channels.single.closed, isTrue);
+
+      await run().start(receiver: receiverNamed('卧室盒子'), file: file);
+      await pumpEventQueue();
+
+      expect(delivery.channels, hasLength(2), reason: '第二次起投另取一份新通道');
+      expect(
+        identical(delivery.channels.first, delivery.channels.last),
+        isFalse,
+        reason: '复用上一份（已 close 成终态）会让第二次起投必然失败',
+      );
+      expect(delivery.channels.last.closed, isFalse, reason: '这一份正在用');
+      expect(
+        delivery.served,
+        [file, file],
+        reason: '第二次 serve 真的发生了（断开后再投不是一条死路）',
+      );
+      expect(
+        delivery.channels.last.url,
+        isNot(delivery.channels.first.url),
+        reason: '一次性路径：第二份拿到的是新地址',
+      );
+
+      expect(factory.sessions, hasLength(2), reason: '会话重新建立');
+      final second = factory.sessions.last;
+      expect(second.calls, ['push', 'play'], reason: '会话被重新推片 + 起播');
+      expect(second.pushedUri, delivery.channels.last.url);
+      expect(state().receiver?.friendlyName, '卧室盒子');
+      expect(state().active, isTrue);
+    });
+  });
+
   group('断开触发点收在既有复位一处', () {
     test('复位（换视频 / 离开播放页）离开投屏态即断开并停服', () async {
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
@@ -180,7 +234,7 @@ void main() {
       expect(state().active, isFalse);
     });
 
-    test('退出投屏态（exitCast）同样触发断开：边沿只有「离开投屏态」一条', () async {
+    test('离开投屏态（exitCast）同样触发断开投屏：边沿只有「离开投屏态」一条', () async {
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
       container.read(playerSessionProvider.notifier).enter(
         PlayerSessionMode.castWatching,

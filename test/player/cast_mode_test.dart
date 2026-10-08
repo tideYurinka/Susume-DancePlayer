@@ -86,7 +86,7 @@ void main() {
   late FakeCameraCaptureService camera;
   late FakeCastReceiverDiscovery discovery;
   late FakeCastSessionFactory factory;
-  late FakeCastDeliveryChannel delivery;
+  late FakeCastDeliveryChannelFactory delivery;
   late FakeSystemMirrorLauncher systemMirror;
 
   const receiverName = '客厅电视';
@@ -143,7 +143,7 @@ void main() {
           ),
           castReceiverDiscoveryProvider.overrideWithValue(discovery),
           castSessionFactoryProvider.overrideWithValue(factory),
-          castDeliveryChannelProvider.overrideWithValue(delivery),
+          castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
           systemMirrorLauncherProvider.overrideWithValue(systemMirror),
           videoCopyPresenceProvider.overrideWithValue(
             presence ?? FakeVideoCopyPresence(),
@@ -211,7 +211,7 @@ void main() {
       ],
     );
     factory = FakeCastSessionFactory();
-    delivery = FakeCastDeliveryChannel();
+    delivery = FakeCastDeliveryChannelFactory();
     systemMirror = FakeSystemMirrorLauncher();
   });
 
@@ -501,7 +501,9 @@ void main() {
     // 「还没渲好」的样子。
     executor.runGate = Completer<void>();
     executor.gateFromRun = 1;
-    executor.progressScript = const [Duration(seconds: 15)]; // 30 秒素材 → 50%
+    // 进度分母是**产物**的时长：30 秒素材在 0.5× 档上是 60 秒的副本，
+    // 走到 30 秒即一半（分母错用源时长会在这一刻读到 100%）。
+    executor.progressScript = const [Duration(seconds: 30)];
 
     await pumpPlayer(
       tester,

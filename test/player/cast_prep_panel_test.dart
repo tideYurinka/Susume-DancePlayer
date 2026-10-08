@@ -739,4 +739,79 @@ void main() {
       kCastPrepSentencePicture,
     );
   });
+
+  test('只勾声音那句话随起投档如实变化（纯件，逐档）', () {
+    const soundOnly = CastRenderChoices(picture: false, sound: true);
+
+    expect(
+      castPrepRenderSentenceFor(soundOnly, tier: CastSpeedTier.full),
+      kCastPrepSentenceSoundOnly,
+      reason: '1× 档视频流原样复制，是秒级',
+    );
+    for (final tier in const [
+      CastSpeedTier.half,
+      CastSpeedTier.threeQuarter,
+    ]) {
+      expect(
+        castPrepRenderSentenceFor(soundOnly, tier: tier),
+        kCastPrepSentenceSoundOnlySlowed,
+        reason: '${tier.token}× 档改不了时长，视频要重编码，不是秒级',
+      );
+      expect(
+        castPrepRenderSentenceFor(soundOnly, tier: tier),
+        isNot(kCastPrepSentenceSoundOnly),
+        reason: '${tier.token}× 档不该沿用 1× 档那句「秒级出结果」',
+      );
+      expect(
+        castPrepRenderSentenceFor(soundOnly, tier: tier),
+        allOf(contains('重编码'), contains('不是秒级')),
+        reason: '${tier.token}× 档要说清这一档的代价',
+      );
+    }
+
+    // 勾了画面类（或都不勾）那两句与档无关：它们本就说清了代价。
+    for (final tier in CastSpeedTier.values) {
+      expect(
+        castPrepRenderSentenceFor(const CastRenderChoices.all(), tier: tier),
+        kCastPrepSentencePicture,
+      );
+      expect(
+        castPrepRenderSentenceFor(const CastRenderChoices.none(), tier: tier),
+        kCastPrepSentencePassThrough,
+      );
+    }
+  });
+
+  testWidgets('只勾声音 + 非 1× 起投档：面板那一句不再说「秒级」', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      // 手动倍率 0.5：默认就近勾 0.5×（非 1× 档）。
+      manualRate: 0.5,
+    );
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(kCastPrepSentenceSoundOnly), findsNothing);
+    expect(find.text(kCastPrepSentenceSoundOnlySlowed), findsOneWidget);
+
+    // 换成只剩 1× 这一档：视频流原样复制，那一句回到「秒级」。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.full)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+
+    expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+    expect(find.text(kCastPrepSentenceSoundOnlySlowed), findsNothing);
+  });
 }

@@ -33,8 +33,13 @@ String castSeconds(double seconds) => seconds == seconds.roundToDouble()
     ? seconds.toInt().toString()
     : seconds.toString();
 
-/// 一窗的 `enable` 表达式：半开区间 `[起, 止)` → `gte(t,起)*lt(t,止)`。
-String castMirrorWindowExpression(int startMs, int endMs) =>
+/// 一窗的 `enable` 表达式：半开区间 `[起, 止)` → `gte(t,起)*lt(t,止)`，
+/// **不用 `between`**（它两端都含、会多一帧）。
+///
+/// 镜像闸门与贴纸闸门（`cast_sticker_gate.dart` 的
+/// `CastStickerSegment.enableExpression`）共用这一处：两边的窗都判**源时间
+/// 轴**（闸门排在倍速 `setpts` 之前），判法必须逐字一致。
+String castHalfOpenWindowExpression(int startMs, int endMs) =>
     'gte(t,${castSeconds(startMs / 1000)})*lt(t,${castSeconds(endMs / 1000)})';
 
 /// 多窗并成一条 `enable` 表达式（按 `+` 相加：叠交只是真值非零，不重叠时各自
@@ -43,7 +48,7 @@ String castMirrorUnionExpression(Iterable<LocalMirrorFragment> windows) {
   final terms = <String>[
     for (final window in windows)
       if (window.startMs < window.endMs)
-        castMirrorWindowExpression(window.startMs, window.endMs),
+        castHalfOpenWindowExpression(window.startMs, window.endMs),
   ];
   return terms.isEmpty ? '0' : terms.join('+');
 }

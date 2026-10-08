@@ -8,7 +8,10 @@
 /// - **起投**：[start] = 起递出通道 → 连上接收端 → 推**起投档**那一份 →
 ///   起播，随后把其余档交给后台渲（[state] 的 `tiers` 逐档给进度）。任一步
 ///   失败即把已起的部分收干净（停服 + 断连）、状态回未投屏，异常向上抛——
-///   零残留（准备面板与宿主据此给失败面）；
+///   零残留（准备面板与宿主据此给失败面）。**递出通道是一次性的**
+///   （`cast_delivery_channel.dart` 的注入点给的是工厂）：
+///   每次 [start] 取一份新的、[_teardown] 关掉当次那一份，于是
+///   「投 → 断开 → 重选 → 再投」可以反复进行；
 /// - **换档**：[switchTier] = 让接收端**换一个文件播**——递出通道换路径 →
 ///   推片 → 按比例换算位置续播（[castSwitchedPosition]）。有明确过程态
 ///   （[CastRunState.switching]）；新文件拉不到就**回退旧文件**并给一句提示
@@ -125,7 +128,7 @@ enum CastTierRenderStatus {
   /// 有一份可投的产物（[CastTierRender.filePath] 非空）——可切。
   ready,
 
-  /// 这一档没渲出来：不可切（退出投屏重来）。
+  /// 这一档没渲出来：不可切（断开投屏重来）。
   failed,
 }
 
@@ -305,7 +308,9 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
   }) async {
     await _teardown();
     final effectivePlan = plan ?? CastSpeedTierPlan.single(CastSpeedTier.full);
-    final channel = ref.read(castDeliveryChannelProvider);
+    // 递出通道**一次投屏一份**：取一份新的（上一份刚在 [_teardown] 里停掉，
+    // 它已经是一次性通道的终态——拿它再 serve 必抛 CastDeliveryClosed）。
+    final channel = ref.read(castDeliveryChannelFactoryProvider)();
     final factory = ref.read(castSessionFactoryProvider);
     try {
       final source = await channel.serve(file);

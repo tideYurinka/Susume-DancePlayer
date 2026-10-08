@@ -7,6 +7,8 @@ import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_orchestrator.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
+import 'package:dance_learning_app/cast/cast_speed_tier.dart'
+    show castCopyDuration;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -54,12 +56,14 @@ void main() {
     ],
     List<CastSticker> stickers = const [],
     CastBeatCountOverlay? beatOverlay,
+    Duration duration = const Duration(seconds: 2),
+    CastSpeedTier speedTier = CastSpeedTier.full,
   }) => CastRenderRequest(
     videoPath: p.join(root.path, 'source.mp4'),
     videoId: 'vid-a',
-    duration: const Duration(seconds: 2),
+    duration: duration,
     choices: choices,
-    speedTier: CastSpeedTier.full,
+    speedTier: speedTier,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
     stickers: stickers,
@@ -230,6 +234,43 @@ void main() {
 
       expect(seen.length, 1);
       expect(seen.single.fraction, 0.125, reason: '250ms / 2s');
+    });
+
+    test('进度分母按倍速档换算：三档各自是产物的期望时长', () async {
+      // 源片 6 秒：0.5× 档产物 12 秒、0.75× 档 8 秒、1× 档 6 秒
+      // （`setpts=PTS/rate`；分母用源时长会在过半时就读到 100%）。
+      for (final tier in CastSpeedTier.values) {
+        await orchestrator.render(
+          request(duration: const Duration(seconds: 6), speedTier: tier),
+        );
+      }
+
+      expect(
+        executor.totals,
+        const [
+          Duration(seconds: 12),
+          Duration(seconds: 8),
+          Duration(seconds: 6),
+        ],
+        reason: '执行器拿到的分母逐档是产物的期望时长',
+      );
+    });
+
+    test('半数进度对应的时间：0.5× 档走到源时长那一刻只算一半', () {
+      const source = Duration(seconds: 30);
+      // 进度读到「源片时长」这一刻：0.5× 档的产物还有一半没渲完。
+      final progress = CastRenderProgress(
+        rendered: source,
+        total: castCopyDuration(source, CastSpeedTier.half),
+      );
+
+      expect(progress.total, const Duration(seconds: 60));
+      expect(progress.fraction, closeTo(0.5, 1e-9));
+      // 分母错用源时长时的读数（曾经的缺陷）：同一刻报 100%。
+      expect(
+        const CastRenderProgress(rendered: source, total: source).fraction,
+        1,
+      );
     });
 
     test('取消：结局是取消、盘上不留半成品、也不给可推的文件', () async {

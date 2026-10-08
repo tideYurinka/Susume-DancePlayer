@@ -294,7 +294,7 @@ void main() {
         ),
         'gte(t,2.5)*lt(t,10.125)',
       );
-      expect(castMirrorWindowExpression(0, 1000), 'gte(t,0)*lt(t,1)');
+      expect(castHalfOpenWindowExpression(0, 1000), 'gte(t,0)*lt(t,1)');
     });
   });
 

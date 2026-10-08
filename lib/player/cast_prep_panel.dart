@@ -4,8 +4,9 @@
 ///
 /// ## 它回答三件事
 ///
-/// 1. **投什么**：两个勾选档（画面类 / 声音类，默认全选）。三句实话各配一种
-///    组合：都不勾 = 直接推原片；只勾声音 = 秒级；勾了画面 = 预计分钟级、
+/// 1. **投什么**：两个勾选档（画面类 / 声音类，默认全选）。四句实话各配一种
+///    组合与档：都不勾 = 直接推原片；只勾声音 + 1× 档 = 秒级；只勾声音 +
+///    非 1× 档 = 这一档的视频要重编码、不是秒级；勾了画面 = 预计分钟级、
 ///    改一次设置就要重渲一次（见 [castPrepRenderSentenceFor]）。
 /// 2. **投几档**：**投屏倍速档多选**——候选只有 0.5 / 0.75 / 1 三档，默认勾
 ///    与当前手动倍率最接近的那一档（`cast_speed_tier.dart` 的纯件）；至少留
@@ -70,8 +71,13 @@ const String kCastPrepTitle = '投屏到哪台设备';
 /// 都不勾时的实话：不渲染、直接推原片。
 const String kCastPrepSentencePassThrough = '不渲染：直接把原片推给电视，不用等';
 
-/// 只勾声音类时的实话：秒级。
+/// 只勾声音类、**1× 档**时的实话：视频流原样复制，秒级。
 const String kCastPrepSentenceSoundOnly = '只重做音轨：拍声混进去，秒级出结果';
+
+/// 只勾声音类、**非 1× 档**时的实话：`-c:v copy` 改不了时长，这一档的视频
+/// 也得重编码（见 `cast_render_plan.dart` 的 `slowed`）——不是秒级。
+const String kCastPrepSentenceSoundOnlySlowed =
+    '只重做音轨，但这一档的视频要重编码（复制改不了时长）：不是秒级';
 
 /// 勾了画面类时的实话：分钟级，且改设置要重渲。
 const String kCastPrepSentencePicture = '画面要重编码：预计分钟级；改一次设置就要重渲一次';
@@ -95,10 +101,22 @@ const String kCastPrepBeatFreezeText =
 /// 正在渲染的那一句（后面带百分比）。
 const String kCastPrepRenderingText = '正在渲染投屏副本';
 
-/// 勾选档 → 那一句实话（三句，逐组合唯一）。
-String castPrepRenderSentenceFor(CastRenderChoices choices) {
+/// 勾选档 × **起投档** → 那一句实话（逐组合唯一）。
+///
+/// 「只勾声音类」那一句分两句，分界就是 `-c:v copy` 做不做得到：1× 档视频流
+/// 原样复制（秒级），非 1× 档改不了时长、视频也得重编码（不是秒级）——
+/// [tier] 给的是**起投档**（面板当场渲的那一档，先投后渲）。
+/// 都不勾与勾了画面类那两句与档无关：它们本就说清了各自的代价。
+String castPrepRenderSentenceFor(
+  CastRenderChoices choices, {
+  CastSpeedTier tier = CastSpeedTier.full,
+}) {
   if (!choices.renders) return kCastPrepSentencePassThrough;
-  if (!choices.picture) return kCastPrepSentenceSoundOnly;
+  if (!choices.picture) {
+    return tier == CastSpeedTier.full
+        ? kCastPrepSentenceSoundOnly
+        : kCastPrepSentenceSoundOnlySlowed;
+  }
   return kCastPrepSentencePicture;
 }
 
@@ -364,7 +382,9 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
               _choicesRow(),
               const SizedBox(height: 4),
               Text(
-                castPrepRenderSentenceFor(_choices),
+                // 那一句跟着**起投档**走：非 1× 档的「只勾声音」也要重编码
+                // 视频，不是秒级。
+                castPrepRenderSentenceFor(_choices, tier: _plan.startTier),
                 key: const Key('cast_render_sentence'),
                 style: const TextStyle(
                   color: Colors.white70,

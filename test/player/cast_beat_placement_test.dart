@@ -66,6 +66,27 @@ void main() {
       expect(placement.usable, isTrue);
     });
 
+    test('可用的判定：非有限 / 零 / 负尺寸一律不可用（与数拍层同一条）', () {
+      CastBeatPlacement at({
+        double centerX = 0.5,
+        double centerY = 0.5,
+        double widthFraction = 0.3,
+        double heightFraction = 0.2,
+      }) => CastBeatPlacement(
+        centerX: centerX,
+        centerY: centerY,
+        widthFraction: widthFraction,
+        heightFraction: heightFraction,
+      );
+
+      expect(at().usable, isTrue);
+      expect(at(widthFraction: 0).usable, isFalse);
+      expect(at(heightFraction: -0.1).usable, isFalse);
+      expect(at(centerX: double.nan).usable, isFalse);
+      expect(at(centerY: double.infinity).usable, isFalse);
+      expect(at(widthFraction: double.nan).usable, isFalse);
+    });
+
     test('画面矩形整体平移：相对量随之变化（换算的是相对位置）', () {
       final shifted = placementOf(
         pictureRect: picture.shift(const Offset(20, -60)),
