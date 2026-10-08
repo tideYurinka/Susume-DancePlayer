@@ -1,9 +1,22 @@
 /// 投屏准备面板：进入**投屏态**之前那一段编排的界面——列同一局域网上的
-/// **接收端**、可重扫、把两条**门事实**当场拦下并说明。
+/// **接收端**、勾选要渲染的东西、看渲染进度、可取消，并把两条**门事实**
+/// 当场拦下并说明。
 ///
-/// 它只回答一件事：**投到哪台**。选中一台即 pop 出它（起递出通道、连会话、
-/// 推片、起播与进入投屏态的编排都在宿主）；取消 / 返回 = null = 进它之前
-/// 的样子、零副作用。
+/// ## 它回答两件事
+///
+/// 1. **投什么**：两个勾选档（画面类 / 声音类，默认全选）。三句实话各配一种
+///    组合：都不勾 = 直接推原片；只勾声音 = 秒级；勾了画面 = 预计分钟级、
+///    改一次设置就要重渲一次（见 [castPrepRenderSentenceFor]）。
+/// 2. **投到哪台**：接收端列表（选中一台即开始渲染，渲好即带出接收端与产物
+///    路径）。
+///
+/// ## 渲染发生在这里（进度与取消也在这里）
+///
+/// 选中接收端后本面板经**渲染编排**（`cast_render_orchestrator.dart`）渲染：
+/// 进度条读执行器报的进度，取消按钮走编排的取消。渲染失败给一句失败话并回到
+/// 列表（可以再试或换勾选）；**取消不是失败**，回到列表原样。渲染成功才 pop
+/// 出 [CastPrepOutcome]——起递出通道、连会话、推片、起播与进入投屏态的编排
+/// 都在宿主。
 ///
 /// ## 两条门都在面板里当场拦下并说明
 ///
@@ -15,7 +28,8 @@
 ///   出不了网，两者同一口径）——空态说明「手机与电视要在同一个 Wi-Fi、电视
 ///   别开访客网络」，并把重扫按钮留在眼前。
 ///
-/// 本文件零网络实现：发现走发现接缝（真实实现 SSDP、测试注入脚本化替身）。
+/// 本文件零网络实现：发现走发现接缝、渲染走编排接缝（真实实现分别走 SSDP 与
+/// 已链接的 ffmpeg，测试注入脚本化替身）。
 library;
 
 import 'dart:async';
@@ -23,6 +37,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_render_executor.dart' show CastRenderProgress;
+import '../cast/cast_render_orchestrator.dart';
+import '../cast/cast_render_request.dart';
 import '../cast/cast_receiver.dart';
 import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
 import 'play_tool_table.dart' show kSystemMirrorHintText;
@@ -42,20 +59,77 @@ const String kCastPrepScanningText = '正在搜索同一局域网上的接收端
 /// 面板标题。
 const String kCastPrepTitle = '投屏到哪台设备';
 
-/// 投屏准备面板（宿主经 `showDialog` 呈现；出参 = 选中的接收端或 null）。
-class CastPrepPanel extends ConsumerStatefulWidget {
-  const CastPrepPanel({super.key, required this.videoFilePath});
+/// 都不勾时的实话：不渲染、直接推原片。
+const String kCastPrepSentencePassThrough = '不渲染：直接把原片推给电视，不用等';
 
-  /// 这支舞的**视频副本**路径（副本存在性判定的输入）。
+/// 只勾声音类时的实话：秒级。
+const String kCastPrepSentenceSoundOnly = '只重做音轨：拍声混进去，秒级出结果';
+
+/// 勾了画面类时的实话：分钟级，且改设置要重渲。
+const String kCastPrepSentencePicture = '画面要重编码：预计分钟级；改一次设置就要重渲一次';
+
+/// 渲染失败时的那一句。
+const String kCastPrepRenderFailedText = '这次没渲出来：可以再试一次，或改一下勾选';
+
+/// 正在渲染的那一句（后面带百分比）。
+const String kCastPrepRenderingText = '正在渲染投屏副本';
+
+/// 勾选档 → 那一句实话（三句，逐组合唯一）。
+String castPrepRenderSentenceFor(CastRenderChoices choices) {
+  if (!choices.renders) return kCastPrepSentencePassThrough;
+  if (!choices.picture) return kCastPrepSentenceSoundOnly;
+  return kCastPrepSentencePicture;
+}
+
+/// 面板的出参：投到哪台 + 要推哪一份文件（渲好的副本，或原片）。
+class CastPrepOutcome {
+  const CastPrepOutcome({required this.receiver, required this.filePath});
+
+  final CastReceiver receiver;
+
+  /// 要推给接收端的文件路径：勾了渲染就是渲染产物，都不勾就是原片。
+  final String filePath;
+
+  @override
+  String toString() => 'CastPrepOutcome(${receiver.friendlyName}, $filePath)';
+}
+
+/// 投屏准备面板（宿主经 `showDialog` 呈现；出参 = 接收端 + 要推的文件）。
+class CastPrepPanel extends ConsumerStatefulWidget {
+  const CastPrepPanel({
+    super.key,
+    required this.videoFilePath,
+    required this.requestOf,
+  });
+
+  /// 这支舞的**视频副本**路径（副本存在性判定的输入，也是不渲染时的产物）。
   final String videoFilePath;
+
+  /// 按当前勾选档装配一份渲染请求（各域读面由宿主读齐，见
+  /// `cast_render_wiring.dart`）。
+  final CastRenderRequest Function(CastRenderChoices choices) requestOf;
 
   @override
   ConsumerState<CastPrepPanel> createState() => _CastPrepPanelState();
 }
 
 class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
+  /// 默认全选（画面类 + 声音类）。
+  CastRenderChoices _choices = const CastRenderChoices.all();
+
   bool _scanning = true;
   List<CastReceiver> _receivers = const [];
+
+  /// 正在渲染的那台接收端（null = 没在渲染）。
+  CastReceiver? _pending;
+  CastRenderProgress? _progress;
+  bool _renderFailed = false;
+
+  /// 这次渲染还在飞（面板被关掉时要把它取消掉；`_pending` 在成功 pop 的那一
+  /// 刻仍留着给「投到谁」那行字用，所以另用一个旗标）。
+  bool _inFlight = false;
+
+  bool get _rendering => _pending != null;
 
   @override
   void initState() {
@@ -68,6 +142,21 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
     }
     unawaited(_scan());
   }
+
+  @override
+  void dispose() {
+    // 面板被关掉（取消 / 返回 / 离开页面）时，在飞的那次渲染一并取消：
+    // 投屏准备的取消是「回到进它之前的样子、零副作用」——不让一条 ffmpeg 在
+    // 面板不在时继续跑，半成品由编排收尾清掉。
+    final orchestrator = _orchestrator;
+    if (_inFlight && orchestrator != null) {
+      unawaited(orchestrator.cancel());
+    }
+    super.dispose();
+  }
+
+  /// 这次准备用的编排器（起渲染时抓住；`dispose` 里不能再读 provider）。
+  CastRenderOrchestrator? _orchestrator;
 
   /// 副本丢失门的事实：存在性问的是全 App 唯一那一处判定
   /// （`lib/dance/video_copy_presence.dart`）。同步查询，构建期直读。
@@ -91,6 +180,62 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
     });
   }
 
+  void _setChoice(CastRenderChoices choices) {
+    if (_rendering) return;
+    setState(() {
+      _choices = choices;
+      _renderFailed = false;
+    });
+  }
+
+  /// 选中一台接收端 = 开始这次准备：装配请求 → 渲染（若需要）→ 带出结局。
+  Future<void> _pick(CastReceiver receiver) async {
+    final CastRenderRequest request;
+    try {
+      request = widget.requestOf(_choices);
+    } on Object {
+      // 读面还没就绪（例如标注尚未装载）——当场说明，不静默什么都不做。
+      setState(() => _renderFailed = true);
+      return;
+    }
+
+    setState(() {
+      _pending = receiver;
+      _progress = null;
+      _renderFailed = false;
+      _inFlight = true;
+    });
+
+    final orchestrator = ref.read(castRenderOrchestratorProvider);
+    _orchestrator = orchestrator;
+    final result = await orchestrator.render(
+      request,
+      onProgress: (progress) {
+        if (mounted) setState(() => _progress = progress);
+      },
+    );
+
+    if (!mounted) return;
+    _inFlight = false;
+    final filePath = result.filePath;
+    if (filePath != null) {
+      Navigator.of(context)
+          .pop(CastPrepOutcome(receiver: receiver, filePath: filePath));
+      return;
+    }
+    setState(() {
+      _pending = null;
+      _progress = null;
+      // 取消不是失败：回到列表原样；失败才给那一句。
+      _renderFailed = result.exit == CastRenderExit.failed;
+    });
+  }
+
+  /// 取消正在跑的这次渲染（编排侧取消执行器；半成品由编排收尾清掉）。
+  void _cancelRender() {
+    unawaited(ref.read(castRenderOrchestratorProvider).cancel());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -109,10 +254,29 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                 kCastPrepTitle,
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-              const SizedBox(height: 12),
-              if (_copyMissing)
+              const SizedBox(height: 8),
+              _choicesRow(),
+              const SizedBox(height: 4),
+              Text(
+                castPrepRenderSentenceFor(_choices),
+                key: const Key('cast_render_sentence'),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_rendering)
+                _renderProgress()
+              else if (_copyMissing)
                 _gateText(kCastPrepCopyMissingText, const Key('cast_gate_copy'))
               else ...[
+                if (_renderFailed)
+                  _gateText(
+                    kCastPrepRenderFailedText,
+                    const Key('cast_render_failed'),
+                  ),
                 if (_scanning)
                   _gateText(
                     kCastPrepScanningText,
@@ -140,7 +304,7 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                       // 只列**能当投屏对象**的接收端（有 AVTransport 控制
                       // 端点）——发现接缝已按此过滤，这里不再二次判。
                       onTap: receiver.canReceiveCast
-                          ? () => Navigator.of(context).pop(receiver)
+                          ? () => unawaited(_pick(receiver))
                           : null,
                     ),
               ],
@@ -148,17 +312,25 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (!_copyMissing)
+                  if (_rendering)
                     TextButton(
-                      key: const Key('cast_prep_refresh'),
-                      onPressed: _scanning ? null : _scan,
-                      child: const Text('重新搜索'),
+                      key: const Key('cast_render_cancel'),
+                      onPressed: _cancelRender,
+                      child: const Text('取消渲染'),
+                    )
+                  else ...[
+                    if (!_copyMissing)
+                      TextButton(
+                        key: const Key('cast_prep_refresh'),
+                        onPressed: _scanning ? null : _scan,
+                        child: const Text('重新搜索'),
+                      ),
+                    TextButton(
+                      key: const Key('cast_prep_cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('取消'),
                     ),
-                  TextButton(
-                    key: const Key('cast_prep_cancel'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('取消'),
-                  ),
+                  ],
                 ],
               ),
             ],
@@ -199,6 +371,73 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       ),
     ],
   );
+
+  /// 两个勾选档（默认全选；渲染期间不可改——改了要重来一次）。
+  Widget _choicesRow() {
+    Widget box({
+      required Key key,
+      required String label,
+      required bool value,
+      required CastRenderChoices Function(bool checked) next,
+    }) => Expanded(
+      child: CheckboxListTile(
+        key: key,
+        value: value,
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+        ),
+        onChanged: _rendering
+            ? null
+            : (checked) => _setChoice(next(checked ?? false)),
+      ),
+    );
+
+    return Row(
+      children: [
+        box(
+          key: const Key('cast_choice_picture'),
+          label: '画面类',
+          value: _choices.picture,
+          next: (checked) => _choices.copyWith(picture: checked),
+        ),
+        box(
+          key: const Key('cast_choice_sound'),
+          label: '声音类',
+          value: _choices.sound,
+          next: (checked) => _choices.copyWith(sound: checked),
+        ),
+      ],
+    );
+  }
+
+  /// 渲染进度：比例条 + 百分比 + 投给谁（取消按钮在按钮行里）。
+  Widget _renderProgress() {
+    final fraction = _progress?.fraction;
+    final percent = fraction == null ? null : (fraction * 100).round();
+    return Column(
+      key: const Key('cast_render_progress'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: fraction),
+        const SizedBox(height: 6),
+        Text(
+          percent == null
+              ? '$kCastPrepRenderingText…'
+              : '$kCastPrepRenderingText… $percent%',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '投到「${_pending?.friendlyName ?? ''}」，渲好即开始推片',
+          style: const TextStyle(color: Colors.white38, fontSize: 11),
+        ),
+      ],
+    );
+  }
 
   Widget _gateText(String text, Key key) => Padding(
     key: key,

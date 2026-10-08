@@ -27,8 +27,12 @@ dependencies:
   media_kit_video: ^2.0.1
   screen_brightness: ^2.1.11
   device_info_plus: ^13.2.0
-  # 节拍识别：一次性解码单声道 PCM；封面取帧也走它（滤镜 + 静态图输出）。
-  # min 变体只缺 libx264 与 AAC——本工程不做视频编码，够用
+  # 节拍识别：一次性解码单声道 PCM；封面取帧也走它（滤镜 + 静态图输出）；
+  # 投屏渲染（#26）同样走它——装配 ffmpeg 命令行、异步执行 + 进度 + 取消。
+  # 「min 变体只缺 libx264 与 AAC」那句是错的：min 缺的是**外部**库
+  # （libx264 这类 GPL 编解码器、mp3/opus 一类），而 H.264 硬编
+  # （h264_mediacodec）与原生 AAC 都是 FFmpeg 核心自带、min 里就有——
+  # 投屏渲染因此零新依赖、零体积增长（ADR-0004）。
   ffmpeg_kit_flutter_new_min: ^3.6.2
   # 节拍识别：纯 RNN ONNX 推理（前处理/DBN 解码在 Dart 侧）
   flutter_onnxruntime: ^1.8.4

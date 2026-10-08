@@ -4,7 +4,8 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../cast/cast_receiver.dart' show CastReceiver;
+import '../cast/cast_render_request.dart'
+    show CastRenderChoices, CastRenderRequest;
 import '../core/playback/playback_loop_layer.dart';
 import '../core/playback/playback_loop_providers.dart';
 import '../help/content_registry.dart' show HandsOnCriterion;
@@ -118,9 +119,10 @@ import '../beat_track_state/beat_track_state.dart'
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider, playbackPositionProvider;
 import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
-import 'cast_mirror.dart' show CastMirror, NoCastMirror;
 import 'cast_entry_gate.dart' show castEntryBlockedNoticeSpec;
-import 'cast_prep_panel.dart' show CastPrepPanel;
+import 'cast_mirror.dart' show CastMirror, NoCastMirror;
+import 'cast_prep_panel.dart' show CastPrepOutcome, CastPrepPanel;
+import 'cast_render_wiring.dart' show castRenderRequestFor;
 import 'cast_run.dart'
     show
         CastRunModel,
@@ -1689,9 +1691,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     unawaited(ref.read(castRunProvider.notifier).disconnect());
   }
 
-  /// 进入前置「投屏准备」的宿主编排：开准备面板选一台接收端 → 起递出通道
-  /// → 连会话 → 推**原片** → 起播；起投成功才返回 true（宿主随后经唯一
-  /// 提交入口提交进入投屏-控制层）。
+  /// 进入前置「投屏准备」的宿主编排：开准备面板选一台接收端、勾选要渲染的
+  /// 东西 → **面板内渲染**（进度与取消都在面板里）→ 起递出通道 → 连会话 →
+  /// 推**产物或原片** → 起播；起投成功才返回 true（宿主随后经唯一提交入口
+  /// 提交进入投屏-控制层）。
   ///
   /// - **已在投屏内直接放行**：投屏-观看态点画面展开回控制层不能重跑准备
   ///   （也不能把会话重投一遍）；
@@ -1701,15 +1704,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final cast = ref.read(castRunProvider.notifier);
     if (cast.receiver != null) return true;
     if (!mounted) return false;
-    final receiver = await showDialog<CastReceiver>(
+    final outcome = await showDialog<CastPrepOutcome>(
       context: context,
-      builder: (_) => CastPrepPanel(videoFilePath: widget.source.toFilePath()),
+      builder: (_) => CastPrepPanel(
+        videoFilePath: widget.source.toFilePath(),
+        requestOf: _castRenderRequest,
+      ),
     );
-    if (receiver == null || !mounted) return false;
+    if (outcome == null || !mounted) return false;
     try {
       await cast.start(
-        receiver: receiver,
-        file: File(widget.source.toFilePath()),
+        receiver: outcome.receiver,
+        file: File(outcome.filePath),
       );
       return cast.receiver != null;
     } on Object {
@@ -1721,6 +1727,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       return false;
     }
   }
+
+  /// 按勾选档装配一份渲染请求：各域现值由 `cast_render_wiring.dart` 读齐
+  /// （设置快照、标注指纹与拍声排程都在那里各就各位）。视频标识取打开会话
+  /// 解析出的那一个；解析不出时退回副本路径（缓存键仍逐支舞互异）。
+  CastRenderRequest _castRenderRequest(CastRenderChoices choices) =>
+      castRenderRequestFor(
+        ref.read,
+        videoPath: widget.source.toFilePath(),
+        videoId: ref.read(currentVideoIdProvider) ?? widget.source.toFilePath(),
+        globalMirrored: _mirror.mirrored,
+        choices: choices,
+      );
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
   /// 演出层自带 widget 子树，不反向读本页、不读中枢。

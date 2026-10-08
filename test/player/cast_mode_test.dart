@@ -175,9 +175,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 从编辑态起投：点投屏工具 → 面板 → 选客厅电视。
+  /// 从编辑态起投：点投屏工具 → 面板 → **两个勾选都取消（都不勾 = 直接推
+  /// 原片）** → 选客厅电视。投屏态这一票的用例只关心会话与换装，不把真渲染
+  /// 拉进来（渲染链的宿主测试在 `cast_prep_panel_test.dart`）。
   Future<void> startCast(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('tool_cast')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_choice_sound')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('cast_receiver_udn-$receiverName')));
     await tester.pumpAndSettle();
