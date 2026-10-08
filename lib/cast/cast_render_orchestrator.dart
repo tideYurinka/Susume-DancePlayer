@@ -99,6 +99,9 @@ class CastRenderOrchestrator {
 
     final hit = await cache.find(request);
     if (hit != null) {
+      // 命中就是这一次**投**用了那一份：刷新它的最近使用时间，缓存账按这一刻
+      // 重排淘汰次序（天天投的那一支不该因为渲得早而被淘汰）。
+      await cache.markUsed(request);
       return CastRenderResult(exit: CastRenderExit.cached, filePath: hit.path);
     }
 

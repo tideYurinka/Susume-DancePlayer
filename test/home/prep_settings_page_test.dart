@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
 import 'package:dance_learning_app/home/prep_settings_page.dart';
@@ -5,17 +8,37 @@ import 'package:dance_learning_app/persistence/prep_beats_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import '../helpers/in_memory_private_json_storage.dart';
 
 /// 详细设置页：三项读值/改值/写回、重启后仍在、
-/// 循环前导档位含「不前导」。
+/// 循环前导档位含「不前导」；以及「投屏缓存」那一行——真实占用、清空要确认、
+/// 清空后归零。
 void main() {
   late InMemoryPrivateJsonStorage storage;
+  late Directory root;
 
-  Future<ProviderContainer> pumpPage(WidgetTester tester) async {
+  setUp(() {
+    root = Directory.systemTemp.createTempSync('prep_settings_page_test');
+  });
+
+  tearDown(() {
+    if (root.existsSync()) root.deleteSync(recursive: true);
+  });
+
+  Future<ProviderContainer> pumpPage(
+    WidgetTester tester, {
+    Directory? cacheDirectory,
+  }) async {
     final container = ProviderContainer(
-      overrides: [privateJsonStorageProvider.overrideWithValue(storage)],
+      overrides: [
+        privateJsonStorageProvider.overrideWithValue(storage),
+        if (cacheDirectory != null)
+          castRenderCacheDirectoryProvider.overrideWithValue(
+            () async => cacheDirectory,
+          ),
+      ],
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(
@@ -75,5 +98,40 @@ void main() {
     container.listen(delayedLoopProvider, (_, _) {});
     await container.read(prepBeatsProvider.notifier).restoreDone;
     expect(container.read(delayedLoopProvider), DelayedLoopBeats.eight);
+  });
+
+  testWidgets('投屏缓存一行：显示真实占用；清空要确认，确认后占用归零', (tester) async {
+    storage = InMemoryPrivateJsonStorage();
+    final cacheDirectory = Directory(p.join(root.path, 'cast_render'));
+    final product =
+        File(p.join(cacheDirectory.path, 'deadbeefdeadbeef', '客厅练习.mp4'))
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(List.filled(2048, 1));
+    // 半成品与孤儿文件也算真实占用（它是「这块盘上占了多少」）。
+    File(p.join(cacheDirectory.path, 'orphan.tmp'))
+        .writeAsBytesSync(List.filled(1024, 2));
+
+    await pumpPage(tester, cacheDirectory: cacheDirectory);
+
+    expect(find.text('投屏缓存'), findsOneWidget);
+    expect(find.text('当前占用 3.0 KB'), findsOneWidget);
+
+    // 按清空：先要确认；取消则盘上一件不动。
+    await tester.tap(find.byKey(const Key('cast_cache_clear')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cast_cache_clear_dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cast_cache_clear_cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cast_cache_clear_dialog')), findsNothing);
+    expect(product.existsSync(), isTrue);
+    expect(find.text('当前占用 3.0 KB'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cast_cache_clear')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_cache_clear_confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('当前占用 0 B'), findsOneWidget);
+    expect(cacheDirectory.listSync(), isEmpty, reason: '清空后缓存区一件不剩');
   });
 }

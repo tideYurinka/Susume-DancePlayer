@@ -89,6 +89,23 @@ void main() {
       expect(loadedAssets, isEmpty, reason: '命中时连拍声资产都不必读');
     });
 
+    test('命中即记一次使用：那一份的最近使用时间刷新到现在', () async {
+      final req = request();
+      final product = await cache.productFileFor(req);
+      File(product.path).writeAsStringSync('rendered');
+      final longAgo = DateTime(2020, 1, 1);
+      product.setLastModifiedSync(longAgo);
+
+      final result = await orchestrator.render(req);
+
+      expect(result.exit, CastRenderExit.cached);
+      expect(
+        product.statSync().modified.isAfter(longAgo),
+        isTrue,
+        reason: '投出去的那一份要排到淘汰队尾（缓存账按最近使用淘汰）',
+      );
+    });
+
     test('缓存没命中：跑一次并把产物落定到那把键上', () async {
       final req = request();
       final result = await orchestrator.render(req);
