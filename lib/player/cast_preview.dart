@@ -37,8 +37,13 @@ import 'cast_run.dart' show castRunProvider;
 /// 实例**，同一接缝、独立生命周期。懒建——画面开关从没打开过就不建实例
 /// （与练习片段回放的 `practiceClipEngineProvider` 同款手法）。ProviderScope
 /// 销毁时释放内核资源。
+///
+/// **它不自己持屏幕唤醒**（`holdsScreenAwake: false`）：投屏期那一次常亮由
+/// 投屏侧**单持**（`lib/cast/cast_screen_awake.dart`，票 #39）。两处都持的话，
+/// 画面开关一开一关、预览播完，画面件那次释放会打在同一处平台开关上，把投屏
+/// 期该有的常亮一并关掉——「不重复持有、不打架」正是这一条。
 final castPreviewEngineProvider = Provider<PlaybackEngine>((ref) {
-  final engine = MediaKitPlaybackEngine();
+  final engine = MediaKitPlaybackEngine(holdsScreenAwake: false);
   ref.onDispose(engine.dispose);
   return engine;
 });

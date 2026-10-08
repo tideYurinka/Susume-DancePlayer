@@ -71,6 +71,12 @@ dependencies:
   # 投屏把它提升为运行时依赖：这两份 XML 是外部设备给的输入，手写解析是另一
   # 类风险，而它是纯 Dart、无原生码、不增 ABI 体积。
   xml: ^7.0.1
+  # 投屏期屏幕常亮（#39）：不是新包——media_kit_video 的画面件就是经它持唤醒
+  # 的（它本来就在 lockfile 里，是 media_kit_video 的传递依赖）。提升为直接
+  # 依赖的理由：投屏态的画面区换成投屏覆盖件、连源画面件都不挂，唤醒没有持有
+  # 者，得由投屏侧自己持；唯一引用点是
+  # `lib/cast/wakelock_cast_screen_awake.dart`——与画面件同一条平台能力。
+  wakelock_plus: ^1.8.0
 
 dev_dependencies:
   flutter_test:

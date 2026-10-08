@@ -4,6 +4,7 @@
 ///   **静音本地预览**（画面开关打开后）。预览**只画视频画面本身**：贴纸、
 ///   数拍、节拍动画与画面标识都不画（它们已在电视上），且**不可交互**——
 ///   本件不挂任何手势，落在它上面的手势归画面层既有那条手势面（遥控电视）。
+///   它还是**投屏期屏幕常亮那一帧末的再确认点**（票 #39，见本件类注释）。
 /// - [CastStatusCapsule]：**投屏-观看态**下屏上那枚只读状态件，写明
 ///   「投屏中 · 接收端名」。它自身不接任何手势、不接任何动作，落在它身上的
 ///   点按被它吞掉（防误触）——要操作就先点画面（胶囊之外）展开控制层。
@@ -17,11 +18,33 @@ import 'cast_run.dart' show castRunProvider;
 import 'visual_tokens.dart' show kNoticeTextStyle;
 
 /// 投屏态的画面区：默认黑底 + 指路提示，画面开关打开后切静音本地预览。
-class CastPictureArea extends ConsumerWidget {
+///
+/// **它挂上那一帧的帧末还要再确认一次屏幕唤醒**（票 #39）：本件接管画面区
+/// 时，源画面件要到**同一帧收尾**才真的 dispose——dispose 时它会放开自己那份
+/// 唤醒（media_kit 画面件的，打的是**同一个**平台开关，而那个开关不是引用
+/// 计数的），把起投那一刻持有的那一次踩掉，屏幕照旧会熄。所以帧末叫投屏运行域
+/// 再按一次（持有者仍只有运行域一处，见 `cast_run.dart` 的
+/// `reassertScreenAwake`）。
+class CastPictureArea extends ConsumerStatefulWidget {
   const CastPictureArea({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CastPictureArea> createState() => _CastPictureAreaState();
+}
+
+class _CastPictureAreaState extends ConsumerState<CastPictureArea> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 转瞬进出投屏态（本件已不在树上）就不叫：那一刻持有本就已放开。
+      if (!mounted) return;
+      ref.read(castRunProvider.notifier).reassertScreenAwake();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final on = ref.watch(castPreviewProvider);
     return ColoredBox(
       key: const Key('cast_picture_area'),

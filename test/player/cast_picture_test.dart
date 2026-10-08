@@ -4,6 +4,7 @@ import 'package:dance_learning_app/cast/cast_delivery_channel.dart';
 import 'package:dance_learning_app/cast/cast_failure.dart'
     show CastActionRefused, CastSessionDropped;
 import 'package:dance_learning_app/cast/cast_receiver.dart';
+import 'package:dance_learning_app/cast/cast_screen_awake.dart';
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
@@ -43,6 +44,7 @@ import '../helpers/beat_test_seam.dart'
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_receiver_discovery.dart';
+import '../helpers/fake_cast_screen_awake.dart';
 import '../helpers/fake_cast_session.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_ui.dart';
@@ -52,7 +54,8 @@ import '../helpers/in_memory_private_json_storage.dart';
 import '../helpers/in_memory_video_document_storage.dart';
 import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/video_index_fixtures.dart';
-import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
+import '../helpers/video_surface.dart'
+    show VideoSurfacePlaceholder, videoSurfacePlaceholderKey;
 
 /// 投屏态的画面开关与投屏胶囊（票 #32，规格 #21）：
 ///
@@ -64,6 +67,10 @@ import '../helpers/video_surface.dart' show videoSurfacePlaceholderKey;
 /// - 投屏-观看态屏上留一枚**只作状态提示、点不动**的投屏胶囊；点画面即
 ///   展开回控制层（走既有画面点按路径）。
 ///
+/// 另有**投屏期屏幕常亮**（#39）那几条：画面开关在场不重复持有、收起不放掉，
+/// 以及「再确认落在源画面件退场之后」——源画面件退场时会放开同一个平台开关，
+/// 那条时序就是投屏期不熄屏的判据。
+///
 /// 接收端经 #23 的脚本化替身注入，预览内核是第二只 FakePlaybackEngine
 /// （与 `practiceClipEngineProvider` 同款兄弟实例手法），不碰真网络与真解码。
 void main() {
@@ -74,6 +81,11 @@ void main() {
   late FakeCastReceiverDiscovery discovery;
   late FakeCastSessionFactory factory;
   late FakeCastDeliveryChannelFactory delivery;
+  late FakeCastScreenAwake awake;
+
+  /// 唤醒的拿 / 放 / 再确认与**源画面件退场**共用的时序表（票 #39：顺序本身就
+  /// 是那条「退场那一次放开不能踩掉投屏期常亮」的判据）。
+  late List<String> timeline;
 
   const receiverName = '客厅电视';
 
@@ -131,6 +143,9 @@ void main() {
           castReceiverDiscoveryProvider.overrideWithValue(discovery),
           castSessionFactoryProvider.overrideWithValue(factory),
           castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
+          // 投屏期屏幕唤醒（#39）：替身记录拿 / 放次数——真平台上「屏幕到底
+          // 熄不熄」归真机验收，这里钉的是「谁在什么时候拿、什么时候放」。
+          castScreenAwakeProvider.overrideWithValue(awake),
           videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
           // 节拍分析挂起：数拍浮层的显隐由测试自行置开（画面开关那条断言
           // 要的是「投屏态不挂它」，不是分析结果）。
@@ -200,7 +215,13 @@ void main() {
   }
 
   setUp(() {
-    engine = FakePlaybackEngine(duration: const Duration(seconds: 30));
+    timeline = [];
+    // 主内核的画面件替身：退场时往时序表记一笔（真内核那份画面件在 dispose 时
+    // 会放开同一个平台开关——本文件的 #39 用例要看的正是那一刻的先后）。
+    engine = _WakeReleasingEngine(
+      log: timeline,
+      duration: const Duration(seconds: 30),
+    );
     previewEngine = FakePlaybackEngine(
       duration: const Duration(seconds: 30),
       videoAspectRatio: 16 / 9,
@@ -214,6 +235,7 @@ void main() {
     );
     factory = FakeCastSessionFactory();
     delivery = FakeCastDeliveryChannelFactory();
+    awake = FakeCastScreenAwake(onCall: timeline.add);
   });
 
   testWidgets('画面区默认黑底 + 指路提示；开关打开后才出现本地画面', (tester) async {
@@ -482,4 +504,104 @@ void main() {
     expect(containerOf(tester).read(castPreviewProvider), isFalse);
     expect(find.byKey(const Key('cast_picture_area')), findsNothing);
   });
+
+  testWidgets('投屏期屏幕常亮：画面开关在场不重复持有、收起不放掉（#39）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    // 进投屏态持有一次；画面区接管那一帧的帧末再确认一次——退场的源画面件
+    // 在同一帧收尾时会放开**同一个**平台开关（它不是引用计数的），不补按这
+    // 一下，投屏期照样会熄。
+    expect(awake.calls, ['hold', 'reassert'], reason: '进投屏态持有 + 画面区接管那一帧末再确认');
+    expect(awake.held, 1, reason: '再确认不是第二份持有');
+
+    // 画面开关打开：本地预览在场。投屏期那份唤醒**还是那一份**——预览件不在
+    // 唤醒上再插一手（生产装配里它那只内核 `holdsScreenAwake: false`，见
+    // `test/cast/cast_screen_awake_test.dart` 的结构护栏）。
+    await turnPictureOn(tester);
+    expect(awake.calls, ['hold', 'reassert'], reason: '画面开关在场不重复持有');
+    expect(awake.held, 1);
+    expect(awake.releaseCalls, 0);
+
+    // 收起画面开关：只收预览，不放掉投屏那一份（两处打在同一个平台开关上
+    // 就会互相打架——投屏期屏幕照旧不该熄）。
+    await turnPictureOn(tester);
+    expect(awake.calls, ['hold', 'reassert'], reason: '收起预览不放掉投屏那一份');
+    expect(awake.held, 1);
+
+    await tester.tap(find.byKey(const Key('tool_cast_disconnect')));
+    await tester.pumpAndSettle();
+
+    expect(awake.calls, ['hold', 'reassert', 'release'], reason: '离开投屏态才放掉');
+    expect(awake.held, 0, reason: '断开后恢复系统行为');
+  });
+
+  testWidgets('投屏-观看态来回切换不重挂画面区：唤醒不再重复确认（#39）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    expect(awake.reassertCalls, 1);
+
+    // 收起控制层 → 投屏-观看态 → 再点画面展开回控制层：画面区始终是同一个
+    // 元素（只有控制层在换装），唤醒不该被反复再确认。
+    await collapseToCastWatching(tester);
+    await tester.tap(find.byKey(const Key('player_surface')));
+    await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 30));
+    await tester.pumpAndSettle();
+
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(awake.calls, ['hold', 'reassert'], reason: '画面区不重挂，唤醒不再重复确认');
+  });
+
+  testWidgets('再确认落在源画面件退场之后：退场那一次放开踩不掉投屏期常亮（#39）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    // 真内核的画面件在 dispose 时会放开自己那份唤醒，打的是**同一个**平台开关
+    // （那个开关不是引用计数的）——那一刻在替身上对应 `source_surface_dispose`
+    // 这一笔。投屏期的常亮因此必须在那之后**再确认一次**。
+    expect(timeline, [
+      'hold',
+      'source_surface_dispose',
+      'reassert',
+    ], reason: '顺序就是判据：起投持有 → 源画面件退场（放开同一个开关）→ 再确认');
+  });
+}
+
+/// 主内核替身：**画面件退场时往 [log] 记一笔**——真内核（media_kit）的画面件
+/// 在 dispose 时会放开自己那份唤醒，打的是投屏侧同一个平台开关。#39 那条
+/// 「再确认必须落在源画面件退场之后」的用例靠它把两件事放进同一条时序表。
+class _WakeReleasingEngine extends FakePlaybackEngine {
+  _WakeReleasingEngine({required this.log, super.duration});
+
+  final List<String> log;
+
+  @override
+  Widget buildVideoSurface() => _WakeReleasingSurface(log: log);
+}
+
+class _WakeReleasingSurface extends StatefulWidget {
+  const _WakeReleasingSurface({required this.log});
+
+  final List<String> log;
+
+  @override
+  State<_WakeReleasingSurface> createState() => _WakeReleasingSurfaceState();
+}
+
+class _WakeReleasingSurfaceState extends State<_WakeReleasingSurface> {
+  @override
+  void dispose() {
+    widget.log.add('source_surface_dispose');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      const VideoSurfacePlaceholder(videoAspectRatio: null);
 }

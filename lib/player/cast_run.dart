@@ -61,6 +61,19 @@
 /// 边沿即断开——**不新增手写退出点**。主动断开走 [disconnect]：它自己收完
 /// 会话与通道再翻模式值，那条边沿随之再走一遍是幂等空操作。
 ///
+/// ## 投屏期屏幕常亮（票 #39）
+///
+/// 投屏态的画面区被投屏画面覆盖件换掉——连源画面件都不挂，于是播放内核
+/// 那份「画面件持着」的唤醒没有持有者，屏幕照常熄灭。本域因此在**进投屏态
+/// 那一下**经 [castScreenAwakeProvider] 持有唤醒（画面件持不了、内核也不能
+/// 独立于画面件持，见 `cast_screen_awake.dart`），在**既有复位一处**
+/// （[_teardown]）放掉：断开 / 换视频 / 离开播放页 / 起投失败的零残留都经它
+/// ——进出各只有一处，不在三处各写一遍。不引前台服务。
+///
+/// 另有**一帧末的再确认**（[reassertScreenAwake]，由画面区挂载时叫）：退场的
+/// 源画面件在同一帧收尾时 dispose，会放开同一个平台开关（它不是引用计数的）
+/// ——不是第二个持有者，只是把同一份持有重新按一遍。
+///
 /// ## 边界
 ///
 /// 本域不读构建上下文、不构控件；模式值仍归其既有单一 owner
@@ -86,6 +99,7 @@ import '../cast/cast_range_gate.dart'
 import '../cast/cast_render_orchestrator.dart'
     show castRenderOrchestratorProvider;
 import '../cast/cast_render_request.dart';
+import '../cast/cast_screen_awake.dart';
 import '../cast/cast_session.dart';
 import '../cast/cast_speed_tier.dart';
 import '../player_session/player_session.dart';
@@ -304,6 +318,11 @@ class CastRunModel extends Notifier<CastRunState>
   /// 后台渲染还在飞（断开时要把它取消掉）。
   bool _rendering = false;
 
+  /// 投屏期这一屏**还持着唤醒**（进投屏态即持有、离开即释放；见
+  /// `cast_screen_awake.dart`）。持有与释放严格配对：释放只在
+  /// [CastScreenAwake.release] 该被调的那一刻调一次。
+  bool _awake = false;
+
   @override
   CastRunState build() {
     // 断开触发点收在既有复位一处：只听「离开投屏态」这一条边沿
@@ -360,6 +379,9 @@ class CastRunModel extends Notifier<CastRunState>
                 : CastTierRender.queued(tier),
         ],
       );
+      // 进投屏态即持有唤醒：这一刻起用户可能已经离屏两三米、手机不碰了
+      // ——推片与起播的等待期同样不能熄屏（推片失败由 [_teardown] 配平放掉）。
+      _holdScreenAwake();
       await session.push(source);
       await session.play();
       // **遥控项判据**：连上之后「问一次答一次」——接收端此刻支持哪些传输
@@ -777,10 +799,44 @@ class CastRunModel extends Notifier<CastRunState>
     ref.read(noticeTriggerProvider(NoticeId.castInterrupted).notifier).show();
   }
 
+  /// 进投屏态即持有唤醒（[CastScreenAwake.hold] 是引用计数式：重复持有只真的
+  /// 拿一次）。只在 [start] 那一条边上调用——起投失败由 [_teardown] 配平。
+  void _holdScreenAwake() {
+    if (_awake) return;
+    _awake = true;
+    unawaited(ref.read(castScreenAwakeProvider).hold());
+  }
+
+  /// 离开投屏态即放掉唤醒。**唯一释放点**是 [_teardown]（断开 / 换视频 /
+  /// 离开播放页 / 起投失败都经它）——不在三处各写一遍；没持有时不调
+  /// （一次多余的释放会把画面件那一份唤醒也关掉）。
+  void _releaseScreenAwake() {
+    if (!_awake) return;
+    _awake = false;
+    unawaited(ref.read(castScreenAwakeProvider).release());
+  }
+
+  /// 投屏态的画面区接管那一帧的**帧末**再确认一次唤醒（画面区挂载时调，
+  /// 见 `cast_picture_area.dart`）。
+  ///
+  /// 起投那一刻持的唤醒会被**退场的源画面件**踩掉：投屏态的画面区在源画面件
+  /// 退场那一帧接管，而那个画面件要到同一帧收尾才 dispose——dispose 时它放开
+  /// 自己那份唤醒，打的是同一个平台开关（那个开关不是引用计数的）。所以帧末
+  /// 补按一次「开」。持有者仍只有本域一处：这不是第二个持有者，也没有计数 +1
+  /// （见 [CastScreenAwake.reassert]）。没持有时是空操作。
+  void reassertScreenAwake() {
+    if (!_awake) return;
+    unawaited(ref.read(castScreenAwakeProvider).reassert());
+  }
+
   /// 收干净：取消在飞的后台渲染 + 停服 + 断连 + 状态回未投屏。三步各自
   /// best-effort——收尾失败不阻断另一步，也不向上抛（用户按下的那一下不能被
   /// 一次失败的收尾挡住）。
   Future<void> _teardown() async {
+    // 唤醒**先放**：断连那一下可能被设备拖住，而「离开投屏态」这一刻屏幕就该
+    // 回系统行为——不跟着收尾的耗时一起挂着。进出各一处：持有在 [start]，
+    // 释放只在这里（断开 / 换视频 / 离开播放页 / 起投失败都经本方法）。
+    _releaseScreenAwake();
     // 在飞的后台渲染随之作废并取消：它的进度不再属于任何一次投屏，它的
     // 半成品由渲染编排的收尾清掉。
     _renderGeneration++;
