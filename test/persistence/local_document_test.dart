@@ -635,6 +635,151 @@ void main() {
     });
   });
 
+  group('LocalDocument 投屏准备记忆（票 #40）', () {
+    test('全字段往返：两个勾选档与档表写进 prefs.castPrep，读回逐字段相等', () {
+      const doc = LocalDocument(
+        castPrep: CastPrepMemoryFields(
+          picture: false,
+          sound: true,
+          tiers: ['0.5', '1'],
+        ),
+      );
+
+      final json = doc.toJson();
+      expect(json['version'], 4);
+      expect(json['prefs']['castPrep'], {
+        'picture': false,
+        'sound': true,
+        'tiers': ['0.5', '1'],
+      });
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.castPrep!.picture, isFalse);
+      expect(restored.castPrep!.sound, isTrue);
+      expect(restored.castPrep!.tiers, ['0.5', '1']);
+      expect(restored, doc);
+      expect(restored.hashCode, doc.hashCode);
+    });
+
+    test('只写部分字段：缺席字段读回仍是缺席，不被补成默认值', () {
+      const doc = LocalDocument(castPrep: CastPrepMemoryFields(picture: true));
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep'], {'picture': true});
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.castPrep!.picture, isTrue);
+      expect(restored.castPrep!.sound, isNull);
+      expect(restored.castPrep!.tiers, isNull);
+      expect(restored, doc);
+    });
+
+    test('记忆字段落 prefs 段自己的一格：整份缺失 vs 记录在但全字段缺席可区分', () {
+      const noRecord = LocalDocument();
+      const emptyRecord = LocalDocument(castPrep: CastPrepMemoryFields());
+
+      expect(noRecord.toJson()['prefs'].containsKey('castPrep'), isFalse);
+      expect(emptyRecord.toJson()['prefs']['castPrep'], <String, dynamic>{});
+      expect(LocalDocument.fromJson(emptyRecord.toJson()).castPrep, isNotNull);
+      expect(LocalDocument.fromJson(noRecord.toJson()).castPrep, isNull);
+      expect(emptyRecord == noRecord, isFalse);
+    });
+
+    test('withCastPrep(null) 清除整格：文件里不再有该键', () {
+      const doc = LocalDocument(
+        castPrep: CastPrepMemoryFields(sound: false, tiers: ['0.75']),
+      );
+      final cleared = doc.withCastPrep(null);
+      expect(cleared.toJson()['prefs'].containsKey('castPrep'), isFalse);
+      expect(LocalDocument.fromJson(cleared.toJson()).castPrep, isNull);
+    });
+
+    test('畸形形状兜底：非法字段逐项按缺席，不抛错、不写回非法值', () {
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'picture': 'yes',
+            'sound': true,
+            'tiers': 'not-a-list',
+          },
+        },
+      });
+      expect(doc.castPrep!.picture, isNull);
+      expect(doc.castPrep!.sound, isTrue);
+      expect(doc.castPrep!.tiers, isNull);
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep'], {'sound': true});
+
+      // 档表里混进非字符串元素：只剔掉那一项，其余照留（词表校验在投屏域）。
+      final mixed = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'tiers': ['0.5', 3, null, '1'],
+          },
+        },
+      });
+      expect(mixed.castPrep!.tiers, ['0.5', '1']);
+    });
+
+    test('未知键保底：prefs 段与 castPrep 子对象里的陌生键原样带回写回', () {
+      final fromFile = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrepReserved': 'p',
+          'castPrep': {'picture': true, 'memoryReserved': 'm'},
+        },
+      });
+      final json = fromFile.toJson();
+      expect(json['prefs']['castPrepReserved'], 'p');
+      expect(json['prefs']['castPrep']['memoryReserved'], 'm');
+      expect(json['prefs']['castPrep']['picture'], isTrue);
+      // 保底区不参与相等：本版本字段相同的文档互相相等。
+      expect(
+        fromFile,
+        const LocalDocument(castPrep: CastPrepMemoryFields(picture: true)),
+      );
+    });
+
+    test('wither 链携带：withCastPrep 不擦其它字段，其它写入不擦记忆', () {
+      const memory = CastPrepMemoryFields(
+        picture: false,
+        sound: false,
+        tiers: ['0.75'],
+      );
+      final chained = const LocalDocument(
+        overlay: OverlayPlacementFields(dx: 1.0, dy: 2.0),
+        beatPrompt: BeatPromptMemoryFields(animation: true),
+      ).withCastPrep(memory).withSnap(previewSnapEnabled: false);
+      expect(chained.castPrep, memory);
+      expect(chained.beatPrompt!.animation, isTrue);
+      expect(chained.overlay!.dx, 1.0);
+      expect(chained.previewSnapEnabled, isFalse);
+
+      final other = const LocalDocument(castPrep: memory)
+          .withLayoutLocked(true)
+          .withBeatPrompt(const BeatPromptMemoryFields(sound: true));
+      expect(other.castPrep, memory);
+      expect(other.layoutLocked, isTrue);
+      expect(other.beatPrompt!.sound, isTrue);
+    });
+
+    test('字段参与相等：记忆值不同判不等，null 与空记录判不等', () {
+      expect(
+        const LocalDocument(castPrep: CastPrepMemoryFields(picture: false)) ==
+            const LocalDocument(),
+        isFalse,
+      );
+      expect(
+        const LocalDocument(castPrep: CastPrepMemoryFields(tiers: ['0.5'])) ==
+            const LocalDocument(castPrep: CastPrepMemoryFields(tiers: ['0.5'])),
+        isTrue,
+      );
+    });
+  });
+
   group('v3 → v4 迁移：旧取景键直接复位', () {
     const v3Doc = <String, dynamic>{
       'version': 3,
@@ -677,6 +822,35 @@ void main() {
       final once = LocalDocument.fromJson(v3Doc).toJson();
       final twice = LocalDocument.fromJson(once).toJson();
       expect(twice, once);
+    });
+
+    test('v3 升 v4 不造投屏准备记忆：旧文件没有该键 → 读回无记忆、写回仍不造键', () {
+      final doc = LocalDocument.fromJson(v3Doc);
+      expect(doc.castPrep, isNull, reason: '旧文件没记过投屏准备，不该被补出一份默认记忆');
+
+      final prefs = doc.toJson()['prefs'] as Map;
+      expect(prefs.containsKey('castPrep'), isFalse);
+    });
+
+    test('v3 头带着 castPrep（手改或回降级文件）：迁移逐字保留，不经迁移丢失', () {
+      final json = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'picture': false,
+            'sound': true,
+            'tiers': ['0.5'],
+            'memoryReserved': 'm',
+          },
+        },
+      }).toJson();
+      expect(json['version'], 4);
+      expect(json['prefs']['castPrep'], {
+        'picture': false,
+        'sound': true,
+        'tiers': ['0.5'],
+        'memoryReserved': 'm',
+      });
     });
   });
 }

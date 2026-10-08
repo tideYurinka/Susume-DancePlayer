@@ -12,6 +12,9 @@ import 'package:dance_learning_app/cast/system_mirror.dart'
     show systemMirrorLauncherProvider;
 import 'package:dance_learning_app/dance/video_copy_presence.dart'
     show videoCopyPresenceProvider;
+import 'package:dance_learning_app/persistence/local_document.dart'
+    show CastPrepMemoryFields;
+import 'package:dance_learning_app/player/cast_prep_memory.dart';
 import 'package:dance_learning_app/player/cast_prep_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,6 +80,10 @@ void main() {
     requestOf,
     double manualRate = 1,
     FakeSystemMirrorLauncher? systemMirror,
+    CastPrepMemoryPort? memory,
+    // riverpod 3.4.2 未公开导出 Override 类型（与 settings_persistence_test
+    // 同款）：用 List<dynamic> 承接，展开处照常判类型。
+    List<dynamic> extraOverrides = const [],
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -88,6 +95,7 @@ void main() {
           systemMirrorLauncherProvider.overrideWithValue(
             systemMirror ?? FakeSystemMirrorLauncher(),
           ),
+          ...extraOverrides,
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -101,6 +109,7 @@ void main() {
                       videoFilePath: filePath,
                       manualRate: manualRate,
                       requestOf: requestOf ?? request,
+                      memory: memory,
                     ),
                   );
                 },
@@ -814,4 +823,207 @@ void main() {
     expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
     expect(find.text(kCastPrepSentenceSoundOnlySlowed), findsNothing);
   });
+
+  // ---- 投屏准备记忆（票 #40）：按舞预置与回写 ----
+
+  bool choiceChecked(WidgetTester tester, Key key) =>
+      tester.widget<CheckboxListTile>(find.byKey(key)).value ?? false;
+
+  testWidgets('注入的取值来源：面板按记忆预置（两个勾选档与多档集合都按它）', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+    final memory = _RecordingCastPrepMemoryPort(
+      const CastPrepMemory(
+        choices: CastRenderChoices(picture: false, sound: true),
+        tiers: {CastSpeedTier.half, CastSpeedTier.full},
+      ),
+    );
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      memory: memory.port,
+      // 手动倍率 1× 在记忆在场时不再决定初值：默认只会勾 1× 一档，
+      // 记忆里是两档。
+      manualRate: 1,
+    );
+
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isFalse);
+    expect(choiceChecked(tester, const Key('cast_choice_sound')), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+    expect(
+      tierChecked(tester, CastSpeedTier.threeQuarter),
+      isFalse,
+      reason: '记忆里没有这一档',
+    );
+    // 那一句实话跟着预置的起投档走：手动倍率 1× 就近，起投是 1× 档。
+    expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+    expect(memory.writes, isEmpty, reason: '只是打开面板不该回写');
+  });
+
+  testWidgets('改动即回写：取消面板后重开，取值按上次的表态预置', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+    final memory = _RecordingCastPrepMemoryPort();
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      memory: memory.port,
+    );
+    // 打开时是默认（全选 + 就近 1×）。
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+
+    // 取消画面类、加勾 0.5×：两次改动各回写一次。
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+
+    expect(memory.writes, hasLength(2), reason: '改一次回写一次');
+    expect(
+      memory.memory?.choices,
+      const CastRenderChoices(picture: false, sound: true),
+    );
+    expect(memory.memory?.tiers, {CastSpeedTier.half, CastSpeedTier.full});
+
+    // 关掉面板（取消不是失败：不带出任何东西）……
+    await tester.tap(find.byKey(const Key('cast_prep_cancel')));
+    await tester.pumpAndSettle();
+    expect(picked.value, isNull);
+
+    // ……再开一次：预置就是上次那套取值（「面板关闭即丢」已修）。
+    await tester.tap(find.byKey(const Key('open_panel')));
+    await tester.pumpAndSettle();
+
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isFalse);
+    expect(choiceChecked(tester, const Key('cast_choice_sound')), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+  });
+
+  testWidgets('默认装配（会话记忆槽）：文档字段形状的记忆经面板预置', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 1,
+      extraOverrides: [
+        castPrepMemoryProvider.overrideWith(
+          () => _SeededCastPrepMemory(
+            const CastPrepMemoryFields(
+              picture: false,
+              sound: false,
+              tiers: ['0.5', '0.75'],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isFalse);
+    expect(choiceChecked(tester, const Key('cast_choice_sound')), isFalse);
+    // 都不勾渲染档：三档置灰、界面只显示原片这一档（既有语义不变）——记忆
+    // 里的档表此刻不显示，但没被抹掉（下面重勾画面类即可看见它回来）。
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isFalse);
+    expect(tierChecked(tester, CastSpeedTier.half), isFalse);
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+    expect(find.text(kCastPrepTierPassThrough), findsOneWidget);
+
+    // 重新勾上画面类：记忆里的档表立刻回来（面板这一路没把记忆改掉）。
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isTrue);
+  });
+
+  testWidgets('槽里的记忆非法 / 已不可用：静默降级回默认，不炸也不提示', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 0.75,
+      extraOverrides: [
+        castPrepMemoryProvider.overrideWith(
+          () => _SeededCastPrepMemory(
+            const CastPrepMemoryFields(picture: true, tiers: ['2', 'double']),
+          ),
+        ),
+      ],
+    );
+
+    expect(tester.takeException(), isNull);
+    // 逐字段降级：缺席的 sound 回默认（全选），档表剔空后回就近那一档。
+    expect(choiceChecked(tester, const Key('cast_choice_picture')), isTrue);
+    expect(choiceChecked(tester, const Key('cast_choice_sound')), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isFalse);
+    expect(
+      find.byKey(const Key('cast_gate_copy')),
+      findsNothing,
+      reason: '静默降级：不出任何说明文案',
+    );
+  });
+}
+
+/// 注入用的记忆槽：把一份文档字段形状的记忆当初始值。
+class _SeededCastPrepMemory extends CastPrepMemoryModel {
+  _SeededCastPrepMemory(this._initial);
+
+  final CastPrepMemoryFields? _initial;
+
+  @override
+  CastPrepMemoryFields? build() => _initial;
+}
+
+/// 注入用的取值来源与回写口：记住最后一次回写的取值（两个钩子与真实装配
+/// 同形；[port] 交给面板）。
+class _RecordingCastPrepMemoryPort {
+  _RecordingCastPrepMemoryPort([this.memory]);
+
+  CastPrepMemory? memory;
+  final List<CastPrepMemory> writes = [];
+
+  CastPrepMemoryPort get port => CastPrepMemoryPort(
+    presetFor: (manualRate) => memory ?? defaultCastPrepMemoryFor(manualRate),
+    remember: (next) {
+      memory = next;
+      writes.add(next);
+    },
+  );
 }

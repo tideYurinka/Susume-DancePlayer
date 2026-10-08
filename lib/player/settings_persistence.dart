@@ -26,6 +26,7 @@ import 'annotation_editor.dart'
         practiceClipsProvider;
 import 'metronome_overlay.dart' show overlayPlacementProvider;
 import 'beat_prompt_memory.dart' show beatPromptMemoryProvider;
+import 'cast_prep_memory.dart' show castPrepMemoryProvider;
 import 'framing_session_state.dart' show framingStateProvider;
 import 'notice.dart' show NoticeId, noticeTriggerProvider;
 import 'open_session.dart';
@@ -102,6 +103,8 @@ class VideoSettingsPersistence {
     // 节拍提示记忆随舞：本表也是应用级会话值，
     // 换会话先清空，上一支舞的记忆与「已读到」标记不留在下一支舞。
     _container.read(beatPromptMemoryProvider.notifier).clear();
+    // 投屏准备记忆随舞（#40）：同样是应用级会话值，换会话先清空。
+    _container.read(castPrepMemoryProvider.notifier).clear();
     _startedCompleter = Completer<void>();
     if (_disposed || videoId == null) {
       // 倍速记忆随舞：未识别身份也按无记忆打开——换会话即清记忆
@@ -150,6 +153,9 @@ class VideoSettingsPersistence {
     _container
         .read(beatPromptMemoryProvider.notifier)
         .restoreFor(videoId, doc?.beatPrompt);
+    // 投屏准备记忆随舞（#40）：只读装载，不产生写盘；null = 这支舞没记过，
+    // 面板打开时按默认预置。
+    _container.read(castPrepMemoryProvider.notifier).restoreFor(doc?.castPrep);
     // 倍速记忆随舞：null = 这支舞没有意见，按出厂原速打开；
     // 有记忆即写穿引擎，第一遍就是这支舞的倍率。恢复为只读装载，不写盘。
     await _container
@@ -224,6 +230,13 @@ class VideoSettingsPersistence {
         beatPromptMemoryProvider,
         (previous, next) => _persistPreferences(),
       ),
+      // 投屏准备记忆随舞（#40）：面板的回写口落在记忆槽，变更即存
+      // （勾选与档表都是离散变更，与节拍提示同款即时落盘）；值无变化时
+      // 协调器跳过写盘。
+      _container.listen(
+        castPrepMemoryProvider,
+        (previous, next) => _persistPreferences(),
+      ),
       // 倍速记忆随舞：只有手动倍率（记忆单元）变更才落盘——步进
       // 启用/档位推进与瞬态倍速都不写记忆（值无变化时协调器也跳过写盘）。
       _container.listen<SpeedControlState>(speedControlProvider, (
@@ -258,6 +271,7 @@ class VideoSettingsPersistence {
     final practiceClips = _container.read(practiceClipsProvider);
     final overlay = _container.read(overlayPlacementProvider);
     final beatPrompt = _container.read(beatPromptMemoryProvider);
+    final castPrep = _container.read(castPrepMemoryProvider);
     final speedRate = _container.read(speedControlProvider).memoryRate;
     final framingSource = _container.read(framingStateProvider).source;
     final framingDirty = _framingDirty;
@@ -291,11 +305,14 @@ class VideoSettingsPersistence {
                   overlay == null ? null : _fieldsOf(overlay),
                 )
                 .withBeatPrompt(beatPrompt);
+            // 投屏准备记忆（#40）同为整组绝对终值：null = 这支舞没记过
+            // （写侧省键），有则三个字段一起落定。
+            final withCastPrepMemory = updated.withCastPrep(castPrep);
             // 倍速记忆：null = 这支舞没有意见（写侧省键，不
             // 制造一份 1.0× 的记录）。
             return speedRate == null
-                ? updated
-                : updated.withSpeedRate(speedRate);
+                ? withCastPrepMemory
+                : withCastPrepMemory.withSpeedRate(speedRate);
           });
           if (written is DocumentWriteRejected<LocalDocument>) {
             _showDocumentReadOnly();

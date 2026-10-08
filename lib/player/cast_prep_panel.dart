@@ -15,6 +15,14 @@
 /// 3. **投到哪台**：接收端列表（选中一台即开始渲染，渲好即带出接收端、档计划
 ///    与产物路径）。
 ///
+/// ## 取值按舞记住（#40）
+///
+/// 两个勾选档与档表**按这支舞**记住：打开面板时经注入的取值来源与回写口
+/// （[CastPrepMemoryPort]，默认装配 [castPrepMemoryPortOf] 读会话记忆槽）取
+/// 预置值；用户改一次就回写一次（**变更即存**，面板关闭不丢）。记忆缺失 /
+/// 逐字段缺失 / 记住的档已不可用一律**静默降级**回默认——面板自身不认
+/// 持久化，规则全在 `cast_prep_memory.dart`。
+///
 /// ## 渲染发生在这里（进度与取消也在这里）
 ///
 /// 选中接收端后本面板经**渲染编排**（`cast_render_orchestrator.dart`）渲
@@ -51,6 +59,8 @@ import '../cast/cast_render_request.dart';
 import '../cast/cast_receiver.dart';
 import '../cast/cast_speed_tier.dart';
 import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
+import 'cast_prep_memory.dart'
+    show CastPrepMemory, CastPrepMemoryPort, castPrepMemoryPortOf;
 import 'play_tool_table.dart' show kSystemMirrorHintText;
 import 'system_mirror_entry.dart' show openSystemMirrorEntry;
 import 'visual_tokens.dart' show kPlayerSkinColor;
@@ -166,6 +176,7 @@ class CastPrepPanel extends ConsumerStatefulWidget {
     required this.videoFilePath,
     required this.manualRate,
     required this.requestOf,
+    this.memory,
   });
 
   /// 这支舞的**视频副本**路径（副本存在性判定的输入，也是不渲染时的产物）。
@@ -183,16 +194,28 @@ class CastPrepPanel extends ConsumerStatefulWidget {
   )
   requestOf;
 
+  /// **投屏准备记忆**的取值来源与回写口（#40；null = 走仓内默认装配
+  /// [castPrepMemoryPortOf]：读会话记忆槽）。测试注入自己的两个钩子。
+  final CastPrepMemoryPort? memory;
+
   @override
   ConsumerState<CastPrepPanel> createState() => _CastPrepPanelState();
 }
 
 class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
-  /// 默认全选（画面类 + 声音类）。
-  CastRenderChoices _choices = const CastRenderChoices.all();
+  /// 取值来源与回写口：面板只认这一个口，不认持久化。
+  late final CastPrepMemoryPort _memory =
+      widget.memory ?? castPrepMemoryPortOf(ref);
 
-  /// 勾了哪几档（默认 = 与手动倍率最接近的那一档）。
-  late Set<CastSpeedTier> _tiers = defaultCastSpeedTiersFor(widget.manualRate);
+  /// 打开那一刻的预置取值：有记忆按记忆（非法 / 缺失 / 已不可用处在纯件里
+  /// 静默降级），没有记忆就是默认。
+  late final CastPrepMemory _preset = _memory.presetFor(widget.manualRate);
+
+  /// 两个渲染勾选档（默认全选；有记忆按记忆）。
+  late CastRenderChoices _choices = _preset.choices;
+
+  /// 勾了哪几档（默认 = 与手动倍率最接近的那一档；有记忆按记忆，至少一档）。
+  late Set<CastSpeedTier> _tiers = {..._preset.tiers};
 
   bool _scanning = true;
   List<CastReceiver> _receivers = const [];
@@ -263,7 +286,14 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       _choices = choices;
       _renderFailed = false;
     });
+    _remember();
   }
+
+  /// 用户改了取值就回写这支舞的记忆（#40）：**变更即存**，面板关闭不丢
+  /// ——准备面板的取消只保证「不渲染、不连会话」，不把用户刚表态的取值
+  /// 也一并丢掉。值无变化时落盘侧按文档相等跳过写盘。
+  void _remember() =>
+      _memory.remember(CastPrepMemory(choices: _choices, tiers: _tiers));
 
   /// 这次要备哪几档、先渲哪一档（纯件算；都不勾渲染档时只剩原片这一档）。
   CastSpeedTierPlan get _plan => castSpeedTierPlanFor(
@@ -291,6 +321,7 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       _tiers = next;
       _renderFailed = false;
     });
+    _remember();
   }
 
   /// 选中一台接收端 = 开始这次准备：装配各档请求 → 渲**起投档** → 带出结局
