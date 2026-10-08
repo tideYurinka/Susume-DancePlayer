@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_render_request.dart'
     show CastRenderChoices, CastRenderRequest, CastSpeedTier;
+import '../cast/cast_session.dart' show CastRemoteItem;
 import '../core/playback/playback_loop_layer.dart';
 import '../core/playback/playback_loop_providers.dart';
 import '../help/content_registry.dart' show HandsOnCriterion;
@@ -130,6 +131,7 @@ import 'cast_run.dart'
         CastRunModel,
         castInterruptedNoticeSpec,
         castNotStartedNoticeSpec,
+        castRemoteControlsProvider,
         castRunProvider,
         castSpeedSwitchFailedNoticeSpec;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
@@ -716,10 +718,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       },
       promptDenied: _promptCameraDenied,
     );
-    // 亮度/音量域：域自持初始化与写入路径，宿主只建会话。
+    // 亮度/音量域：域自持初始化与写入路径，宿主只建会话。音量走**按会话
+    // 模式分派**的那条接缝（投屏态读写接收端、其余读写本机系统媒体音量，
+    // 见 `level_control.dart` 与 `cast_volume.dart`）。
     _level = LevelControl(
       brightnessController: ref.read(screenBrightnessControllerProvider),
-      volumeController: ref.read(systemMediaVolumeControllerProvider),
+      volumeController: ref.read(gestureVolumeControllerProvider),
+      // 投屏态内音量读数取自接收端：问不到就按「音量遥控项不显示」收
+      // （不是显示 0），见 `level_control.dart` 的 `volumeAvailable`。
+      isCasting: () => ref.read(playerSessionProvider).isCast,
     );
 
     // 循环提示：播放到尾左下角弹提示，延迟一个八拍后自动
@@ -1133,6 +1140,17 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         endTransientRate: () => _speedControl.endTransientRate(),
         onDoubleTap: _togglePlayPause,
         onTwoFingerDoubleTap: _delayedPlay.triggerNow,
+        // 投屏态内三枚遥控项（进度 / 播放暂停 / 音量）显不显示，只问那一份
+        // 判据（票 #38）；非投屏态恒 true——非投屏行为逐位不变。音量另有一
+        // 条：**接收端上报的音量问不到**时按「不显示」收（`_level` 的
+        // `volumeAvailable`；不是显示 0）。
+        castRemoteItemShown: (item) {
+          if (!ref.read(playerSessionProvider).isCast) return true;
+          if (item == CastRemoteItem.volume && !_level.volumeAvailable) {
+            return false;
+          }
+          return ref.read(castRemoteControlsProvider).shows(item);
+        },
         writeThreeFingerDirection: (direction) {
           ref.read(threeFingerToastDirectionProvider.notifier).write(direction);
           // 三指跳转做到过：提示触发（方向写面被调）即记入判据
@@ -1538,6 +1556,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     ) {
       if (wasCasting == casting) return;
       unawaited(_engineSeek.engine.setMuted(casting));
+      // 音量读数跟着「现在是谁在出声」走（票 #38）：进投屏态重取**接收端
+      // 上报**的音量、断开投屏重取本机系统媒体音量——同一条接缝按会话模式
+      // 分派（见 `level_control.dart` 的 `gestureVolumeControllerProvider`）。
+      unawaited(_level.refreshVolume());
     });
     // 模式 → 界面三处换装（底排槽集 / 轨道行集 / 取景态谓词）取同一份声明表：
     // 取景调节态（对比分屏 + 单画面）两值共用同一套「控制层收起、手势独占、

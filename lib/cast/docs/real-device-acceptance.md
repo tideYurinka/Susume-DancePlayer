@@ -92,7 +92,10 @@
   → GetCurrentTransportActions → GetTransportInfo → GetPositionInfo → GetVolume → Stop
   ```
 
-  多一条少一条都说明行为变了。
+  多一条少一条都说明行为变了。**注意**：这条序列是**直接驱动会话**（CI 基线那
+  样）的顺序；在 App 里走投屏（路径 C 起）时，起投多了**一次**探测——
+  `SetAVTransportURI → Play → GetCurrentTransportActions`（遥控项判据，
+  「问一次答一次」，见路径 M），之后才是路径 C 的遥控。
 
 ## 权限核对
 
@@ -474,3 +477,51 @@ span 与样式光栅化出来的带 alpha 单帧 PNG），落在**取景之后�
    `noteStickerStrokeSpans` / `noteStickerOuterStrokeSpans` +
    `noteStickerTextStyle`）——这条是代码事实，由 `cast_sticker_sheet_test.dart`
    的用例钉住（点名段取代表色、正文恒白、alpha 通道留着、余量透明）。
+
+## 路径 M：音量遥控与遥控项显示（#38）
+
+这一票把**音量手势**接到接收端（投屏态内右半屏纵向滑 = 电视的音量，
+`RenderingControl` 的 `SetVolume` / `GetVolume`），并把「投屏态里哪几枚遥控项
+显示」交给**接收端上报的能力判据**（`CastRemoteControls`：起投时问一次
+`GetCurrentTransportActions` + 设备描述里有没有 RenderingControl 端点；问不到
+或问失败 = 哪一项都不显示）。宿主侧在
+`test/player/cast_mode_test.dart`（音量手势写接收端、探测失败时三枚都不显示）、
+`test/player/cast_run_test.dart`（判据进运行账、不支持的遥控一条不发）、
+`test/player/gesture_arbitration_test.dart`（判据说停的手势整段吞掉）、
+`test/player/cast_volume_test.dart`（按会话模式分派的读 / 写 / 流）与
+`test/cast/dlna_values_test.dart`（判据纯件）里逐条钉住；**真机上要核对的是
+「电视那边的音量真的变了」「滑条读数与电视同一份」「不支持时不显示」**。
+
+前置：路径 A（本机假接收端）或路径 B（rygel）里的那台接收端——两者都报
+RenderingControl，足以验第 1–3 步。第 4 步要在**不支持某一项**的接收端上做：
+仓内假接收端（`tool/cast_fake_receiver.dart`）恒报 RenderingControl 且自述
+`Play,Pause,Stop,Seek`，所以这一条要么拿一台自述不全的真设备（rygel 可以改
+它的描述），要么按 `FakeDlnaReceiver.start` 的 `supportedActions` /
+`unimplementedActions` 写一段临时脚本起一台只支持一部分的替身（宿主测试
+`cast_mode_test.dart` / `cast_run_test.dart` 走的就是后一条路）。
+
+1. **音量手势作用于电视、不动本机**：进投屏态（路径 C 第 3 步）后收起控制层
+   （点画面外的空白处；投屏-观看态才吃播放手势），在**右半屏**纵向滑：
+   - 假接收端应打印 `SetVolume`（`DesiredVolume` 从 0–100 换算而来）；
+   - 手机**本机媒体音量不变**——用侧键把本机音量按到一个明显的档位（例如
+     30%）再投屏，滑完再看系统音量条仍应在 30%；手机也不出声（主内核已静音，
+     路径 D 第 1 步）。
+2. **显示值取接收端上报**：在电视端把音量调到 40% 左右再投屏。第一次右半屏
+   纵向滑时，手机滑条的填充应**从大约 40% 起算**（不是从手机的 30%、也不是从
+   0 或满格起算）；滑完松手，电视那边的音量读数应与手机上滑条最后停的位置
+   一致（`GetVolume` 再问一次能对上）。
+3. **断开后回到本机**：断开投屏（顶栏那枚或左上角退出箭头）后再在右半屏纵向
+   滑：这时动的应是**本机系统媒体音量**（系统音量条跟着走），电视那边不再
+   收到 `SetVolume`。
+4. **判据决定遥控项显示**：换一台**只自述一部分动作／没有 RenderingControl
+   端点**的接收端（或让假接收端对 `GetCurrentTransportActions` 回
+   `NOT_IMPLEMENTED`）再投：
+   - 不支持 Play/Pause：投屏态底排**没有**播放键，双击画面也不切换本地播放态；
+   - 不支持 Seek：底排**没有**帧步进两枚，画面横向拖不跳电视、不出现拖动指示；
+   - 没有音量端点：右半屏纵向滑**不出音量滑条**，假接收端不打印 `SetVolume`，
+     本机音量也不动。
+   - **有端点但设备不报 `GetVolume`**：同上——显示值的探测失败也按「不显示」
+     收（**不是**显示一个 0 或沿用手机上一格读数）。
+   三项都不支持时，底排只剩「延迟播放」与时间读数，且上述手势全部无反应。
+5. **问一次答一次**：第 4 步里 `GetCurrentTransportActions` 在这一次投屏内只
+   应出现**一次**（起投探测那一次）——本票不新增轮询；界面不会自己变来变去。

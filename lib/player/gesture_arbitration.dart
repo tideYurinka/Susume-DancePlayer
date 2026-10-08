@@ -52,6 +52,7 @@ import 'package:flutter/gestures.dart'
         ScaleUpdateDetails;
 
 import '../annotation/annotation_timeline.dart';
+import '../cast/cast_session.dart' show CastRemoteItem;
 import 'editor_skeleton.dart' show focalInCancelZone;
 import 'advanced_gestures.dart' show PlayerDoubleTapGestureRecognizer;
 import 'editor_entry.dart';
@@ -97,6 +98,7 @@ class GestureArbitrationInput {
     required this.endTransientRate,
     required this.onDoubleTap,
     required this.onTwoFingerDoubleTap,
+    required this.castRemoteItemShown,
     required this.writeThreeFingerDirection,
     required this.showNotice,
     required this.presentation,
@@ -165,6 +167,12 @@ class GestureArbitrationInput {
 
   /// 双指双击（页面接管：延迟播放触发）。
   final void Function() onTwoFingerDoubleTap;
+
+  /// 投屏态下某一枚遥控项显不显示（票 #38；唯一判据 = `CastRemoteControls`，
+  /// 见 `lib/cast/cast_session.dart` 的 [CastRemoteItem]）。**非投屏态恒 true**
+  /// ——本域不因投屏判据改动非投屏行为。判据说「不显示」的那一项：手势整段
+  /// 吞掉（不写本机、不发遥控、不画反馈），与界面上那枚控件离场同一口径。
+  final bool Function(CastRemoteItem item) castRemoteItemShown;
 
   /// 演出层会话：浮层选中/混区/全局缩放状态机与提示钩子都自持在它里面，
   /// 本域单向调用（演出层不反向 import 本域）。
@@ -331,6 +339,10 @@ class GestureArbitration {
     if (action == null) return;
     switch (action.type) {
       case PlayerGestureActionType.seek:
+        // 投屏态内「进度」这一枚由接收端能力判据决定（票 #38）：判据说
+        // 不显示就不动本机、不发遥控、不画拖动指示——按下去没反应的控制
+        // 不留（非投屏态恒 true，行为逐位不变）。
+        if (!input.castRemoteItemShown(CastRemoteItem.progress)) return;
         // 录制期不生效：scrub 起手会暂停引擎，而录制期源侧须恒 1.0× 在播。
         if (_takeover.active) return;
         if (!_feedback.isScrubbing) {
@@ -344,6 +356,9 @@ class GestureArbitration {
         if (step == Duration.zero) return; // 纯纵向朝角区位移：不重复入队。
         _engineSeek.moveScrubBy(step);
       case PlayerGestureActionType.volume:
+        // 投屏态内「音量」这一枚同上：接收端没有音量端点 / 探测失败 = 不
+        // 显示（不出现滑条、不写接收端、也不动本机音量）。
+        if (!input.castRemoteItemShown(CastRemoteItem.volume)) return;
         _feedback.showLevelAdjust(
           kind: LevelAdjustKind.volume,
           value: _level.adjustVolume(
@@ -425,9 +440,11 @@ class GestureArbitration {
 
   /// 孤立单指双击：取景调节态停用；落选中态浮层上的双击不进播放语义
   /// （选中态浮层只有选中与几何手势语义），其余交给页面（接管分支 + 播放
-  /// 态取反）。
+  /// 态取反）。**投屏态内「播放暂停」判据说这一项不显示时整段吞掉**（票
+  /// #38）：与底排那枚播放键离场同一口径。
   void _handleDoubleTap() {
     if (input.isFramingActive()) return;
+    if (!input.castRemoteItemShown(CastRemoteItem.playPause)) return;
     if (input.presentation.consumesOverlayDoubleTap(_firstDownPosition)) return;
     unawaited(input.onDoubleTap());
   }
@@ -447,6 +464,9 @@ class GestureArbitration {
   /// 三指跳转：跳转到滑动方向时间轴上最近的一条**标记过**的分段线；
   /// 该方向无标记线时左滑回视频首、右滑回视频尾；只跳转，不新建/移动/删除标记。
   void _jumpThreeFinger(ThreeFingerSwipeDirection direction) {
+    // 三指跳转也是「进度」这一枚遥控项（票 #38）：投屏态内接收端不支持
+    // 跳转时整段不生效，也不写方向、不弹提示。
+    if (!input.castRemoteItemShown(CastRemoteItem.progress)) return;
     final timeline = input.readTimeline();
     final target = threeFingerJumpTarget(
       direction: direction,

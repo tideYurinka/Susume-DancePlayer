@@ -237,6 +237,59 @@ void main() {
       expect(subject.volume, 1.0);
     });
   });
+
+  group('音量可显示判据（票 #38：会话模式切换时重取）', () {
+    test('非投屏态读取失败：保持现值、仍可显示（既有行为逐位不变）', () async {
+      final failing = _UnreadableVolumeController();
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: failing,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.refreshVolume();
+
+      expect(subject.volumeAvailable, isTrue);
+      expect(subject.volume, 1.0, reason: '读取失败保持默认基准');
+    });
+
+    test('投屏态读取失败：按「不显示」收（不是显示 0），读成功即恢复', () async {
+      final failing = _UnreadableVolumeController();
+      var casting = true;
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: failing,
+        isCasting: () => casting,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.refreshVolume();
+      expect(subject.volumeAvailable, isFalse, reason: '接收端不报音量 = 这项不显示');
+      expect(subject.volume, 1.0, reason: '不显示也不是 0——内部基准保持原值');
+
+      // 断开投屏后读本机：可显示恢复。
+      casting = false;
+      failing.readable = true;
+      await subject.refreshVolume();
+      expect(subject.volumeAvailable, isTrue);
+      expect(subject.volume, closeTo(failing.currentVolume, 1e-9));
+    });
+
+    test('投屏态读到接收端上报值：显示值就是上报的那一份', () async {
+      final volume = FakeSystemMediaVolumeController(currentVolume: 0.4);
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: volume,
+        isCasting: () => true,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.refreshVolume();
+
+      expect(subject.volumeAvailable, isTrue);
+      expect(subject.volume, closeTo(0.4, 1e-9));
+    });
+  });
 }
 
 /// 读取/写入都抛错的亮度件：断言基线读取兜底（既有「不阻塞播放」口径）。
@@ -246,6 +299,20 @@ class _FailingBrightnessController implements ScreenBrightnessController {
 
   @override
   Future<void> setBrightness(double value) async {}
+}
+
+/// 读取抛错的音量件（写入仍可用）：断言「问不到音量」的两种口径——非投屏
+/// 保持默认基准、投屏态按「不显示」收（票 #38）。
+class _UnreadableVolumeController extends FakeSystemMediaVolumeController {
+  _UnreadableVolumeController() : super(currentVolume: 0.4);
+
+  bool readable = false;
+
+  @override
+  Future<double> get volume async {
+    if (!readable) throw StateError('设备不报音量');
+    return currentVolume;
+  }
 }
 
 /// 写入抛错的音量件：断言音量写入口吞错（与真实平台通道未注册同口径）。

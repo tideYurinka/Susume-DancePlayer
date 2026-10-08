@@ -68,7 +68,7 @@ void main() {
       expect(factory.connectCalls, 1);
       expect(factory.lastReceiver?.friendlyName, '客厅电视');
       final cast = factory.sessions.single;
-      expect(cast.calls, ['push', 'play']);
+      expect(cast.calls, ['push', 'play', 'supportedTransportActions']);
       expect(cast.pushedUri, delivery.url);
       expect(state().receiver?.friendlyName, '客厅电视');
       expect(state().active, isTrue);
@@ -129,6 +129,112 @@ void main() {
 
       expect(state().active, isFalse);
       expect(session().mode, PlayerSessionMode.editing);
+    });
+  });
+
+  group('遥控项判据（接收端能力，票 #38）', () {
+    test('起投时问一次支持的动作：判据进运行账（音量端点由设备描述派生）', () async {
+      factory.configure = (session) => session.reportedActions =
+          const CastTransportActions({
+            CastTransportAction.play,
+            CastTransportAction.pause,
+            CastTransportAction.seek,
+          });
+
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+
+      final controls = state().remoteControls;
+      expect(controls.showsPlayPause, isTrue);
+      expect(controls.showsSeek, isTrue);
+      expect(
+        controls.showsVolume,
+        isTrue,
+        reason: '设备描述里有 RenderingControl 端点：音量遥控项显示',
+      );
+      expect(controls.showsStop, isFalse, reason: '设备没自述 Stop');
+      expect(controls.shows(CastRemoteItem.progress), isTrue);
+      expect(controls.shows(CastRemoteItem.playPause), isTrue);
+      expect(controls.shows(CastRemoteItem.volume), isTrue);
+    });
+
+    test('设备描述里没有 RenderingControl 端点：音量项不显示', () async {
+      final noVolume = CastReceiver(
+        id: 'udn-无音量端点',
+        friendlyName: '无音量端点',
+        descriptionUrl: Uri.parse('http://192.168.1.9:8080/desc.xml'),
+        controlUrls: CastControlUrls(
+          avTransport: Uri.parse('http://192.168.1.9:8080/avt'),
+        ),
+      );
+
+      await run().start(receiver: noVolume, file: file);
+      await pumpEventQueue();
+
+      expect(state().remoteControls.showsVolume, isFalse);
+      expect(state().remoteControls.showsPlayPause, isTrue);
+    });
+
+    test('探测失败（设备不答 / 掉线）：收敛到「哪一项都不显示」，会话照旧', () async {
+      factory.configure = (session) =>
+          session.actionsError = const CastActionRefused('设备不答');
+
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+
+      expect(state().remoteControls, const CastRemoteControls.none());
+      expect(state().active, isTrue, reason: '探测失败不该把投屏整条收掉');
+      expect(factory.sessions.single.disconnected, isFalse);
+      expect(interruptedNotices(), 0);
+    });
+
+    test('不支持的遥控项：镜像不发出去（播放 / 暂停 / 跳转一条都不发）', () async {
+      factory.configure = (session) =>
+          session.reportedActions = const CastTransportActions.none();
+
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+      final cast = factory.sessions.single;
+      final before = List.of(cast.calls);
+
+      await run().play();
+      await run().pause();
+      await run().seek(const Duration(seconds: 12));
+
+      expect(
+        cast.calls,
+        before,
+        reason: '判据说不显示的那几项，遥控镜像一条都不发',
+      );
+    });
+
+    test('音量：读接收端上报值、写 SetVolume；没端点时问都不问', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+      final cast = factory.sessions.single;
+      cast.reportedVolume = 0.4;
+
+      expect(await run().reportedVolume(), closeTo(0.4, 1e-9));
+      expect(cast.calls, contains('volume'));
+
+      await run().setVolume(0.7);
+      expect(cast.volumes, [0.7]);
+
+      // 断开之后：读为 null、写是空操作（不再碰已断的会话）。
+      await run().disconnect();
+      expect(await run().reportedVolume(), isNull);
+      await run().setVolume(0.9);
+      expect(cast.volumes, [0.7]);
+    });
+
+    test('设备不报音量：读为 null、静默降级（不把投屏收掉）', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+      factory.sessions.single.volumeError = const CastActionRefused('不报音量');
+
+      expect(await run().reportedVolume(), isNull);
+      expect(state().active, isTrue);
+      expect(interruptedNotices(), 0);
     });
   });
 
@@ -211,7 +317,11 @@ void main() {
 
       expect(factory.sessions, hasLength(2), reason: '会话重新建立');
       final second = factory.sessions.last;
-      expect(second.calls, ['push', 'play'], reason: '会话被重新推片 + 起播');
+      expect(
+        second.calls,
+        ['push', 'play', 'supportedTransportActions'],
+        reason: '会话被重新推片 + 起播，并重新问一次遥控项判据',
+      );
       expect(second.pushedUri, delivery.channels.last.url);
       expect(state().receiver?.friendlyName, '卧室盒子');
       expect(state().active, isTrue);
@@ -265,7 +375,14 @@ void main() {
       await run().seek(const Duration(seconds: 12));
       await run().play();
 
-      expect(cast.calls, ['push', 'play', 'pause', 'seek', 'play']);
+      expect(cast.calls, [
+        'push',
+        'play',
+        'supportedTransportActions',
+        'pause',
+        'seek',
+        'play',
+      ]);
       expect(cast.seeks, [const Duration(seconds: 12)]);
     });
 

@@ -39,11 +39,14 @@ import 'package:dance_learning_app/player/compare_recording.dart'
     show CompareRecordingPhase, compareRecordingPhaseProvider;
 import 'package:dance_learning_app/player/cast_prep_panel.dart'
     show castPrepTierKey;
-import 'package:dance_learning_app/player/cast_run.dart' show castRunProvider;
+import 'package:dance_learning_app/player/cast_run.dart'
+    show castRemoteControlsProvider, castRunProvider;
 import 'package:dance_learning_app/player/cast_speed_panel.dart'
     show castSpeedOptionKey, kCastSpeedSwitchingText, kCastSpeedWaitText;
 import 'package:dance_learning_app/player/control_layer.dart'
     show kAnnotationToolRowKey;
+import 'package:dance_learning_app/player/level_control.dart'
+    show systemMediaVolumeControllerProvider;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
@@ -67,6 +70,7 @@ import '../helpers/fake_cast_session.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_mirror_launcher.dart';
 import '../helpers/fake_system_ui.dart';
+import '../helpers/fake_system_volume.dart';
 import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
 import '../helpers/in_memory_private_json_storage.dart';
@@ -91,12 +95,17 @@ void main() {
 
   const receiverName = '客厅电视';
 
-  CastReceiver receiver() => CastReceiver(
+  /// 一台接收端：默认只有 AVTransport（**没有音量端点** = 音量遥控项不
+  /// 显示）；[volumeControl] 给出 RenderingControl 端点。
+  CastReceiver receiver({bool volumeControl = false}) => CastReceiver(
     id: 'udn-$receiverName',
     friendlyName: receiverName,
     descriptionUrl: Uri.parse('http://192.168.1.9:8080/desc.xml'),
     controlUrls: CastControlUrls(
       avTransport: Uri.parse('http://192.168.1.9:8080/avt'),
+      renderingControl: volumeControl
+          ? Uri.parse('http://192.168.1.9:8080/rcs')
+          : null,
     ),
   );
 
@@ -261,7 +270,11 @@ void main() {
     // 推的是这支舞的原片（不是任何渲染副本）。
     expect(delivery.served, hasLength(1));
     expect(delivery.served.single.path, '/videos/a.mp4');
-    expect(factory.sessions.single.calls, ['push', 'play']);
+    expect(factory.sessions.single.calls, [
+      'push',
+      'play',
+      'supportedTransportActions',
+    ], reason: '推片起播之后问一次遥控项判据');
     expect(modeOf(tester), PlayerSessionMode.castControl);
 
     // 顶栏换装：倍速切换 + 画面开关 + 断开投屏 + 系统镜像 + 查看引导（编辑态
@@ -435,19 +448,25 @@ void main() {
     await openControlLayer(tester);
     await startCast(tester);
     final cast = factory.sessions.single;
-    expect(cast.calls, ['push', 'play']);
+    expect(cast.calls, ['push', 'play', 'supportedTransportActions']);
 
     // 底排播放键：本机在播 → 按一下是「暂停」，同时遥控电视暂停。
     expect(engine.isPlaying, isTrue);
     await tester.tap(find.byKey(const Key('toolbar_play')));
     await tester.pumpAndSettle();
     expect(engine.isPlaying, isFalse);
-    expect(cast.calls, ['push', 'play', 'pause']);
+    expect(cast.calls, ['push', 'play', 'supportedTransportActions', 'pause']);
 
     // 再按一下：本机复播 + 遥控电视复播。
     await tester.tap(find.byKey(const Key('toolbar_play')));
     await tester.pumpAndSettle();
-    expect(cast.calls, ['push', 'play', 'pause', 'play']);
+    expect(cast.calls, [
+      'push',
+      'play',
+      'supportedTransportActions',
+      'pause',
+      'play',
+    ]);
   });
 
   testWidgets('投屏态内拖进度：手指离手后按最终落点让电视跳一次', (tester) async {
@@ -474,6 +493,167 @@ void main() {
 
     expect(cast.seeks, hasLength(1), reason: '拖动只镜像一次（收口落点）');
     expect(cast.seeks.single, greaterThan(Duration.zero));
+  });
+
+  // ---- 音量手势与遥控项判据（票 #38）----
+
+  /// 音量/亮度滑条的填充比例（填充宽 / 底轨宽，0..1）。
+  double fillRatio(WidgetTester tester) {
+    final track = tester.getSize(find.byKey(const Key('level_track')));
+    final fill = tester.getSize(find.byKey(const Key('level_fill')));
+    return fill.width / track.width;
+  }
+
+  testWidgets('投屏态内音量手势调的是接收端：显示值取接收端上报、本机音量一位不动', (tester) async {
+    setWideView(tester);
+    final local = FakeSystemMediaVolumeController(currentVolume: 0.9);
+    discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver(volumeControl: true)],
+      ],
+    );
+    factory.configure = (session) {
+      session.reportedActions = kFakeFullTransportActions;
+      session.reportedVolume = 0.4;
+    };
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        systemMediaVolumeControllerProvider.overrideWithValue(local),
+      ],
+    );
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    // 进投屏态：基线问的是**接收端上报值**（不是本机那 0.9）。
+    expect(cast.calls, contains('volume'));
+
+    // 收起控制层到投屏-观看态（控制层展开时播放手势不生效）。
+    containerOf(tester).read(playerSessionProvider.notifier).collapse();
+    await tester.pumpAndSettle();
+    expect(modeOf(tester), PlayerSessionMode.castWatching);
+
+    // 右半屏纵向滑（向下 = 调小）：滑条填充从 0.4 往下走——若基线取的是
+    // 本机 0.9，这一段拖动后填充仍在 0.4 之上。
+    final gesture = await tester.startGesture(const Offset(700, 270));
+    for (var i = 0; i < 8; i++) {
+      await gesture.moveBy(const Offset(0, 20));
+      await tester.pump();
+    }
+    final slider = find.byKey(const Key('level_adjust_slider'));
+    expect(slider, findsOneWidget, reason: '音量遥控项显示（接收端有音量端点）');
+    expect(
+      find.descendant(of: slider, matching: find.byIcon(Icons.volume_up)),
+      findsOneWidget,
+      reason: '右半屏纵向滑 = 音量（喇叭）',
+    );
+    final ratio = fillRatio(tester);
+    expect(ratio, lessThan(0.4), reason: '显示值从接收端上报的 0.4 起算');
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // 写入落在接收端，且写的就是屏上那个值。
+    expect(cast.volumes, isNotEmpty);
+    expect(cast.volumes.last, closeTo(ratio, 0.02));
+    expect(local.setCalls, isEmpty, reason: '投屏期手机是遥控器，本机音量手势不动它');
+    expect(local.currentVolume, 0.9);
+  });
+
+  testWidgets('探测失败的接收端：三枚遥控项都不显示、按了也不发遥控、不动本机', (tester) async {
+    setWideView(tester);
+    final local = FakeSystemMediaVolumeController(currentVolume: 0.9);
+    factory.configure = (session) =>
+        session.actionsError = const CastActionRefused('设备不答');
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        systemMediaVolumeControllerProvider.overrideWithValue(local),
+      ],
+    );
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    // 判据收敛到「哪一项都不显示」。
+    expect(
+      containerOf(tester).read(castRemoteControlsProvider),
+      const CastRemoteControls.none(),
+    );
+    // 播放暂停与进度（帧步进）两枚控件不在装配里。
+    expect(find.byKey(const Key('toolbar_play')), findsNothing);
+    expect(find.byKey(const Key('toolbar_frame_step_back')), findsNothing);
+    expect(find.byKey(const Key('toolbar_frame_step_forward')), findsNothing);
+
+    // 收起控制层到投屏-观看态：横滑不跳电视、也不起拖动指示。
+    containerOf(tester).read(playerSessionProvider.notifier).collapse();
+    await tester.pumpAndSettle();
+    final seek = await tester.startGesture(const Offset(480, 270));
+    for (var i = 0; i < 4; i++) {
+      await seek.moveBy(const Offset(20, 0));
+      await tester.pump();
+    }
+    expect(find.byKey(const Key('scrub_indicator')), findsNothing);
+    await seek.up();
+    await tester.pumpAndSettle();
+    expect(cast.seeks, isEmpty, reason: '判据说进度不显示：一条遥控都不发');
+
+    // 竖滑不出音量滑条、不写接收端、也不动本机音量。
+    final volumeGesture = await tester.startGesture(const Offset(700, 270));
+    for (var i = 0; i < 10; i++) {
+      await volumeGesture.moveBy(const Offset(0, -20));
+      await tester.pump();
+    }
+    expect(find.byKey(const Key('level_adjust_slider')), findsNothing);
+    await volumeGesture.up();
+    await tester.pumpAndSettle();
+    expect(cast.volumes, isEmpty);
+    expect(local.setCalls, isEmpty);
+    expect(local.currentVolume, 0.9);
+  });
+
+  testWidgets('接收端有音量端点但不报音量：音量项按「不显示」收（不是显示 0）', (tester) async {
+    setWideView(tester);
+    final local = FakeSystemMediaVolumeController(currentVolume: 0.9);
+    discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver(volumeControl: true)],
+      ],
+    );
+    factory.configure = (session) {
+      session.reportedActions = kFakeFullTransportActions;
+      session.volumeError = const CastActionRefused('设备不报音量');
+    };
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        systemMediaVolumeControllerProvider.overrideWithValue(local),
+      ],
+    );
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    // 判据说音量这一项在（有端点），但接收端上报读不到 → 按「不显示」收。
+    expect(
+      containerOf(tester).read(castRemoteControlsProvider).showsVolume,
+      isTrue,
+    );
+    expect(cast.calls, contains('volume'), reason: '进投屏态问过一次接收端音量');
+
+    containerOf(tester).read(playerSessionProvider.notifier).collapse();
+    await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(const Offset(700, 270));
+    for (var i = 0; i < 10; i++) {
+      await gesture.moveBy(const Offset(0, -20));
+      await tester.pump();
+    }
+    expect(find.byKey(const Key('level_adjust_slider')), findsNothing);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(cast.volumes, isEmpty, reason: '不显示就不发 SetVolume');
+    expect(local.setCalls, isEmpty, reason: '也不动本机音量');
+    expect(local.currentVolume, 0.9);
   });
 
   testWidgets('起投失败（连不上）：短暂提示 + 停在编辑态、通道零残留', (tester) async {
@@ -527,7 +707,11 @@ void main() {
 
     // 起投档渲好即开投：推的是它那一份，其余档在后台接着渲。
     expect(modeOf(tester), PlayerSessionMode.castControl);
-    expect(factory.sessions.single.calls, ['push', 'play']);
+    expect(factory.sessions.single.calls, [
+      'push',
+      'play',
+      'supportedTransportActions',
+    ]);
     expect(
       containerOf(tester).read(castRunProvider).activeTier,
       CastSpeedTier.full,
@@ -602,6 +786,7 @@ void main() {
     expect(factory.sessions.single.calls, [
       'push',
       'play',
+      'supportedTransportActions',
       'position',
       'push',
       'seek',

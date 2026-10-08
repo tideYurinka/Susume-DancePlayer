@@ -38,6 +38,16 @@ class FakeCastSessionFactory implements CastSessionFactory {
   }
 }
 
+/// 一台**普通 DLNA 接收端**自述支持的传输动作（替身默认值）：播 / 暂停 /
+/// 停止 / 跳转。用例要「某一项不显示」时显式覆盖会话的 `reportedActions`
+/// 或置 `actionsError`。
+const CastTransportActions kFakeFullTransportActions = CastTransportActions({
+  CastTransportAction.play,
+  CastTransportAction.pause,
+  CastTransportAction.stop,
+  CastTransportAction.seek,
+});
+
 /// 脚本化的假投屏会话：记录每一条遥控的顺序与参数，可注入失败（拒播 /
 /// 掉线），支持的动作、音量、位置与播放状态都可脚本化。
 class FakeCastSession implements CastSession {
@@ -73,8 +83,10 @@ class FakeCastSession implements CastSession {
   /// 非 null 时只有 [push] 抛出它（推片被拒用例）。
   Object? pushError;
 
-  /// [supportedTransportActions] 的返回值。
-  CastTransportActions reportedActions = const CastTransportActions.none();
+  /// [supportedTransportActions] 的返回值：默认按一台**普通 DLNA 接收端**
+  /// 布景（播 / 暂停 / 停止 / 跳转都自述支持）——「这一项不显示」的用例显式
+  /// 覆盖它或置 [actionsError]。
+  CastTransportActions reportedActions = kFakeFullTransportActions;
 
   /// 非 null 时 [supportedTransportActions] 抛出它（探测失败用例，真实实现
   /// 会静默降级成空集）。

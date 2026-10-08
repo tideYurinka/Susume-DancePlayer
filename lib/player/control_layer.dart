@@ -86,7 +86,9 @@ import 'beat_correction.dart'
         hasEightBeatAnchorsProvider,
         previewAnchorOccupiedProvider,
         previewDownbeatProvider;
+import '../cast/cast_session.dart' show CastRemoteItem;
 import 'cast_preview.dart' show castPreviewProvider;
+import 'cast_run.dart' show castRemoteControlsProvider;
 import 'cast_speed_panel.dart' show showCastSpeedPanel;
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
@@ -993,21 +995,33 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
 
   /// 播放控制按钮组（提行复用）：播放/暂停、延迟播放、左移一步、
   /// 右移一步——横屏底栏左段与竖屏播放控制工具行同一份装配。
+  ///
+  /// **投屏态内两枚遥控项由接收端能力判据决定在不在**（票 #38）：「播放暂停」
+  /// 与「进度（帧步进）」判据说这一项不显示（探测不到 / 探测失败 / 设备确实
+  /// 不支持）就不进装配——按下去没反应的控件不留（`CastRemoteControls` 是
+  /// 唯一判据；非投屏态两枚恒在，行为逐位不变）。
   List<Widget> _buildPlaybackControls() {
+    final isCast = ref.watch(playerSessionProvider).isCast;
+    final remoteControls = ref.watch(castRemoteControlsProvider);
+    final showsPlayPause =
+        !isCast || remoteControls.shows(CastRemoteItem.playPause);
+    final showsProgress =
+        !isCast || remoteControls.shows(CastRemoteItem.progress);
     return [
       // 播放/暂停、延迟播放（与空白区双指双击同一条路径
       // ——收起 + 触发）。
-      IconButton(
-        key: const Key('toolbar_play'),
-        icon: Icon(
-          widget.playing ? Icons.pause : Icons.play_arrow,
-          color: Colors.white,
-          size: 28,
+      if (showsPlayPause)
+        IconButton(
+          key: const Key('toolbar_play'),
+          icon: Icon(
+            widget.playing ? Icons.pause : Icons.play_arrow,
+            color: Colors.white,
+            size: 28,
+          ),
+          tooltip: widget.playing ? '暂停' : '播放',
+          focusColor: kKeyboardFocusHighlight,
+          onPressed: widget.onTogglePlay,
         ),
-        tooltip: widget.playing ? '暂停' : '播放',
-        focusColor: kKeyboardFocusHighlight,
-        onPressed: widget.onTogglePlay,
-      ),
       IconButton(
         key: const Key('toolbar_delayed_play'),
         icon: const _DelayedPlayIcon(),
@@ -1017,20 +1031,22 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
       // 帧步进：目标优先级与门禁语义见 [_stepFrame]；
       // 长按连续步进：文案固定「左移/右移一步」，选中线/端标
       // 时不做长按连续（见 [_stepTargetSelected]）。
-      _FrameStepButton(
-        buttonKey: const Key('toolbar_frame_step_back'),
-        icon: Icons.chevron_left,
-        tooltip: '左移一步',
-        holdToRepeat: !_stepTargetSelected,
-        onStep: () => _stepFrame(-1),
-      ),
-      _FrameStepButton(
-        buttonKey: const Key('toolbar_frame_step_forward'),
-        icon: Icons.chevron_right,
-        tooltip: '右移一步',
-        holdToRepeat: !_stepTargetSelected,
-        onStep: () => _stepFrame(1),
-      ),
+      if (showsProgress)
+        _FrameStepButton(
+          buttonKey: const Key('toolbar_frame_step_back'),
+          icon: Icons.chevron_left,
+          tooltip: '左移一步',
+          holdToRepeat: !_stepTargetSelected,
+          onStep: () => _stepFrame(-1),
+        ),
+      if (showsProgress)
+        _FrameStepButton(
+          buttonKey: const Key('toolbar_frame_step_forward'),
+          icon: Icons.chevron_right,
+          tooltip: '右移一步',
+          holdToRepeat: !_stepTargetSelected,
+          onStep: () => _stepFrame(1),
+        ),
       const SizedBox(width: 8),
     ];
   }

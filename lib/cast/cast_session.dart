@@ -48,6 +48,11 @@ class CastTransportActions {
 /// UPnP 的传输动作名。
 enum CastTransportAction { play, pause, stop, seek, next, previous }
 
+/// 投屏态里**现有的三枚遥控项**：界面上的既有控件——**进度**（画面横向拖动
+/// 与帧步进）、**播放暂停**（底排播放键与双击）、**音量**（右半屏纵向滑的
+/// 滑条）。判据 [CastRemoteControls] 逐项回答「显不显示」。
+enum CastRemoteItem { progress, playPause, volume }
+
 /// 播放状态：`CurrentTransportState` 的取值 + 「问不到」。
 enum CastPlaybackState {
   playing,
@@ -93,6 +98,14 @@ class CastRemoteControls {
   final bool showsStop;
   final bool showsSeek;
   final bool showsVolume;
+
+  /// 某一枚遥控项显不显示（**唯一判据的逐项读法**：投屏态的界面只问这一处，
+  /// 不各自另判）。穷尽 `switch`：加遥控项即编译报错。
+  bool shows(CastRemoteItem item) => switch (item) {
+    CastRemoteItem.progress => showsSeek,
+    CastRemoteItem.playPause => showsPlayPause,
+    CastRemoteItem.volume => showsVolume,
+  };
 
   @override
   bool operator ==(Object other) =>

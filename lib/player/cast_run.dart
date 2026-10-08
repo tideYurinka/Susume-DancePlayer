@@ -24,6 +24,13 @@
 ///   档上「跳到 10 秒」会让电视停在 10 秒处而不是源片第 10 秒。三个动作都
 ///   **不抛**：失败由本域收口（断开 + 回编辑态 + 短暂提示），本机播放不因一次
 ///   投屏失败被带停。
+/// - **遥控项判据与音量**（票 #38）：起投时问一次接收端支持哪些传输动作，
+///   连同设备描述里有没有音量端点算成 [CastRemoteControls] 放进 [state]——
+///   界面那三枚遥控项（进度 / 播放暂停 / 音量）显不显示只读它
+///   （[castRemoteControlsProvider]）；判据说「不显示」的那一枚，遥控一条都
+///   不发（[_mirror] 先过判据）。**音量**读写经 [CastVolume] 口：
+///   [setVolume] 写接收端、[reportedVolume] 读接收端上报值（问不到 = null，
+///   静默降级），音量手势的那条接缝按会话模式分派到这里（`cast_volume.dart`）。
 ///
 /// ## 一档一份副本、先投后渲
 ///
@@ -77,6 +84,7 @@ import '../cast/cast_session.dart';
 import '../cast/cast_speed_tier.dart';
 import '../player_session/player_session.dart';
 import 'cast_mirror.dart';
+import 'cast_volume.dart' show CastVolume;
 import 'notice.dart' show NoticeId, NoticeSpec, noticeTriggerProvider;
 import 'visual_tokens.dart' show kNoticeTextStyle;
 
@@ -183,13 +191,15 @@ class CastRunState {
     : receiver = null,
       activeTier = CastSpeedTier.full,
       tiers = const [],
-      switching = false;
+      switching = false,
+      remoteControls = const CastRemoteControls.none();
 
   const CastRunState.casting(
     this.receiver, {
     this.activeTier = CastSpeedTier.full,
     this.tiers = const [],
     this.switching = false,
+    this.remoteControls = const CastRemoteControls.none(),
   });
 
   /// 正投的那台接收端；null = 没投。
@@ -203,6 +213,11 @@ class CastRunState {
 
   /// 换档过程中（过程态：换文件 + 换算位置 + 等接收端起播）。
   final bool switching;
+
+  /// **遥控项判据**（票 #38）：起投时问一次接收端支持哪些传输动作、连同
+  /// 设备描述里有没有音量端点算出来的那一份。**探测不到 / 探测失败 = 空集**
+  /// （哪一项都不显示，见 `cast_session.dart`）；未投屏也是空集。
+  final CastRemoteControls remoteControls;
 
   bool get active => receiver != null;
 
@@ -229,11 +244,13 @@ class CastRunState {
     CastSpeedTier? activeTier,
     List<CastTierRender>? tiers,
     bool? switching,
+    CastRemoteControls? remoteControls,
   }) => CastRunState.casting(
     receiver,
     activeTier: activeTier ?? this.activeTier,
     tiers: tiers ?? this.tiers,
     switching: switching ?? this.switching,
+    remoteControls: remoteControls ?? this.remoteControls,
   );
 
   @override
@@ -242,23 +259,30 @@ class CastRunState {
       other.receiver == receiver &&
       other.activeTier == activeTier &&
       other.switching == switching &&
+      other.remoteControls == remoteControls &&
       other.tiers.length == tiers.length &&
       other.tiers.every(tiers.contains);
 
   @override
-  int get hashCode =>
-      Object.hash(receiver, activeTier, switching, Object.hashAll(tiers));
+  int get hashCode => Object.hash(
+    receiver,
+    activeTier,
+    switching,
+    remoteControls,
+    Object.hashAll(tiers),
+  );
 
   @override
   String toString() => active
       ? 'CastRunState.casting(${receiver!}, ${activeTier.token}, '
             '${tiers.map((t) => t.status.name).join('/')}'
-            '${switching ? ', switching' : ''})'
+            '${switching ? ', switching' : ''}, $remoteControls)'
       : 'idle';
 }
 
 /// 投屏运行域：当前这条投屏会话、递出通道与倍速档账的唯一持有者。
-class CastRunModel extends Notifier<CastRunState> implements CastMirror {
+class CastRunModel extends Notifier<CastRunState>
+    implements CastMirror, CastVolume {
   CastSession? _session;
   CastDeliveryChannel? _channel;
 
@@ -332,6 +356,12 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
       );
       await session.push(source);
       await session.play();
+      // **遥控项判据**：连上之后「问一次答一次」——接收端此刻支持哪些传输
+      // 动作 + 设备描述里有没有音量端点。探测失败（不答 / 掉线）收敛到空集，
+      // 不把会话收掉、不向上抛（见 [CastRemoteControls]）。
+      final controls = await _probeRemoteControls(session, receiver);
+      if (!identical(_session, session)) return;
+      state = state._with(remoteControls: controls);
     } on Object {
       await _teardown();
       // 起投失败一律回编辑态：新投那条路径本就没离开过编辑态（exitCast 是
@@ -343,6 +373,25 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
     // 当前档已经渲好、也已经推上去在播：这一刻才起后台渲染（不 await——
     // 前台遥控不等它，它也不占会话）。
     _startBackgroundRenders(effectivePlan);
+  }
+
+  /// 问一次接收端此刻支持哪些传输动作，连同设备描述里有没有 RenderingControl
+  /// 端点算成那份**遥控项判据**。**探测不到 / 探测失败一律空集**——与设备
+  /// 确实不支持同一个出口（「不显示」），静默降级。
+  Future<CastRemoteControls> _probeRemoteControls(
+    CastSession session,
+    CastReceiver receiver,
+  ) async {
+    final CastTransportActions actions;
+    try {
+      actions = await session.supportedTransportActions();
+    } on Object {
+      return const CastRemoteControls.none();
+    }
+    return CastRemoteControls.of(
+      actions: actions,
+      hasVolumeControl: receiver.controlUrls.renderingControl != null,
+    );
   }
 
   /// 换档：**让接收端换一个文件播**——递出通道换路径 → 推片 → 按比例换算
@@ -447,14 +496,21 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
   ///
   /// 跳转按**当前档**换算坐标：本机报的是源片位置，接收端要的是那一档副本
   /// 里的位置（0.5× 档上源片 10 秒 = 副本 20 秒）。
+  ///
+  /// **判据先过一遍**（票 #38）：接收端没自述支持的那一枚（播放暂停 / 跳转 /
+  /// 音量），遥控一条都不发——界面那边也不显示它；这里是**结构性兜底**
+  /// （判据说不显示就不发），不是第二处判据。
   @override
-  Future<void> play() => _mirror((session) => session.play());
+  Future<void> play() =>
+      _mirror(CastRemoteItem.playPause, (session) => session.play());
 
   @override
-  Future<void> pause() => _mirror((session) => session.pause());
+  Future<void> pause() =>
+      _mirror(CastRemoteItem.playPause, (session) => session.pause());
 
   @override
   Future<void> seek(Duration position) => _mirror(
+    CastRemoteItem.progress,
     (session) => session.seek(
       castCopyPosition(
         position,
@@ -464,11 +520,37 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
     ),
   );
 
+  /// 把接收端音量设成 [volume]（0..1；音量手势在投屏态下走这条）。
+  /// 设备没有音量端点（判据说这一项不显示）时是空操作。
+  @override
+  Future<void> setVolume(double volume) =>
+      _mirror(CastRemoteItem.volume, (session) => session.setVolume(volume));
+
+  /// 读接收端此刻上报的音量；**没有音量端点 / 问不到 / 未投屏一律 null**
+  /// （静默降级——不拿一次探测把投屏整条收掉，也不在界面上显示一个 0）。
+  /// 掉线照既有失败收口走一遍。
+  @override
+  Future<double?> reportedVolume() async {
+    final session = _session;
+    if (session == null) return null;
+    if (!state.remoteControls.shows(CastRemoteItem.volume)) return null;
+    try {
+      return await session.volume();
+    } on CastSessionDropped {
+      await _fail();
+      return null;
+    } on Object {
+      return null;
+    }
+  }
+
   Future<void> _mirror(
+    CastRemoteItem item,
     Future<void> Function(CastSession session) action,
   ) async {
     final session = _session;
     if (session == null) return;
+    if (!state.remoteControls.shows(item)) return;
     try {
       await action(session);
     } on Object {
@@ -716,4 +798,12 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
 /// 投屏运行域的注入点（唯一实例）。
 final castRunProvider = NotifierProvider<CastRunModel, CastRunState>(
   CastRunModel.new,
+);
+
+/// 当前投屏会话的**遥控项判据**（票 #38）：界面那三枚遥控项（进度 / 播放
+/// 暂停 / 音量）显不显示，只问这一处——未投屏时是「哪一项都不显示」那份，
+/// 但界面只在投屏态内读它（非投屏态结构性没有遥控项这一说）。select 只订阅
+/// 这一个字段：后台渲染的进度变化不重建读它的控件。
+final castRemoteControlsProvider = Provider<CastRemoteControls>(
+  (ref) => ref.watch(castRunProvider.select((state) => state.remoteControls)),
 );
