@@ -30,6 +30,7 @@ import 'package:dance_learning_app/player/metronome_source_registry.dart'
     show effectiveMetronomeSourceIdProvider;
 import 'package:dance_learning_app/player/song_loudness.dart'
     show metronomeVolumeProvider, songLoudnessBaselineProvider;
+import 'package:flutter/painting.dart' show Size, TextScaler;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -97,12 +98,16 @@ void main() {
     ProviderContainer c, {
     CastRenderChoices choices = const CastRenderChoices.all(),
     bool globalMirrored = false,
+    Size? pictureSize,
+    TextScaler textScaler = TextScaler.noScaling,
   }) => castRenderRequestFor(
     c.read,
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
     globalMirrored: globalMirrored,
     choices: choices,
+    pictureSize: pictureSize,
+    textScaler: textScaler,
   );
 
   test('路径、标识、勾选档与时长原样带进请求', () {
@@ -254,5 +259,135 @@ void main() {
       ),
       '0.2500,0.0000,0.7500,1.0000',
     );
+  });
+
+  group('备注贴纸：第二路输入的装配（#29）', () {
+    const picture = Size(960, 540);
+    const note = NoteSticker(
+      startMs: 1200,
+      endMs: 3400,
+      text: '注意手',
+      geometry: NoteGeometry(centerX: 0.3, centerY: 0.2, scale: 1),
+    );
+
+    test('一条备注 → 一条第二路输入：时间窗、几何中心与尺寸分数都到位', () {
+      final request = requestFrom(
+        container(notes: const [note]),
+        pictureSize: picture,
+      );
+
+      expect(request.stickers, hasLength(1));
+      final sheet = request.stickers.single;
+      expect(sheet.startMs, 1200);
+      expect(sheet.endMs, 3400);
+      expect(sheet.centerX, 0.3, reason: '几何中心与文档同源（上屏求值也读它）');
+      expect(sheet.centerY, 0.2);
+      expect(sheet.widthFraction, greaterThan(0));
+      expect(sheet.heightFraction, greaterThan(0));
+      expect(
+        sheet.widthFraction,
+        lessThan(1),
+        reason: '尺寸分数 = 墨迹逻辑尺寸 ÷ 上屏画面矩形，是个比例',
+      );
+    });
+
+    test('字节口现取就是一张带 alpha 的单帧 PNG（惰性：装配期不画字）', () async {
+      final request = requestFrom(
+        container(notes: const [note]),
+        pictureSize: picture,
+      );
+
+      final bytes = await request.stickers.single.imageBytesOf();
+
+      expect(bytes.sublist(0, 8), <int>[
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+      ]);
+    });
+
+    test('尺寸分数按上屏画面矩形归一化：画面越小，分数越大', () {
+      final wide = requestFrom(
+        container(notes: const [note]),
+        pictureSize: const Size(960, 540),
+      ).stickers.single;
+      final narrow = requestFrom(
+        container(notes: const [note]),
+        pictureSize: const Size(480, 270),
+      ).stickers.single;
+
+      expect(narrow.widthFraction, closeTo(wide.widthFraction * 2, 1e-9));
+      expect(narrow.heightFraction, closeTo(wide.heightFraction * 2, 1e-9));
+    });
+
+    test('随系统字号缩放：尺寸分数跟着放大（与上屏量测同源）', () {
+      final plain = requestFrom(
+        container(notes: const [note]),
+        pictureSize: picture,
+      ).stickers.single;
+      final scaled = requestFrom(
+        container(notes: const [note]),
+        pictureSize: picture,
+        textScaler: const TextScaler.linear(2),
+      ).stickers.single;
+
+      expect(scaled.widthFraction, greaterThan(plain.widthFraction));
+    });
+
+    test('画面矩形量不到：整批不装（不拿一个错的比例去烤副本）', () {
+      expect(requestFrom(container(notes: const [note])).stickers, isEmpty);
+      expect(
+        requestFrom(
+          container(notes: const [note]),
+          pictureSize: Size.zero,
+        ).stickers,
+        isEmpty,
+      );
+    });
+
+    test('只勾声音类：贴纸是画面类的东西，不进请求', () {
+      final request = requestFrom(
+        container(notes: const [note]),
+        choices: const CastRenderChoices(picture: false, sound: true),
+        pictureSize: picture,
+      );
+
+      expect(request.stickers, isEmpty);
+    });
+
+    test('空文本与空窗的备注不装：没有墨迹、也没有可见时段', () {
+      final request = requestFrom(
+        container(
+          notes: const [
+            NoteSticker(startMs: 0, endMs: 1000, text: ''),
+            NoteSticker(startMs: 2000, endMs: 2000, text: '零宽'),
+          ],
+        ),
+        pictureSize: picture,
+      );
+
+      expect(request.stickers, isEmpty);
+    });
+
+    test('多条备注按次序各成一条第二路输入', () {
+      final request = requestFrom(
+        container(
+          notes: const [
+            NoteSticker(startMs: 0, endMs: 1000, text: '一'),
+            NoteSticker(startMs: 2000, endMs: 3000, text: '二'),
+          ],
+        ),
+        pictureSize: picture,
+      );
+
+      expect(request.stickers, hasLength(2));
+      expect(request.stickers[0].startMs, 0);
+      expect(request.stickers[1].startMs, 2000);
+    });
   });
 }

@@ -13,9 +13,10 @@
 ///   音轨重编码并把拍声 `amix` 进来。这是「秒级出结果」的全部机关。
 /// - **勾了画面类**：视频重编码（`h264_mediacodec` + 显式码率/ GOP / 帧率 /
 ///   像素格式），画面滤镜链进 `filter_complex`；不勾声音类时音轨 `-c:a copy`。
-///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`）与**取景
-///   窗口**（#28，见 `cast_framing_gate.dart`），后两票（#29–#30）把贴纸 /
-///   数拍再插进来，链尾的 `fps` / 像素格式与 `[vout]` 不变。
+///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`）、**取景
+///   窗口**（#28，见 `cast_framing_gate.dart`）与**备注贴纸**（#29，见
+///   `cast_sticker_gate.dart`：第二路输入 + `overlay` 时间窗），后一票（#30）
+///   把数拍再插进来，链尾的 `fps` / 像素格式与 `[vout]` 不变。
 /// - **都不勾** = 不装配：调用方（编排器）直接推原片，本函数报错。
 ///
 /// ## 镜像闸门为什么排在倍速之前、取景为什么排在镜像之后
@@ -50,6 +51,7 @@ library;
 import 'cast_framing_gate.dart';
 import 'cast_mirror_gate.dart';
 import 'cast_render_request.dart';
+import 'cast_sticker_gate.dart';
 
 /// 画面档的视频编码器：已链接 ffmpeg 包在 Android 上的 H.264 硬编
 /// （ADR-0004 的渲染路线结论）。
@@ -69,10 +71,16 @@ const int kCastRenderChannels = 2;
 ///
 /// [beatTrackPath] 是**拍声轨**（`cast_beat_track.dart` 的合成产物）的路径；
 /// 勾了声音类时必须给出（没有它就没有拍声，宁可不做）。
+///
+/// [stickerPaths] 是**备注贴纸图**（`player/cast_sticker_sheet.dart` 的带 alpha
+/// 单帧 PNG；渲染编排按请求里的贴纸逐条落盘）的路径，与 `request.stickers`
+/// 一一对应、次序相同。勾了画面类且这支舞有备注时才该给出；不勾画面类时贴纸
+/// 一律不进命令（用户没勾画面类，画面内容类的东西就不该被烤进去）。
 List<String> buildCastRenderArguments({
   required CastRenderRequest request,
   required String outputPath,
   String? beatTrackPath,
+  List<String> stickerPaths = const [],
 }) {
   final choices = request.choices;
   if (!choices.renders) {
@@ -80,6 +88,12 @@ List<String> buildCastRenderArguments({
   }
   if (choices.sound && beatTrackPath == null) {
     throw ArgumentError('勾了声音类却没有拍声轨路径');
+  }
+  if (choices.picture && stickerPaths.length != request.stickers.length) {
+    throw ArgumentError(
+      '贴纸图（${stickerPaths.length}）与请求里的贴纸'
+      '（${request.stickers.length}）对不上',
+    );
   }
 
   final rate = request.speedTier.token;
@@ -107,11 +121,36 @@ List<String> buildCastRenderArguments({
         ? castFramingFilterNodes(castFramingGateOf(request))
         : const <String>[];
     final content = <String>[...mirror, ...framing];
-    final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
     final speed = slowed ? 'setpts=PTS/$rate,' : '';
-    filters.add(
-      '[0:v]$contentPrefix${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
-    );
+    // **备注贴纸**（#29）是第二路输入，接在取景之后、`setpts` 之前——于是
+    // `enable` 判的也是源时间轴（见 `cast_sticker_gate.dart` 库头）。没有备注
+    // 时链的形状与今天逐字一致（不引入多余的中间标签）。
+    if (picture && request.stickers.isNotEmpty) {
+      final graph = castStickerGraph(
+        stickers: request.stickers,
+        // 路径表与请求一一对应：空窗的贴纸不装节点，但**仍占一个输入位**
+        // （错位比多喂一个输入危险得多）。
+        stickerPaths: stickerPaths,
+        flip: castMirrorGateOf(request),
+        selection: request.framingSelection,
+        startLabel: 'vbase',
+        endLabel: 'vstk',
+        firstInputIndex: choices.sound ? 2 : 1,
+        fps: kCastRenderFps,
+      );
+      filters.add(
+        '[0:v]${content.isEmpty ? 'null' : content.join(',')}[vbase]',
+      );
+      filters.addAll(graph.nodes);
+      filters.add(
+        '[${graph.endLabel}]${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+      );
+    } else {
+      final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
+      filters.add(
+        '[0:v]$contentPrefix${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+      );
+    }
   }
   if (choices.sound) {
     final speed = slowed ? 'atempo=$rate,' : '';
@@ -128,6 +167,12 @@ List<String> buildCastRenderArguments({
     '-i',
     request.videoPath,
     if (choices.sound) ...<String>['-i', beatTrackPath!],
+    // 贴纸图排在拍声轨**之后**：源片恒是 0 号输入、拍声轨恒是 1 号（只勾声音类
+    // 时视频流原样复制的那条路一个字都不动），贴纸从 1 或 2 号起——下标由
+    // `castStickerGraph` 的 `firstInputIndex` 与这里保持一致。
+    if (choices.picture && request.stickers.isNotEmpty) ...<String>[
+      for (final path in stickerPaths) ...<String>['-i', path],
+    ],
     if (filters.isNotEmpty) ...<String>['-filter_complex', filters.join(';')],
     '-map',
     reencodeVideo ? '[vout]' : '0:v',

@@ -8,10 +8,12 @@
 /// 2. **命中** → 交缓存里那一份（券同键同产物；命中时不读拍声资产、不跑
 ///    命令）；
 /// 3. **拍声轨**（声音类才做）→ 把排程合成为一条 WAV，写进缓存目录；
+/// 3b. **贴纸图**（画面类且有备注才做）→ 把请求里那份带 alpha 的 PNG 逐条落盘
+///    （与拍声轨同款：半成品旁边的临时物，收尾必删）；
 /// 4. **装配 + 执行** → `buildCastRenderArguments` 给命令，执行器跑它并按
 ///    ffmpeg 统计回调报进度；
-/// 5. **收尾**（无论成败）→ 删拍声轨；成功把半成品**换名**成产物（原子）、
-///    失败与取消把半成品删掉。
+/// 5. **收尾**（无论成败）→ 删拍声轨与贴纸图；成功把半成品**换名**成产物
+///    （原子）、失败与取消把半成品删掉。
 ///
 /// 所以「取消或失败不留半成品」不是调用方纪律，而是这条链的收尾步骤。
 ///
@@ -110,15 +112,20 @@ class CastRenderOrchestrator {
     await cache.discard(part);
 
     File? clickTrack;
+    final stickerFiles = <File>[];
     _rendering = true;
     try {
       if (request.choices.sound) {
         clickTrack = await _writeClickTrack(request, part);
       }
+      if (request.choices.picture && request.stickers.isNotEmpty) {
+        stickerFiles.addAll(await _writeStickerSheets(request, part));
+      }
       final arguments = buildCastRenderArguments(
         request: request,
         outputPath: part.path,
         beatTrackPath: clickTrack?.path,
+        stickerPaths: [for (final file in stickerFiles) file.path],
       );
       final verdict = await executor.run(
         CastRenderJob(arguments: arguments, total: request.duration),
@@ -149,6 +156,9 @@ class CastRenderOrchestrator {
     } finally {
       _rendering = false;
       if (clickTrack != null) await cache.discard(clickTrack);
+      for (final file in stickerFiles) {
+        await cache.discard(file);
+      }
     }
   }
 
@@ -177,6 +187,29 @@ class CastRenderOrchestrator {
     final file = File('${part.path}.clicks.wav');
     await file.writeAsBytes(bytes, flush: true);
     return file;
+  }
+
+  /// 把请求里的贴纸图逐条落到半成品旁边（渲染收尾必删）。
+  ///
+  /// 字节由**播放页侧**按上屏同一份 span 与样式光栅化
+  /// （`CastSticker.imageBytesOf` 那个惰性口）
+  /// ——投屏域不 import 播放页、也不自己画字；这里只负责它是文件这件事，与拍声轨
+  /// 同款。路径表与请求里的贴纸**一一对应**：空窗的贴纸照样落一个文件、照样占
+  /// 一个输入位（错位比多喂一个输入危险得多）。
+  Future<List<File>> _writeStickerSheets(
+    CastRenderRequest request,
+    File part,
+  ) async {
+    final files = <File>[];
+    for (var i = 0; i < request.stickers.length; i++) {
+      final file = File('${part.path}.sticker$i.png');
+      await file.writeAsBytes(
+        await request.stickers[i].imageBytesOf(),
+        flush: true,
+      );
+      files.add(file);
+    }
+    return files;
   }
 }
 

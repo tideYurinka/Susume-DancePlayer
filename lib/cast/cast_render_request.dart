@@ -19,6 +19,8 @@
 /// `cast_render_orchestrator.dart`。
 library;
 
+import 'dart:typed_data';
+
 import '../annotation/framing_selection.dart';
 import '../core/local_mirror_fragment.dart';
 
@@ -185,6 +187,87 @@ class CastBeatClick {
   String toString() => 'CastBeatClick($time, $asset, $volume)';
 }
 
+/// **一条备注贴纸的第二路输入**：一张带 alpha 的**单帧 PNG** + 它的时间窗与
+/// 落位（`#29`）。
+///
+/// ## 与上屏同源的两样东西
+///
+/// - [centerX] / [centerY] 是贴纸几何在**源画面矩形**上的归一化中心——文档里
+///   那一份 `NoteGeometry` 的中心，与上屏求值读同一个值；取景窗口换算、随面
+///   翻转与钳制由 `cast_sticker_gate.dart` 按上屏同一套口径算（不在这里预烘）。
+/// - [widthFraction] / [heightFraction] 是贴纸**可见墨迹**尺寸占**上屏画面
+///   矩形**（取景后那一块，也就是投屏副本的帧）的比例——上屏量测到的贴纸尺寸
+///   除以画面矩形即这两个分数，故电视上的贴纸与手机上的贴纸占同一块画面的
+///   同一个比例；倍速档、源分辨率都不进这两个数。
+///
+/// [imageBytesOf] 是**播放页侧**按上屏同一份 span 与样式光栅化的那一步
+/// （`player/cast_sticker_sheet.dart`）：一个**惰性**的取字节口。装配处（它是
+/// 同步的）只在这里给出「渲染那一刻去画」这件事，真正画字的时刻是渲染编排写
+/// 文件的时候——投屏域因此不 import 播放页、也不自己画字，图的字节由播放页
+/// 那一侧产出。
+class CastSticker {
+  const CastSticker({
+    required this.imageBytesOf,
+    required this.startMs,
+    required this.endMs,
+    required this.centerX,
+    required this.centerY,
+    required this.widthFraction,
+    required this.heightFraction,
+  });
+
+  /// 带 alpha 的单帧 PNG 字节（惰性：渲染编排落盘时现取）。
+  final Future<Uint8List> Function() imageBytesOf;
+
+  /// 时间窗起点（毫秒，含）。
+  final int startMs;
+
+  /// 时间窗终点（毫秒，不含——半开区间）。
+  final int endMs;
+
+  /// 源画面矩形归一化中心横坐标（与文档 `NoteGeometry.centerX` 同一个值）。
+  final double centerX;
+
+  /// 源画面矩形归一化中心纵坐标。
+  final double centerY;
+
+  /// 宽度占上屏画面矩形的比例（含描边墨迹的余量）。
+  final double widthFraction;
+
+  /// 高度占上屏画面矩形的比例。
+  final double heightFraction;
+
+  /// 时间窗（半开）是否为空：空窗不装任何节点。
+  bool get visible => endMs > startMs;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CastSticker &&
+      other.startMs == startMs &&
+      other.endMs == endMs &&
+      other.centerX == centerX &&
+      other.centerY == centerY &&
+      other.widthFraction == widthFraction &&
+      other.heightFraction == heightFraction;
+  // 注意：字节不进相等判等（它由文本、几何、时间窗与名册唯一决定，那几样都在
+  // 标注指纹里；两个请求的贴纸几何相同就是同一次输入）。
+
+  @override
+  int get hashCode => Object.hash(
+    startMs,
+    endMs,
+    centerX,
+    centerY,
+    widthFraction,
+    heightFraction,
+  );
+
+  @override
+  String toString() =>
+      'CastSticker($startMs–$endMs, $centerX/$centerY, '
+      '$widthFraction×$heightFraction)';
+}
+
 /// 一次投屏渲染的全部输入。
 class CastRenderRequest {
   const CastRenderRequest({
@@ -197,6 +280,7 @@ class CastRenderRequest {
     required this.annotationFingerprint,
     this.mirrorFragments = const [],
     this.framingSelection,
+    this.stickers = const [],
     this.beatClicks = const [],
   });
 
@@ -238,6 +322,14 @@ class CastRenderRequest {
   /// 它**不是缓存键的独立分量**：取景取值的规范串已在 [settings] 的记号里
   /// （`fr:…`），改选区即换键。
   final FramingSelection? framingSelection;
+
+  /// **备注贴纸的第二路输入**（`#29`；空表 = 这支舞没有备注）。
+  ///
+  /// 与上屏求值读**同一份**取值：装配处（`player/cast_render_wiring.dart`）
+  /// 读一次 `noteStickersProvider`，一路进标注指纹、一路在这里成图与落位。
+  /// 它**不是缓存键的独立分量**：贴纸内容（文本、几何、时间窗）已在
+  /// [annotationFingerprint] 里；只有名册取色影响这张图，名册同样在指纹里。
+  final List<CastSticker> stickers;
 
   /// 拍声排程（声音类用；画面类不看它）。
   final List<CastBeatClick> beatClicks;

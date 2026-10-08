@@ -51,6 +51,7 @@ void main() {
         volume: 0.5,
       ),
     ],
+    List<CastSticker> stickers = const [],
   }) => CastRenderRequest(
     videoPath: p.join(root.path, 'source.mp4'),
     videoId: 'vid-a',
@@ -59,6 +60,7 @@ void main() {
     speedTier: CastSpeedTier.full,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
+    stickers: stickers,
     beatClicks: beatClicks,
   );
 
@@ -277,6 +279,103 @@ void main() {
       expect(result.exit, CastRenderExit.rendered);
       expect(fileNames().length, 1, reason: '只剩这一份产物');
       expect(p.extension(fileNames().single), '.mp4');
+    });
+  });
+
+  group('贴纸图：画面类里的第二路输入，收尾必删', () {
+    CastSticker sheet({int startMs = 200, int endMs = 900}) => CastSticker(
+      imageBytesOf: () async =>
+          Uint8List.fromList(const [0x89, 0x50, 0x4e, 0x47, 7, 7, 7]),
+      startMs: startMs,
+      endMs: endMs,
+      centerX: 0.3,
+      centerY: 0.2,
+      widthFraction: 0.25,
+      heightFraction: 0.1,
+    );
+
+    test('渲染时贴纸图真的在盘上（字节就是请求里那一份），命令按它作第二路输入', () async {
+      String? stickerPath;
+      var existed = false;
+      var bytes = const <int>[];
+      executor.onRun = (job, _) {
+        stickerPath = job.arguments.firstWhere(
+          (a) => a.endsWith('.sticker0.png'),
+          orElse: () => '',
+        );
+        existed = File(stickerPath!).existsSync();
+        bytes = File(stickerPath!).readAsBytesSync();
+      };
+
+      await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: true, sound: false),
+          beatClicks: const [],
+          stickers: [sheet()],
+        ),
+      );
+
+      expect(existed, isTrue, reason: '命令跑起来时贴纸图必须已经写好');
+      expect(bytes, <int>[0x89, 0x50, 0x4e, 0x47, 7, 7, 7]);
+      expect(
+        executor.lastArguments,
+        containsAllInOrder(['-i', stickerPath!]),
+        reason: '贴纸是第二路输入',
+      );
+      expect(
+        File(stickerPath!).existsSync(),
+        isFalse,
+        reason: '渲染收尾要删掉它（它是本次渲染的临时物，不是缓存里那一份）',
+      );
+      expect(fileNames().length, 1, reason: '盘上只剩产物');
+    });
+
+    test('多条贴纸：逐条落盘、路径表与请求一一对应', () async {
+      final seen = <String>[];
+      executor.onRun = (job, _) {
+        seen.addAll(job.arguments.where((a) => a.endsWith('.png')).toList());
+      };
+
+      await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: true, sound: false),
+          beatClicks: const [],
+          stickers: [sheet(), sheet(startMs: 1200, endMs: 1800)],
+        ),
+      );
+
+      expect(seen, hasLength(2));
+      expect(seen[0], endsWith('.sticker0.png'));
+      expect(seen[1], endsWith('.sticker1.png'));
+      expect(fileNames(), hasLength(1));
+    });
+
+    test('失败：贴纸图与半成品一并收掉', () async {
+      executor.verdict = CastRenderVerdict.failed;
+
+      final result = await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: true, sound: false),
+          beatClicks: const [],
+          stickers: [sheet()],
+        ),
+      );
+
+      expect(result.exit, CastRenderExit.failed);
+      expect(fileNames(), isEmpty);
+    });
+
+    test('不勾画面类：贴纸图不落盘、命令里没有第二路输入', () async {
+      await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: false, sound: false),
+          beatClicks: const [],
+          stickers: [sheet()],
+        ),
+      );
+
+      expect(executor.ran, isFalse, reason: '都不勾 = 直接推原片');
+      expect(fileNames(), isEmpty);
     });
   });
 }

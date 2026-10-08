@@ -91,6 +91,7 @@ import 'recording_playback_takeover.dart';
 import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'framing_session_state.dart' show framingStateProvider;
 import 'framing_stage.dart' show singlePictureFramedPictureRectOnScreen;
+import 'note_sticker_layout.dart' show videoContentRectInBox;
 import 'framing_session.dart';
 import 'presentation_session.dart' show PresentationSession;
 import 'presentation_layer.dart'
@@ -1763,9 +1764,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   /// 按勾选档与**某一档**装配一份渲染请求：各域现值由
-  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹与拍声排程都在那里
-  /// 各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回副本路径
-  /// （缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
+  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹、拍声排程与备注贴纸
+  /// 都在那里各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回副本
+  /// 路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
   CastRenderRequest _castRenderRequest(
     CastRenderChoices choices,
     CastSpeedTier tier,
@@ -1776,7 +1777,33 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     globalMirrored: _mirror.mirrored,
     choices: choices,
     speedTier: tier,
+    // 贴纸的尺寸分数按**上屏画面矩形**归一化（与手机量测同源）。
+    pictureSize: _castStickerPictureRect().size,
+    textScaler: MediaQuery.textScalerOf(context),
   );
+
+  /// **上屏那张贴纸的参考矩形**：投屏渲染求尺寸分数的那块画面，就是手机上贴纸
+  /// 所在的画面矩形。
+  ///
+  /// 与贴纸浮层那一处同源：同一件 `singlePictureFramedPictureRectOnScreen`、同一
+  /// 份骨架判据（控制层展开才有骨架）与同一份取景取值（取景调节态内画面按整帧
+  /// 显示）；宽高比未知时退化为整屏（与浮层那一处的兜底逐位一致）。宿主框取整屏
+  /// ——演出层那一层就挂在整屏 Stack 上，与页面其它画面读数取的是同一个框。
+  Rect _castStickerPictureRect() {
+    final media = MediaQuery.of(context);
+    final aspectRatio = _engineSeek.engine.videoAspectRatio;
+    final selection = _framingActive
+        ? null
+        : ref.read(framingStateProvider).source;
+    return singlePictureFramedPictureRectOnScreen(
+          screen: media.size,
+          systemTopInset: media.padding.top,
+          skeleton: _controlOpen ? _lastSkeleton : null,
+          aspectRatio: aspectRatio,
+          selection: selection,
+        ) ??
+        videoContentRectInBox(box: media.size, aspectRatio: aspectRatio);
+  }
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
   /// 演出层自带 widget 子树，不反向读本页、不读中枢。
