@@ -149,6 +149,25 @@ void main() {
     expect(framed.cacheKey, isNot(none.cacheKey));
   });
 
+  test('取景选区也进请求：画面链的裁切窗口读的就是上屏那一份值对象', () {
+    const selection = FramingSelection(
+      left: 0.1,
+      top: 0.2,
+      right: 0.9,
+      bottom: 0.8,
+    );
+    final none = requestFrom(container());
+    final framed = requestFrom(container(framing: selection));
+
+    expect(none.framingSelection, isNull);
+    expect(
+      framed.framingSelection,
+      selection,
+      reason: '裁切窗口读这份值对象，不是把规范串再解析一遍',
+    );
+    expect(framed.settings.framing, castFramingToken(selection));
+  });
+
   test('标注内容进指纹：加了分段线就换键', () {
     final before = requestFrom(container());
     final after = requestFrom(

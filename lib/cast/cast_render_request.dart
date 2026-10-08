@@ -19,6 +19,7 @@
 /// `cast_render_orchestrator.dart`。
 library;
 
+import '../annotation/framing_selection.dart';
 import '../core/local_mirror_fragment.dart';
 
 /// 渲染勾选档：**画面类**（含呈现类）与**声音类**两档。
@@ -195,6 +196,7 @@ class CastRenderRequest {
     required this.settings,
     required this.annotationFingerprint,
     this.mirrorFragments = const [],
+    this.framingSelection,
     this.beatClicks = const [],
   });
 
@@ -225,6 +227,17 @@ class CastRenderRequest {
   /// 它**不是缓存键的独立分量**：片段内容是标注内容的一部分，已在
   /// [annotationFingerprint] 里；改片段即换指纹、即换键。
   final List<LocalMirrorFragment> mirrorFragments;
+
+  /// **取景选区**（四边按源画面矩形归一化；`null` = 未调过 = 整帧）。
+  ///
+  /// 与上屏、与缓存键读**同一份**取值：装配处（`player/cast_render_wiring.dart`）
+  /// 读一次 `framingStateProvider.source`，一路写进 [CastRenderSettings.framing]
+  /// （规范串，进缓存键），一路写进这里（画面链的裁切窗口按它成窗，见
+  /// `cast_framing_gate.dart`）。两处因此不是各自读一遍、各自对齐的口径。
+  ///
+  /// 它**不是缓存键的独立分量**：取景取值的规范串已在 [settings] 的记号里
+  /// （`fr:…`），改选区即换键。
+  final FramingSelection? framingSelection;
 
   /// 拍声排程（声音类用；画面类不看它）。
   final List<CastBeatClick> beatClicks;

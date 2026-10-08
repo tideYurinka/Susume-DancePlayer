@@ -1,3 +1,4 @@
+import 'package:dance_learning_app/annotation/framing_selection.dart';
 import 'package:dance_learning_app/cast/cast_render_plan.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:dance_learning_app/core/local_mirror_fragment.dart';
@@ -14,6 +15,7 @@ void main() {
     CastSpeedTier speedTier = CastSpeedTier.full,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
+    FramingSelection? framingSelection,
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
@@ -23,6 +25,7 @@ void main() {
     settings: settings,
     annotationFingerprint: 'fp-1',
     mirrorFragments: mirrorFragments,
+    framingSelection: framingSelection,
     beatClicks: const [],
   );
 
@@ -34,6 +37,7 @@ void main() {
     CastSpeedTier speedTier = CastSpeedTier.full,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
+    FramingSelection? framingSelection,
     String? beatTrackPath = '/cache/a.clicks.wav',
   }) => buildCastRenderArguments(
     request: request(
@@ -41,6 +45,7 @@ void main() {
       speedTier: speedTier,
       settings: settings,
       mirrorFragments: mirrorFragments,
+      framingSelection: framingSelection,
     ),
     outputPath: '/cache/a.part',
     beatTrackPath: beatTrackPath,
@@ -314,6 +319,135 @@ void main() {
         filter,
         isNot(contains('hflip')),
         reason: '这里重编码只是为了倍速：用户没勾画面类，镜像就不该被烤进去',
+      );
+    });
+  });
+
+  group('画面链里的取景窗口（#28）：与上屏同一份取值', () {
+    const all = CastRenderChoices(picture: true, sound: true);
+    const selection = FramingSelection(
+      left: 0.1,
+      top: 0.2,
+      right: 0.9,
+      bottom: 0.8,
+    );
+
+    /// 只勾画面类的命令行，按给定的取景/镜像取值装配。
+    List<String> pictureArgs({
+      FramingSelection? framingSelection,
+      bool globalMirrored = false,
+      List<LocalMirrorFragment> mirrorFragments = const [],
+      CastSpeedTier speedTier = CastSpeedTier.full,
+    }) => args(
+      choices: all,
+      speedTier: speedTier,
+      settings: CastRenderSettings(globalMirrored: globalMirrored),
+      mirrorFragments: mirrorFragments,
+      framingSelection: framingSelection,
+    );
+
+    test('取景：裁切 + 偶数收尾 + 方像素插进画面链中段，链尾不变', () {
+      final filter = filterOf(pictureArgs(framingSelection: selection));
+
+      expect(
+        filter,
+        contains(
+          '[0:v]crop=w=max(2\\,floor(iw*0.8/2)*2):'
+          'h=max(2\\,floor(ih*0.6/2)*2):'
+          'x=min(floor(iw*0.1/2)*2\\,iw-ow):'
+          'y=min(floor(ih*0.2/2)*2\\,ih-oh),'
+          'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
+          'fps=30,format=yuv420p[vout]',
+        ),
+      );
+    });
+
+    test('镜像与取景同时生效：翻转节点排在裁切之前（先翻、后切窗）', () {
+      final filter = filterOf(
+        pictureArgs(
+          framingSelection: selection,
+          globalMirrored: true,
+          mirrorFragments: const [
+            LocalMirrorFragment(startMs: 1000, endMs: 2000),
+          ],
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip,hflip=enable='gte(t,1)*lt(t,2)',"
+          'crop=w=max(2\\,floor(iw*0.8/2)*2)',
+        ),
+        reason: '手机上翻转是画面件的显示层变换、取景是包在它外面的剪辑窗',
+      );
+    });
+
+    test('非 1× 档：取景与镜像都在 setpts 之前（窗不随倍速漂移）', () {
+      final filter = filterOf(
+        pictureArgs(
+          framingSelection: selection,
+          globalMirrored: true,
+          speedTier: CastSpeedTier.half,
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          '[0:v]hflip,crop=w=max(2\\,floor(iw*0.8/2)*2):'
+          'h=max(2\\,floor(ih*0.6/2)*2):'
+          'x=min(floor(iw*0.1/2)*2\\,iw-ow):'
+          'y=min(floor(ih*0.2/2)*2\\,ih-oh),'
+          'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
+          'setpts=PTS/0.5,fps=30,format=yuv420p[vout]',
+        ),
+      );
+    });
+
+    test('未取景：裁切与缩放都不进链（与整屏 contain 逐位一致）', () {
+      final filter = filterOf(pictureArgs());
+
+      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(filter, isNot(contains('crop=')));
+      expect(filter, isNot(contains('scale=')));
+      expect(filter, isNot(contains('setsar')));
+    });
+
+    test('整帧选区也是未取景：链与「没调过」逐字一致', () {
+      expect(
+        filterOf(
+          pictureArgs(framingSelection: const FramingSelection.fullFrame()),
+        ),
+        filterOf(pictureArgs()),
+      );
+    });
+
+    test('只勾声音类：取景不进滤镜图（画面不重编码，取景无从烤进去）', () {
+      final arguments = args(
+        settings: const CastRenderSettings(),
+        framingSelection: selection,
+      );
+      final filter = filterOf(arguments);
+
+      expect(videoCodecOf(arguments), 'copy');
+      expect(filter, isNot(contains('[0:v]')));
+      expect(filter, isNot(contains('crop=')));
+    });
+
+    test('只勾声音类 + 非 1×：视频为重编码，但取景仍不进链', () {
+      final filter = filterOf(
+        args(framingSelection: selection, speedTier: CastSpeedTier.half),
+      );
+
+      expect(
+        filter,
+        contains('[0:v]setpts=PTS/0.5,fps=30,format=yuv420p[vout]'),
+      );
+      expect(
+        filter,
+        isNot(contains('crop=')),
+        reason: '这里重编码只是为了倍速：用户没勾画面类，取景就不该被烤进去',
       );
     });
   });

@@ -60,8 +60,10 @@ String castFramingToken(FramingSelection? selection) {
 /// 不在 provider 里）。
 ///
 /// 局部镜像片段在此**读一次**、喂两处：标注指纹与 [CastRenderRequest
-/// .mirrorFragments]（画面滤镜链的镜像闸门按它成窗）。渲染参数与上屏取值因此
-/// 读的是同一份 provider 取值，不是两处各自读一遍、各自对齐的口径。
+/// .mirrorFragments]（画面滤镜链的镜像闸门按它成窗）。**取景**同样在此读一次、
+/// 喂两处：设置快照的规范串（缓存键）与 [CastRenderRequest.framingSelection]
+/// （画面链的裁切窗口）。渲染参数与上屏取值因此读的是同一份 provider 取值，
+/// 不是两处各自读一遍、各自对齐的口径。
 CastRenderRequest castRenderRequestFor(
   CastRenderRead read, {
   required String videoPath,
@@ -75,6 +77,9 @@ CastRenderRequest castRenderRequestFor(
   final sourceId = read(effectiveMetronomeSourceIdProvider);
   final halfBeatEnabled = read(metronomeHalfBeatEnabledProvider);
   final mirrorFragments = read(localMirrorFragmentsProvider);
+  // 取景读**一次**，喂两处：缓存键的规范串与画面链的裁切窗口。两处同源，
+  // 与上屏（`player_page.dart` 的画面件）取的也是同一个 provider 取值。
+  final framing = read(framingStateProvider).source;
 
   return CastRenderRequest(
     videoPath: videoPath,
@@ -87,7 +92,7 @@ CastRenderRequest castRenderRequestFor(
       localMirrorEnabled: read(localMirrorEnabledProvider),
       beatCountVisible: read(beatOverlayContentVisibleProvider),
       beatAnimationStyle: read(beatAnimationStyleProvider).name,
-      framing: castFramingToken(read(framingStateProvider).source),
+      framing: castFramingToken(framing),
       halfBeatSoundEnabled: halfBeatEnabled,
       metronomeVolumePercent: read(metronomeVolumeProvider),
       songLoudnessBaseline: read(songLoudnessBaselineProvider),
@@ -103,6 +108,7 @@ CastRenderRequest castRenderRequestFor(
       ),
     ),
     mirrorFragments: mirrorFragments,
+    framingSelection: framing,
     beatClicks: buildCastBeatClicks(
       grid: grid,
       source: metronomeSourceEntryOfId(sourceId),

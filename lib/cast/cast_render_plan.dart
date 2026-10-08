@@ -13,17 +13,23 @@
 ///   音轨重编码并把拍声 `amix` 进来。这是「秒级出结果」的全部机关。
 /// - **勾了画面类**：视频重编码（`h264_mediacodec` + 显式码率/ GOP / 帧率 /
 ///   像素格式），画面滤镜链进 `filter_complex`；不勾声音类时音轨 `-c:a copy`。
-///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`），后三票
-///   （#28–#30）把取景 / 贴纸 / 数拍再插进来，链尾的 `fps` / 像素格式与
-///   `[vout]` 不变。
+///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`）与**取景
+///   窗口**（#28，见 `cast_framing_gate.dart`），后两票（#29–#30）把贴纸 /
+///   数拍再插进来，链尾的 `fps` / 像素格式与 `[vout]` 不变。
 /// - **都不勾** = 不装配：调用方（编排器）直接推原片，本函数报错。
 ///
-/// ## 镜像闸门为什么排在倍速之前
+/// ## 镜像闸门为什么排在倍速之前、取景为什么排在镜像之后
 ///
 /// 闸门的 `enable` 表达式按 `t` 判定，而**局部镜像是源时间轴上的半开区间**：
 /// 闸门排在 `setpts` 之后，`t` 已被拉伸，同一个窗在 0.5 / 0.75 档就会与手机上
 /// 按源位置求值的那一份错开。排在 `setpts` 之前，`t` 就是源片时间——窗与倍速
 /// 档不耦合，也与手机上「按显示位置求值」的判法同一口径。
+///
+/// 取景的裁切排在镜像**之后**：手机上翻转是画面件的显示层变换、取景是包在它
+/// 外面的那层剪辑窗，窗里那块像素是「翻过的画面」在那块矩形上的样子；且局部
+/// 镜像是**时间窗**而 `crop` 不支持时间窗（规格的 Further Notes），只有
+/// 「先翻、后切窗」这一种写法能让窗逐帧跟着翻转走（见 `cast_framing_gate.dart`
+/// 库头与 `cast_framing_gate_test.dart` 的逐帧比对）。
 ///
 /// ## 倍速档：一档一份副本
 ///
@@ -41,6 +47,7 @@
 /// 关键帧切割会让副本范围对不上，且复制档根本切不准。
 library;
 
+import 'cast_framing_gate.dart';
 import 'cast_mirror_gate.dart';
 import 'cast_render_request.dart';
 
@@ -82,19 +89,28 @@ List<String> buildCastRenderArguments({
 
   final filters = <String>[];
   if (reencodeVideo) {
-    // **镜像闸门**（#27）只在勾了画面类时装上：非 1× 档的「只勾声音类」也会
-    // 重编码画面（复制改不了时长），但那一次重编码只为倍速——用户没勾画面类，
-    // 镜像就不该被烤进去。
+    // **镜像闸门**（#27）与**取景窗口**（#28）只在勾了画面类时装上：非 1× 档的
+    // 「只勾声音类」也会重编码画面（复制改不了时长），但那一次重编码只为倍速
+    // ——用户没勾画面类，画面内容类的东西就不该被烤进去。
     //
     // 闸门排在 `setpts` **之前**：`enable` 判的是**源时间轴**，局部镜像片段正是
     // 源时间轴上的半开区间；排在倍速之后，`t` 会被拉伸、窗就与倍速档错开。
-    final mirror = choices.picture
+    final picture = choices.picture;
+    final mirror = picture
         ? castMirrorFilterNodes(castMirrorGateOf(request))
         : const <String>[];
-    final mirrorPrefix = mirror.isEmpty ? '' : '${mirror.join(',')},';
+    // **取景排在镜像之后**（#28）：手机上翻转是画面件的显示层变换、取景是包在
+    // 它外面的剪辑窗，窗里的像素是「翻过的画面」在那块矩形上的样子；且局部镜像
+    // 是时间窗而 `crop` 不支持时间窗，只有「先翻后切窗」能逐帧跟上（见
+    // `cast_framing_gate.dart` 库头）。
+    final framing = picture
+        ? castFramingFilterNodes(castFramingGateOf(request))
+        : const <String>[];
+    final content = <String>[...mirror, ...framing];
+    final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
     final speed = slowed ? 'setpts=PTS/$rate,' : '';
     filters.add(
-      '[0:v]$mirrorPrefix${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+      '[0:v]$contentPrefix${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
     );
   }
   if (choices.sound) {
