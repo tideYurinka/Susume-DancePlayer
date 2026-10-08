@@ -44,6 +44,7 @@ import 'compare_recording.dart'
         compareRecordingPhaseProvider,
         kCompareRecordButtonBottomInset;
 import 'compare_recording_clips.dart' show CompareRecordingClips;
+import 'cast_picture_area.dart' show CastPictureArea, CastStatusCapsule;
 import 'control_layer.dart' show ControlLayer;
 import 'editor_entry.dart' show EditorEntry;
 import 'editor_skeleton.dart' show EditorSkeleton, cornerPromptAnchor;
@@ -125,6 +126,7 @@ class PresentationLayerInput {
     required this.framingActive,
     required this.compareWatching,
     required this.isCompare,
+    required this.isCast,
     required this.metronomeVisible,
     required this.opened,
     required this.openFailed,
@@ -144,6 +146,7 @@ class PresentationLayerInput {
     required this.onCloseBeatOverlay,
     required this.onRequestOrientation,
     required this.onDisconnectCast,
+    required this.onToggleCastPicture,
   });
 
   final EngineSeek engineSeek;
@@ -181,6 +184,12 @@ class PresentationLayerInput {
   final bool framingActive;
   final bool compareWatching;
   final bool isCompare;
+
+  /// 是否处于投屏态（投屏-控制层或投屏-观看态）。投屏态的画面区不画源片
+  /// （黑底 + 指路提示，或静音本地预览），且贴纸 / 数拍 / 节拍动画与画面
+  /// 标识一律不上屏（它们已在电视上）。
+  final bool isCast;
+
   final bool metronomeVisible;
   final bool opened;
   final bool openFailed;
@@ -216,6 +225,10 @@ class PresentationLayerInput {
   /// 两处入口都调宿主同一处动作。
   final VoidCallback onDisconnectCast;
 
+  /// 画面开关（投屏态顶栏那枚工具）：把画面区从黑底切成静音本地预览、或切
+  /// 回黑底。起播定位与静音归投屏预览域，宿主只交出这一下点按。
+  final VoidCallback onToggleCastPicture;
+
   /// 数拍跟练内容（读节拍发布值的自订阅件，由播放页组装后交来）。
   final Widget beatCountContent;
 
@@ -245,6 +258,7 @@ class PresentationLayer extends ConsumerWidget {
     final controlOpen = input.controlOpen;
     final framingActive = input.framingActive;
     final isCompare = input.isCompare;
+    final isCast = input.isCast;
     // 取景读数：取景态内画面按整帧显示，
     // 故此刻一切下游读数也按未取景；退出后按选区内容重新取值。
     final framing = framingActive
@@ -270,29 +284,34 @@ class PresentationLayer extends ConsumerWidget {
           ),
         ),
         // 局部镜像画面标识：层序 = 视频画面之后、用户浮层内容之前。
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (!SurfaceFaceScope.localMirrorActiveOf(context)) {
-              return const SizedBox.shrink();
-            }
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned.fromRect(
-                  rect: _pictureMarkRect(
-                    isCompare: isCompare,
-                    box: constraints.biggest,
-                    editingSkeleton: controlOpen ? input.skeleton : null,
-                    selection: framing,
+        // 投屏态不挂：画面区画的是投屏侧那份面（黑底指路 / 静音预览），
+        // 画面标识属于源片标注的呈现，已在电视上。
+        if (!isCast)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (!SurfaceFaceScope.localMirrorActiveOf(context)) {
+                return const SizedBox.shrink();
+              }
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fromRect(
+                    rect: _pictureMarkRect(
+                      isCompare: isCompare,
+                      box: constraints.biggest,
+                      editingSkeleton: controlOpen ? input.skeleton : null,
+                      selection: framing,
+                    ),
+                    child: const LocalMirrorPictureMark(),
                   ),
-                  child: const LocalMirrorPictureMark(),
-                ),
-              ],
-            );
-          },
-        ),
-        // 数拍跟练浮层：只在内容可见时挂载（幽灵浮层修复）。
-        if (!input.openFailed && input.metronomeVisible)
+                ],
+              );
+            },
+          ),
+        // 数拍跟练浮层：只在内容可见时挂载（幽灵浮层修复）。投屏态不挂：
+        // 数拍与节拍动画已在电视上（且它们是渲染那一刻算出来的），手机上
+        // 再画一份只会与本地预览打架。
+        if (!isCast && !input.openFailed && input.metronomeVisible)
           MetronomeOverlay(
             controller: input.presentation.metronome,
             style: beatAnimationStyle,
@@ -311,8 +330,11 @@ class PresentationLayer extends ConsumerWidget {
             child: input.beatCountContent,
           ),
         // 备注贴纸浮层：窗内显隐由播放头驱动、渲染矩形同步注册表。
+        // 投屏态不挂本层：贴纸已在电视上那份投屏副本里，手机上这份画面区
+        // 只画视频画面本身。
         LayoutBuilder(
           builder: (context, constraints) {
+            if (isCast) return const SizedBox.shrink();
             final faceDirection = SurfaceFaceScope.of(context);
             return Stack(
               fit: StackFit.expand,
@@ -372,8 +394,10 @@ class PresentationLayer extends ConsumerWidget {
         if (input.openFailed) _openFailedOverlay(input.onOpenFailedBack),
         // 镜像询问/历史提示覆盖层。
         MirrorOverlay(controller: input.mirror),
-        // 观看态倍速入口与气泡宿主（仅控制层收起显示）。
-        if (!controlOpen && !framingActive) ...[
+        // 观看态倍速入口与气泡宿主（仅控制层收起显示）。投屏态不挂：
+        // 投屏-观看态屏上只留一枚只作状态提示的投屏胶囊（倍速是投屏倍速档
+        // 的事，不在这一票的范围里）。
+        if (!controlOpen && !framingActive && !isCast) ...[
           Positioned(
             right: 12 + gesture.right,
             bottom: 12 + gesture.bottom,
@@ -448,6 +472,10 @@ class PresentationLayer extends ConsumerWidget {
             bottom: 116 + gesture.bottom,
             child: _ClipReviewExitChip(onTap: input.onExitClipReview),
           ),
+        // 投屏胶囊：投屏-观看态（控制层收起）屏上唯一常驻件，只作状态提示
+        // （「投屏中 · 接收端名」）。它不接任何手势、点它不产生任何状态变化；
+        // 要展开控制层就点画面（胶囊之外）——那条是既有画面点按路径。
+        if (isCast && !controlOpen) const CastStatusCapsule(),
         // 控制层（标注编辑外壳）：展开时为顶层覆盖层。竖屏转屏钮与气泡覆盖层
         // 的层序住在控制层内部（见 [ControlLayer]）。
         if (controlOpen)
@@ -476,6 +504,7 @@ class PresentationLayer extends ConsumerWidget {
                 // 横屏文字钮复用同一枚方向动作回调。
                 onRequestOrientation: input.onRequestOrientation,
                 onDisconnectCast: input.onDisconnectCast,
+                onToggleCastPicture: input.onToggleCastPicture,
                 onScrubCommitted: input.loopPrompt.markManualSeek,
                 // 投屏入口「副本丢失」门的输入：路径取自组合根。
                 videoFilePath: input.videoFilePath,
@@ -575,9 +604,16 @@ class PresentationLayer extends ConsumerWidget {
         onPointerCancel: input.gestures.onPointerCancel,
       ),
       // 视频区正中大数字与长按 2× 提示是页面级自订阅的层内叠加件——画面层
-      // 只负责摆位（层序与既有整页渲染逐位一致）。
-      prepCenterNumber: const PrepCenterBigNumber(),
-      doubleSpeedBadge: const _DoubleSpeedOverlay(),
+      // 只负责摆位（层序与既有整页渲染逐位一致）。投屏态两者都不上屏：
+      // 画面区只画视频画面本身（黑底指路 / 静音本地预览）。
+      prepCenterNumber: input.isCast
+          ? const SizedBox.shrink()
+          : const PrepCenterBigNumber(),
+      doubleSpeedBadge: input.isCast
+          ? const SizedBox.shrink()
+          : const _DoubleSpeedOverlay(),
+      // 投屏态的画面区覆盖件：源片不上手机屏（电视上那份才是正的）。
+      pictureOverride: input.isCast ? const CastPictureArea() : null,
     );
   }
 

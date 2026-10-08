@@ -86,6 +86,7 @@ import 'beat_correction.dart'
         hasEightBeatAnchorsProvider,
         previewAnchorOccupiedProvider,
         previewDownbeatProvider;
+import 'cast_preview.dart' show castPreviewProvider;
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
 import 'settings_cluster.dart' show SettingsCluster, settingsStripVisibleFor;
@@ -153,6 +154,7 @@ class ControlLayer extends ConsumerStatefulWidget {
     required this.onRequestOrientation,
     required this.onDisconnectCast,
     required this.videoFilePath,
+    required this.onToggleCastPicture,
     this.onScrubCommitted,
   });
 
@@ -208,6 +210,11 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 这支舞的**视频副本**路径（宿主唯一知道的那份）：投屏入口五条门里
   /// 「副本丢失」一条的输入（其余四条由 `cast_entry_gate.dart` 自己接）。
   final String videoFilePath;
+
+  /// 画面开关（投屏态顶栏那枚工具的动作）：宿主把画面区从黑底切成静音本地
+  /// 预览、或切回黑底。起播定位（问接收端要位置）与静音都归投屏预览域，
+  /// 这里只交出「用户点了这一下」——源文件在宿主手上。
+  final VoidCallback onToggleCastPicture;
 
   /// 显式用户拖进度收口落点回报：预览条拖动与非轨道区微调 scrub
   /// 会话结束时回调，宿主据此打循环提示放行标记。

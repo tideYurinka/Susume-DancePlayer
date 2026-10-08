@@ -34,6 +34,8 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     final editHistory = ref.watch(annotationEditHistoryProvider);
     // 「对比练习」槽的激活高亮 = 处于对比态（对比-控制层内可见）。
     final compareActive = ref.watch(playerSessionProvider).isCompare;
+    // 「画面开关」槽的激活高亮 = 投屏本地预览开着（生效态；面板展开不算）。
+    final castPictureOn = ref.watch(castPreviewProvider);
     // 定宽：激活标签 + 倍率槽形态与未激活形态取宽者，使启用 /
     // 停用步进不改槽宽、顶栏不重排；渲染宽与定宽同源。
     final speedSlotWidth = topBarSpeedSlotWidth(
@@ -48,6 +50,7 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       facts: castGate.toolFacts,
       castAvailable: castGate.castAvailable,
       compareActive: compareActive,
+      castPictureOn: castPictureOn,
       speedSlotWidth: speedSlotWidth,
     );
   }
@@ -251,6 +254,15 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         enabled: live.castAvailable,
         tappable: _playToolTappable(slot, live, live.castAvailable),
         onTap: _toggleCast,
+      ),
+      // 画面开关：只在投屏态顶栏行集内——打开即把画面区从黑底切成静音本地
+      // 预览（起播定位与静音归投屏预览域），动作本体在宿主（源文件在宿主
+      // 手上）。激活高亮 = 预览开着。
+      PlayToolSlotId.castPicture => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        active: live.castPictureOn,
+        onTap: widget.onToggleCastPicture,
       ),
       // 断开投屏：只在投屏态顶栏行集内——与左上角退出箭头同义，两处入口
       // 都调宿主同一处动作（[ControlLayer.onDisconnectCast]）。
@@ -542,8 +554,8 @@ double topBarSpeedSlotWidth({TextScaler textScaler = TextScaler.noScaling}) {
 
 /// 顶栏装配一次所需的**活值束**：声明在表（[PlayToolSlot]），本束
 /// 只装每次构建会变的求值结果——倍速态、撤销/重做可用位、门事实谓词取值、
-/// 对比态与倍速槽定宽。镜像状态机不经此束（装配点直读 `widget.mirror`，
-/// 使监听对象触发的重装配取到当前值）。
+/// 对比态、投屏本地预览开关与倍速槽定宽。镜像状态机不经此束（装配点直读
+/// `widget.mirror`，使监听对象触发的重装配取到当前值）。
 class _PlayToolLive {
   const _PlayToolLive({
     required this.speed,
@@ -553,6 +565,7 @@ class _PlayToolLive {
     required this.facts,
     required this.castAvailable,
     required this.compareActive,
+    required this.castPictureOn,
     required this.speedSlotWidth,
   });
 
@@ -573,6 +586,9 @@ class _PlayToolLive {
   final bool castAvailable;
 
   final bool compareActive;
+
+  /// 投屏本地预览开着（「画面开关」槽的激活位）。
+  final bool castPictureOn;
 
   /// 「倍速设置」槽的定宽（依赖系统字号，构建期求值）。
   final double speedSlotWidth;
@@ -653,6 +669,8 @@ IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.cast => Icons.cast,
   PlayToolIcon.castDisconnect => Icons.tv_off,
   PlayToolIcon.systemMirror => Icons.screen_share,
+  // 画面开关 = 眼睛（把画面显示出来）。
+  PlayToolIcon.visibility => Icons.visibility,
   PlayToolIcon.helpOutline => Icons.help_outline,
   PlayToolIcon.more => Icons.more_horiz,
 };

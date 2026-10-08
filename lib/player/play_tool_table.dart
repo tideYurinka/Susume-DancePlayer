@@ -8,9 +8,9 @@
 /// （竖屏标题栏，四条）/
 /// [kPlayToolRowPortraitVideoToolbarTop] 与
 /// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）/
-/// [kPlayToolRowCastTopBar]（投屏态顶栏，三枚——「断开投屏」→「系统镜像」→
-/// 末位的「查看引导」；规格里最终五枚，倍速切换与画面开关随后两票按次序
-/// 补位）；
+/// [kPlayToolRowCastTopBar]（投屏态顶栏，四枚——「画面开关」→「断开投屏」→
+/// 「系统镜像」→ 末位的「查看引导」；规格里最终五枚，倍速切换随后一票按
+/// 次序补位）；
 /// 顶栏取哪一份行集由纯件 [playToolTopBarRowFor] 一处决定——**投屏态两值
 /// 有自己那份行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档**
 /// （[playToolLandscapeTopBarRow]）；行集成员 [PlayToolRowItem]（一条槽的
@@ -54,7 +54,7 @@ import 'package:dance_learning_app/player_session/player_session.dart'
     show PlayerSessionMode;
 
 /// 看片工具的图标 token：表不引 Flutter，`IconData` 由装配点按 token
-/// 映射（映射取值 = 今天十四枚图标的逐位对照，见各条目注释）。
+/// 映射（映射取值 = 今天十五枚图标的逐位对照，见各条目注释）。
 enum PlayToolIcon {
   undo, // Icons.undo
   redo, // Icons.redo
@@ -68,6 +68,7 @@ enum PlayToolIcon {
   cast, // Icons.cast（投屏）
   castDisconnect, // Icons.tv_off（断开投屏）
   systemMirror, // Icons.screen_share（系统镜像）
+  visibility, // Icons.visibility（画面开关）
   helpOutline, // Icons.help_outline（查看引导）
   more, // Icons.more_horiz（更多）
 }
@@ -88,6 +89,10 @@ enum PlayToolSlotId {
 
   /// 投屏（编辑面顶栏入口：进投屏准备面板）。
   cast,
+
+  /// 画面开关（只在投屏态顶栏行集内）：把画面区从黑底切成静音本地预览。
+  /// 激活高亮 = 预览开着。
+  castPicture,
 
   /// 断开投屏（只在投屏态顶栏行集内：同一动作的第二处入口是左上角
   /// 退出箭头）。
@@ -323,6 +328,18 @@ const String kSystemMirrorHintText =
     '整屏镜像：有延迟、手机屏要亮着、控制层也上电视；'
     '我们这条路推的是渲染好的投屏副本';
 
+/// 画面开关：**只在投屏态顶栏行集**里的一枚——把画面区从黑底 + 指路提示切成
+/// **静音本地预览**。无门、非软门（未投屏时本槽不在场）；激活高亮 = 预览
+/// 开着（生效态，不是面板展开）。
+const PlayToolSlot kPlayToolCastPicture = PlayToolSlot(
+  id: PlayToolSlotId.castPicture,
+  key: 'tool_cast_picture',
+  label: '画面开关',
+  icon: PlayToolIcon.visibility,
+  gates: [],
+  softGate: false,
+);
+
 /// 查看引导（进新手引导页）。
 const PlayToolSlot kPlayToolGuide = PlayToolSlot(
   id: PlayToolSlotId.guide,
@@ -416,12 +433,13 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
-/// 投屏态顶栏：**三枚**——断开投屏 → 系统镜像 → 查看引导（查看引导恒在
-/// 末位）。它是投屏态两值自己的那份行集：与朝向、紧凑档无关，也不占编辑态
-/// 的位置预算（编辑态行集各自照旧）。规格里投屏态顶栏最终五枚（倍速切换、
-/// 画面开关、断开投屏、系统镜像、查看引导），倍速切换与画面开关随后两票
+/// 投屏态顶栏：**四枚**——画面开关 → 断开投屏 → 系统镜像 → 查看引导（查看
+/// 引导恒在末位）。它是投屏态两值自己的那份行集：与朝向、紧凑档无关，也不占
+/// 编辑态的位置预算（编辑态行集各自照旧）。规格里投屏态顶栏最终五枚
+/// （倍速切换、画面开关、断开投屏、系统镜像、查看引导），倍速切换随后一票
 /// 接入——补位只在这份声明里加成员，不另开第二处次序编码。
 const PlayToolRowSet kPlayToolRowCastTopBar = PlayToolRowSet([
+  PlayToolRowItem.slot(kPlayToolCastPicture),
   PlayToolRowItem.slot(kPlayToolDisconnectCast),
   PlayToolRowItem.slot(kPlayToolSystemMirror),
   PlayToolRowItem.slot(kPlayToolGuide),

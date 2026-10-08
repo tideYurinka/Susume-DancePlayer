@@ -63,9 +63,9 @@ import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/video_index_fixtures.dart';
 
 /// 投屏全链的宿主测试：顶栏那枚投屏工具 → 投屏准备面板 → 推原片 → 投屏态
-/// （底排无槽位、轨道带只留分段轨、顶栏三枚）→ 断开 / 系统返回 / 离开页面；
+/// （底排无槽位、轨道带只留分段轨、顶栏四枚）→ 断开 / 系统返回 / 离开页面；
 /// 以及投屏态顶栏那枚**系统镜像**入口（先断开再跳、降级链走不通给一句短暂
-/// 提示）。
+/// 提示）与那枚**画面开关**（黑底 ↔ 静音本地预览）。
 /// 接收端经 #23 的脚本化替身注入，不碰真网络；原生与真机行为留真机验收
 /// （见 `lib/cast/docs/real-device-acceptance.md`）。
 void main() {
@@ -252,7 +252,9 @@ void main() {
     expect(factory.sessions.single.calls, ['push', 'play']);
     expect(modeOf(tester), PlayerSessionMode.castControl);
 
-    // 顶栏换装：断开投屏 + 系统镜像 + 查看引导（编辑态那枚投屏不在场）。
+    // 顶栏换装：画面开关 + 断开投屏 + 系统镜像 + 查看引导（编辑态那枚投屏不在场）。
+    expect(find.byKey(const Key('tool_cast_picture')), findsOneWidget);
+    expect(find.text('画面开关'), findsOneWidget);
     expect(find.byKey(const Key('tool_cast_disconnect')), findsOneWidget);
     expect(find.text('断开投屏'), findsOneWidget);
     expect(find.byKey(const Key('tool_system_mirror')), findsOneWidget);

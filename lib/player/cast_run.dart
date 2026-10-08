@@ -49,6 +49,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_delivery_channel.dart';
+import '../cast/cast_failure.dart' show CastSessionDropped;
 import '../cast/cast_receiver.dart';
 import '../cast/cast_session.dart';
 import '../player_session/player_session.dart';
@@ -152,6 +153,25 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
       // 悬挂面，这里一并收口。
       ref.read(playerSessionProvider.notifier).exitCast();
       rethrow;
+    }
+  }
+
+  /// 接收端此刻上报的播放位置（投屏本地预览的起播定位用）。
+  ///
+  /// 未投屏 = null；**连接断了**（[CastSessionDropped]）= null 并照既有失败
+  /// 收口走一遍（断开 + 回编辑态 + 短暂提示）；**设备只是这一问答不上来**
+  /// （[CastActionRefused] 一类）= null 且静默降级——预览从头起就好，不拿一次
+  /// 探测把投屏整条收掉（与「探测不到一律按不显示处理」同一口径）。
+  Future<Duration?> reportedPosition() async {
+    final session = _session;
+    if (session == null) return null;
+    try {
+      return await session.position();
+    } on CastSessionDropped {
+      await _fail();
+      return null;
+    } on Object {
+      return null;
     }
   }
 

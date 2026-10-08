@@ -54,6 +54,14 @@ abstract interface class PlaybackEngine {
   /// 校准为准。Δ 只由声音侧与媒体层消费（浮层与刻度不平移）。
   Future<void> setAvSyncDelayMs(int delayMs);
 
+  /// 静音开关：[muted] 为真时本内核不发声（画面照旧）。
+  ///
+  /// 这是**内核侧**的流音量，与系统媒体音量（`SystemMediaVolumeController`，
+  /// 手势调音量那条路）是两回事。今天只有一个消费者：投屏态的**静音本地
+  /// 预览**——那只看画面、不发声（声音归电视）。一次设置对后续
+  /// open / seek / play 都生效，实现不在 open 处重置它。
+  Future<void> setMuted(bool muted);
+
   double get rate;
 
   bool get isPlaying;

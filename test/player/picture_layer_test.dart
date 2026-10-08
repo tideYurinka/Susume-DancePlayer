@@ -120,6 +120,8 @@ void main() {
     VoidCallback? onTogglePlay,
     Widget prepCenterNumber = const SizedBox.shrink(),
     Widget doubleSpeedBadge = const SizedBox.shrink(),
+    Widget? pictureOverride,
+    GestureScaleStartCallback? onScaleStart,
   }) => PictureLayerInput(
     face: PictureFaceInput(source: direction),
     video: PictureVideoInput(
@@ -151,7 +153,7 @@ void main() {
     gesture: PictureGestureInput(
       doubleTapRecognizer: doubleTap,
       longPressRecognizer: longPress,
-      onScaleStart: noopScaleStart,
+      onScaleStart: onScaleStart ?? noopScaleStart,
       onScaleUpdate: noopScaleUpdate,
       onScaleEnd: noopScaleEnd,
       onPointerDown: noopPointerDown,
@@ -160,6 +162,7 @@ void main() {
     ),
     prepCenterNumber: prepCenterNumber,
     doubleSpeedBadge: doubleSpeedBadge,
+    pictureOverride: pictureOverride,
   );
 
   group('画面件方向（源视频面）', () {
@@ -176,6 +179,56 @@ void main() {
       final transform = find.byKey(const Key('mirrored_surface'));
       expect(transform, findsOneWidget);
       expect(tester.widget<Transform>(transform).transform.storage[0], -1);
+    });
+  });
+
+  group('画面区覆盖件', () {
+    testWidgets('覆盖件取代源画面：源画面件不构造、播放大图标不出现', (tester) async {
+      var surfaceCalls = 0;
+      await tester.pumpWidget(
+        mount(
+          buildInput(
+            // 暂停态（默认）：无覆盖件时这一档本该画出播放大图标。
+            surfaceBuilder: () {
+              surfaceCalls++;
+              return const SizedBox.shrink();
+            },
+            pictureOverride: const ColoredBox(
+              key: Key('picture_override'),
+              color: Colors.black,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('picture_override')), findsOneWidget);
+      expect(surfaceCalls, 0, reason: '覆盖件在场时源画面件不构造（源片不上屏）');
+      expect(find.byKey(const Key('play_indicator')), findsNothing);
+    });
+
+    testWidgets('无覆盖件：源画面件照旧、暂停时播放大图标在场', (tester) async {
+      await tester.pumpWidget(mount(buildInput()));
+      expect(find.byKey(videoSurfacePlaceholderKey), findsOneWidget);
+      expect(find.byKey(const Key('play_indicator')), findsOneWidget);
+    });
+
+    testWidgets('覆盖件不吃触摸：点按仍落到底层手势层', (tester) async {
+      var scaleStarts = 0;
+      await tester.pumpWidget(
+        mount(
+          buildInput(
+            onScaleStart: (_) => scaleStarts++,
+            pictureOverride: const ColoredBox(color: Colors.black),
+          ),
+        ),
+      );
+
+      await tester.drag(
+        find.byKey(const Key('player_surface')),
+        const Offset(40, 0),
+      );
+      await tester.pump();
+      expect(scaleStarts, greaterThan(0), reason: '覆盖件不拦截其下那条手势面');
     });
   });
 
@@ -632,6 +685,10 @@ void main() {
         (
           'doubleSpeedBadge',
           buildInput(surfaceBuilder: surface, doubleSpeedBadge: probe),
+        ),
+        (
+          'pictureOverride',
+          buildInput(surfaceBuilder: surface, pictureOverride: probe),
         ),
       ]) {
         expect(changed, isNot(base()), reason: '$label 变化必须让输入值对象判不等');

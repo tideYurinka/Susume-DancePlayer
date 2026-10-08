@@ -270,6 +270,11 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
   Future<void> setRate(double rate) => _player.setRate(rate);
 
   @override
+  Future<void> setMuted(bool muted) =>
+      // mpv/media_kit 的音量是 0–100 的百分比：静音即 0。
+      _player.setVolume(muted ? 0 : 100);
+
+  @override
   Future<void> setAvSyncDelayMs(int delayMs) {
     // media_kit Dart 面无 audio-delay API，走 NativePlayer.setProperty
     // （mpv 属性）：秒值 = −Δ·rate（负 = 延迟视频；墙钟延迟恒为 Δ，

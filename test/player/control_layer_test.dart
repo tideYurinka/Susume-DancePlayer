@@ -318,6 +318,7 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
               onDelayedPlay: () {},
               onBack: () {},
               onDisconnectCast: () {},
+              onToggleCastPicture: () {},
               onCollapse: () =>
                   ref.read(playerSessionProvider.notifier).collapse(),
               onEditSignature: () => unawaited(

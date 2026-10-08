@@ -74,6 +74,10 @@ class FakeCastSession implements CastSession {
   CastPlaybackState reportedState = CastPlaybackState.playing;
   double reportedVolume = 0.5;
 
+  /// 非 null 时只有 [position] 抛出它（设备不报位置 / 问位置时掉线用例——
+  /// 与 `actionError` 的全动作失败区分开）。
+  Object? positionError;
+
   /// 非 null 时读音量抛出它（设备不报音量用例）。
   Object? volumeError;
 
@@ -129,7 +133,7 @@ class FakeCastSession implements CastSession {
 
   @override
   Future<Duration> position() async {
-    _check('position');
+    _check('position', failure: positionError);
     return reportedPosition;
   }
 
