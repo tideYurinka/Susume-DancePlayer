@@ -85,6 +85,7 @@ import 'rate_label_slot.dart';
 import 'settings_cluster.dart' show SettingsCluster, settingsStripVisibleFor;
 import 'session_mode_surfaces.dart' show sessionModeSurfacesOf;
 import 'speed_control.dart';
+import 'system_mirror_entry.dart' show openSystemMirrorEntry;
 import 'system_ui.dart' show ScreenOrientation;
 import 'tool_slots.dart';
 import 'tool_menu_actions.dart';
@@ -429,7 +430,7 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     // 横屏顶栏十三条工具内联一行。一行渲染的槽位集就是该行的全部槽位。
     // 顶栏**行集**由「模式 → 顶栏行集」唯一映射给出（
     // `play_tool_table.dart` 的 [playToolTopBarRowFor]）：投屏态两值取自己
-    // 那份两枚行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档；活值
+    // 那份三枚行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档；活值
     // 由装配点按槽身份装配。
     final portrait = widget.skeleton.portrait;
     final session = ref.watch(playerSessionProvider);

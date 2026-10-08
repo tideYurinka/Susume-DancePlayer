@@ -6,6 +6,8 @@ import 'package:dance_learning_app/cast/cast_receiver.dart';
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/cast/system_mirror.dart'
+    show systemMirrorLauncherProvider;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
@@ -36,6 +38,7 @@ import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_receiver_discovery.dart';
 import '../helpers/fake_cast_session.dart';
 import '../helpers/fake_playback_engine.dart';
+import '../helpers/fake_system_mirror_launcher.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fake_video_copy_presence.dart';
 import '../helpers/fixed_hasher.dart';
@@ -45,7 +48,9 @@ import '../helpers/in_memory_video_index_storage.dart';
 import '../helpers/video_index_fixtures.dart';
 
 /// 投屏全链的宿主测试：顶栏那枚投屏工具 → 投屏准备面板 → 推原片 → 投屏态
-/// （底排无槽位、轨道带只留分段轨、顶栏两枚）→ 断开 / 系统返回 / 离开页面。
+/// （底排无槽位、轨道带只留分段轨、顶栏三枚）→ 断开 / 系统返回 / 离开页面；
+/// 以及投屏态顶栏那枚**系统镜像**入口（先断开再跳、降级链走不通给一句短暂
+/// 提示）。
 /// 接收端经 #23 的脚本化替身注入，不碰真网络；原生与真机行为留真机验收
 /// （见 `lib/cast/docs/real-device-acceptance.md`）。
 void main() {
@@ -55,6 +60,7 @@ void main() {
   late FakeCastReceiverDiscovery discovery;
   late FakeCastSessionFactory factory;
   late FakeCastDeliveryChannel delivery;
+  late FakeSystemMirrorLauncher systemMirror;
 
   const receiverName = '客厅电视';
 
@@ -93,9 +99,7 @@ void main() {
           videoDocumentStorageFactoryProvider.overrideWithValue(
             (videoId) => InMemoryVideoDocumentStorage(),
           ),
-          contentHasherProvider.overrideWithValue(
-            const FixedHasher('seeded'),
-          ),
+          contentHasherProvider.overrideWithValue(const FixedHasher('seeded')),
           videoIndexStoreProvider.overrideWithValue(
             InMemoryVideoIndexStorage(
               initial: VideoIndex(
@@ -108,6 +112,7 @@ void main() {
           castReceiverDiscoveryProvider.overrideWithValue(discovery),
           castSessionFactoryProvider.overrideWithValue(factory),
           castDeliveryChannelProvider.overrideWithValue(delivery),
+          systemMirrorLauncherProvider.overrideWithValue(systemMirror),
           videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
         ],
         child: MaterialApp(
@@ -166,6 +171,7 @@ void main() {
     );
     factory = FakeCastSessionFactory();
     delivery = FakeCastDeliveryChannel();
+    systemMirror = FakeSystemMirrorLauncher();
   });
 
   testWidgets('编辑态顶栏有投屏工具；点它开准备面板、列接收端', (tester) async {
@@ -197,12 +203,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(modeOf(tester), PlayerSessionMode.editing);
-    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+    expect(
+      containerOf(tester).read(playerSessionProvider).pendingEntry,
+      isNull,
+    );
     expect(factory.connectCalls, 0);
     expect(delivery.served, isEmpty);
   });
 
-  testWidgets('选一台 → 推原片 → 进投屏态：底排无槽位、轨道带只留分段轨、顶栏两枚', (tester) async {
+  testWidgets('选一台 → 推原片 → 进投屏态：底排无槽位、轨道带只留分段轨、顶栏三枚', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await openControlLayer(tester);
@@ -214,9 +223,11 @@ void main() {
     expect(factory.sessions.single.calls, ['push', 'play']);
     expect(modeOf(tester), PlayerSessionMode.castControl);
 
-    // 顶栏换装：断开投屏 + 查看引导（编辑态那枚投屏不在场）。
+    // 顶栏换装：断开投屏 + 系统镜像 + 查看引导（编辑态那枚投屏不在场）。
     expect(find.byKey(const Key('tool_cast_disconnect')), findsOneWidget);
     expect(find.text('断开投屏'), findsOneWidget);
+    expect(find.byKey(const Key('tool_system_mirror')), findsOneWidget);
+    expect(find.text('系统镜像'), findsOneWidget);
     expect(find.byKey(const Key('tool_guide')), findsOneWidget);
     expect(find.byKey(const Key('tool_cast')), findsNothing);
     expect(find.byKey(const Key('tool_compare')), findsNothing);
@@ -242,6 +253,62 @@ void main() {
     expect(find.byKey(const Key('track_beat')), findsNothing);
     // 无柄可拖 = 分段结构性只读。
     expect(find.byKey(const Key('track_handle_strip')), findsNothing);
+  });
+
+  testWidgets('系统镜像入口：先断开投屏并停服、再跳系统设置（顺序）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    // 跳转被调用的**那一刻**回看投屏侧：会话已断、递出通道已停服——
+    // 顺序错了（先跳再断）这里就是 false。
+    (bool, bool)? atLaunch;
+    systemMirror.onOpen = () => atLaunch = (cast.disconnected, delivery.closed);
+
+    await tester.tap(find.byKey(const Key('tool_system_mirror')));
+    await tester.pumpAndSettle();
+
+    expect(systemMirror.openCalls, 1);
+    expect(atLaunch, isNotNull, reason: '系统设置跳转没被调用');
+    expect(atLaunch, (true, true), reason: '先断开投屏（含立即停服）再跳');
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsNothing);
+  });
+
+  testWidgets('系统镜像入口的提示文案说清两条路的代价差（出口上就能看见）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    expect(
+      find.byTooltip(
+        '整屏镜像：有延迟、手机屏要亮着、控制层也上电视；'
+        '我们这条路推的是渲染好的投屏副本',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('系统镜像降级链两级都没接住：给一句短暂提示', (tester) async {
+    setWideView(tester);
+    systemMirror.opened = false;
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    await tester.tap(find.byKey(const Key('tool_system_mirror')));
+    await tester.pumpAndSettle();
+
+    expect(systemMirror.openCalls, 1);
+    expect(find.byKey(const Key('cast_system_mirror_prompt')), findsOneWidget);
+    expect(find.text('这台设备打不开系统投屏设置'), findsOneWidget);
+    // 投屏照样断干净、回编辑态——那个入口不因为跳不动就把人留在投屏态。
+    expect(factory.sessions.single.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(modeOf(tester), PlayerSessionMode.editing);
   });
 
   testWidgets('断开投屏（顶栏那枚）：停服 + 断连 + 回编辑态、底排槽位回来', (tester) async {

@@ -72,6 +72,9 @@ enum NoticeId {
 
   /// 没接上接收端（起投失败：连不上 / 被拒 / 递出通道起不来）。
   castNotStarted,
+
+  /// 系统投屏设置打不开（系统镜像入口的降级链两级都没接住）。
+  systemMirrorUnavailable,
 }
 
 /// 一条提示的声明（由所属域给出）：身份 + 内容 + 定位 key。

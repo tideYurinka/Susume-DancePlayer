@@ -236,6 +236,16 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         tappable: true,
         onTap: widget.onDisconnectCast,
       ),
+      // 系统镜像：只在投屏态顶栏行集内——先断开投屏（含立即停服）、再跳
+      // 系统的「投屏 / 无线显示」设置；跳不动时降级到显示设置、再不行给一句
+      // 短暂提示。整条动作只有一个实现（[openSystemMirrorEntry]），准备面板
+      // "搜不到接收端"空态里那同一枚入口也走它——两处入口一个动作，顺序不会
+      // 分家。
+      PlayToolSlotId.systemMirror => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: () => unawaited(openSystemMirrorEntry(ref)),
+      ),
       // 查看引导：槽填上、不再恒置灰——无作用对象也可点（本槽
       // 无门禁，门事实不参与），点击进帮助域的新手引导页。
       PlayToolSlotId.guide => _PlayToolView(
@@ -593,7 +603,7 @@ class _PlayToolView {
 }
 
 /// 图标 token → `IconData` 的映射（穷尽 `switch`）：表不引 Flutter，
-/// 映射归装配侧；取值 = 十三枚图标的逐位对照。
+/// 映射归装配侧；取值 = 十四枚图标的逐位对照。
 IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.undo => Icons.undo,
   PlayToolIcon.redo => Icons.redo,
@@ -604,9 +614,11 @@ IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.speed => Icons.speed,
   PlayToolIcon.compare => Icons.compare,
   PlayToolIcon.cropFree => Icons.crop_free,
-  // 投屏 = 投屏图标（不是屏幕镜像那条路）；断开投屏 = 关掉的电视。
+  // 投屏 = 投屏图标（不是屏幕镜像那条路）；断开投屏 = 关掉的电视；
+  // 系统镜像 = 整屏共享（那枚只管把用户送到系统设置，不自己镜像）。
   PlayToolIcon.cast => Icons.cast,
   PlayToolIcon.castDisconnect => Icons.tv_off,
+  PlayToolIcon.systemMirror => Icons.screen_share,
   PlayToolIcon.helpOutline => Icons.help_outline,
   PlayToolIcon.more => Icons.more_horiz,
 };
@@ -659,16 +671,24 @@ Widget _buildPlayToolWidget(
   _PlayToolView v, {
   required bool iconOnly,
   VoidCallback? onTap,
-}) => _PlayTool(
-  key: Key(v.slot.key),
-  label: v.label,
-  rate: v.rate,
-  icon: _playToolIconData(v.slot.icon),
-  active: v.active,
-  enabled: v.enabled,
-  tappable: v.tappable,
-  iconOnly: iconOnly,
-  // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
-  labelMetrics: v.fixedWidth != null ? _kTopToolLabelStyle : null,
-  onTap: onTap ?? v.onTap,
-);
+}) {
+  final tool = _PlayTool(
+    key: Key(v.slot.key),
+    label: v.label,
+    rate: v.rate,
+    icon: _playToolIconData(v.slot.icon),
+    active: v.active,
+    enabled: v.enabled,
+    tappable: v.tappable,
+    iconOnly: iconOnly,
+    // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
+    labelMetrics: v.fixedWidth != null ? _kTopToolLabelStyle : null,
+    onTap: onTap ?? v.onTap,
+  );
+  // 槽自己的提示文案（表里声明；今天只有「系统镜像」一条）：文案是那枚入口
+  // 承担的取舍说明，长按/悬停时显示——**不**塞进标签（顶栏标签是两个字
+  // 的入口名），也不另开第二处文案。
+  final tooltip = v.slot.tooltip;
+  if (tooltip == null) return tool;
+  return Tooltip(message: tooltip, child: tool);
+}

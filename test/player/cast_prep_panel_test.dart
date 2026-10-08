@@ -1,6 +1,8 @@
 import 'package:dance_learning_app/cast/cast_receiver.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/cast/system_mirror.dart'
+    show systemMirrorLauncherProvider;
 import 'package:dance_learning_app/dance/video_copy_presence.dart'
     show videoCopyPresenceProvider;
 import 'package:dance_learning_app/player/cast_prep_panel.dart';
@@ -9,10 +11,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_cast_receiver_discovery.dart';
+import '../helpers/fake_system_mirror_launcher.dart';
 import '../helpers/fake_video_copy_presence.dart';
 
 /// 投屏准备面板直测：列接收端、可重扫、两条门（副本丢失 / 发现不到接收端）
-/// 当场拦下并说明；选中一台即带出（起投编排在宿主，本面板不碰）。
+/// 当场拦下并说明；「搜不到接收端」空态里还有**同一条系统镜像入口**（与投屏
+/// 态顶栏那枚同一个动作、同一份文案）；选中一台即带出（起投编排在宿主，本
+/// 面板不碰）。
 void main() {
   const filePath = '/videos/a.mp4';
 
@@ -31,12 +36,16 @@ void main() {
     required FakeCastReceiverDiscovery discovery,
     required FakeVideoCopyPresence presence,
     required ValueNotifier<CastReceiver?> picked,
+    FakeSystemMirrorLauncher? systemMirror,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           castReceiverDiscoveryProvider.overrideWithValue(discovery),
           videoCopyPresenceProvider.overrideWithValue(presence),
+          systemMirrorLauncherProvider.overrideWithValue(
+            systemMirror ?? FakeSystemMirrorLauncher(),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -46,9 +55,8 @@ void main() {
                 onPressed: () async {
                   picked.value = await showDialog<CastReceiver>(
                     context: context,
-                    builder: (_) => const CastPrepPanel(
-                      videoFilePath: filePath,
-                    ),
+                    builder: (_) =>
+                        const CastPrepPanel(videoFilePath: filePath),
                   );
                 },
                 child: const Text('开面板'),
@@ -183,6 +191,56 @@ void main() {
     await tester.pumpAndSettle();
     expect(discovery.discoverCalls, 2);
     expect(find.text('客厅电视'), findsOneWidget);
+  });
+
+  testWidgets('搜不到接收端：空态里同一条系统镜像入口在场，说清代价并送用户过去', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(script: [const []]);
+    final systemMirror = FakeSystemMirrorLauncher();
+    final picked = ValueNotifier<CastReceiver?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      systemMirror: systemMirror,
+    );
+
+    // 同一条入口 = 同一个动作 + 同一份文案：投屏态顶栏那枚承担的那句取舍说明
+    // 在这里逐字相同（故意逐字重写，不从常量取——文案改了要能在测试里看见）。
+    expect(find.byKey(const Key('cast_prep_system_mirror')), findsOneWidget);
+    expect(
+      find.text(
+        '整屏镜像：有延迟、手机屏要亮着、控制层也上电视；'
+        '我们这条路推的是渲染好的投屏副本',
+      ),
+      findsOneWidget,
+    );
+    expect(systemMirror.openCalls, 0);
+
+    await tester.tap(find.byKey(const Key('cast_prep_system_mirror')));
+    await tester.pumpAndSettle();
+
+    expect(systemMirror.openCalls, 1);
+    // 跳系统设置不改准备面板的出参：面板照旧开着，选接收端那条路照旧。
+    expect(find.byKey(const Key('cast_prep_panel')), findsOneWidget);
+    expect(picked.value, isNull);
+  });
+
+  testWidgets('副本丢失门里没有系统镜像入口：那一条门只解释副本的事', (tester) async {
+    final discovery = FakeCastReceiverDiscovery();
+    final picked = ValueNotifier<CastReceiver?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(missingPaths: const {filePath}),
+      picked: picked,
+    );
+
+    expect(find.byKey(const Key('cast_prep_system_mirror')), findsNothing);
   });
 
   testWidgets('发现本身出错：与「一台都没发现」同一口径（空态说明，不炸）', (tester) async {

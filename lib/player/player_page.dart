@@ -139,6 +139,7 @@ import 'track_band_session.dart';
 import 'speed_bubble.dart';
 import 'speed_control.dart';
 import 'system_ui.dart';
+import 'system_mirror_entry.dart' show systemMirrorUnavailableNoticeSpec;
 import 'notice.dart'
     show
         NoticeId,
@@ -196,6 +197,7 @@ const List<NoticeSpec> kNoticeSpecs = [
   _documentReadOnlyNoticeSpec,
   castInterruptedNoticeSpec,
   castNotStartedNoticeSpec,
+  systemMirrorUnavailableNoticeSpec,
 ];
 
 /// 本帧交付轨道带的实际行集（档位 × 两轨当前空否的**唯一剪裁点**）。
@@ -264,10 +266,12 @@ TrackRowTable _rowTableForTier({
 /// - 投屏（本票范围）：顶栏那枚「投屏」工具 → **投屏准备面板**（列同一局域网
 ///   上的接收端、可重扫、两条门当场拦下）→ 选一台**不渲染任何东西**、直接把
 ///   这支舞的**原片**推过去 → 进**投屏态**（底排槽位整排不出现、轨道带只留
-///   分段轨、顶栏换成投屏那份两枚）；「断开投屏」与左上角退出箭头是同一动作，
+///   分段轨、顶栏换成投屏那份三枚：断开投屏、系统镜像、查看引导）；「断开
+///   投屏」与左上角退出箭头是同一动作，
 ///   断开即停服并回编辑态；系统返回在投屏态内先断开、再按一次才离开页面；
 ///   投屏态内本机的播放 / 暂停 / 跳转经 [CastMirror] 同时作用于接收端；
-///   离开播放页与换视频经**既有复位一处**断开（见 `cast_run.dart`）。
+///   离开播放页与换视频经**既有复位一处**断开（见 `cast_run.dart`）；
+///   顶栏那枚「系统镜像」先断开再跳系统设置（见 `system_mirror_entry.dart`）。
 /// - 镜像：首次打开询问「需要镜像吗？」并给出两栏
 ///   依据（左「不需要镜像」/ 右「需要镜像」）、选择后立即生效（渲染层水平
 ///   翻转，不修改源文件字节）；镜像状态按 video_id 存于视频索引，再次打开

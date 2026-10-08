@@ -25,6 +25,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_receiver.dart';
 import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
+import 'play_tool_table.dart' show kSystemMirrorHintText;
+import 'system_mirror_entry.dart' show openSystemMirrorEntry;
 import 'visual_tokens.dart' show kPlayerSkinColor;
 
 /// 副本丢失门的文案（唯一一份生产取值；测试逐字重写期望值，故意不从本
@@ -116,12 +118,16 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                     kCastPrepScanningText,
                     const Key('cast_prep_scanning'),
                   )
-                else if (_receivers.isEmpty)
+                else if (_receivers.isEmpty) ...[
                   _gateText(
                     kCastPrepNoReceiverText,
                     const Key('cast_gate_no_receiver'),
-                  )
-                else
+                  ),
+                  // 「我们这条路」此刻走不通，这里放**同一条**系统镜像入口
+                  // （与投屏态顶栏那枚同一个动作、同一份文案）：把整屏镜像
+                  // 那条路的代价摆在按钮上方，再送用户去系统设置。
+                  _systemMirrorEntry(),
+                ] else
                   for (final receiver in _receivers)
                     ListTile(
                       key: Key('cast_receiver_${receiver.id}'),
@@ -161,6 +167,38 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       ),
     );
   }
+
+  /// 「搜不到接收端」空态里那枚**系统镜像**入口：代价差文案 + 送出按钮。
+  ///
+  /// 文案取的是那条入口自己的提示文案（[kSystemMirrorHintText]，与投屏态
+  /// 顶栏那枚共用一份）——在面板里有版面，就直白摆出来，不必长按；动作走
+  /// [openSystemMirrorEntry]：先断开（这里本就没投，断开是幂等空操作）再跳、
+  /// 降级链走不通给一句短暂提示。
+  Widget _systemMirrorEntry() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        key: const Key('cast_prep_system_mirror_hint'),
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(
+          kSystemMirrorHintText,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+      ),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(
+          key: const Key('cast_prep_system_mirror'),
+          onPressed: () => unawaited(openSystemMirrorEntry(ref)),
+          child: const Text('系统镜像'),
+        ),
+      ),
+    ],
+  );
 
   Widget _gateText(String text, Key key) => Padding(
     key: key,

@@ -10,6 +10,7 @@ class MainActivity : FlutterActivity() {
     private var shareChannelPlugin: ShareChannelPlugin? = null
     private var nativeHapticPlugin: NativeHapticPlugin? = null
     private var installRequestPlugin: InstallRequestPlugin? = null
+    private var systemMirrorSettingsPlugin: SystemMirrorSettingsPlugin? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -26,6 +27,9 @@ class MainActivity : FlutterActivity() {
             it.register(flutterEngine)
         }
         installRequestPlugin = InstallRequestPlugin(this).also {
+            it.register(flutterEngine)
+        }
+        systemMirrorSettingsPlugin = SystemMirrorSettingsPlugin(this).also {
             it.register(flutterEngine)
         }
     }
@@ -47,6 +51,8 @@ class MainActivity : FlutterActivity() {
         nativeHapticPlugin = null
         installRequestPlugin?.unregister(flutterEngine)
         installRequestPlugin = null
+        systemMirrorSettingsPlugin?.unregister(flutterEngine)
+        systemMirrorSettingsPlugin = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 }
