@@ -207,7 +207,8 @@ const ToolSlot _autoRangeSlot = ToolSlot(
 
 /// 一份有序槽集：某态下有哪些槽、什么次序，即声明次序。
 ///
-/// 槽集对「当前模式」保持无知——「模式 → 槽集」的映射落在构造点一行。
+/// 槽集对「当前模式」保持无知——「模式 → 槽集」的映射收在
+/// `session_mode_surfaces.dart` 的声明表里逐值一行。
 ///
 /// 同一条槽同时进多份槽集时只声明一次：下面的
 /// [_masterySlot] / [_emphasisSlot] / [_autoRangeSlot] 各是一条共享

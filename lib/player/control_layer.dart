@@ -83,6 +83,7 @@ import 'beat_correction.dart'
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
 import 'settings_cluster.dart' show SettingsCluster, settingsStripVisibleFor;
+import 'session_mode_surfaces.dart' show sessionModeSurfacesOf;
 import 'speed_control.dart';
 import 'system_ui.dart' show ScreenOrientation;
 import 'tool_slots.dart';
@@ -1019,15 +1020,10 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     );
   }
 
-  /// 「模式 → 槽集」唯一映射（横屏行与竖屏标注行共用一处声明）。
+  /// 本态底排槽集：取「模式 → 界面」声明表（横屏行与竖屏标注行共用同一份
+  /// 答案，映射不在此另写）。
   ToolSlotTable get _slotTable =>
-      switch (ref.watch(playerSessionProvider).mode) {
-        PlayerSessionMode.compareEditing => ToolSlotTable.compare,
-        PlayerSessionMode.beatCorrectionStandby => ToolSlotTable.standby,
-        PlayerSessionMode.segmentDensityStandby =>
-          ToolSlotTable.segmentDensityStandby,
-        _ => ToolSlotTable.normal,
-      };
+      sessionModeSurfacesOf(ref.watch(playerSessionProvider).mode).slotTable;
 
   /// 帧号读数单元（共用）：Expanded 左对齐独占剩余
   /// 宽——横屏底栏中段与竖屏播放控制工具行同一装配，字号由行决定。

@@ -119,6 +119,7 @@ import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
 import 'resume_position.dart' show ResumeRecorder;
 import 'scheme_open.dart';
+import 'session_mode_surfaces.dart' show sessionModeSurfacesOf;
 import 'settings_persistence.dart';
 import 'song_naming.dart';
 import 'song_naming_session.dart';
@@ -1340,12 +1341,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     exitFraming: _editorEntry.exitFraming,
   );
 
-  /// 取景调节态谓词（模式值 = 对比取景 `compareFraming` 或单画面取景
-  /// `framing`）。
-  bool get _framingActive => switch (ref.read(playerSessionProvider).mode) {
-    PlayerSessionMode.compareFraming || PlayerSessionMode.framing => true,
-    _ => false,
-  };
+  /// 取景调节态谓词：取「模式 → 界面」声明表（唯一映射，不在此另写
+  /// 取值分支）。
+  bool get _framingActive =>
+      sessionModeSurfacesOf(ref.read(playerSessionProvider).mode).framingActive;
 
   /// 切后台强制 flush 标注保存：挂起 burst 不等到期窗口；
   /// 未接编排器（null sink）时零行为。写失败由编排器静默兜底。
@@ -1474,11 +1473,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 对比-播放态、取景调节态。
     final session = ref.watch(playerSessionProvider);
     final controlOpen = session.controlOpen;
-    // 取景调节态（对比分屏 + 单画面）：两个模式值共用同一套
-    // 「控制层收起、手势独占、取景条」的面。
-    final framingActive =
-        session.mode == PlayerSessionMode.compareFraming ||
-        session.mode == PlayerSessionMode.framing;
+    // 模式 → 界面三处换装（底排槽集 / 轨道行集 / 取景态谓词）取同一份声明表：
+    // 取景调节态（对比分屏 + 单画面）两值共用同一套「控制层收起、手势独占、
+    // 取景条」的面。
+    final surfaces = sessionModeSurfacesOf(session.mode);
+    final framingActive = surfaces.framingActive;
     final compareWatching = session.mode == PlayerSessionMode.compareWatching;
     // 回看中的练习片段（画面常驻出口件的出现条件）：build 期 watch——不
     // 用 read，避免在 build 里强制刷新被失效的 provider（与调度器同帧刷新
@@ -1487,12 +1486,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final reviewingClip = reviewingClipId == null
         ? null
         : practiceClipById(ref.watch(practiceClipsProvider), reviewingClipId);
-    // 模式 → 轨道行集：只在宿主这一处映射，骨架（整带高）与控制层（行集）
-    // 消费同一份取值。具名行集是该态的**全行集**，紧凑档下再由本处按
-    // 「两轨当前空否」剪裁（见 [_rowTableForTier]）。
-    final fullRowTable = session.mode == PlayerSessionMode.compareEditing
-        ? TrackRowTable.compare
-        : TrackRowTable.normal;
+    // 模式 → 轨道行集：骨架（整带高）与控制层（行集）消费同一份取值。具名
+    // 行集是该态的**全行集**，紧凑档下再由本处按「两轨当前空否」剪裁
+    // （见 [_rowTableForTier]）。
+    final fullRowTable = surfaces.rowTable;
     // 竖屏编辑骨架：方向判定与骨架分配都收成具名纯件
     // （`editor_skeleton.dart`），视频带落位与控制层消费同一份答案；取景域
     // 宿主也读本处缓存的 [_lastSkeleton]。宽高比未知时纯件按「剩余区够用」
