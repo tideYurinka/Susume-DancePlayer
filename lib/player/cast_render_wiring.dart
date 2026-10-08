@@ -58,6 +58,10 @@ String castFramingToken(FramingSelection? selection) {
 ///
 /// [globalMirrored] 由调用方传（全局镜像的现值住在播放页的镜像控制器上，
 /// 不在 provider 里）。
+///
+/// 局部镜像片段在此**读一次**、喂两处：标注指纹与 [CastRenderRequest
+/// .mirrorFragments]（画面滤镜链的镜像闸门按它成窗）。渲染参数与上屏取值因此
+/// 读的是同一份 provider 取值，不是两处各自读一遍、各自对齐的口径。
 CastRenderRequest castRenderRequestFor(
   CastRenderRead read, {
   required String videoPath,
@@ -70,6 +74,7 @@ CastRenderRequest castRenderRequestFor(
   final grid = read(beatGridProvider);
   final sourceId = read(effectiveMetronomeSourceIdProvider);
   final halfBeatEnabled = read(metronomeHalfBeatEnabledProvider);
+  final mirrorFragments = read(localMirrorFragmentsProvider);
 
   return CastRenderRequest(
     videoPath: videoPath,
@@ -92,11 +97,12 @@ CastRenderRequest castRenderRequestFor(
       CastAnnotationFacts(
         timeline: timeline,
         notes: read(noteStickersProvider),
-        mirrorFragments: read(localMirrorFragmentsProvider),
+        mirrorFragments: mirrorFragments,
         roster: read(dancerRosterProvider),
         beatGrid: read(beatTrackStateProvider).grid,
       ),
     ),
+    mirrorFragments: mirrorFragments,
     beatClicks: buildCastBeatClicks(
       grid: grid,
       source: metronomeSourceEntryOfId(sourceId),

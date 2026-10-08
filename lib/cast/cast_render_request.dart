@@ -19,6 +19,8 @@
 /// `cast_render_orchestrator.dart`。
 library;
 
+import '../core/local_mirror_fragment.dart';
+
 /// 渲染勾选档：**画面类**（含呈现类）与**声音类**两档。
 ///
 /// 默认全选（面板的初始值）；都不勾 = 直接推原片、零等待。
@@ -192,6 +194,7 @@ class CastRenderRequest {
     required this.speedTier,
     required this.settings,
     required this.annotationFingerprint,
+    this.mirrorFragments = const [],
     this.beatClicks = const [],
   });
 
@@ -212,6 +215,16 @@ class CastRenderRequest {
 
   /// 这支舞**标注内容**的指纹（`cast_annotation_fingerprint.dart`）。
   final String annotationFingerprint;
+
+  /// **局部镜像片段表**（源时间轴、升序、两两不重叠、半开区间）。
+  ///
+  /// 与上屏求值读**同一份**取值：装配处（`player/cast_render_wiring.dart`）读一次
+  /// 片段 provider，一路进指纹、一路进这里，画面滤镜链的局部镜像闸门按它成窗
+  /// （见 `cast_mirror_gate.dart`）。空表 = 没有局部镜像片段。
+  ///
+  /// 它**不是缓存键的独立分量**：片段内容是标注内容的一部分，已在
+  /// [annotationFingerprint] 里；改片段即换指纹、即换键。
+  final List<LocalMirrorFragment> mirrorFragments;
 
   /// 拍声排程（声音类用；画面类不看它）。
   final List<CastBeatClick> beatClicks;

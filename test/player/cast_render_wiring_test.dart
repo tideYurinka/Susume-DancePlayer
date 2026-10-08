@@ -50,6 +50,9 @@ void main() {
     FramingSelection? framing,
     List<NoteSticker> notes = const [],
     bool localMirrorEnabled = true,
+    List<LocalMirrorFragment> mirrorFragments = const [
+      LocalMirrorFragment(startMs: 1000, endMs: 2000),
+    ],
     bool halfBeatEnabled = false,
     BeatGrid? grid,
   }) {
@@ -63,7 +66,7 @@ void main() {
         ),
         noteStickersProvider.overrideWithBuild((ref, _) => notes),
         localMirrorFragmentsProvider.overrideWithBuild(
-          (ref, _) => const [LocalMirrorFragment(startMs: 1000, endMs: 2000)],
+          (ref, _) => mirrorFragments,
         ),
         dancerRosterProvider.overrideWithBuild((ref, _) => const []),
         localMirrorEnabledProvider.overrideWithBuild(
@@ -168,6 +171,30 @@ void main() {
       ),
     );
 
+    expect(after.cacheKey, isNot(before.cacheKey));
+  });
+
+  test('局部镜像片段进请求：渲染参数与上屏、指纹读同一份 provider 取值', () {
+    const fragments = [
+      LocalMirrorFragment(startMs: 500, endMs: 1500),
+      LocalMirrorFragment(startMs: 3000, endMs: 4000),
+    ];
+    final request = requestFrom(container(mirrorFragments: fragments));
+
+    expect(request.mirrorFragments, fragments);
+    expect(request.settings.localMirrorEnabled, isTrue);
+  });
+
+  test('片段改了就换键：片段内容已在标注指纹里，不另立第二个键分量', () {
+    final before = requestFrom(container());
+    final after = requestFrom(
+      container(
+        mirrorFragments: const [LocalMirrorFragment(startMs: 500, endMs: 900)],
+      ),
+    );
+
+    expect(after.mirrorFragments, isNot(before.mirrorFragments));
+    expect(after.annotationFingerprint, isNot(before.annotationFingerprint));
     expect(after.cacheKey, isNot(before.cacheKey));
   });
 

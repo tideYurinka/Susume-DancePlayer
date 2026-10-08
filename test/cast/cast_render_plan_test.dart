@@ -1,5 +1,6 @@
 import 'package:dance_learning_app/cast/cast_render_plan.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
+import 'package:dance_learning_app/core/local_mirror_fragment.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 渲染参数直测（纯件）：滤镜图与命令行**是外部契约**（它决定产物），按快照
@@ -11,14 +12,17 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderSettings settings = const CastRenderSettings(),
+    List<LocalMirrorFragment> mirrorFragments = const [],
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
     duration: const Duration(minutes: 3),
     choices: choices,
     speedTier: speedTier,
-    settings: const CastRenderSettings(),
+    settings: settings,
     annotationFingerprint: 'fp-1',
+    mirrorFragments: mirrorFragments,
     beatClicks: const [],
   );
 
@@ -28,9 +32,16 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderSettings settings = const CastRenderSettings(),
+    List<LocalMirrorFragment> mirrorFragments = const [],
     String? beatTrackPath = '/cache/a.clicks.wav',
   }) => buildCastRenderArguments(
-    request: request(choices: choices, speedTier: speedTier),
+    request: request(
+      choices: choices,
+      speedTier: speedTier,
+      settings: settings,
+      mirrorFragments: mirrorFragments,
+    ),
     outputPath: '/cache/a.part',
     beatTrackPath: beatTrackPath,
   );
@@ -173,6 +184,137 @@ void main() {
 
       expect(filter, isNot(contains('setpts')));
       expect(filter, isNot(contains('atempo')));
+    });
+  });
+
+  group('画面链里的镜像闸门（#27）：与上屏同一份取值', () {
+    const all = CastRenderChoices(picture: true, sound: true);
+    const fragment = LocalMirrorFragment(startMs: 1000, endMs: 2000);
+
+    /// 只勾画面类的命令行，按给定的镜像开关与片段表装配。
+    List<String> pictureArgs({
+      bool globalMirrored = false,
+      bool localMirrorEnabled = true,
+      List<LocalMirrorFragment> mirrorFragments = const [],
+      CastSpeedTier speedTier = CastSpeedTier.full,
+    }) => args(
+      choices: all,
+      speedTier: speedTier,
+      settings: CastRenderSettings(
+        globalMirrored: globalMirrored,
+        localMirrorEnabled: localMirrorEnabled,
+      ),
+      mirrorFragments: mirrorFragments,
+    );
+
+    test('只开全局：链首一枚无窗 hflip，链尾的 vout 不变', () {
+      final filter = filterOf(pictureArgs(globalMirrored: true));
+
+      expect(filter, contains('[0:v]hflip,fps=30,format=yuv420p[vout]'));
+      expect(
+        filter.split(';').where((s) => s.contains('[vout]')).single,
+        '[0:v]hflip,fps=30,format=yuv420p[vout]',
+        reason: '镜像只是插进画面链的中段，链尾仍是 [vout]',
+      );
+    });
+
+    test('只开局部：链首一枚带时间窗的 hflip，窗是半开区间', () {
+      final filter = filterOf(pictureArgs(mirrorFragments: const [fragment]));
+
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip=enable='gte(t,1)*lt(t,2)',fps=30,format=yuv420p[vout]",
+        ),
+      );
+      expect(filter, isNot(contains('between')));
+    });
+
+    test('两个都开：两枚 hflip 依次装上（窗内净不翻）', () {
+      final filter = filterOf(
+        pictureArgs(globalMirrored: true, mirrorFragments: const [fragment]),
+      );
+
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip,hflip=enable='gte(t,1)*lt(t,2)',"
+          'fps=30,format=yuv420p[vout]',
+        ),
+      );
+    });
+
+    test('局部镜像总开关关掉：片段整组不参与（链首只剩全局那一枚）', () {
+      final filter = filterOf(
+        pictureArgs(
+          globalMirrored: true,
+          localMirrorEnabled: false,
+          mirrorFragments: const [fragment],
+        ),
+      );
+
+      expect(filter, contains('[0:v]hflip,fps=30,format=yuv420p[vout]'));
+      expect(filter, isNot(contains('enable=')));
+    });
+
+    test('都不开：画面链一字不改（与 #26 的底链逐字一致）', () {
+      final filter = filterOf(pictureArgs(mirrorFragments: const []));
+
+      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(filter, isNot(contains('hflip')));
+    });
+
+    test('非 1× 档：闸门排在 setpts 之前，enable 判的是源时间轴', () {
+      final filter = filterOf(
+        pictureArgs(
+          globalMirrored: true,
+          mirrorFragments: const [fragment],
+          speedTier: CastSpeedTier.half,
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip,hflip=enable='gte(t,1)*lt(t,2)',setpts=PTS/0.5,"
+          'fps=30,format=yuv420p[vout]',
+        ),
+        reason:
+            '片段是源时间轴上的区间：闸门若排在 setpts 之后，'
+            't 已被拉伸，窗就会与倍速档错开',
+      );
+    });
+
+    test('只勾声音类：视频流原样复制，镜像闸门不进滤镜图', () {
+      final arguments = args(
+        settings: const CastRenderSettings(globalMirrored: true),
+        mirrorFragments: const [fragment],
+      );
+      final filter = filterOf(arguments);
+
+      expect(videoCodecOf(arguments), 'copy');
+      expect(filter, isNot(contains('[0:v]')));
+      expect(filter, isNot(contains('hflip')), reason: '画面不重编码，镜像自然无从烤进去');
+    });
+
+    test('只勾声音类 + 非 1×：视频为重编码，但镜像闸门仍不进链', () {
+      final filter = filterOf(
+        args(
+          settings: const CastRenderSettings(globalMirrored: true),
+          mirrorFragments: const [fragment],
+          speedTier: CastSpeedTier.half,
+        ),
+      );
+
+      expect(
+        filter,
+        contains('[0:v]setpts=PTS/0.5,fps=30,format=yuv420p[vout]'),
+      );
+      expect(
+        filter,
+        isNot(contains('hflip')),
+        reason: '这里重编码只是为了倍速：用户没勾画面类，镜像就不该被烤进去',
+      );
     });
   });
 

@@ -872,6 +872,94 @@ void main() {
     });
   });
 
+  group('源视频面翻转闸门：上屏逐位置与渲染逐区间是同一份取值的两种读法', () {
+    // 期望值独立写在这里（规格的真值表：全局镜像 ⊕（总开关 ∧ 落在半开区间内）），
+    // 不由被测代码的另一个读法反算。
+    const fragments = [
+      LocalMirrorFragment(startMs: 1000, endMs: 2000),
+      LocalMirrorFragment(startMs: 3000, endMs: 4000),
+    ];
+
+    test('逐位置读法：起点含、终点不含；总开关关时片段整组不参与', () {
+      for (final globalMirrored in [true, false]) {
+        for (final localMirrorEnabled in [true, false]) {
+          final gate = SourceVideoFlip(
+            globalMirrored: globalMirrored,
+            localMirrorEnabled: localMirrorEnabled,
+            fragments: fragments,
+          );
+          for (final (positionMs, covered) in [
+            (0, false),
+            (1000, true),
+            (1999, true),
+            (2000, false),
+            (2500, false),
+            (3000, true),
+            (3999, true),
+            (4000, false),
+          ]) {
+            final expectedLocal = localMirrorEnabled && covered;
+            expect(
+              gate.localActiveAt(positionMs),
+              expectedLocal,
+              reason:
+                  '位置 $positionMs 的局部生效取值'
+                  '（全局 $globalMirrored、总开关 $localMirrorEnabled）',
+            );
+            expect(
+              gate.mirroredAt(positionMs),
+              globalMirrored != expectedLocal,
+              reason:
+                  '位置 $positionMs 的翻转结果'
+                  '（全局 $globalMirrored、总开关 $localMirrorEnabled）',
+            );
+          }
+        }
+      }
+    });
+
+    test('逐区间读法：生效窗就是片段表本身；总开关关时给空表', () {
+      expect(
+        const SourceVideoFlip(
+          globalMirrored: true,
+          localMirrorEnabled: true,
+          fragments: fragments,
+        ).localActiveWindows,
+        fragments,
+        reason: '窗不因全局镜像而变——全局那一枚是整片无窗的闸门',
+      );
+      expect(
+        const SourceVideoFlip(
+          globalMirrored: true,
+          localMirrorEnabled: false,
+          fragments: fragments,
+        ).localActiveWindows,
+        isEmpty,
+        reason: '总开关关掉时片段整组不参与',
+      );
+    });
+
+    test('上屏方向读同一份闸门：源视频面方向 = 闸门的逐位置翻转结果', () {
+      for (final globalMirrored in [true, false]) {
+        for (final positionMs in [0, 1000, 1500, 2000, 3000, 5000]) {
+          expect(
+            directionOf(
+              globalMirrored: globalMirrored,
+              fragments: fragments,
+              positionMs: positionMs,
+            ).directionOf(SurfaceFace.sourceVideo),
+            SourceVideoFlip(
+              globalMirrored: globalMirrored,
+              localMirrorEnabled: true,
+              fragments: fragments,
+            ).directionAt(positionMs),
+            reason: '位置 $positionMs 上面表与闸门必须同判（同一处声明）',
+          );
+        }
+      }
+    });
+  });
+
   group('面表结构', () {
     test('五面齐全（源视频 / 相机预览 / 片段回放 / 录像文件 / 导出文件）', () {
       expect(
