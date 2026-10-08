@@ -4,10 +4,13 @@ import 'package:dance_learning_app/annotation/framing_selection.dart'
 import 'package:dance_learning_app/annotation/half_beat_line.dart';
 import 'package:dance_learning_app/annotation/note_sticker.dart';
 import 'package:dance_learning_app/annotation/segment_line.dart';
+import 'package:dance_learning_app/cast/cast_beat_count.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
+import 'package:dance_learning_app/core/beat_point.dart';
 import 'package:dance_learning_app/beat_track_state/beat_track_state.dart'
     show beatGridProvider;
 import 'package:dance_learning_app/core/beat_grid.dart';
+import 'package:dance_learning_app/core/document_beat_grid.dart';
 import 'package:dance_learning_app/core/local_mirror_fragment.dart';
 import 'package:dance_learning_app/player/annotation_editor.dart'
     show
@@ -22,15 +25,29 @@ import 'package:dance_learning_app/player/framing_session_state.dart'
     show FramingState, framingStateProvider;
 import 'package:dance_learning_app/player/beat_animation.dart'
     show BeatAnimationStyle, beatAnimationStyleProvider;
+import 'package:dance_learning_app/core/eight_beat_phase.dart'
+    show BeatPhase;
+import 'package:dance_learning_app/player/beat_presentation.dart'
+    show BeatPresentationFacts;
 import 'package:dance_learning_app/player/beat_presentation_providers.dart'
-    show beatOverlayContentVisibleProvider;
+    show beatOverlayContentVisibleProvider, beatPresentationFactsProvider;
+import 'package:dance_learning_app/player/calibration_session_grid.dart'
+    show CalibrationSessionBpmTier;
+import 'package:dance_learning_app/player/overlay.dart'
+    show OverlayPlacementCell, OverlayPlacements;
+import 'package:dance_learning_app/player/metronome_overlay.dart'
+    show beatCountTextOf;
+import 'package:dance_learning_app/player/beat_presentation.dart'
+    show
+        assembleBeatPresentationContext,
+        evaluatePresentationValue;
 import 'package:dance_learning_app/player/metronome_sound.dart'
     show metronomeHalfBeatEnabledProvider;
 import 'package:dance_learning_app/player/metronome_source_registry.dart'
     show effectiveMetronomeSourceIdProvider;
 import 'package:dance_learning_app/player/song_loudness.dart'
     show metronomeVolumeProvider, songLoudnessBaselineProvider;
-import 'package:flutter/painting.dart' show Size, TextScaler;
+import 'package:flutter/painting.dart' show Offset, Rect, Size, TextScaler;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -56,6 +73,7 @@ void main() {
     ],
     bool halfBeatEnabled = false,
     BeatGrid? grid,
+    BeatPresentationFacts? beatFacts,
   }) {
     final c = ProviderContainer(
       overrides: [
@@ -88,6 +106,8 @@ void main() {
         beatAnimationStyleProvider.overrideWithBuild(
           (ref, _) => BeatAnimationStyle.bar,
         ),
+        if (beatFacts != null)
+          beatPresentationFactsProvider.overrideWithValue(beatFacts),
       ],
     );
     addTearDown(c.dispose);
@@ -98,16 +118,22 @@ void main() {
     ProviderContainer c, {
     CastRenderChoices choices = const CastRenderChoices.all(),
     bool globalMirrored = false,
-    Size? pictureSize,
+    Rect? pictureRect,
     TextScaler textScaler = TextScaler.noScaling,
+    OverlayPlacements? beatPlacements,
+    OverlayPlacementCell beatCell = OverlayPlacementCell.portraitNormal,
+    Size? beatViewport,
   }) => castRenderRequestFor(
     c.read,
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
     globalMirrored: globalMirrored,
     choices: choices,
-    pictureSize: pictureSize,
+    pictureRect: pictureRect,
     textScaler: textScaler,
+    beatPlacements: beatPlacements,
+    beatCell: beatCell,
+    beatViewport: beatViewport,
   );
 
   test('路径、标识、勾选档与时长原样带进请求', () {
@@ -262,7 +288,7 @@ void main() {
   });
 
   group('备注贴纸：第二路输入的装配（#29）', () {
-    const picture = Size(960, 540);
+    const pictureRect = Rect.fromLTWH(0, 0, 960, 540);
     const note = NoteSticker(
       startMs: 1200,
       endMs: 3400,
@@ -273,7 +299,7 @@ void main() {
     test('一条备注 → 一条第二路输入：时间窗、几何中心与尺寸分数都到位', () {
       final request = requestFrom(
         container(notes: const [note]),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       );
 
       expect(request.stickers, hasLength(1));
@@ -294,7 +320,7 @@ void main() {
     test('字节口现取就是一张带 alpha 的单帧 PNG（惰性：装配期不画字）', () async {
       final request = requestFrom(
         container(notes: const [note]),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       );
 
       final bytes = await request.stickers.single.imageBytesOf();
@@ -314,11 +340,11 @@ void main() {
     test('尺寸分数按上屏画面矩形归一化：画面越小，分数越大', () {
       final wide = requestFrom(
         container(notes: const [note]),
-        pictureSize: const Size(960, 540),
+        pictureRect: const Rect.fromLTWH(0, 0, 960, 540),
       ).stickers.single;
       final narrow = requestFrom(
         container(notes: const [note]),
-        pictureSize: const Size(480, 270),
+        pictureRect: const Rect.fromLTWH(0, 0, 480, 270),
       ).stickers.single;
 
       expect(narrow.widthFraction, closeTo(wide.widthFraction * 2, 1e-9));
@@ -328,11 +354,11 @@ void main() {
     test('随系统字号缩放：尺寸分数跟着放大（与上屏量测同源）', () {
       final plain = requestFrom(
         container(notes: const [note]),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       ).stickers.single;
       final scaled = requestFrom(
         container(notes: const [note]),
-        pictureSize: picture,
+        pictureRect: pictureRect,
         textScaler: const TextScaler.linear(2),
       ).stickers.single;
 
@@ -344,7 +370,7 @@ void main() {
       expect(
         requestFrom(
           container(notes: const [note]),
-          pictureSize: Size.zero,
+          pictureRect: Rect.zero,
         ).stickers,
         isEmpty,
       );
@@ -354,7 +380,7 @@ void main() {
       final request = requestFrom(
         container(notes: const [note]),
         choices: const CastRenderChoices(picture: false, sound: true),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       );
 
       expect(request.stickers, isEmpty);
@@ -368,7 +394,7 @@ void main() {
             NoteSticker(startMs: 2000, endMs: 2000, text: '零宽'),
           ],
         ),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       );
 
       expect(request.stickers, isEmpty);
@@ -382,7 +408,7 @@ void main() {
             NoteSticker(startMs: 2000, endMs: 3000, text: '二'),
           ],
         ),
-        pictureSize: picture,
+        pictureRect: pictureRect,
       );
 
       expect(request.stickers, hasLength(2));
@@ -390,4 +416,265 @@ void main() {
       expect(request.stickers[1].startMs, 2000);
     });
   });
+
+  group('数拍层（#30）：逐拍文字与落位都按上屏现读值装配', () {
+    /// 真实网格：0.2s 起每 0.5s 一拍、共 5 拍（末拍 2.2s）——末拍之后无拍可数。
+    DocumentBeatGrid beatGrid() => DocumentBeatGrid(
+      beats: const [
+        BeatPoint(t: 0.2, down: true),
+        BeatPoint(t: 0.7, down: false),
+        BeatPoint(t: 1.2, down: false),
+        BeatPoint(t: 1.7, down: false),
+        BeatPoint(t: 2.2, down: true),
+      ],
+    );
+
+    BeatPresentationFacts facts({AnnotationTimeline? timelineValue}) {
+      final grid = beatGrid();
+      return BeatPresentationFacts(
+        grid: grid,
+        phase: BeatPhase(grid: grid),
+        timeline: timelineValue ?? timeline(),
+        recordingAnchor: null,
+        delayAnchor: null,
+        activeLoopStart: null,
+        sourceId: 'normal',
+        slotVolumeOf: (_) => 0,
+        halfBeatEnabled: false,
+        soundEnabled: false,
+        avSyncDelayMs: 0,
+        sessionActive: false,
+        sessionTier: CalibrationSessionBpmTier.bpm120,
+        sessionTrialMs: 0,
+      );
+    }
+
+    const placements = OverlayPlacements(
+      offsets: {
+        OverlayPlacementCell.portraitNormal: Offset(0, 320),
+      },
+    );
+    const viewport = Size(400, 800);
+    const pictureRect = Rect.fromLTWH(0, 300, 400, 225);
+
+    CastRenderRequest withBeats({
+      CastRenderChoices choices = const CastRenderChoices.all(),
+      OverlayPlacements? beatPlacements = placements,
+      Size? beatViewport = viewport,
+      Rect? picture = pictureRect,
+    }) => requestFrom(
+      container(beatFacts: facts()),
+      choices: choices,
+      pictureRect: picture,
+      beatPlacements: beatPlacements,
+      beatViewport: beatViewport,
+    );
+
+    test('逐拍时间窗连续覆盖整片，且在拍点处分格', () {
+      final overlay = withBeats().beatOverlay!;
+
+      expect(overlay.rows.first.startMs, 0);
+      expect(overlay.rows.last.endMs, 30000);
+      for (var i = 0; i + 1 < overlay.rows.length; i++) {
+        expect(
+          overlay.rows[i].endMs,
+          overlay.rows[i + 1].startMs,
+          reason: '首尾相接、不重不漏（序列是一路输入，错一格整条时间轴就错位）',
+        );
+        expect(overlay.rows[i].durationMs, greaterThan(0));
+      }
+      // 拍点处必须分格：0.2 / 0.7 / 1.2 / 1.7（末拍 2.2 = 显示域终点，
+      // 它之后那一段是不显示的格，一直铺到片尾）。
+      final starts = overlay.rows.map((row) => row.startMs).toSet();
+      for (final ms in <int>[0, 200, 700, 1200, 1700, 2200]) {
+        expect(starts, contains(ms), reason: '分界点少了 $ms');
+      }
+      expect(overlay.rows.last.text, isNull, reason: '末拍之后无拍可数 = 不显示');
+    });
+
+    test('每格的文字与手机同一次求值逐点一致', () {
+      final favorite = assembleBeatPresentationContext(
+        facts(),
+        rate: 1,
+        playing: false,
+      );
+      final overlay = withBeats().beatOverlay!;
+
+      var sampled = 0;
+      var tailChecked = false;
+      for (final row in overlay.rows) {
+        final value = evaluatePresentationValue(
+          context: favorite,
+          position: Duration(milliseconds: row.startMs),
+        );
+        final expected = value == null
+            ? null
+            : beatCountTextOf(value.display);
+        if (row.text == null && expected != null) {
+          // 显示域的终点这一刻：手机上还数得出（位置 ∈ 闭区间），但它的窗是
+          // **零宽**的——下一毫秒就没了，副本里因此没有这一格（见
+          // `castBeatRowsOf` 库头「显示域的终点是末拍起点」）。
+          final after = evaluatePresentationValue(
+            context: favorite,
+            position: Duration(milliseconds: row.startMs + 1),
+          );
+          expect(after, isNull, reason: '第 ${row.startMs}ms：这一段应当无拍可数');
+          tailChecked = true;
+          continue;
+        }
+        expect(
+          row.text,
+          expected == null
+              ? isNull
+              : CastBeatCountText(
+                  eightCount: expected.eightCount,
+                  group: expected.group,
+                  beatCount: expected.beatCount,
+                ),
+          reason: '第 ${row.startMs}ms 那一格',
+        );
+        sampled++;
+      }
+      expect(sampled, greaterThan(3), reason: '样本太少，这条比对没意义');
+      expect(tailChecked, isTrue, reason: '末拍之后那一段要在场（否则这条比对漏了一档）');
+
+      // 逐格之内取值恒定：每格中点与左端点同判。
+      for (final row in overlay.rows) {
+        if (row.durationMs < 2) continue;
+        final mid = evaluatePresentationValue(
+          context: favorite,
+          position: Duration(milliseconds: row.startMs + row.durationMs ~/ 2),
+        );
+        final midText = mid == null ? null : beatCountTextOf(mid.display);
+        expect(
+          midText?.beatCount,
+          row.text?.beatCount,
+          reason: '第 ${row.startMs}ms 那一格的中点不该换号',
+        );
+        expect(midText?.eightCount, row.text?.eightCount);
+      }
+    });
+
+    test('落位逐位带上：与视口 → 画面区域换算同一份取值，并进缓存键', () {
+      final request = withBeats();
+      final overlay = request.beatOverlay!;
+
+      // 框 320×120（未自定义格的默认位 → 竖屏 (0, 96)）；数字行量测尺寸随字号。
+      expect(overlay.widthFraction, greaterThan(0));
+      expect(overlay.heightFraction, greaterThan(0));
+      expect(overlay.centerX, greaterThan(0));
+      expect(request.settings.beatOverlay, startsWith('bo:'));
+      expect(
+        request.settings.beatOverlay,
+        contains(overlay.centerX.toStringAsFixed(6)),
+      );
+
+      // 挪一下浮层：落位记号跟着变（否则会命中一份落位不对的旧副本）。
+      final moved = withBeats(
+        beatPlacements: OverlayPlacements(
+          offsets: const {
+            OverlayPlacementCell.portraitNormal: Offset(60, 360),
+          },
+        ),
+      );
+      expect(
+        moved.settings.beatOverlay,
+        isNot(request.settings.beatOverlay),
+      );
+      expect(
+        moved.cacheKey,
+        isNot(request.cacheKey),
+        reason: '落位进设置快照 → 换键 → 重渲',
+      );
+    });
+
+    test('每一格都画得出来：固定画布 × 密度，且惰性（装配期不画）', () async {
+      final overlay = withBeats().beatOverlay!;
+
+      final first = await overlay.imageBytesOf(0);
+      final last = await overlay.imageBytesOf(overlay.rows.length - 1);
+
+      // PNG 签名；两格像素尺寸一致（图像序列是一条流的前提）。
+      expect(first.sublist(0, 8), <int>[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      expect(identical(first, last), isFalse);
+    });
+
+    test('不装数拍层的三种情形：不勾画面类 / 数拍显示关 / 落位量不出来', () {
+      expect(
+        withBeats(choices: const CastRenderChoices(picture: false, sound: true))
+            .beatOverlay,
+        isNull,
+      );
+      expect(
+        requestFrom(
+          container(
+            beatFacts: facts(),
+          ),
+          pictureRect: pictureRect,
+          beatPlacements: placements,
+          beatViewport: viewport,
+        ).beatOverlay,
+        isNotNull,
+        reason: '前置：这三样齐全时是装的',
+      );
+      expect(
+        withBeats(beatPlacements: null).beatOverlay,
+        isNull,
+        reason: '四格浮层位缺席 = 落位量不出来',
+      );
+      expect(withBeats(beatViewport: null).beatOverlay, isNull);
+      expect(withBeats(picture: null).beatOverlay, isNull);
+      expect(withBeats(picture: Rect.zero).beatOverlay, isNull);
+    });
+
+    test('时长未知 / 网格异常：不装（手机上那时也不显示数拍）', () {
+      final unknown = requestFrom(
+        container(
+          timelineValue: AnnotationTimeline.normalized(
+            videoDuration: Duration.zero,
+          ),
+          beatFacts: facts(),
+        ),
+        pictureRect: pictureRect,
+        beatPlacements: placements,
+        beatViewport: viewport,
+      );
+      expect(unknown.beatOverlay, isNull);
+
+      final fallback = beatGridFallbackFacts();
+      expect(
+        requestFrom(
+          container(beatFacts: fallback),
+          pictureRect: pictureRect,
+          beatPlacements: placements,
+          beatViewport: viewport,
+        ).beatOverlay,
+        isNull,
+        reason: '秒制兜底网格 = 无真拍可数',
+      );
+    });
+  });
+}
+
+/// 秒制兜底（异常态）的素材面：节拍不可用。
+BeatPresentationFacts beatGridFallbackFacts() {
+  const grid = UnavailableBeatGrid();
+  return BeatPresentationFacts(
+    grid: grid,
+    phase: BeatPhase(grid: grid),
+    timeline: AnnotationTimeline.normalized(
+      videoDuration: const Duration(seconds: 30),
+    ),
+    recordingAnchor: null,
+    delayAnchor: null,
+    activeLoopStart: null,
+    sourceId: 'normal',
+    slotVolumeOf: (_) => 0,
+    halfBeatEnabled: false,
+    soundEnabled: false,
+    avSyncDelayMs: 0,
+    sessionActive: false,
+    sessionTier: CalibrationSessionBpmTier.bpm120,
+    sessionTrialMs: 0,
+  );
 }

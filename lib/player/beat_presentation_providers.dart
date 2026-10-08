@@ -22,6 +22,8 @@ import 'beat_animation.dart'
         BeatPresentationValue,
         MetronomeBeatAnimation,
         beatAnimationStyleProvider;
+import 'beat_count_layout.dart'
+    show kBeatNumbersGap, kBeatPillPaddingH, kBeatPillPaddingV;
 import 'beat_presentation.dart'
     show BeatPresentation, BeatPresentationFacts, kBeatPresentationTopUpPeriod;
 import 'beat_prompt_panel.dart' show beatPromptEnabledProvider;
@@ -159,7 +161,10 @@ class BeatCountContent extends ConsumerWidget {
     if (value == null) return const SizedBox.shrink();
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: kBeatPillPaddingH,
+          vertical: kBeatPillPaddingV,
+        ),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(12),
@@ -168,7 +173,7 @@ class BeatCountContent extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             BeatCountNumbers(display: value.display),
-            const SizedBox(height: 6),
+            const SizedBox(height: kBeatNumbersGap),
             MetronomeBeatAnimation(
               style: ref.watch(beatAnimationStyleProvider),
               value: value,

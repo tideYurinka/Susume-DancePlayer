@@ -14,9 +14,11 @@
 /// - **勾了画面类**：视频重编码（`h264_mediacodec` + 显式码率/ GOP / 帧率 /
 ///   像素格式），画面滤镜链进 `filter_complex`；不勾声音类时音轨 `-c:a copy`。
 ///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`）、**取景
-///   窗口**（#28，见 `cast_framing_gate.dart`）与**备注贴纸**（#29，见
-///   `cast_sticker_gate.dart`：第二路输入 + `overlay` 时间窗），后一票（#30）
-///   把数拍再插进来，链尾的 `fps` / 像素格式与 `[vout]` 不变。
+///   窗口**（#28，见 `cast_framing_gate.dart`）、**数拍层**（#30，见
+///   `cast_beat_gate.dart`：一路图像序列输入 + 一个 `overlay` 时间窗）与
+///   **备注贴纸**（#29，见 `cast_sticker_gate.dart`：第二路输入 + `overlay`
+///   时间窗）；层序与上屏一致（贴纸画在数拍之上），链尾的 `fps` / 像素格式与
+///   `[vout]` 不变。
 /// - **都不勾** = 不装配：调用方（编排器）直接推原片，本函数报错。
 ///
 /// ## 镜像闸门为什么排在倍速之前、取景为什么排在镜像之后
@@ -48,6 +50,7 @@
 /// 关键帧切割会让副本范围对不上，且复制档根本切不准。
 library;
 
+import 'cast_beat_gate.dart';
 import 'cast_framing_gate.dart';
 import 'cast_mirror_gate.dart';
 import 'cast_render_request.dart';
@@ -76,10 +79,16 @@ const int kCastRenderChannels = 2;
 /// 单帧 PNG；渲染编排按请求里的贴纸逐条落盘）的路径，与 `request.stickers`
 /// 一一对应、次序相同。勾了画面类且这支舞有备注时才该给出；不勾画面类时贴纸
 /// 一律不进命令（用户没勾画面类，画面内容类的东西就不该被烤进去）。
+///
+/// [beatSlidesPath] 是**数拍层图像序列的 `-f concat` 清单**（`player/
+/// cast_beat_sheet.dart` 的逐格 PNG + `cast_beat_gate.dart` 的清单正文；
+/// `#30`）：序列里一格一张同尺寸 PNG，每格的时长就是那一拍的半开窗。装了数拍
+/// 层时必给（没给就是编程错误）；没装时传 null。
 List<String> buildCastRenderArguments({
   required CastRenderRequest request,
   required String outputPath,
   String? beatTrackPath,
+  String? beatSlidesPath,
   List<String> stickerPaths = const [],
 }) {
   final choices = request.choices;
@@ -101,6 +110,31 @@ List<String> buildCastRenderArguments({
   // 非 1× 档的视频必须重编码（复制改不了时长）。
   final reencodeVideo = choices.picture || slowed;
 
+  // **数拍层**（#30）只在勾了画面类时装：它属于画面内容类。装了就要有序列清单
+  // （没有清单就是编程错误，宁可不装配一条读不出东西的链）。
+  final picture = choices.picture;
+  final beatOverlay = request.beatOverlay;
+  final beatLayer = picture && castBeatCountActive(beatOverlay);
+  if (beatLayer && beatSlidesPath == null) {
+    throw ArgumentError('数拍层要装却没有序列清单路径');
+  }
+  // 数拍层的输入下标：源片恒是 0 号，拍声轨（勾了声音类时）是 1 号，
+  // 数拍序列紧随其后。
+  final beatInputIndex = choices.sound ? 2 : 1;
+  final beatGraph = beatLayer
+      ? castBeatCountGraph(
+          overlay: beatOverlay!,
+          startLabel: 'vbase',
+          endLabel: 'vbeat',
+          inputIndex: beatInputIndex,
+          fps: kCastRenderFps,
+        )
+      : const CastBeatCountGraph(nodes: [], endLabel: 'vbase');
+  final beatActive = beatGraph.nodes.isNotEmpty;
+  // 贴纸图的下标：源片 + 拍声轨 + 数拍序列之后。
+  final firstStickerInput =
+      1 + (choices.sound ? 1 : 0) + (beatActive ? 1 : 0);
+
   final filters = <String>[];
   if (reencodeVideo) {
     // **镜像闸门**（#27）与**取景窗口**（#28）只在勾了画面类时装上：非 1× 档的
@@ -109,7 +143,6 @@ List<String> buildCastRenderArguments({
     //
     // 闸门排在 `setpts` **之前**：`enable` 判的是**源时间轴**，局部镜像片段正是
     // 源时间轴上的半开区间；排在倍速之后，`t` 会被拉伸、窗就与倍速档错开。
-    final picture = choices.picture;
     final mirror = picture
         ? castMirrorFilterNodes(castMirrorGateOf(request))
         : const <String>[];
@@ -122,28 +155,37 @@ List<String> buildCastRenderArguments({
         : const <String>[];
     final content = <String>[...mirror, ...framing];
     final speed = slowed ? 'setpts=PTS/$rate,' : '';
-    // **备注贴纸**（#29）是第二路输入，接在取景之后、`setpts` 之前——于是
-    // `enable` 判的也是源时间轴（见 `cast_sticker_gate.dart` 库头）。没有备注
-    // 时链的形状与今天逐字一致（不引入多余的中间标签）。
-    if (picture && request.stickers.isNotEmpty) {
-      final graph = castStickerGraph(
-        stickers: request.stickers,
-        // 路径表与请求一一对应：空窗的贴纸不装节点，但**仍占一个输入位**
-        // （错位比多喂一个输入危险得多）。
-        stickerPaths: stickerPaths,
-        flip: castMirrorGateOf(request),
-        selection: request.framingSelection,
-        startLabel: 'vbase',
-        endLabel: 'vstk',
-        firstInputIndex: choices.sound ? 2 : 1,
-        fps: kCastRenderFps,
-      );
+    final layered = beatActive || (picture && request.stickers.isNotEmpty);
+    if (layered) {
+      // **数拍层**（#30）接在取景之后、贴纸**之前**：上屏的层序是数拍浮层
+      // 挂在贴纸浮层之下（`presentation_layer.dart`），副本照这个层序。
+      // 它同样排在 `setpts` 之前——时间窗判的是源时间轴（与镜像闸门同款口径）。
       filters.add(
         '[0:v]${content.isEmpty ? 'null' : content.join(',')}[vbase]',
       );
-      filters.addAll(graph.nodes);
+      filters.addAll(beatGraph.nodes);
+      var label = beatGraph.endLabel;
+      // **备注贴纸**（#29）是第二路输入，接在取景（与数拍）之后、`setpts`
+      // 之前——于是 `enable` 判的也是源时间轴（见 `cast_sticker_gate.dart`
+      // 库头）。没有备注时链的形状与今天逐字一致（不引入多余的中间标签）。
+      if (picture && request.stickers.isNotEmpty) {
+        final graph = castStickerGraph(
+          stickers: request.stickers,
+          // 路径表与请求一一对应：空窗的贴纸不装节点，但**仍占一个输入位**
+          // （错位比多喂一个输入危险得多）。
+          stickerPaths: stickerPaths,
+          flip: castMirrorGateOf(request),
+          selection: request.framingSelection,
+          startLabel: label,
+          endLabel: 'vstk',
+          firstInputIndex: firstStickerInput,
+          fps: kCastRenderFps,
+        );
+        filters.addAll(graph.nodes);
+        label = graph.endLabel;
+      }
       filters.add(
-        '[${graph.endLabel}]${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+        '[$label]${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
       );
     } else {
       final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
@@ -167,10 +209,20 @@ List<String> buildCastRenderArguments({
     '-i',
     request.videoPath,
     if (choices.sound) ...<String>['-i', beatTrackPath!],
-    // 贴纸图排在拍声轨**之后**：源片恒是 0 号输入、拍声轨恒是 1 号（只勾声音类
-    // 时视频流原样复制的那条路一个字都不动），贴纸从 1 或 2 号起——下标由
-    // `castStickerGraph` 的 `firstInputIndex` 与这里保持一致。
-    if (choices.picture && request.stickers.isNotEmpty) ...<String>[
+    // **数拍层**的输入是那份 `-f concat` 清单（一格一张同尺寸 PNG、每格一段
+    // 时长＝那一拍的半开窗）——整条序列只占**一路输入**，下标紧跟拍声轨。
+    if (beatActive) ...<String>[
+      '-f',
+      'concat',
+      '-safe',
+      '0',
+      '-i',
+      beatSlidesPath!,
+    ],
+    // 贴纸图排在拍声轨（与数拍序列）**之后**：源片恒是 0 号输入、拍声轨恒是
+    // 1 号（只勾声音类时视频流原样复制的那条路一个字都不动），贴纸从 1/2/3 号
+    // 起——下标由 `castStickerGraph` 的 `firstInputIndex` 与这里保持一致。
+    if (picture && request.stickers.isNotEmpty) ...<String>[
       for (final path in stickerPaths) ...<String>['-i', path],
     ],
     if (filters.isNotEmpty) ...<String>['-filter_complex', filters.join(';')],

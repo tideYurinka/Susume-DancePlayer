@@ -10,6 +10,8 @@
 /// 3. **拍声轨**（声音类才做）→ 把排程合成为一条 WAV，写进缓存目录；
 /// 3b. **贴纸图**（画面类且有备注才做）→ 把请求里那份带 alpha 的 PNG 逐条落盘
 ///    （与拍声轨同款：半成品旁边的临时物，收尾必删）；
+/// 3c. **数拍层图序列**（画面类且装了数拍层才做，`#30`）→ 逐格 PNG 落盘 +
+///    一份 `-f concat` 清单（每格的时长就是那一拍的半开窗）；
 /// 4. **装配 + 执行** → `buildCastRenderArguments` 给命令，执行器跑它并按
 ///    ffmpeg 统计回调报进度；
 /// 5. **收尾**（无论成败）→ 删拍声轨与贴纸图；成功把半成品**换名**成产物
@@ -30,6 +32,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'cast_beat_gate.dart';
 import 'cast_beat_track.dart';
 import 'cast_render_cache.dart';
 import 'cast_render_executor.dart';
@@ -113,6 +116,8 @@ class CastRenderOrchestrator {
 
     File? clickTrack;
     final stickerFiles = <File>[];
+    final beatSheetFiles = <File>[];
+    File? beatSlidesList;
     _rendering = true;
     try {
       if (request.choices.sound) {
@@ -121,10 +126,29 @@ class CastRenderOrchestrator {
       if (request.choices.picture && request.stickers.isNotEmpty) {
         stickerFiles.addAll(await _writeStickerSheets(request, part));
       }
+      // **数拍层**（#30）：逐格 PNG（一格一拍的半开窗）+ 一份 `-f concat` 清单
+      // ——与拍声轨、贴纸图同款：半成品旁边的临时物，收尾必删。
+      if (request.choices.picture && castBeatCountActive(request.beatOverlay)) {
+        final overlay = request.beatOverlay!;
+        for (var i = 0; i < overlay.rows.length; i++) {
+          final file = File('${part.path}.beat$i.png');
+          await file.writeAsBytes(await overlay.imageBytesOf(i), flush: true);
+          beatSheetFiles.add(file);
+        }
+        beatSlidesList = File('${part.path}.beats.txt');
+        await beatSlidesList.writeAsString(
+          castBeatSlidesContent(
+            rows: overlay.rows,
+            paths: [for (final file in beatSheetFiles) file.path],
+          ),
+          flush: true,
+        );
+      }
       final arguments = buildCastRenderArguments(
         request: request,
         outputPath: part.path,
         beatTrackPath: clickTrack?.path,
+        beatSlidesPath: beatSlidesList?.path,
         stickerPaths: [for (final file in stickerFiles) file.path],
       );
       final verdict = await executor.run(
@@ -159,6 +183,10 @@ class CastRenderOrchestrator {
       for (final file in stickerFiles) {
         await cache.discard(file);
       }
+      for (final file in beatSheetFiles) {
+        await cache.discard(file);
+      }
+      if (beatSlidesList != null) await cache.discard(beatSlidesList);
     }
   }
 

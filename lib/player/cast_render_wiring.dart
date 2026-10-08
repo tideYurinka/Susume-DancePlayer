@@ -9,15 +9,17 @@
 /// 勾选就重新装配一份（勾选档是请求的一部分）。
 library;
 
-import 'package:flutter/painting.dart' show TextScaler, Size;
+import 'package:flutter/painting.dart' show Rect, Size, TextScaler;
 import 'package:riverpod/misc.dart' show ProviderListenable;
 
 import '../annotation/framing_selection.dart' show FramingSelection;
 import '../annotation/note_sticker.dart' show NoteSticker;
-import '../cast/cast_annotation_fingerprint.dart';
-import '../cast/cast_render_request.dart';
 import '../beat_track_state/beat_track_state.dart'
     show beatGridProvider, beatTrackStateProvider;
+import '../cast/cast_annotation_fingerprint.dart';
+import '../cast/cast_beat_count.dart';
+import '../cast/cast_render_request.dart';
+import '../core/current_beat.dart' show BeatCountDisplay;
 import 'annotation_editor.dart'
     show
         annotationTimelineProvider,
@@ -25,17 +27,33 @@ import 'annotation_editor.dart'
         localMirrorFragmentsProvider,
         noteStickersProvider;
 import 'beat_animation.dart' show beatAnimationStyleProvider;
+import 'beat_count_layout.dart'
+    show beatNumbersCanvasSize, beatNumbersScaleInContent;
+import 'beat_presentation.dart'
+    show
+        BeatPresentationFacts,
+        assembleBeatPresentationContext,
+        evaluatePresentationValue;
 import 'beat_presentation_providers.dart'
-    show beatOverlayContentVisibleProvider;
+    show beatOverlayContentVisibleProvider, beatPresentationFactsProvider;
 import 'cast_beat_clicks.dart' show buildCastBeatClicks;
+import 'cast_beat_placement.dart'
+    show
+        CastBeatPlacement,
+        castBeatContentRect,
+        castBeatPlacementInPicture;
+import 'cast_beat_sheet.dart'
+    show castBeatNumbersSizeOf, renderCastBeatSheet;
 import 'cast_sticker_sheet.dart'
     show castStickerSheetLogicalSize, renderCastStickerSheet;
 import 'dancer_roster_controller.dart' show dancerRosterProvider;
 import 'framing_session_state.dart' show framingStateProvider;
+import 'metronome_overlay.dart' show beatCountTextOf;
 import 'metronome_sound.dart' show metronomeHalfBeatEnabledProvider;
 import 'metronome_source_registry.dart'
     show effectiveMetronomeSourceIdProvider, metronomeSourceEntryOfId;
 import 'note_sticker_overlay.dart' show noteMentionRosterColors;
+import 'overlay.dart' show OverlayPlacementCell, OverlayPlacements;
 import 'song_loudness.dart'
     show
         metronomePlayVolumeProvider,
@@ -121,6 +139,196 @@ List<CastSticker> buildCastStickers({
   return sheets;
 }
 
+/// **逐拍静态数字的时间窗**（`#30`）：源时间轴上连续覆盖 `[0, duration]` 的一串
+/// 半开窗，每格带那一刻该画的文字（null = 这一段不显示数拍）。
+///
+/// ## 取值与手机同一处求值
+///
+/// 逐拍走节拍呈现的同一条链：素材面 → [assembleBeatPresentationContext] →
+/// [evaluatePresentationValue]（与上屏浮层读的是同一次求值），文字经
+/// [beatCountTextOf] 折成字符串。数字因此**冻结在渲染那一刻**：这里算出来的
+/// 就是烤进副本的那几个字；投屏期间手机上重新锚定学习段，副本里那份不会跟着
+/// 变（ADR-0004 已记录的偏差）。
+///
+/// ## 分界点（一格之内取值不变的依据）
+///
+/// 数拍数字在一拍之内不变，但会在四处跳变：**拍点**、**分段线**（锚点链取
+/// 位置之前最近的那条线）、**首线**与**会话锚**（录制锚 / 延迟锚 / 激活段段首，
+/// 它们各自从出现的位置起改锚）。故分界点 = `{0, 显示域终点, 总时长}` ∪ 显示域
+/// 内的每个拍点 ∪ 上述四处。每一格在自己的左端点求一次值——一格之内因此取值
+/// 恒定（这一条由 `test/player/cast_render_wiring_test.dart` 的逐点比对钉住）。
+///
+/// ## 显示域的终点是**末拍起点**（与手机逐位一致）
+///
+/// 手机上的数拍在「位置晚于末拍」时无拍可数（`_resolveBeatAnchor` 的
+/// `position > gridLastBeatTime → null`），故显示域是 `[0, 末拍起点]`：末拍之后
+/// 的那一段是**不显示**的格，不是把最后一个号一直挂着。无界网格（占位/异常
+/// 均匀实现）没有终点，取整片。
+List<CastBeatCountRow> castBeatRowsOf({
+  required BeatPresentationFacts facts,
+  required Duration duration,
+}) {
+  if (duration <= Duration.zero) return const [];
+  final context = assembleBeatPresentationContext(
+    facts,
+    rate: 1,
+    playing: false,
+  );
+  if (context.gridError) return const [];
+  final grid = context.grid;
+  final totalMs = duration.inMilliseconds;
+  final lastIndex = grid.lastBeatIndex;
+  final displayEndMs = lastIndex == null
+      ? totalMs
+      : grid.beatTime(lastIndex).inMilliseconds.clamp(0, totalMs);
+
+  final cuts = <int>{0, displayEndMs, totalMs};
+  void addCut(Duration? at) {
+    if (at == null) return;
+    final ms = at.inMilliseconds;
+    if (ms > 0 && ms < displayEndMs) cuts.add(ms);
+  }
+
+  for (final beat in grid.beatsInWindow(
+    Duration.zero,
+    Duration(milliseconds: displayEndMs),
+  )) {
+    addCut(beat);
+  }
+  addCut(context.firstLine);
+  for (final line in context.segmentLines) {
+    addCut(line);
+  }
+  addCut(context.recordingAnchor);
+  addCut(context.delayAnchor);
+  addCut(context.activeAnchor);
+
+  final points = cuts.toList()..sort();
+  final rows = <CastBeatCountRow>[];
+  for (var i = 0; i + 1 < points.length; i++) {
+    final start = points[i];
+    final end = points[i + 1];
+    if (end <= start) continue;
+    // 显示域之外（末拍之后那一段）：不显示——与手机上「无拍可数」同判。
+    final text = start >= displayEndMs
+        ? null
+        : () {
+            final value = evaluatePresentationValue(
+              context: context,
+              position: Duration(milliseconds: start),
+            );
+            return value == null ? null : castBeatTextOf(value.display);
+          }();
+    final previous = rows.isEmpty ? null : rows.last;
+    if (previous != null && previous.text == text) {
+      rows[rows.length - 1] = CastBeatCountRow(
+        startMs: previous.startMs,
+        endMs: end,
+        text: text,
+      );
+      continue;
+    }
+    rows.add(CastBeatCountRow(startMs: start, endMs: end, text: text));
+  }
+  return rows;
+}
+
+/// 数拍数字的文字取值 → 投屏域的值对象（两处只差一个包装：取值本身仍由
+/// `metronome_overlay.dart` 的 [beatCountTextOf] 一处派生）。
+CastBeatCountText castBeatTextOf(BeatCountDisplay display) {
+  final text = beatCountTextOf(display);
+  return CastBeatCountText(
+    eightCount: text.eightCount,
+    group: text.group,
+    beatCount: text.beatCount,
+  );
+}
+
+/// 装配数拍层（`#30`）：不装时给 null。
+///
+/// 装的条件逐条与手机对齐：勾了**画面类**（数拍属于画面内容类）、**数拍显示**
+/// 开着、网格不是异常态、**落位量得出来**（四格浮层位 + 当前视口 + 画面矩形
+/// 齐全）、且至少有一格真的要画数字。任一条不成立就不装——宁可不画也不画错。
+///
+/// 画布：全部行里**最大**的那一份数字行 → 固定底衬尺寸（图像序列是单条流，
+/// 各格像素尺寸必须一致）；每格把底衬居中画进去，而底衬中心正是手机上那一行
+/// 数字的中心（落位由 [castBeatPlacementInPicture] 换算）。
+({CastBeatPlacement placement, CastBeatCountOverlay overlay})?
+buildCastBeatOverlay({
+  required CastRenderRead read,
+  required Duration duration,
+  required CastRenderChoices choices,
+  required Rect? pictureRect,
+  required TextScaler textScaler,
+  required OverlayPlacements? placements,
+  required OverlayPlacementCell cell,
+  required Size? viewport,
+}) {
+  if (!choices.picture) return null;
+  if (!read(beatOverlayContentVisibleProvider)) return null;
+  final picture = pictureRect;
+  if (picture == null || placements == null || viewport == null) return null;
+  final rows = castBeatRowsOf(
+    facts: read(beatPresentationFactsProvider),
+    duration: duration,
+  );
+  if (!rows.any((row) => row.visible)) return null;
+
+  final style = read(beatAnimationStyleProvider);
+  final textScale = textScaler.scale(1);
+  final numbersSize = castBeatNumbersSizeOf(
+    rows: rows,
+    textScaler: textScaler,
+  );
+  if (numbersSize == null) return null;
+  final placement = castBeatPlacementInPicture(
+    placements: placements,
+    cell: cell,
+    style: style,
+    viewport: viewport,
+    pictureRect: picture,
+    numbersSize: numbersSize,
+    textScale: textScale,
+  );
+  if (placement == null || !placement.usable) return null;
+  final content = castBeatContentRect(
+    placements: placements,
+    cell: cell,
+    style: style,
+    viewport: viewport,
+    textScale: textScale,
+  );
+  if (content == null) return null;
+  final canvas = beatNumbersCanvasSize(
+    contentSize: content.size,
+    numbersSize: numbersSize,
+    style: style,
+    textScale: textScale,
+  );
+  final scale = beatNumbersScaleInContent(
+    contentSize: content.size,
+    style: style,
+  );
+  if (!canvas.width.isFinite || !canvas.height.isFinite) return null;
+  return (
+    placement: placement,
+    overlay: CastBeatCountOverlay(
+      rows: rows,
+      centerX: placement.centerX,
+      centerY: placement.centerY,
+      widthFraction: placement.widthFraction,
+      heightFraction: placement.heightFraction,
+      // 惰性：真正画字是渲染编排落盘那一刻（与贴纸同款）。
+      imageBytesOf: (index) => renderCastBeatSheet(
+        text: rows[index].text,
+        canvasLogicalSize: canvas,
+        scale: scale,
+        textScaler: textScaler,
+      ),
+    ),
+  );
+}
+
 /// 读各域现值为一份渲染请求。
 ///
 /// [globalMirrored] 由调用方传（全局镜像的现值住在播放页的镜像控制器上，
@@ -130,12 +338,16 @@ List<CastSticker> buildCastStickers({
 /// .mirrorFragments]（画面滤镜链的镜像闸门按它成窗）。**取景**同样在此读一次、
 /// 喂两处：设置快照的规范串（缓存键）与 [CastRenderRequest.framingSelection]
 /// （画面链的裁切窗口）。**备注**同样读一次、喂两处：标注指纹与
-/// [CastRenderRequest.stickers]（贴纸是第二路输入，落位与尺寸按上屏同一份口径
-/// 算——见 [buildCastStickers]）。渲染参数与上屏取值因此读的是同一份 provider
-/// 取值，不是两处各自读一遍、各自对齐的口径。
+/// [CastRenderRequest.stickers]。**数拍层**（`#30`）同样读一次、喂两处：
+/// 设置快照里的落位记号（缓存键）与 [CastRenderRequest.beatOverlay]。渲染参数
+/// 与上屏取值因此读的是同一份取值，不是两处各自读一遍、各自对齐的口径。
 ///
-/// [pictureSize] 是**上屏画面矩形**（取景后那一块）的尺寸：贴纸的尺寸分数按它
-/// 归一化。量不到（null / 空）时画面类的贴纸整批不装。
+/// [pictureRect] 是**上屏画面矩形**（取景后那一块）的屏幕矩形：贴纸的尺寸分数
+/// 按它归一化，数拍层的落位也按它归一化。量不到（null / 空）时画面类的贴纸与
+/// 数拍层整批不装。
+///
+/// [beatPlacements] / [beatCell] / [beatViewport] 是数拍浮层在手机上的四格记忆
+/// 与当前视口（`MetronomeOverlayController` 的现读值），落位从它们算起。
 CastRenderRequest castRenderRequestFor(
   CastRenderRead read, {
   required String videoPath,
@@ -143,8 +355,11 @@ CastRenderRequest castRenderRequestFor(
   required bool globalMirrored,
   required CastRenderChoices choices,
   CastSpeedTier speedTier = CastSpeedTier.full,
-  Size? pictureSize,
+  Rect? pictureRect,
   TextScaler textScaler = TextScaler.noScaling,
+  OverlayPlacements? beatPlacements,
+  OverlayPlacementCell beatCell = OverlayPlacementCell.portraitNormal,
+  Size? beatViewport,
 }) {
   final timeline = read(annotationTimelineProvider);
   final grid = read(beatGridProvider);
@@ -157,6 +372,16 @@ CastRenderRequest castRenderRequestFor(
   // 备注与名册各读**一次**、喂两处：指纹（含名册取色）与第二路输入（贴纸）。
   final notes = read(noteStickersProvider);
   final roster = read(dancerRosterProvider);
+  final beat = buildCastBeatOverlay(
+    read: read,
+    duration: timeline.videoDuration,
+    choices: choices,
+    pictureRect: pictureRect,
+    textScaler: textScaler,
+    placements: beatPlacements,
+    cell: beatCell,
+    viewport: beatViewport,
+  );
 
   return CastRenderRequest(
     videoPath: videoPath,
@@ -169,6 +394,7 @@ CastRenderRequest castRenderRequestFor(
       localMirrorEnabled: read(localMirrorEnabledProvider),
       beatCountVisible: read(beatOverlayContentVisibleProvider),
       beatAnimationStyle: read(beatAnimationStyleProvider).name,
+      beatOverlay: beat?.placement.token ?? '',
       framing: castFramingToken(framing),
       halfBeatSoundEnabled: halfBeatEnabled,
       metronomeVolumePercent: read(metronomeVolumeProvider),
@@ -190,10 +416,11 @@ CastRenderRequest castRenderRequestFor(
         ? buildCastStickers(
             notes: notes,
             rosterColors: noteMentionRosterColors(roster),
-            pictureSize: pictureSize ?? Size.zero,
+            pictureSize: pictureRect?.size ?? Size.zero,
             textScaler: textScaler,
           )
         : const [],
+    beatOverlay: beat?.overlay,
     beatClicks: buildCastBeatClicks(
       grid: grid,
       source: metronomeSourceEntryOfId(sourceId),

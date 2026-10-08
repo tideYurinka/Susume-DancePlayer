@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dance_learning_app/cast/cast_beat_count.dart';
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_orchestrator.dart';
@@ -52,6 +53,7 @@ void main() {
       ),
     ],
     List<CastSticker> stickers = const [],
+    CastBeatCountOverlay? beatOverlay,
   }) => CastRenderRequest(
     videoPath: p.join(root.path, 'source.mp4'),
     videoId: 'vid-a',
@@ -61,6 +63,7 @@ void main() {
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
     stickers: stickers,
+    beatOverlay: beatOverlay,
     beatClicks: beatClicks,
   );
 
@@ -375,6 +378,109 @@ void main() {
       );
 
       expect(executor.ran, isFalse, reason: '都不勾 = 直接推原片');
+      expect(fileNames(), isEmpty);
+    });
+  });
+
+  group('数拍层：逐格 PNG + 图像序列清单，收尾必删（#30）', () {
+    CastBeatCountOverlay beatOverlay({int rows = 3}) => CastBeatCountOverlay(
+      rows: <CastBeatCountRow>[
+        for (var i = 0; i < rows; i++)
+          CastBeatCountRow(
+            startMs: i * 500,
+            endMs: (i + 1) * 500,
+            text: i == 0
+                ? null
+                : CastBeatCountText(
+                    eightCount: '1',
+                    beatCount: '$i',
+                  ),
+          ),
+      ],
+      centerX: 0.4,
+      centerY: 0.3,
+      widthFraction: 0.2,
+      heightFraction: 0.1,
+      imageBytesOf: (index) async =>
+          Uint8List.fromList(<int>[0x89, 0x50, 0x4e, 0x47, index]),
+    );
+
+    test('渲染时逐格 PNG 与清单都在盘上，命令按 `-f concat` 读它', () async {
+      var listBody = '';
+      var listPath = '';
+      var sheetPaths = const <String>[];
+      var allExisted = false;
+      executor.onRun = (job, _) {
+        listPath = job.arguments.firstWhere(
+          (a) => a.endsWith('.beats.txt'),
+          orElse: () => '',
+        );
+        listBody = File(listPath).readAsStringSync();
+        // 逐格图的路径只在清单里（序列是一路输入，不是几十路 -i）。
+        sheetPaths = RegExp(r"^file '(.+)'$", multiLine: true)
+            .allMatches(listBody)
+            .map((m) => m.group(1)!)
+            .toList(growable: false);
+        allExisted = sheetPaths.every((f) => File(f).existsSync());
+      };
+
+      await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: true, sound: false),
+          beatClicks: const [],
+          beatOverlay: beatOverlay(),
+        ),
+      );
+
+      expect(allExisted, isTrue, reason: '命令跑起来时每一格图都必须已经写好');
+      // 三格各一条 file，末条重列一次（共四条）。
+      expect(sheetPaths, hasLength(4));
+      expect(sheetPaths[0], endsWith('.beat0.png'));
+      expect(sheetPaths[1], endsWith('.beat1.png'));
+      expect(sheetPaths.last, sheetPaths[2]);
+      expect(listPath, isNotEmpty);
+      expect(
+        executor.lastArguments,
+        containsAllInOrder(<String>['-f', 'concat', '-safe', '0', '-i', listPath]),
+      );
+      // 时长就是那一拍的半开窗（0.5s 一拍）。
+      expect(listBody, contains('duration 0.500'));
+      expect(
+        File(listPath).existsSync(),
+        isFalse,
+        reason: '渲染收尾要删掉清单（它是本次渲染的临时物）',
+      );
+      for (final path in sheetPaths.toSet()) {
+        expect(File(path).existsSync(), isFalse, reason: '逐格图也要删干净');
+      }
+      expect(fileNames().length, 1, reason: '盘上只剩产物');
+    });
+
+    test('失败：逐格图、清单与半成品一并收掉', () async {
+      executor.verdict = CastRenderVerdict.failed;
+
+      final result = await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: true, sound: false),
+          beatClicks: const [],
+          beatOverlay: beatOverlay(),
+        ),
+      );
+
+      expect(result.exit, CastRenderExit.failed);
+      expect(fileNames(), isEmpty);
+    });
+
+    test('不勾画面类：数拍层一格都不落盘', () async {
+      await orchestrator.render(
+        request(
+          choices: const CastRenderChoices(picture: false, sound: false),
+          beatClicks: const [],
+          beatOverlay: beatOverlay(),
+        ),
+      );
+
+      expect(executor.ran, isFalse);
       expect(fileNames(), isEmpty);
     });
   });

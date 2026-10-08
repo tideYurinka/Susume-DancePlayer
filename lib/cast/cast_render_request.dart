@@ -23,6 +23,7 @@ import 'dart:typed_data';
 
 import '../annotation/framing_selection.dart';
 import '../core/local_mirror_fragment.dart';
+import 'cast_beat_count.dart';
 
 /// 渲染勾选档：**画面类**（含呈现类）与**声音类**两档。
 ///
@@ -93,6 +94,7 @@ class CastRenderSettings {
     this.localMirrorEnabled = true,
     this.beatCountVisible = false,
     this.beatAnimationStyle = '',
+    this.beatOverlay = '',
     this.framing = '',
     this.halfBeatSoundEnabled = false,
     this.metronomeVolumePercent = 50,
@@ -112,6 +114,14 @@ class CastRenderSettings {
 
   /// 节拍动画形态的取值名（空 = 该形态未定，按手机默认）。
   final String beatAnimationStyle;
+
+  /// **数拍层的落位记号**（`#30`；空 = 这支舞这次不装数拍层）：数拍那一行在
+  /// **画面区域**上的归一化落位（`player/cast_beat_placement.dart` 的
+  /// `CastBeatPlacement.token`）。
+  ///
+  /// 它是**影响产物**的设置：用户把浮层挪一下、转个屏或改一下尺寸系数，都该
+  /// 换一把缓存键（否则会命中一份落位不对的旧副本）。故它进设置快照的记号。
+  final String beatOverlay;
 
   /// 取景选区的规范串（空 = 未取景 = 整帧）。
   final String framing;
@@ -134,6 +144,7 @@ class CastRenderSettings {
     localMirrorEnabled ? 'lm1' : 'lm0',
     beatCountVisible ? 'bc1' : 'bc0',
     'ba:$beatAnimationStyle',
+    'bov:$beatOverlay',
     'fr:$framing',
     halfBeatSoundEnabled ? 'hb1' : 'hb0',
     'vol:$metronomeVolumePercent',
@@ -281,6 +292,7 @@ class CastRenderRequest {
     this.mirrorFragments = const [],
     this.framingSelection,
     this.stickers = const [],
+    this.beatOverlay,
     this.beatClicks = const [],
   });
 
@@ -330,6 +342,17 @@ class CastRenderRequest {
   /// 它**不是缓存键的独立分量**：贴纸内容（文本、几何、时间窗）已在
   /// [annotationFingerprint] 里；只有名册取色影响这张图，名册同样在指纹里。
   final List<CastSticker> stickers;
+
+  /// **数拍层**（`#30`；null = 不装这一层：没勾画面类、数拍显示关着、
+  /// 网格异常，或落位量不出来）。
+  ///
+  /// 与上屏求值读**同一份**取值：装配处（`player/cast_render_wiring.dart`）
+  /// 逐拍走节拍呈现的同一条 `evaluatePresentationValue` 派生文字，落位走
+  /// `player/cast_beat_placement.dart` 的视口 → 画面区域换算。它**不是缓存键的
+  /// 独立分量**：数拍显示开关与节拍动画形态在 [settings] 里，落位在
+  /// [CastRenderSettings.beatOverlay] 记号里，拍点与锚点在
+  /// [annotationFingerprint] 里；任一样变了都换键。
+  final CastBeatCountOverlay? beatOverlay;
 
   /// 拍声排程（声音类用；画面类不看它）。
   final List<CastBeatClick> beatClicks;

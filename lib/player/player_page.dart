@@ -1764,9 +1764,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   /// 按勾选档与**某一档**装配一份渲染请求：各域现值由
-  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹、拍声排程与备注贴纸
-  /// 都在那里各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回副本
-  /// 路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
+  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹、拍声排程、备注贴纸与
+  /// 数拍层都在那里各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回
+  /// 副本路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
+  ///
+  /// **数拍层**（#30）的三样现读值在这里给全：四格浮层位与当前格
+  /// （`MetronomeOverlayController` 的会话态）、当前视口（钳制框 = 浮层所在那块
+  /// 屏）、以及上屏画面矩形（与贴纸同源的那一块）。落位换算因此读的是手机上
+  /// 真正在用的那一份取值。
   CastRenderRequest _castRenderRequest(
     CastRenderChoices choices,
     CastSpeedTier tier,
@@ -1777,9 +1782,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     globalMirrored: _mirror.mirrored,
     choices: choices,
     speedTier: tier,
-    // 贴纸的尺寸分数按**上屏画面矩形**归一化（与手机量测同源）。
-    pictureSize: _castStickerPictureRect().size,
+    // 贴纸的尺寸分数与数拍层的落位都按**上屏画面矩形**归一化（与手机同源）。
+    pictureRect: _castStickerPictureRect(),
     textScaler: MediaQuery.textScalerOf(context),
+    beatPlacements: _presentation.metronome.placements,
+    beatCell: _presentation.metronome.cell,
+    beatViewport:
+        _presentation.metronome.clampBox ?? MediaQuery.sizeOf(context),
   );
 
   /// **上屏那张贴纸的参考矩形**：投屏渲染求尺寸分数的那块画面，就是手机上贴纸

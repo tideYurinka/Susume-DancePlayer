@@ -85,6 +85,13 @@ const String kCastPrepTierPassThrough = '不渲染就没有别的倍速档可换
 /// 渲染失败时的那一句。
 const String kCastPrepRenderFailedText = '这次没渲出来：可以再试一次，或改一下勾选';
 
+/// 数拍数字的**已接受偏差**那一句（`#30`）：勾了画面类时出在实话下面。
+///
+/// 规格把这条偏差写成必说项：数拍数字与节拍动画是**渲染那一刻**按数拍锚点链
+/// 算出来的，烤死之后不随遥控跳段后的重锚定变化（ADR-0004 的 Consequences）。
+const String kCastPrepBeatFreezeText =
+    '数拍数字按渲染那一刻算：投屏中重新锚定学习段，电视上那份不会跟着变';
+
 /// 正在渲染的那一句（后面带百分比）。
 const String kCastPrepRenderingText = '正在渲染投屏副本';
 
@@ -365,6 +372,19 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                   height: 1.4,
                 ),
               ),
+              // 勾了画面类才出这一句：数拍数字冻结在渲染那一刻（已接受偏差）。
+              if (_choices.picture) ...[
+                const SizedBox(height: 2),
+                const Text(
+                  kCastPrepBeatFreezeText,
+                  key: Key('cast_beat_freeze_sentence'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               _tierSection(),
               const SizedBox(height: 8),

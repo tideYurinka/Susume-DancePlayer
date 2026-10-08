@@ -181,12 +181,19 @@ void main() {
     expect(checked(const Key('cast_choice_picture')), isTrue);
     expect(checked(const Key('cast_choice_sound')), isTrue);
     expect(find.text(kCastPrepSentencePicture), findsOneWidget);
+    // 勾了画面类还要说清数拍数字的已接受偏差（#30）：数字冻结在渲染那一刻。
+    expect(find.text(kCastPrepBeatFreezeText), findsOneWidget);
+    expect(
+      find.byKey(const Key('cast_beat_freeze_sentence')),
+      findsOneWidget,
+    );
 
-    // 取消画面类 → 只勾声音类：秒级那一句。
+    // 取消画面类 → 只勾声音类：秒级那一句（数拍不进副本，偏差那句随之消失）。
     await tester.tap(find.byKey(const Key('cast_choice_picture')));
     await tester.pumpAndSettle();
     expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
     expect(find.text(kCastPrepSentencePicture), findsNothing);
+    expect(find.text(kCastPrepBeatFreezeText), findsNothing);
 
     // 再取消声音类 → 都不勾：直接推那一句。
     await tester.tap(find.byKey(const Key('cast_choice_sound')));

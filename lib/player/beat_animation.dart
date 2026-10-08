@@ -386,6 +386,12 @@ class MetronomeBeatAnimation extends StatelessWidget {
   }
 }
 
+/// 矩形动画条的显式高度（上屏与投屏副本的布局算术同读；`#30`）。
+const double kBeatBarAnimationHeight = 28;
+
+/// 摆锤动画的显式高度（上屏与投屏副本的布局算术同读；`#30`）。
+const double kBeatPendulumAnimationHeight = 32;
+
 /// 半拍细分色（与插入半拍线同一冷灰蓝 token，两层
 /// 半拍概念同用冷灰蓝视觉统一）。
 const Color kBeatHalfSubdivisionColor = kHalfBeatLineColor;
@@ -436,7 +442,7 @@ class _BeatBar extends StatelessWidget {
 
   final List<UserHalfBeatProjection> halfBeatProjections;
 
-  static const double _height = 28;
+  static const double _height = kBeatBarAnimationHeight;
 
   /// 头尾格圆角。
   static const double _endRadius = 8;
@@ -648,7 +654,7 @@ class _BeatPendulum extends StatelessWidget {
   /// 显式高度：宿主 Column 对非弹性子级给无限高，无显式高度会让内部
   /// Stack shrink-wrap 成 0 高（真机整棵不可见）；与矩形行视觉
   /// 高度协调取 32。
-  static const double _height = 32;
+  static const double _height = kBeatPendulumAnimationHeight;
 
   @override
   Widget build(BuildContext context) {
