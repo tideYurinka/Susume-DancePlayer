@@ -106,14 +106,21 @@ void main() {
       );
     });
 
-    test('投屏态顶栏四枚：画面开关 → 断开投屏 → 系统镜像 → 查看引导（查看引导恒在末位、无分隔线）', () {
+    test('投屏态顶栏五枚：倍速切换 → 画面开关 → 断开投屏 → 系统镜像 → 查看引导（查看引导恒在末位、无分隔线）', () {
       final items = kPlayToolRowCastTopBar.items;
-      expect(items.length, 4);
-      expect(items[0].slot, same(kPlayToolCastPicture));
-      expect(items[1].slot, same(kPlayToolDisconnectCast));
-      expect(items[2].slot, same(kPlayToolSystemMirror));
-      expect(items[3].slot, same(kPlayToolGuide));
+      expect(items.length, 5);
+      expect(items[0].slot, same(kPlayToolCastSpeed));
+      expect(items[1].slot, same(kPlayToolCastPicture));
+      expect(items[2].slot, same(kPlayToolDisconnectCast));
+      expect(items[3].slot, same(kPlayToolSystemMirror));
+      expect(items[4].slot, same(kPlayToolGuide));
       expect(items.any((i) => i.isSeparator), isFalse);
+      // 倍速步进结构性不在投屏态：编辑面那枚「倍速设置」（步进挂在它下面）
+      // 不在本行集里。
+      expect(
+        kPlayToolRowCastTopBar.slots.contains(kPlayToolSpeedSettings),
+        isFalse,
+      );
       // 编辑态那些槽一枚都不进投屏态顶栏——投屏态不占编辑态的位置预算。
       final editorSlots = {
         for (final row in [
@@ -135,7 +142,7 @@ void main() {
       }
     });
 
-    test('十五条声明各不相同、覆盖无遗漏', () {
+    test('十六条声明各不相同、覆盖无遗漏', () {
       final declarations = [
         kPlayToolUndo,
         kPlayToolRedo,
@@ -148,12 +155,13 @@ void main() {
         kPlayToolCompare,
         kPlayToolCast,
         kPlayToolCastPicture,
+        kPlayToolCastSpeed,
         kPlayToolDisconnectCast,
         kPlayToolSystemMirror,
         kPlayToolGuide,
         kPlayToolMore,
       ];
-      expect(declarations.toSet().length, 15);
+      expect(declarations.toSet().length, 16);
     });
   });
 
@@ -410,7 +418,7 @@ void main() {
   });
 
   group('槽身份', () {
-    test('十五条槽的 id 互不相同、覆盖无遗漏', () {
+    test('十六条槽的 id 互不相同、覆盖无遗漏', () {
       final ids = [
         kPlayToolUndo.id,
         kPlayToolRedo.id,
@@ -423,16 +431,17 @@ void main() {
         kPlayToolCompare.id,
         kPlayToolCast.id,
         kPlayToolCastPicture.id,
+        kPlayToolCastSpeed.id,
         kPlayToolDisconnectCast.id,
         kPlayToolSystemMirror.id,
         kPlayToolGuide.id,
         kPlayToolMore.id,
       ];
-      expect(ids.toSet().length, 15);
+      expect(ids.toSet().length, 16);
       expect(
         ids.toSet(),
         PlayToolSlotId.values.toSet(),
-        reason: '装配点按 id 穷尽 switch：表里每条槽都有身份，身份恰好十五个',
+        reason: '装配点按 id 穷尽 switch：表里每条槽都有身份，身份恰好十六个',
       );
     });
 
@@ -446,8 +455,8 @@ void main() {
       ];
       expect(
         {for (final s in slots) s.id: s}.length,
-        15,
-        reason: '六份行集合计引用十五条不同身份，无第二份编码',
+        16,
+        reason: '六份行集合计引用十六条不同身份，无第二份编码',
       );
     });
   });
@@ -481,7 +490,7 @@ void main() {
       }
     });
 
-    test('十五条声明恰好被六份行集穷尽引用，表外无第二份', () {
+    test('十六条声明恰好被六份行集穷尽引用，表外无第二份', () {
       final all = <PlayToolSlot>{
         ...kPlayToolRowLandscapeTopBar.slots,
         ...kPlayToolRowLandscapeTopBarCompact.slots,
@@ -501,6 +510,7 @@ void main() {
         kPlayToolCompare,
         kPlayToolCast,
         kPlayToolCastPicture,
+        kPlayToolCastSpeed,
         kPlayToolDisconnectCast,
         kPlayToolSystemMirror,
         kPlayToolGuide,

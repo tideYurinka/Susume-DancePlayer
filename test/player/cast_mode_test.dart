@@ -6,6 +6,12 @@ import 'package:dance_learning_app/cast/cast_failure.dart';
 import 'package:dance_learning_app/cast/cast_receiver.dart';
 import 'package:dance_learning_app/cast/cast_render_activity.dart'
     show castRenderInProgressProvider;
+import 'package:dance_learning_app/cast/cast_render_cache.dart'
+    show castRenderCacheDirectoryProvider;
+import 'package:dance_learning_app/cast/cast_render_executor.dart'
+    show castRenderExecutorProvider;
+import 'package:dance_learning_app/cast/cast_render_request.dart'
+    show CastSpeedTier;
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
@@ -31,6 +37,11 @@ import 'package:dance_learning_app/player/av_sync_session.dart'
     show avSyncCalibrationSessionProvider;
 import 'package:dance_learning_app/player/compare_recording.dart'
     show CompareRecordingPhase, compareRecordingPhaseProvider;
+import 'package:dance_learning_app/player/cast_prep_panel.dart'
+    show castPrepTierKey;
+import 'package:dance_learning_app/player/cast_run.dart' show castRunProvider;
+import 'package:dance_learning_app/player/cast_speed_panel.dart'
+    show castSpeedOptionKey, kCastSpeedSwitchingText, kCastSpeedWaitText;
 import 'package:dance_learning_app/player/control_layer.dart'
     show kAnnotationToolRowKey;
 import 'package:dance_learning_app/player/player_page.dart';
@@ -51,6 +62,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_receiver_discovery.dart';
+import '../helpers/fake_cast_render_executor.dart';
 import '../helpers/fake_cast_session.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_mirror_launcher.dart';
@@ -252,7 +264,10 @@ void main() {
     expect(factory.sessions.single.calls, ['push', 'play']);
     expect(modeOf(tester), PlayerSessionMode.castControl);
 
-    // 顶栏换装：画面开关 + 断开投屏 + 系统镜像 + 查看引导（编辑态那枚投屏不在场）。
+    // 顶栏换装：倍速切换 + 画面开关 + 断开投屏 + 系统镜像 + 查看引导（编辑态
+    // 那枚投屏不在场）。
+    expect(find.byKey(const Key('tool_cast_speed')), findsOneWidget);
+    expect(find.text('倍速切换'), findsOneWidget);
     expect(find.byKey(const Key('tool_cast_picture')), findsOneWidget);
     expect(find.text('画面开关'), findsOneWidget);
     expect(find.byKey(const Key('tool_cast_disconnect')), findsOneWidget);
@@ -473,6 +488,125 @@ void main() {
     expect(delivery.closed, isTrue);
   });
 
+  // ---- 投屏倍速档切换（票 #31）：一档一份、换文件续播 ----
+
+  testWidgets('投屏态倍速切换：面板列三档、未渲好的不可点；点已渲好的换文件续播、有过程态', (tester) async {
+    setWideView(tester);
+    final root = Directory.systemTemp.createTempSync('cast_mode_speed');
+    addTearDown(() {
+      if (root.existsSync()) root.deleteSync(recursive: true);
+    });
+    final executor = FakeCastRenderExecutor();
+    // 起投档（面板里渲的那一份）放行，后台渲 0.5× 那一档挂住——只有它才是
+    // 「还没渲好」的样子。
+    executor.runGate = Completer<void>();
+    executor.gateFromRun = 1;
+    executor.progressScript = const [Duration(seconds: 15)]; // 30 秒素材 → 50%
+
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        castRenderExecutorProvider.overrideWithValue(executor),
+        castRenderCacheDirectoryProvider.overrideWithValue(() async => root),
+      ],
+    );
+    await openControlLayer(tester);
+
+    // 准备：勾上 0.5×（默认就近的是 1×），只勾画面类（widget 假时钟下不做
+    // 异步的拍声轨写盘）。
+    await tester.tap(find.byKey(const Key('tool_cast')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_choice_sound')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_receiver_udn-$receiverName')));
+    await tester.pumpAndSettle();
+
+    // 起投档渲好即开投：推的是它那一份，其余档在后台接着渲。
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(factory.sessions.single.calls, ['push', 'play']);
+    expect(
+      containerOf(tester).read(castRunProvider).activeTier,
+      CastSpeedTier.full,
+    );
+    // 倍速步进结构性不在场：那枚「倍速设置」不在投屏态顶栏。
+    expect(find.byKey(const Key('tool_speed_settings')), findsNothing);
+    expect(find.text('倍速步进'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('tool_cast_speed')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('cast_speed_panel')), findsOneWidget);
+    expect(find.text('正在播'), findsOneWidget, reason: '1× 那一档正在电视上放');
+    expect(find.text('准备中 50%'), findsOneWidget, reason: '0.5× 那一档的进度');
+    expect(
+      find.text(kCastSpeedWaitText),
+      findsOneWidget,
+      reason: '起播等待与跳转精度不由我们决定这条事实写进文案',
+    );
+
+    // 未渲好的档不可点：点它什么都不发生。
+    await tester.tap(find.byKey(castSpeedOptionKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+    expect(factory.sessions.single.pushes, hasLength(1), reason: '没换文件');
+    expect(
+      containerOf(tester).read(castRunProvider).activeTier,
+      CastSpeedTier.full,
+    );
+
+    // 渲好即变可切。
+    executor.runGate!.complete();
+    for (var i = 0; i < 200; i++) {
+      final ready = containerOf(tester)
+          .read(castRunProvider)
+          .canSwitchTo(CastSpeedTier.half);
+      if (ready) break;
+      await tester.pump(const Duration(milliseconds: 1));
+    }
+    expect(
+      containerOf(tester).read(castRunProvider).canSwitchTo(CastSpeedTier.half),
+      isTrue,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('可切'), findsOneWidget);
+
+    // 换档：过程态在场，成功前当前档不翻。
+    final pushGate = Completer<void>();
+    factory.sessions.single.pushGate = pushGate;
+    await tester.tap(find.byKey(castSpeedOptionKey(CastSpeedTier.half)));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      find.byKey(const Key('cast_speed_switching')),
+      findsOneWidget,
+      reason: '切换有明确过程态',
+    );
+    expect(find.text(kCastSpeedSwitchingText), findsOneWidget);
+    expect(
+      containerOf(tester).read(castRunProvider).activeTier,
+      CastSpeedTier.full,
+    );
+
+    pushGate.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('cast_speed_panel')), findsNothing);
+    expect(
+      containerOf(tester).read(castRunProvider).activeTier,
+      CastSpeedTier.half,
+    );
+    expect(delivery.served, hasLength(2), reason: '换档 = 让接收端换一个文件播');
+    expect(factory.sessions.single.calls, [
+      'push',
+      'play',
+      'position',
+      'push',
+      'seek',
+      'play',
+    ]);
+  });
+
   // ---- 投屏入口的五条门（票 #35）：置灰 + 按下去只解释原因 ----
 
   /// 顶栏工具槽内第一个 Icon 的颜色（置灰 = 不可用视觉 token）。
@@ -501,7 +635,10 @@ void main() {
     expect(find.byKey(const Key('cast_entry_blocked_prompt')), findsOneWidget);
     expect(find.text(reason), findsOneWidget);
     expect(find.byKey(const Key('cast_prep_panel')), findsNothing);
-    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+    expect(
+      containerOf(tester).read(playerSessionProvider).pendingEntry,
+      isNull,
+    );
     expect(modeOf(tester), modeBefore, reason: '模式值一位不动');
     expect(discovery.discoverCalls, 0);
     expect(delivery.served, isEmpty);
@@ -642,7 +779,10 @@ void main() {
     expect(find.byKey(const Key('cast_not_started_prompt')), findsOneWidget);
     expect(factory.sessions.single.disconnected, isTrue);
     expect(delivery.closed, isTrue);
-    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+    expect(
+      containerOf(tester).read(playerSessionProvider).pendingEntry,
+      isNull,
+    );
   });
 
   testWidgets('递出通道起不来：短暂提示 + 停在编辑态、零残留', (tester) async {
@@ -655,7 +795,10 @@ void main() {
     expect(modeOf(tester), PlayerSessionMode.editing);
     expect(find.byKey(const Key('cast_not_started_prompt')), findsOneWidget);
     expect(factory.connectCalls, 0, reason: '通道没起起来就不连接收端');
-    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+    expect(
+      containerOf(tester).read(playerSessionProvider).pendingEntry,
+      isNull,
+    );
   });
 
   // ---- 断开触发点收在既有复位一处 ----
@@ -709,9 +852,7 @@ void main() {
 
   // ---- 失败分流：会话建立之后的失败 ----
 
-  testWidgets('电视端停止：回前台问一次状态，那边停了就断开回编辑态并给短暂提示', (
-    tester,
-  ) async {
+  testWidgets('电视端停止：回前台问一次状态，那边停了就断开回编辑态并给短暂提示', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await openControlLayer(tester);

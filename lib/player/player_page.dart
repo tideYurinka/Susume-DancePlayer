@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_render_request.dart'
-    show CastRenderChoices, CastRenderRequest;
+    show CastRenderChoices, CastRenderRequest, CastSpeedTier;
 import '../core/playback/playback_loop_layer.dart';
 import '../core/playback/playback_loop_providers.dart';
 import '../help/content_registry.dart' show HandsOnCriterion;
@@ -129,7 +129,8 @@ import 'cast_run.dart'
         CastRunModel,
         castInterruptedNoticeSpec,
         castNotStartedNoticeSpec,
-        castRunProvider;
+        castRunProvider,
+        castSpeedSwitchFailedNoticeSpec;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
 import 'resume_position.dart' show ResumeRecorder;
 import 'scheme_open.dart';
@@ -201,6 +202,7 @@ const List<NoticeSpec> kNoticeSpecs = [
   _documentReadOnlyNoticeSpec,
   castInterruptedNoticeSpec,
   castNotStartedNoticeSpec,
+  castSpeedSwitchFailedNoticeSpec,
   systemMirrorUnavailableNoticeSpec,
   castEntryBlockedNoticeSpec,
 ];
@@ -1716,22 +1718,27 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   /// 进入前置「投屏准备」的宿主编排：开准备面板选一台接收端、勾选要渲染的
-  /// 东西 → **面板内渲染**（进度与取消都在面板里）→ 起递出通道 → 连会话 →
-  /// 推**产物或原片** → 起播；起投成功才返回 true（宿主随后经唯一提交入口
-  /// 提交进入投屏-控制层）。
+  /// 东西与**投屏倍速档** → **面板内渲起投档**（进度与取消都在面板里）→
+  /// 起递出通道 → 连会话 → 推**起投档那一份** → 起播，**其余档交给投屏运行
+  /// 域后台渲**；起投成功才返回 true（宿主随后经唯一提交入口提交进入
+  /// 投屏-控制层）。
   ///
   /// - **已在投屏内直接放行**：投屏-观看态点画面展开回控制层不能重跑准备
   ///   （也不能把会话重投一遍）；
   /// - 取消面板 / 起投失败 → false = 零副作用：模式值一位不动、待办由编排
   ///   取消；起投失败另给一句短暂提示（面板已关，那是唯一的失败面）。
+  /// - **学习段**：起投那一刻正在练的段（源坐标）一并交给运行域——换档时
+  ///   续播位置钳进换算后的段内（过了这段练习就不算这段了）。
   Future<bool> _prepareCast() async {
     final cast = ref.read(castRunProvider.notifier);
     if (cast.receiver != null) return true;
     if (!mounted) return false;
+    final practiceSpan = loopRangeRecord(ref.read(activeLoopRangeProvider));
     final outcome = await showDialog<CastPrepOutcome>(
       context: context,
       builder: (_) => CastPrepPanel(
         videoFilePath: widget.source.toFilePath(),
+        manualRate: ref.read(speedControlProvider).manualRate,
         requestOf: _castRenderRequest,
       ),
     );
@@ -1740,6 +1747,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       await cast.start(
         receiver: outcome.receiver,
         file: File(outcome.filePath),
+        plan: outcome.plan,
+        requests: outcome.requests,
+        practiceSpan: practiceSpan,
       );
       return cast.receiver != null;
     } on Object {
@@ -1752,17 +1762,21 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     }
   }
 
-  /// 按勾选档装配一份渲染请求：各域现值由 `cast_render_wiring.dart` 读齐
-  /// （设置快照、标注指纹与拍声排程都在那里各就各位）。视频标识取打开会话
-  /// 解析出的那一个；解析不出时退回副本路径（缓存键仍逐支舞互异）。
-  CastRenderRequest _castRenderRequest(CastRenderChoices choices) =>
-      castRenderRequestFor(
-        ref.read,
-        videoPath: widget.source.toFilePath(),
-        videoId: ref.read(currentVideoIdProvider) ?? widget.source.toFilePath(),
-        globalMirrored: _mirror.mirrored,
-        choices: choices,
-      );
+  /// 按勾选档与**某一档**装配一份渲染请求：各域现值由
+  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹与拍声排程都在那里
+  /// 各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回副本路径
+  /// （缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
+  CastRenderRequest _castRenderRequest(
+    CastRenderChoices choices,
+    CastSpeedTier tier,
+  ) => castRenderRequestFor(
+    ref.read,
+    videoPath: widget.source.toFilePath(),
+    videoId: ref.read(currentVideoIdProvider) ?? widget.source.toFilePath(),
+    globalMirrored: _mirror.mirrored,
+    choices: choices,
+    speedTier: tier,
+  );
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
   /// 演出层自带 widget 子树，不反向读本页、不读中枢。

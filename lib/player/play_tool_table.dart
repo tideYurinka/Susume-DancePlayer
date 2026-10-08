@@ -8,9 +8,8 @@
 /// （竖屏标题栏，四条）/
 /// [kPlayToolRowPortraitVideoToolbarTop] 与
 /// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）/
-/// [kPlayToolRowCastTopBar]（投屏态顶栏，四枚——「画面开关」→「断开投屏」→
-/// 「系统镜像」→ 末位的「查看引导」；规格里最终五枚，倍速切换随后一票按
-/// 次序补位）；
+/// [kPlayToolRowCastTopBar]（投屏态顶栏，五枚——「倍速切换」→「画面开关」→
+/// 「断开投屏」→「系统镜像」→ 末位的「查看引导」）；
 /// 顶栏取哪一份行集由纯件 [playToolTopBarRowFor] 一处决定——**投屏态两值
 /// 有自己那份行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档**
 /// （[playToolLandscapeTopBarRow]）；行集成员 [PlayToolRowItem]（一条槽的
@@ -39,7 +38,7 @@
 /// Flutter）。派生状态（可点性、生效标签、生效激活位）由视图在装配时
 /// 算出，不存进表。
 ///
-/// **一条工具一条声明**：十四条槽各一条 `const` 声明，六份行集引用同一份
+/// **一条工具一条声明**：十六条槽各一条 `const` 声明，六份行集引用同一份
 /// ——同一条槽出现在多份行集时结构上不可能出现两份可能分家的编码。
 /// 「分隔线不进竖屏行」是行集里明写的成员事实（竖屏三份行集不含分隔线
 /// 成员），不再依赖任何字段的缺省值。
@@ -93,6 +92,10 @@ enum PlayToolSlotId {
   /// 画面开关（只在投屏态顶栏行集内）：把画面区从黑底切成静音本地预览。
   /// 激活高亮 = 预览开着。
   castPicture,
+
+  /// 倍速切换（只在投屏态顶栏行集内，且是该行**首枚**）：点开投屏倍速面板，
+  /// 点一枚已渲好的档就让接收端换一个文件播（一档一份副本）。
+  castSpeed,
 
   /// 断开投屏（只在投屏态顶栏行集内：同一动作的第二处入口是左上角
   /// 退出箭头）。
@@ -159,7 +162,7 @@ class PlayToolSlot {
   final String? tooltip;
 }
 
-/// 十四条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
+/// 十六条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
 /// 两行、投屏态顶栏共六份行集引用同一批，不内联复制。
 
 /// 撤销（硬启用位 = 有历史可撤销）。
@@ -340,6 +343,24 @@ const PlayToolSlot kPlayToolCastPicture = PlayToolSlot(
   softGate: false,
 );
 
+/// 倍速切换：**只在投屏态顶栏行集**里的**首枚**（规格次序：倍速切换 →
+/// 画面开关 → 断开投屏 → 系统镜像 → 查看引导）。点开投屏倍速面板
+/// （`cast_speed_panel.dart`）：三档各自的状态与进度都在那里，点一枚**已渲
+/// 好**的档就让接收端换一个文件播——倍速不靠接收端支持，靠一档一份副本。
+///
+/// 无门、非软门（未投屏时本槽不在场）：哪一档现在能不能切是**运行事实**
+/// （后台渲到哪一档了），归面板自己的可点性，不在这里置灰。
+/// **注意**：本槽不是编辑面那枚「倍速设置」（[kPlayToolSpeedSettings]），
+/// 投屏态顶栏里没有那枚——倍速步进也随它结构性不在场。
+const PlayToolSlot kPlayToolCastSpeed = PlayToolSlot(
+  id: PlayToolSlotId.castSpeed,
+  key: 'tool_cast_speed',
+  label: '倍速切换',
+  icon: PlayToolIcon.speed,
+  gates: [],
+  softGate: false,
+);
+
 /// 查看引导（进新手引导页）。
 const PlayToolSlot kPlayToolGuide = PlayToolSlot(
   id: PlayToolSlotId.guide,
@@ -433,12 +454,15 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
-/// 投屏态顶栏：**四枚**——画面开关 → 断开投屏 → 系统镜像 → 查看引导（查看
-/// 引导恒在末位）。它是投屏态两值自己的那份行集：与朝向、紧凑档无关，也不占
-/// 编辑态的位置预算（编辑态行集各自照旧）。规格里投屏态顶栏最终五枚
-/// （倍速切换、画面开关、断开投屏、系统镜像、查看引导），倍速切换随后一票
-/// 接入——补位只在这份声明里加成员，不另开第二处次序编码。
+/// 投屏态顶栏：**五枚**——倍速切换 → 画面开关 → 断开投屏 → 系统镜像 →
+/// 查看引导（查看引导恒在末位）。它是投屏态两值自己的那份行集：与朝向、紧凑
+/// 档无关，也不占编辑态的位置预算（编辑态行集各自照旧）。
+///
+/// 首枚「倍速切换」是**一档一份副本**那条路在投屏态的入口（面板列出三档各自
+/// 的准备进度）；编辑面那枚「倍速设置」（含倍速步进）不在本行集里——投屏态
+/// 结构性没有倍速步进。
 const PlayToolRowSet kPlayToolRowCastTopBar = PlayToolRowSet([
+  PlayToolRowItem.slot(kPlayToolCastSpeed),
   PlayToolRowItem.slot(kPlayToolCastPicture),
   PlayToolRowItem.slot(kPlayToolDisconnectCast),
   PlayToolRowItem.slot(kPlayToolSystemMirror),

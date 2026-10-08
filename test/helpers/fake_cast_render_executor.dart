@@ -29,6 +29,10 @@ class FakeCastRenderExecutor implements CastRenderExecutor {
   /// 非 null 时 [run] 挂在它上面，直到测试放行（在飞用例）。
   Completer<void>? runGate;
 
+  /// 从第几条命令起挂 [runGate]（默认 0 = 每条都挂）：同一条链上「面板渲起
+  /// 投档」与「投屏态后台渲其余档」都在本替身上跑，靠它分开布景。
+  int gateFromRun = 0;
+
   /// 非 null 时 [run] 在开始处回调它（测试用来报进度或写产物）。
   void Function(CastRenderJob job, int index)? onRun;
 
@@ -69,7 +73,7 @@ class FakeCastRenderExecutor implements CastRenderExecutor {
     }
 
     final gate = runGate;
-    if (gate != null) {
+    if (gate != null && index >= gateFromRun) {
       await gate.future;
     }
     final error = runError;

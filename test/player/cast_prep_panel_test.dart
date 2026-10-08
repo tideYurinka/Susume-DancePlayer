@@ -5,6 +5,7 @@ import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:dance_learning_app/cast/cast_receiver.dart';
+import 'package:dance_learning_app/cast/cast_speed_tier.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
 import 'package:dance_learning_app/cast/system_mirror.dart'
@@ -53,12 +54,15 @@ void main() {
     if (root.existsSync()) root.deleteSync(recursive: true);
   });
 
-  CastRenderRequest request(CastRenderChoices choices) => CastRenderRequest(
+  CastRenderRequest request(
+    CastRenderChoices choices, [
+    CastSpeedTier tier = CastSpeedTier.full,
+  ]) => CastRenderRequest(
     videoPath: filePath,
     videoId: 'vid-a',
     duration: const Duration(seconds: 4),
     choices: choices,
-    speedTier: CastSpeedTier.full,
+    speedTier: tier,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
   );
@@ -69,7 +73,9 @@ void main() {
     required FakeCastReceiverDiscovery discovery,
     required FakeVideoCopyPresence presence,
     required ValueNotifier<CastPrepOutcome?> picked,
-    CastRenderRequest Function(CastRenderChoices choices)? requestOf,
+    CastRenderRequest Function(CastRenderChoices choices, CastSpeedTier tier)?
+    requestOf,
+    double manualRate = 1,
     FakeSystemMirrorLauncher? systemMirror,
   }) async {
     await tester.pumpWidget(
@@ -93,6 +99,7 @@ void main() {
                     context: context,
                     builder: (_) => CastPrepPanel(
                       videoFilePath: filePath,
+                      manualRate: manualRate,
                       requestOf: requestOf ?? request,
                     ),
                   );
@@ -349,7 +356,7 @@ void main() {
       discovery: discovery,
       presence: FakeVideoCopyPresence(),
       picked: picked,
-      requestOf: (_) => throw StateError('标注还没装载'),
+      requestOf: (_, _) => throw StateError('标注还没装载'),
     );
     await tester.tap(find.byKey(const Key('cast_receiver_udn-客厅电视')));
     await tester.pumpAndSettle();
@@ -518,6 +525,189 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(kCastPrepNoReceiverText), findsOneWidget);
+  });
+
+  // ---- 投屏倍速档多选（票 #31）：默认就近、至少一档、先投后渲 ----
+
+  bool tierChecked(WidgetTester tester, CastSpeedTier tier) =>
+      tester
+          .widget<CheckboxListTile>(find.byKey(castPrepTierKey(tier)))
+          .value ??
+      false;
+
+  testWidgets('倍速档多选：默认勾与手动倍率最接近的一档；可加勾；至少留一档', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 0.75,
+    );
+
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isFalse);
+    expect(tierChecked(tester, CastSpeedTier.full), isFalse);
+
+    // 加勾一档：两档都在（多选）。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+    expect(tierChecked(tester, CastSpeedTier.half), isTrue);
+
+    // 取消另一档：只剩 0.5×。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.threeQuarter)));
+    await tester.pumpAndSettle();
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isFalse);
+
+    // 取消最后一档是空操作：投屏总得有一份可播的。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+    expect(tierChecked(tester, CastSpeedTier.half), isTrue, reason: '至少留一档');
+  });
+
+  testWidgets('手动倍率不在三档内：默认勾就近那一档（1.3 → 1×）', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 1.3,
+    );
+
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isFalse);
+    expect(tierChecked(tester, CastSpeedTier.threeQuarter), isFalse);
+  });
+
+  testWidgets('出参带档计划与各档请求；面板只渲起投档那一份', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 1,
+    );
+    // 再加勾 0.5×；只勾声音那条路不合成拍声轨（widget 假时钟下不做异步 IO）。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.half)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_choice_sound')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('cast_receiver_udn-客厅电视')));
+    await tester.pumpAndSettle();
+
+    final outcome = picked.value!;
+    expect(outcome.plan.tiers, [CastSpeedTier.half, CastSpeedTier.full]);
+    expect(outcome.plan.startTier, CastSpeedTier.full, reason: '手动倍率 1× 就近');
+    expect(outcome.plan.pending, [CastSpeedTier.half]);
+    expect(outcome.requests.keys.toSet(), {
+      CastSpeedTier.half,
+      CastSpeedTier.full,
+    });
+    expect(outcome.requests[CastSpeedTier.half]!.speedTier, CastSpeedTier.half);
+    expect(executor.runs, hasLength(1), reason: '面板只渲起投档那一份');
+    expect(
+      executor.runs.single.last,
+      contains(outcome.filePath),
+      reason: '渲的就是带出去的那一份',
+    );
+  });
+
+  testWidgets('都不勾渲染档：三档置灰、只剩原片这一档（1×）并说明', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      manualRate: 0.5,
+    );
+    expect(
+      tierChecked(tester, CastSpeedTier.half),
+      isTrue,
+      reason: '默认就近 0.5×',
+    );
+
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('cast_choice_sound')));
+    await tester.pumpAndSettle();
+
+    expect(tierChecked(tester, CastSpeedTier.full), isTrue);
+    expect(tierChecked(tester, CastSpeedTier.half), isFalse);
+    expect(find.text(kCastPrepTierPassThrough), findsOneWidget);
+    for (final tier in CastSpeedTier.values) {
+      expect(
+        tester
+            .widget<CheckboxListTile>(find.byKey(castPrepTierKey(tier)))
+            .onChanged,
+        isNull,
+        reason: '${tier.name}：没有副本可换，三档一律置灰',
+      );
+    }
+
+    await tester.tap(find.byKey(const Key('cast_receiver_udn-客厅电视')));
+    await tester.pumpAndSettle();
+
+    final outcome = picked.value!;
+    expect(outcome.filePath, filePath, reason: '不渲染就推原片');
+    expect(outcome.plan.tiers, [CastSpeedTier.full], reason: '只有原片这一档');
+    expect(executor.ran, isFalse);
+  });
+
+  test('先投后渲那句实话逐形状唯一（纯件）', () {
+    expect(
+      castPrepTierSentenceFor(
+        CastSpeedTierPlan(
+          tiers: const [CastSpeedTier.full],
+          startTier: CastSpeedTier.full,
+        ),
+      ),
+      '只备「1×」这一档：投上之后没有别的档要渲',
+    );
+    expect(
+      castPrepTierSentenceFor(
+        CastSpeedTierPlan(
+          tiers: const [
+            CastSpeedTier.half,
+            CastSpeedTier.threeQuarter,
+            CastSpeedTier.full,
+          ],
+          startTier: CastSpeedTier.full,
+        ),
+      ),
+      '先渲「1×」这一档，投上之后其余 2 档在后台接着渲',
+    );
   });
 
   test('三句实话逐组合唯一（纯件）', () {

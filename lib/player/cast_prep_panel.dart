@@ -1,19 +1,25 @@
 /// 投屏准备面板：进入**投屏态**之前那一段编排的界面——列同一局域网上的
-/// **接收端**、勾选要渲染的东西、看渲染进度、可取消，并把两条**门事实**
-/// 当场拦下并说明。
+/// **接收端**、勾选要渲染的东西、**多选投屏倍速档**、看渲染进度、可取消，
+/// 并把两条**门事实**当场拦下并说明。
 ///
-/// ## 它回答两件事
+/// ## 它回答三件事
 ///
 /// 1. **投什么**：两个勾选档（画面类 / 声音类，默认全选）。三句实话各配一种
 ///    组合：都不勾 = 直接推原片；只勾声音 = 秒级；勾了画面 = 预计分钟级、
 ///    改一次设置就要重渲一次（见 [castPrepRenderSentenceFor]）。
-/// 2. **投到哪台**：接收端列表（选中一台即开始渲染，渲好即带出接收端与产物
-///    路径）。
+/// 2. **投几档**：**投屏倍速档多选**——候选只有 0.5 / 0.75 / 1 三档，默认勾
+///    与当前手动倍率最接近的那一档（`cast_speed_tier.dart` 的纯件）；至少留
+///    一档。都不勾渲染档时只剩原片这一档（1×）：没有副本可换，勾别档没有
+///    意义。
+/// 3. **投到哪台**：接收端列表（选中一台即开始渲染，渲好即带出接收端、档计划
+///    与产物路径）。
 ///
 /// ## 渲染发生在这里（进度与取消也在这里）
 ///
-/// 选中接收端后本面板经**渲染编排**（`cast_render_orchestrator.dart`）渲染：
-/// 进度条读执行器报的进度，取消按钮走编排的取消。渲染失败给一句失败话并回到
+/// 选中接收端后本面板经**渲染编排**（`cast_render_orchestrator.dart`）渲
+/// **起投档**（当前倍率最近的那一档）：进度条读执行器报的进度，取消按钮走
+/// 编排的取消。其余档**不在这里渲**——投上之后由投屏运行域后台接着渲
+/// （先投后渲），所以本面板的进度只关起投档。渲染失败给一句失败话并回到
 /// 列表（可以再试或换勾选）；**取消不是失败**，回到列表原样。渲染成功才 pop
 /// 出 [CastPrepOutcome]——起递出通道、连会话、推片、起播与进入投屏态的编排
 /// 都在宿主。
@@ -37,10 +43,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_render_activity.dart' show castRenderInProgressProvider;
 import '../cast/cast_render_executor.dart' show CastRenderProgress;
 import '../cast/cast_render_orchestrator.dart';
 import '../cast/cast_render_request.dart';
 import '../cast/cast_receiver.dart';
+import '../cast/cast_speed_tier.dart';
 import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
 import 'play_tool_table.dart' show kSystemMirrorHintText;
 import 'system_mirror_entry.dart' show openSystemMirrorEntry;
@@ -68,6 +76,12 @@ const String kCastPrepSentenceSoundOnly = '只重做音轨：拍声混进去，�
 /// 勾了画面类时的实话：分钟级，且改设置要重渲。
 const String kCastPrepSentencePicture = '画面要重编码：预计分钟级；改一次设置就要重渲一次';
 
+/// 倍速档那一段的标题。
+const String kCastPrepTierTitle = '投屏倍速档';
+
+/// 都不勾渲染档时的实话：没有副本可换，只有原片这一档。
+const String kCastPrepTierPassThrough = '不渲染就没有别的倍速档可换：只有原片这一档（1×）';
+
 /// 渲染失败时的那一句。
 const String kCastPrepRenderFailedText = '这次没渲出来：可以再试一次，或改一下勾选';
 
@@ -81,33 +95,68 @@ String castPrepRenderSentenceFor(CastRenderChoices choices) {
   return kCastPrepSentencePicture;
 }
 
-/// 面板的出参：投到哪台 + 要推哪一份文件（渲好的副本，或原片）。
+/// 档计划 → 那一句实话（先投后渲：先渲哪一档、其余档去哪）。
+String castPrepTierSentenceFor(CastSpeedTierPlan plan) {
+  if (plan.pending.isEmpty) {
+    return '只备「${castSpeedTierLabel(plan.startTier)}」这一档：'
+        '投上之后没有别的档要渲';
+  }
+  return '先渲「${castSpeedTierLabel(plan.startTier)}」这一档，投上之后'
+      '其余 ${plan.pending.length} 档在后台接着渲';
+}
+
+/// 一档在准备面板里的定位 key（测试与界面共用）。
+Key castPrepTierKey(CastSpeedTier tier) => Key('cast_speed_tier_${tier.name}');
+
+/// 面板的出参：投到哪台 + 这次备哪几档 + 各档的渲染请求 + 要立刻推的那一份。
 class CastPrepOutcome {
-  const CastPrepOutcome({required this.receiver, required this.filePath});
+  const CastPrepOutcome({
+    required this.receiver,
+    required this.plan,
+    required this.requests,
+    required this.filePath,
+  });
 
   final CastReceiver receiver;
 
-  /// 要推给接收端的文件路径：勾了渲染就是渲染产物，都不勾就是原片。
+  /// 这次备的档（要备哪几档、先渲哪一档）。
+  final CastSpeedTierPlan plan;
+
+  /// 各档的渲染请求（投上之后后台渲染逐档取用）。
+  final Map<CastSpeedTier, CastRenderRequest> requests;
+
+  /// 要立刻推给接收端的文件路径：**起投档**的产物；都不勾渲染就是原片。
   final String filePath;
 
   @override
-  String toString() => 'CastPrepOutcome(${receiver.friendlyName}, $filePath)';
+  String toString() =>
+      'CastPrepOutcome(${receiver.friendlyName}, $plan, $filePath)';
 }
 
-/// 投屏准备面板（宿主经 `showDialog` 呈现；出参 = 接收端 + 要推的文件）。
+/// 投屏准备面板（宿主经 `showDialog` 呈现；出参 = 接收端 + 档计划 + 要推的
+/// 那一份）。
 class CastPrepPanel extends ConsumerStatefulWidget {
   const CastPrepPanel({
     super.key,
     required this.videoFilePath,
+    required this.manualRate,
     required this.requestOf,
   });
 
   /// 这支舞的**视频副本**路径（副本存在性判定的输入，也是不渲染时的产物）。
   final String videoFilePath;
 
-  /// 按当前勾选档装配一份渲染请求（各域读面由宿主读齐，见
+  /// 打开面板那一刻的**手动倍率**（默认勾哪一档、先渲哪一档都按它就近取值）。
+  /// 由宿主读数交入——面板不认倍速域。
+  final double manualRate;
+
+  /// 按当前勾选档与**某一档**装配一份渲染请求（各域读面由宿主读齐，见
   /// `cast_render_wiring.dart`）。
-  final CastRenderRequest Function(CastRenderChoices choices) requestOf;
+  final CastRenderRequest Function(
+    CastRenderChoices choices,
+    CastSpeedTier tier,
+  )
+  requestOf;
 
   @override
   ConsumerState<CastPrepPanel> createState() => _CastPrepPanelState();
@@ -116,6 +165,9 @@ class CastPrepPanel extends ConsumerStatefulWidget {
 class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
   /// 默认全选（画面类 + 声音类）。
   CastRenderChoices _choices = const CastRenderChoices.all();
+
+  /// 勾了哪几档（默认 = 与手动倍率最接近的那一档）。
+  late Set<CastSpeedTier> _tiers = defaultCastSpeedTiersFor(widget.manualRate);
 
   bool _scanning = true;
   List<CastReceiver> _receivers = const [];
@@ -188,11 +240,44 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
     });
   }
 
-  /// 选中一台接收端 = 开始这次准备：装配请求 → 渲染（若需要）→ 带出结局。
+  /// 这次要备哪几档、先渲哪一档（纯件算；都不勾渲染档时只剩原片这一档）。
+  CastSpeedTierPlan get _plan => castSpeedTierPlanFor(
+    renders: _choices.renders,
+    manualRate: widget.manualRate,
+    selected: _tiers,
+  );
+
+  /// 界面上三个勾选框此刻的样子：都不勾渲染档时固定「只有 1× 这一档」。
+  Set<CastSpeedTier> get _shownTiers =>
+      _choices.renders ? _tiers : const {CastSpeedTier.full};
+
+  /// 勾/取消一档。**至少留一档**：取消最后一档是空操作（投屏总得有一份可
+  /// 播的）。渲染期间不可改（改了要重来一次）。
+  void _setTier(CastSpeedTier tier, bool checked) {
+    if (_rendering || !_choices.renders) return;
+    final next = {..._tiers};
+    if (checked) {
+      next.add(tier);
+    } else {
+      if (next.length <= 1) return;
+      next.remove(tier);
+    }
+    setState(() {
+      _tiers = next;
+      _renderFailed = false;
+    });
+  }
+
+  /// 选中一台接收端 = 开始这次准备：装配各档请求 → 渲**起投档** → 带出结局
+  /// （其余档投上之后由投屏运行域后台渲）。
   Future<void> _pick(CastReceiver receiver) async {
-    final CastRenderRequest request;
+    final CastSpeedTierPlan plan;
+    final requests = <CastSpeedTier, CastRenderRequest>{};
     try {
-      request = widget.requestOf(_choices);
+      plan = _plan;
+      for (final tier in plan.tiers) {
+        requests[tier] = widget.requestOf(_choices, tier);
+      }
     } on Object {
       // 读面还没就绪（例如标注尚未装载）——当场说明，不静默什么都不做。
       setState(() => _renderFailed = true);
@@ -208,19 +293,33 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
 
     final orchestrator = ref.read(castRenderOrchestratorProvider);
     _orchestrator = orchestrator;
-    final result = await orchestrator.render(
-      request,
-      onProgress: (progress) {
-        if (mounted) setState(() => _progress = progress);
-      },
-    );
+    // 起渲与收工都记进「渲染进行中」这一位事实（投屏入口的门读它）。
+    final activity = ref.read(castRenderInProgressProvider.notifier);
+    activity.begin();
+    final CastRenderResult result;
+    try {
+      result = await orchestrator.render(
+        requests[plan.startTier]!,
+        onProgress: (progress) {
+          if (mounted) setState(() => _progress = progress);
+        },
+      );
+    } finally {
+      activity.end();
+    }
 
     if (!mounted) return;
     _inFlight = false;
     final filePath = result.filePath;
     if (filePath != null) {
-      Navigator.of(context)
-          .pop(CastPrepOutcome(receiver: receiver, filePath: filePath));
+      Navigator.of(context).pop(
+        CastPrepOutcome(
+          receiver: receiver,
+          plan: plan,
+          requests: requests,
+          filePath: filePath,
+        ),
+      );
       return;
     }
     setState(() {
@@ -266,6 +365,8 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                   height: 1.4,
                 ),
               ),
+              const SizedBox(height: 8),
+              _tierSection(),
               const SizedBox(height: 8),
               if (_rendering)
                 _renderProgress()
@@ -340,8 +441,60 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
     );
   }
 
-  /// 「搜不到接收端」空态里那枚**系统镜像**入口：代价差文案 + 送出按钮。
+  /// 投屏倍速档那一段：三档多选（候选只有 0.5 / 0.75 / 1）+ 先投后渲那句实话
+  /// +「都不勾渲染档时只剩原片这一档」。
   ///
+  /// 至少留一档：唯一勾着的那一枚不能再取消（投屏总得有一份可播的）。
+  /// 都不勾渲染档时三枚一律置灰、只勾着 1×——没有副本可换，勾别档没有意义。
+  Widget _tierSection() {
+    final shown = _shownTiers;
+    final locked = _rendering || !_choices.renders;
+    return Column(
+      key: const Key('cast_speed_tiers'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          kCastPrepTierTitle,
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            for (final tier in kCastSpeedTierCandidates)
+              Expanded(
+                child: CheckboxListTile(
+                  key: castPrepTierKey(tier),
+                  value: shown.contains(tier),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(
+                    castSpeedTierLabel(tier),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                  onChanged: locked
+                      ? null
+                      : (checked) => _setTier(tier, checked ?? false),
+                ),
+              ),
+          ],
+        ),
+        Text(
+          _choices.renders
+              ? castPrepTierSentenceFor(_plan)
+              : kCastPrepTierPassThrough,
+          key: const Key('cast_speed_tier_sentence'),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 「搜不到接收端」空态里那枚**系统镜像**入口：代价差文案 + 送出按钮。
   /// 文案取的是那条入口自己的提示文案（[kSystemMirrorHintText]，与投屏态
   /// 顶栏那枚共用一份）——在面板里有版面，就直白摆出来，不必长按；动作走
   /// [openSystemMirrorEntry]：先断开（这里本就没投，断开是幂等空操作）再跳、
@@ -432,7 +585,9 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
         ),
         const SizedBox(height: 4),
         Text(
-          '投到「${_pending?.friendlyName ?? ''}」，渲好即开始推片',
+          '投到「${_pending?.friendlyName ?? ''}」，先渲'
+          '「${castSpeedTierLabel(_plan.startTier)}」这一档，'
+          '渲好即开始推片',
           style: const TextStyle(color: Colors.white38, fontSize: 11),
         ),
       ],

@@ -255,6 +255,14 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
         tappable: _playToolTappable(slot, live, live.castAvailable),
         onTap: _toggleCast,
       ),
+      // 倍速切换：只在投屏态顶栏行集内、且是该行首枚——点开投屏倍速面板
+      // （三档各自的准备进度都在那里；点一枚已渲好的档就让接收端换一个文件
+      // 播）。它与编辑面那枚「倍速设置」不是同一枚：投屏态没有倍速步进。
+      PlayToolSlotId.castSpeed => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: () => unawaited(showCastSpeedPanel(context)),
+      ),
       // 画面开关：只在投屏态顶栏行集内——打开即把画面区从黑底切成静音本地
       // 预览（起播定位与静音归投屏预览域），动作本体在宿主（源文件在宿主
       // 手上）。激活高亮 = 预览开着。

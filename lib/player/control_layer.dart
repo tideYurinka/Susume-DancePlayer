@@ -87,6 +87,7 @@ import 'beat_correction.dart'
         previewAnchorOccupiedProvider,
         previewDownbeatProvider;
 import 'cast_preview.dart' show castPreviewProvider;
+import 'cast_speed_panel.dart' show showCastSpeedPanel;
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
 import 'settings_cluster.dart' show SettingsCluster, settingsStripVisibleFor;

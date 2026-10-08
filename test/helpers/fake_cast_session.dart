@@ -53,6 +53,16 @@ class FakeCastSession implements CastSession {
 
   Uri? pushedUri;
 
+  /// 每一次 [push] 给的地址，按顺序（换档要看清「第几次推的是哪一份文件」）。
+  final List<Uri> pushes = [];
+
+  /// 非 null 时 [push] 挂在它上面（换档过程态用例放行用）。
+  Completer<void>? pushGate;
+
+  /// [push] 调用时回调（入参 = 第几次 [push]，从 0 起——换档回退用例据此
+  /// 让「换档那一次推」失败、「回退那一次推」成功）。
+  void Function(int callIndex)? onPush;
+
   /// 每一次跳转与设音量给的参数。
   final List<Duration> seeks = [];
   final List<double> volumes = [];
@@ -98,8 +108,13 @@ class FakeCastSession implements CastSession {
 
   @override
   Future<void> push(Uri source) async {
+    final index = pushes.length;
+    onPush?.call(index);
+    pushes.add(source);
     _check('push', failure: pushError);
     pushedUri = source;
+    final gate = pushGate;
+    if (gate != null) await gate.future;
   }
 
   @override
