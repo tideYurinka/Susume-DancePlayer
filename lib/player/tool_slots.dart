@@ -32,6 +32,12 @@
 /// | ⑤ | 预览线越界 | 置灰、不可点 | 无（静默） |
 /// | — | 都不命中 | 正常 | 正常 |
 ///
+/// **投屏入口的五条门复用同一张判定表**（票 #35：副本丢失 / 音画同步
+/// 校准中 / 录制中或录制准备中 / 对比态或取景调节态 / 渲染进行中）：它们
+/// 与「无对象 / 锁定 / 未就绪」同行——**置灰、可点、按下去只解释原因**。
+/// 门种 → 可点性只由 [toolSlotTappable] 一处给（今天唯「预览线越界」静默），
+/// 消费面（顶栏投屏槽）不另判一套。
+///
 /// 三句话优先级：装载未完成压倒一切（对象集本身来自尚未装载的文档，
 /// 此刻「有没有对象」无从判定）；无对象压倒锁定；锁定压倒未就绪与越界
 /// （就近写明，不靠优先级表的书写顺序）。
@@ -106,6 +112,11 @@ enum AddEntryId { halfBeat, localMirror, noteSticker, segmentFlag }
 enum AutoSegmentEntryId { clearSegments, fourBeats, eightBeats }
 
 /// 工具槽的门种类：槽声明「我这个动作有哪些门」。
+///
+/// 两块取值：**标注工具区**那五种（判定表就按它们写）与**投屏入口**那五条
+/// （票 #35；同属顶栏看片工具，判定表与点击语义完全复用同一条——都是
+/// 「置灰、可点、按下去只解释原因」）。两块取值的可点性今天恰好同向，故
+/// [toolSlotTappable] 只按「越界＝静默」一条判。
 enum ToolGateKind {
   /// 装载未完成（打开恢复落定之前）：对象集本身来自尚未装载的文档，
   /// 此刻「有没有对象」无从判定，故本门排在判定表最前。落定点是**标注
@@ -124,6 +135,28 @@ enum ToolGateKind {
 
   /// 预览线越界（在有效练习区间外）。
   previewOutOfBounds,
+
+  // ---- 投屏入口的五条门（第二块：今天只由顶栏「投屏」槽声明）----
+
+  /// 副本丢失：这支舞的**视频副本**不在本机——推一份不在盘上的文件没有
+  /// 意义，先把副本找回来。
+  castCopyMissing,
+
+  /// 音画同步校准中：校准在**本机内核**上量音画偏移，投屏把播放挪到电视
+  /// 上，两条播放接管互斥。
+  castAvSyncCalibrating,
+
+  /// 录制中或录制准备中：录制与投屏是两条互相冲突的播放接管（含准备期，
+  /// 与 `RecordingPlaybackTakeover.active` 同一口径）。
+  castRecording,
+
+  /// 对比态或取景调节态：这两个态各有自己的画面主张与手势面，投屏态不从
+  /// 它们里进去——先退出来再投。
+  castCompareOrFraming,
+
+  /// 渲染进行中：另一次投屏渲染还在跑（含后台渲其余倍速档）——起投会与它
+  /// 抢同一条渲染链，等它跑完。
+  castRendering,
 }
 
 /// 「无对象」门命中时该入口给的做法：说先选中哪一种**作用
@@ -572,12 +605,28 @@ class AutoSegmentEntryTable {
 /// 答错问题。不要按直觉把本表简化成「锁定一律优先」（那会答错问题、且
 /// 推翻待命态已钉住的「谓词不成立不进模块、锁也不弹提示」语义）。
 /// 就近写明，防止后来人「顺手简化」。
+///
+/// 第二块是**投屏入口的五条门**（票 #35）：两块取值不会同时挂在一个入口
+/// 上，故只有块内次序有意义——块内次序即「能说什么就先说什么」：副本丢失
+/// 是一切的前提；音画同步与录制是两条播放接管互斥（音画同步先，与验收
+/// 清单的列举同序）；对比态或取景调节态是模式冲突；渲染进行中是最短命的
+/// 那些事实，放最后。
+///
+/// **本表必须覆盖全部 [ToolGateKind] 取值**（缺一行即那个门永远不判、静默
+/// 失效，`cast_entry_gate_test.dart` 有结构断言钉住）；加取值只改本表一处。
 const List<ToolGateKind> kToolGatePriority = [
+  // 标注工具区（前五行：判定表原文）。
   ToolGateKind.loading,
   ToolGateKind.noSubject,
   ToolGateKind.locked,
   ToolGateKind.gridNotReady,
   ToolGateKind.previewOutOfBounds,
+  // 投屏入口（第二块：只由顶栏「投屏」槽声明）。
+  ToolGateKind.castCopyMissing,
+  ToolGateKind.castAvSyncCalibrating,
+  ToolGateKind.castRecording,
+  ToolGateKind.castCompareOrFraming,
+  ToolGateKind.castRendering,
 ];
 
 /// 判定结果：是否正常、命中的门、是否可点。
@@ -622,6 +671,10 @@ ToolSlotVerdict evaluateToolSlot(Iterable<ToolGateKind> hitGates) {
 /// **全局门事实**（四类）：[loading]（装载未完成）、[locked]（锁定分段）、
 /// [gridNotReady]（网格未就绪）、[previewOutOfBounds]（预览线越界）。
 ///
+/// **投屏入口门事实**（五条，票 #35；只有顶栏「投屏」槽声明它们）：
+/// [castCopyMissing]、[castAvSyncCalibrating]、[castRecording]、
+/// [castCompareOrFraming]、[castRendering]。
+///
 /// **具名作用对象事实**：[selectedLearningSegmentInInterval]（选中段在
 /// 区间内）、[selectedSegmentLine]（选中分段线）、[anyLineSelected]（任一线
 /// 被选中——分段线 / 半拍线 / 局部镜像片段）、[selectedPracticeClip]（选中的练习片段）、
@@ -633,6 +686,11 @@ class ToolFacts {
     this.locked = false,
     this.gridNotReady = false,
     this.previewOutOfBounds = false,
+    this.castCopyMissing = false,
+    this.castAvSyncCalibrating = false,
+    this.castRecording = false,
+    this.castCompareOrFraming = false,
+    this.castRendering = false,
     this.selectedLearningSegmentInInterval = false,
     this.selectedSegmentLine = false,
     this.anyLineSelected = false,
@@ -653,6 +711,21 @@ class ToolFacts {
 
   /// 预览线越界（在有效练习区间外）。
   final bool previewOutOfBounds;
+
+  /// 投屏入口：这支舞的视频副本不在本机。
+  final bool castCopyMissing;
+
+  /// 投屏入口：音画同步校准会话进行中。
+  final bool castAvSyncCalibrating;
+
+  /// 投屏入口：录制中或录制准备中。
+  final bool castRecording;
+
+  /// 投屏入口：处于对比态或取景调节态。
+  final bool castCompareOrFraming;
+
+  /// 投屏入口：投屏渲染进行中。
+  final bool castRendering;
 
   /// 选中段在区间内（熟练度 / 重点槽的作用对象）。
   final bool selectedLearningSegmentInInterval;
@@ -718,6 +791,20 @@ ToolSlotVerdict evaluateDeclaredGates(
     if (declared.contains(ToolGateKind.previewOutOfBounds) &&
         facts.previewOutOfBounds)
       ToolGateKind.previewOutOfBounds,
+    // 投屏入口的第二块（票 #35）：命中条件与上面五行同款——声明 ∩ 事实。
+    if (declared.contains(ToolGateKind.castCopyMissing) &&
+        facts.castCopyMissing)
+      ToolGateKind.castCopyMissing,
+    if (declared.contains(ToolGateKind.castAvSyncCalibrating) &&
+        facts.castAvSyncCalibrating)
+      ToolGateKind.castAvSyncCalibrating,
+    if (declared.contains(ToolGateKind.castRecording) && facts.castRecording)
+      ToolGateKind.castRecording,
+    if (declared.contains(ToolGateKind.castCompareOrFraming) &&
+        facts.castCompareOrFraming)
+      ToolGateKind.castCompareOrFraming,
+    if (declared.contains(ToolGateKind.castRendering) && facts.castRendering)
+      ToolGateKind.castRendering,
   ]);
   // 第②行的一支：入口**没有一句做法可给**时，这一门仍按旧口径
   // 收场——置灰、按不动、静默。「可点」要有可点的东西：没话说就别空报一个

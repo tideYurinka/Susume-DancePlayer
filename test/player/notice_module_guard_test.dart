@@ -28,8 +28,8 @@ void main() {
   });
 
   group('声明数据（身份枚举与时长表）', () {
-    test('身份枚举十六个取值一次声明齐（增「无对象」；增「文档只读」；增投屏三条）', () {
-      expect(NoticeId.values, hasLength(16));
+    test('身份枚举十七个取值一次声明齐（增「无对象」；增「文档只读」；增投屏四条）', () {
+      expect(NoticeId.values, hasLength(17));
       expect(
         NoticeId.values.toSet(),
         equals({
@@ -49,6 +49,7 @@ void main() {
           NoticeId.castInterrupted,
           NoticeId.castNotStarted,
           NoticeId.systemMirrorUnavailable,
+          NoticeId.castEntryBlocked,
         }),
       );
     });

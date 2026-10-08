@@ -51,6 +51,12 @@ import 'annotation_edit.dart'
         SetSelectedSegmentsDensity,
         SetVideoRange,
         ToggleSelectedSegmentsEmphasis;
+import 'cast_entry_gate.dart'
+    show
+        castEntryBlocksStart,
+        castEntryFactsProvider,
+        castEntryToolFacts,
+        castEntryVerdict;
 import 'load_gate.dart';
 import 'gesture_surface_session.dart';
 import 'notice.dart' show NoticeId, noticeTriggerProvider;
@@ -146,6 +152,7 @@ class ControlLayer extends ConsumerStatefulWidget {
     required this.recording,
     required this.onRequestOrientation,
     required this.onDisconnectCast,
+    required this.videoFilePath,
     this.onScrubCommitted,
   });
 
@@ -197,6 +204,10 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 断开投屏（投屏态顶栏那枚工具的动作）：宿主侧同一处实现，左上角退出
   /// 箭头在投屏态内走的是**同一个**回调语义——两处入口、一个动作。
   final VoidCallback onDisconnectCast;
+
+  /// 这支舞的**视频副本**路径（宿主唯一知道的那份）：投屏入口五条门里
+  /// 「副本丢失」一条的输入（其余四条由 `cast_entry_gate.dart` 自己接）。
+  final String videoFilePath;
 
   /// 显式用户拖进度收口落点回报：预览条拖动与非轨道区微调 scrub
   /// 会话结束时回调，宿主据此打循环提示放行标记。
@@ -640,8 +651,19 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   /// 起递出通道与投屏会话，成功才经唯一提交入口提交；取消或起投失败零副作用
   /// （模式值一位不动、待办清空）。已在投屏态内时本枚不在顶栏（换装成
   /// 「断开投屏」），此支不承担断开——断开是 [ControlLayer.onDisconnectCast]。
+  ///
+  /// **五条门先在这里拦下**（票 #35）：门命中时本枚已置灰（可点性经共用判定
+  /// 表派生，见 `play_tool_row.dart`），按下去只弹一句原因——**不落待办、
+  /// 不开面板**。判定用与置灰同一份事实（[castEntryFactsProvider]），
+  /// 不重算一套。
   void _toggleCast() {
     if (ref.read(playerSessionProvider).isCast) return;
+    if (castEntryBlocksStart(
+      ref,
+      facts: ref.read(castEntryFactsProvider(widget.videoFilePath)),
+    )) {
+      return;
+    }
     ref
         .read(playerSessionProvider.notifier)
         .requestEntry(PlayerSessionMode.castControl);

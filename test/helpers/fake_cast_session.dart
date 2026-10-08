@@ -80,6 +80,12 @@ class FakeCastSession implements CastSession {
   int disconnectCalls = 0;
   bool get disconnected => disconnectCalls > 0;
 
+  /// 非 null 时 [disconnect] 抛出它（收尾失败用例：停服不该被它挡住）。
+  Object? disconnectError;
+
+  /// 非 null 时 [disconnect] 挂在它上面（「停服不等收尾回应」用例放行用）。
+  Completer<void>? disconnectGate;
+
   void _check(String name, {Object? failure}) {
     calls.add(name);
     final error = failure ?? actionError;
@@ -144,5 +150,9 @@ class FakeCastSession implements CastSession {
   @override
   Future<void> disconnect() async {
     disconnectCalls++;
+    final gate = disconnectGate;
+    if (gate != null) await gate.future;
+    final error = disconnectError;
+    if (error != null) throw error;
   }
 }

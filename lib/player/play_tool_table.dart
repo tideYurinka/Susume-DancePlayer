@@ -23,8 +23,10 @@
 /// **与标注工具区的关系**：两个工具面并列、各自成表；只共用门判定——
 /// 门种类 [ToolGateKind] 与求值入口 [evaluateDeclaredGates] 取自槽库
 /// `tool_slots.dart`，「灰着的入口按下去绝不执行动作」这条契约因此只有
-/// 一份实现。顶栏今天只吃一类门事实——有没有作用对象（求值的
-/// `hasSubject` 入参）。
+/// 一份实现。顶栏的门事实今天有两类：那枚软门的「有没有作用对象」
+/// （求值的 `hasSubject` 入参）与投屏入口那五条（`facts` 入参，票 #35
+/// 起升格为完整事实装配）——两类都经同一次 [evaluateDeclaredGates] 求值，
+/// 命中集 = 声明 ∩ 事实。
 ///
 /// **什么进表、什么进视图**：唯一判据是「不动的东西才进表」——槽键、
 /// 文案、图标、门清单、软门标记、引导锚点声明、提示文案七样不变的事实进表；
@@ -256,14 +258,29 @@ const PlayToolSlot kPlayToolFramingAdjust = PlayToolSlot(
 
 /// 投屏（编辑面顶栏入口）：点按落待办进**投屏准备**（进入前置声明见
 /// `player_session.dart` 的进入声明表），宿主编排准备面板与起投后经唯一
-/// 提交入口提交。本槽本身无门——「副本丢失」「搜不到接收端」两条门事实拦在
-/// 准备面板里（当场拦下并说明），不在顶栏置灰。
+/// 提交入口提交。
+///
+/// **本槽声明五条门**（票 #35）：副本丢失 / 音画同步校准中 / 录制中（含
+/// 准备期）/ 对比态或取景调节态 / 渲染进行中。命中任一条即置灰，但
+/// **仍可点**——按下去只解释原因、绝不落待办、绝不开面板（判定表与点击
+/// 语义复用底排同一条，见 `tool_slots.dart`）。**接收端不可达 / 搜不到**
+/// 不在这五条里：它只能靠发现或起投那一下才知道，拦在准备面板与起投失败
+/// 面上（短暂提示），做不成入口置灰。
+///
+/// 准备面板里那条「副本丢失」拦下是同一事实的**第二道**（防御进入与面板
+/// 之间文件才丢的窗口），两道同说一句话。
 const PlayToolSlot kPlayToolCast = PlayToolSlot(
   id: PlayToolSlotId.cast,
   key: 'tool_cast',
   label: '投屏',
   icon: PlayToolIcon.cast,
-  gates: [],
+  gates: [
+    ToolGateKind.castCopyMissing,
+    ToolGateKind.castAvSyncCalibrating,
+    ToolGateKind.castRecording,
+    ToolGateKind.castCompareOrFraming,
+    ToolGateKind.castRendering,
+  ],
   softGate: false,
 );
 
@@ -473,19 +490,19 @@ const PlayToolRowSet kPlayToolRowPortraitVideoToolbarBottom = PlayToolRowSet([
 /// 与判定表——「灰着的入口按下去绝不执行动作」只有一份实现），软门另或上
 /// 自己的标记（今天与判定表第②行同向：无对象也是「置灰、可点」）。
 ///
-/// 入参 [hasSubject] 就是顶栏唯一的门事实「有没有作用对象」（具名谓词）；
-/// 恒空的宽类型 [ToolFacts] 只活在共用求值入口内部，不出现在顶栏调用处。
-/// 今天顶栏只有「无对象」一类门，命中时按底排判定即「置灰、可点」；将来
-/// 顶栏真出现第二种门时再升格为完整事实装配——届时再裁定表现，
-/// 不在此预防性偏离底排判定表。
+/// 入参 [hasSubject] 是顶栏那枚软门的门事实「有没有作用对象」（具名谓词）；
+/// [facts] 是**完整事实装配**（票 #35 起）：投屏入口那五条门的事实都在里面，
+/// 不声明它们的槽一位不受影响（命中集 = 声明 ∩ 事实）。顶栏因此与底排读同
+/// 一张判定表——门种 → 可点性不在本处另判。
 bool playToolTappable(
   PlayToolSlot slot, {
   required bool hasSubject,
   required bool enabled,
+  ToolFacts facts = const ToolFacts(),
 }) {
   final verdict = evaluateDeclaredGates(
     slot.gates.toSet(),
-    const ToolFacts(),
+    facts,
     hasSubject: hasSubject,
   );
   return verdict.available ? enabled : slot.softGate || verdict.tappable;

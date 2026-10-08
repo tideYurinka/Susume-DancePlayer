@@ -119,6 +119,7 @@ import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider, playbackPositionProvider;
 import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
 import 'cast_mirror.dart' show CastMirror, NoCastMirror;
+import 'cast_entry_gate.dart' show castEntryBlockedNoticeSpec;
 import 'cast_prep_panel.dart' show CastPrepPanel;
 import 'cast_run.dart'
     show
@@ -198,6 +199,7 @@ const List<NoticeSpec> kNoticeSpecs = [
   castInterruptedNoticeSpec,
   castNotStartedNoticeSpec,
   systemMirrorUnavailableNoticeSpec,
+  castEntryBlockedNoticeSpec,
 ];
 
 /// 本帧交付轨道带的实际行集（档位 × 两轨当前空否的**唯一剪裁点**）。
@@ -1416,6 +1418,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       if (ref.read(playerSessionProvider).isCompare) {
         unawaited(_cameraStage.openPreview());
       }
+      // 投屏：回前台按接收端上报的状态续上——那边自己停了（或被卸载、
+      // 或连接已经没了）就收口回编辑态并给短暂提示，其余状态一位不动
+      // （见 `cast_run.dart` 的 refreshPlaybackState）。
+      if (ref.read(playerSessionProvider).isCast) {
+        unawaited(ref.read(castRunProvider.notifier).refreshPlaybackState());
+      }
     }
   }
 
@@ -1769,6 +1777,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       onOpenFailedBack: () => Navigator.of(context).maybePop(),
       onDisconnectCast: _disconnectCast,
       onRequestOrientation: _requestOrientation,
+      // 投屏入口「副本丢失」门的输入：这支舞的视频副本路径。
+      videoFilePath: widget.source.toFilePath(),
       beatCountContent: const BeatCountContent(),
       onTogglePlay: () => unawaited(_togglePlayPause()),
       onDelayedPlay: _delayedPlay.triggerNow,

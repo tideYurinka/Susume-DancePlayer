@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dance_learning_app/cast/cast_delivery_channel.dart';
@@ -244,6 +245,216 @@ void main() {
       await pumpEventQueue();
 
       expect(interruptedNotices(), 1);
+    });
+  });
+
+  group('电视端停止（接收端自己停了）', () {
+    test('停播上报：断开 + 停服 + 回编辑态 + 短暂提示', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      await run().handlePlaybackState(CastPlaybackState.stopped);
+      await pumpEventQueue();
+
+      expect(state().active, isFalse);
+      expect(cast.disconnected, isTrue);
+      expect(delivery.closed, isTrue);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(interruptedNotices(), 1);
+    });
+
+    test('无媒体上报（电视那边把片子卸了）同一条收场', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      await run().handlePlaybackState(CastPlaybackState.noMedia);
+      await pumpEventQueue();
+
+      expect(state().active, isFalse);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(interruptedNotices(), 1);
+    });
+
+    test('还在播 / 暂停 / 过渡 / 问不到：不是停止，一位不动', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      for (final report in const [
+        CastPlaybackState.playing,
+        CastPlaybackState.paused,
+        CastPlaybackState.transitioning,
+        CastPlaybackState.unknown,
+      ]) {
+        await run().handlePlaybackState(report);
+        expect(state().active, isTrue, reason: '$report');
+        expect(cast.disconnected, isFalse, reason: '$report');
+        expect(interruptedNotices(), 0, reason: '$report');
+      }
+    });
+
+    test('未投屏：空操作、不弹提示', () async {
+      await run().handlePlaybackState(CastPlaybackState.stopped);
+      expect(delivery.closeCalls, 0);
+      expect(interruptedNotices(), 0);
+    });
+
+    test('回前台问一次：接收端报停了就收口', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      cast.reportedState = CastPlaybackState.stopped;
+
+      await run().refreshPlaybackState();
+      await pumpEventQueue();
+
+      expect(cast.calls, contains('playbackState'), reason: '问的就是接收端');
+      expect(state().active, isFalse);
+      expect(cast.disconnected, isTrue);
+      expect(delivery.closed, isTrue);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(interruptedNotices(), 1);
+    });
+
+    test('回前台问一次：还在播就一位不动', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      await run().refreshPlaybackState();
+      await pumpEventQueue();
+
+      expect(state().active, isTrue);
+      expect(cast.disconnected, isFalse);
+      expect(interruptedNotices(), 0);
+    });
+
+    test('回前台问不到（掉线）：会话建立之后的失败同样收口', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      cast.actionError = const CastSessionDropped('连接早就没了');
+
+      await run().refreshPlaybackState();
+      await pumpEventQueue();
+
+      expect(state().active, isFalse);
+      expect(delivery.closed, isTrue);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(interruptedNotices(), 1);
+    });
+
+    test('未投屏：回前台问一次是空操作（不碰接收端）', () async {
+      await run().refreshPlaybackState();
+      expect(factory.connectCalls, 0);
+      expect(interruptedNotices(), 0);
+    });
+  });
+
+  group('递出通道立即停服（含异常路径）', () {
+    test('停服不等接收端的收尾回应：断连还挂在飞时通道已经停了', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final gate = Completer<void>();
+      factory.sessions.single.disconnectGate = gate;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      final closing = run().disconnect();
+      await pumpEventQueue();
+
+      expect(delivery.closed, isTrue, reason: '「立刻不可达」不依赖接收端回应');
+      gate.complete();
+      await closing;
+      expect(state().active, isFalse);
+      expect(session().mode, PlayerSessionMode.editing);
+    });
+
+    test('停服本身抛：不阻断断连，也不向上抛', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      delivery.closeError = StateError('端口已被人抢了');
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      await run().disconnect();
+      await pumpEventQueue();
+
+      expect(cast.disconnected, isTrue);
+      expect(state().active, isFalse);
+      expect(session().mode, PlayerSessionMode.editing);
+    });
+
+    test('断连本身抛：停服已经先做了，收场照旧', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      factory.sessions.single.disconnectError = StateError('连接早就没了');
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+
+      await run().disconnect();
+      await pumpEventQueue();
+
+      expect(delivery.closed, isTrue);
+      expect(state().active, isFalse);
+      expect(session().mode, PlayerSessionMode.editing);
+    });
+
+    test('递出通道起不来（serve 抛）：零残留、模式值一位不动', () async {
+      delivery.serveError = StateError('没有可用的局域网地址');
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.editing,
+      );
+
+      await expectLater(
+        run().start(receiver: receiverNamed('客厅电视'), file: file),
+        throwsA(isA<StateError>()),
+      );
+      await pumpEventQueue();
+
+      expect(state().active, isFalse);
+      expect(factory.connectCalls, 0, reason: '通道没起起来就不连接收端');
+      expect(session().mode, PlayerSessionMode.editing);
+    });
+  });
+
+  group('换接收端失败（会话建立之后的失败也回编辑态）', () {
+    test('换一台连不上：上一条收干净、模式回编辑态、零残留', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final first = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      factory.connectError = const CastReceiverUnreachable('端点连不通');
+
+      await expectLater(
+        run().start(receiver: receiverNamed('卧室盒子'), file: file),
+        throwsA(isA<CastReceiverUnreachable>()),
+      );
+      await pumpEventQueue();
+
+      expect(first.disconnected, isTrue, reason: '上一条会话先收掉');
+      expect(delivery.closed, isTrue, reason: '递出通道一并停服');
+      expect(state().active, isFalse);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(session().pendingEntry, isNull);
+      // 失败后再断一次是幂等空操作：不留悬挂的收尾。
+      await run().disconnect();
+      expect(delivery.closeCalls, greaterThanOrEqualTo(1));
     });
   });
 }

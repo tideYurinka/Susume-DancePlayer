@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dance_learning_app/cast/cast_delivery_channel.dart';
 import 'package:dance_learning_app/cast/cast_failure.dart';
 import 'package:dance_learning_app/cast/cast_receiver.dart';
+import 'package:dance_learning_app/cast/cast_render_activity.dart'
+    show castRenderInProgressProvider;
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
@@ -19,11 +22,22 @@ import 'package:dance_learning_app/persistence/material_manifest.dart'
 import 'package:dance_learning_app/persistence/video_document_providers.dart'
     show videoDocumentStorageFactoryProvider;
 import 'package:dance_learning_app/persistence/video_index.dart';
+import 'package:dance_learning_app/player/av_sync.dart'
+    show
+        AudioOutputDeviceController,
+        AvSyncDeviceInfo,
+        audioOutputDeviceControllerProvider;
+import 'package:dance_learning_app/player/av_sync_session.dart'
+    show avSyncCalibrationSessionProvider;
+import 'package:dance_learning_app/player/compare_recording.dart'
+    show CompareRecordingPhase, compareRecordingPhaseProvider;
 import 'package:dance_learning_app/player/control_layer.dart'
     show kAnnotationToolRowKey;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
+import 'package:dance_learning_app/player/visual_tokens.dart'
+    show kToolSlotDisabledIconColor;
 import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
     show playbackEngineProvider;
 import 'package:dance_learning_app/player_session/player_session.dart'
@@ -31,6 +45,7 @@ import 'package:dance_learning_app/player_session/player_session.dart'
 import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_camera_capture_service.dart';
@@ -82,6 +97,8 @@ void main() {
   Future<void> pumpPlayer(
     WidgetTester tester, {
     String filePath = '/videos/a.mp4',
+    FakeVideoCopyPresence? presence,
+    List<Override> extraOverrides = const [],
   }) async {
     final source = Uri.file(filePath);
     await tester.pumpWidget(
@@ -105,6 +122,9 @@ void main() {
               initial: VideoIndex(
                 entries: [
                   historyEntry(filePath: source.toFilePath(), mirrored: false),
+                  // 「换视频」用例要开的另一支舞（同一个索引里两份条目）。
+                  if (source.toFilePath() != '/videos/b.mp4')
+                    historyEntry(filePath: '/videos/b.mp4', mirrored: false),
                 ],
               ),
             ),
@@ -113,7 +133,10 @@ void main() {
           castSessionFactoryProvider.overrideWithValue(factory),
           castDeliveryChannelProvider.overrideWithValue(delivery),
           systemMirrorLauncherProvider.overrideWithValue(systemMirror),
-          videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
+          videoCopyPresenceProvider.overrideWithValue(
+            presence ?? FakeVideoCopyPresence(),
+          ),
+          ...extraOverrides,
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -231,6 +254,12 @@ void main() {
     expect(find.byKey(const Key('tool_guide')), findsOneWidget);
     expect(find.byKey(const Key('tool_cast')), findsNothing);
     expect(find.byKey(const Key('tool_compare')), findsNothing);
+    // 投屏态对两条既有互斥的明确回答：音画同步校准与录制/取景那几枚入口
+    // 结构性不在场（投屏期不改任何会被渲染的设置、也不与校准抢播放）。
+    expect(find.byKey(const Key('tool_av_sync')), findsNothing);
+    expect(find.byKey(const Key('tool_framing_adjust')), findsNothing);
+    expect(find.byKey(const Key('tool_mirror')), findsNothing);
+    expect(find.byKey(const Key('tool_speed_settings')), findsNothing);
 
     // 底排槽位整排不出现（播放控制组仍在——它是遥控电视的那一条路）。
     expect(find.byKey(kAnnotationToolRowKey), findsNothing);
@@ -435,4 +464,286 @@ void main() {
     expect(find.byKey(const Key('cast_not_started_prompt')), findsOneWidget);
     expect(delivery.closed, isTrue);
   });
+
+  // ---- 投屏入口的五条门（票 #35）：置灰 + 按下去只解释原因 ----
+
+  /// 顶栏工具槽内第一个 Icon 的颜色（置灰 = 不可用视觉 token）。
+  Color toolIconColor(WidgetTester tester, String toolKey) => tester
+      .widget<Icon>(
+        find.descendant(
+          of: find.byKey(Key(toolKey)),
+          matching: find.byType(Icon),
+        ),
+      )
+      .color!;
+
+  /// 灰着那枚按下去：弹原因、什么都不做（不落待办、不开面板、不起通道、
+  /// 不连会话、模式值一位不动）。
+  Future<void> pressBlockedCast(WidgetTester tester, String reason) async {
+    expect(
+      toolIconColor(tester, 'tool_cast'),
+      kToolSlotDisabledIconColor,
+      reason: '门命中时入口要置灰',
+    );
+    final modeBefore = modeOf(tester);
+
+    await tester.tap(find.byKey(const Key('tool_cast')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('cast_entry_blocked_prompt')), findsOneWidget);
+    expect(find.text(reason), findsOneWidget);
+    expect(find.byKey(const Key('cast_prep_panel')), findsNothing);
+    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+    expect(modeOf(tester), modeBefore, reason: '模式值一位不动');
+    expect(discovery.discoverCalls, 0);
+    expect(delivery.served, isEmpty);
+    expect(factory.connectCalls, 0);
+  }
+
+  testWidgets('门①副本丢失：入口置灰、按下去只解释原因', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(
+      tester,
+      presence: FakeVideoCopyPresence(missingPaths: const {'/videos/a.mp4'}),
+    );
+    await openControlLayer(tester);
+
+    await pressBlockedCast(tester, '这支舞的视频副本不在本机，先把副本找回来再投屏');
+  });
+
+  testWidgets('门②音画同步校准中：入口置灰、按下去只解释原因', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        audioOutputDeviceControllerProvider.overrideWithValue(_NoAudioDevice()),
+      ],
+    );
+    await openControlLayer(tester);
+
+    await containerOf(tester)
+        .read(avSyncCalibrationSessionProvider.notifier)
+        .enter();
+    await tester.pumpAndSettle();
+
+    await pressBlockedCast(tester, '音画同步校准中，先退出校准再投屏');
+  });
+
+  testWidgets('门③录制中或录制准备中：两值都置灰、按下去只解释原因', (tester) async {
+    for (final phase in const [
+      CompareRecordingPhase.preparing,
+      CompareRecordingPhase.recording,
+    ]) {
+      setWideView(tester);
+      await pumpPlayer(tester);
+      await openControlLayer(tester);
+
+      containerOf(tester)
+          .read(compareRecordingPhaseProvider.notifier)
+          .set(phase);
+      await tester.pumpAndSettle();
+
+      expect(
+        toolIconColor(tester, 'tool_cast'),
+        kToolSlotDisabledIconColor,
+        reason: '$phase',
+      );
+
+      await tester.tap(find.byKey(const Key('tool_cast')));
+      await tester.pump();
+      expect(find.text('录制中（含准备中）不能投屏，先停录'), findsOneWidget);
+      expect(find.byKey(const Key('cast_prep_panel')), findsNothing);
+      expect(
+        containerOf(tester).read(playerSessionProvider).pendingEntry,
+        isNull,
+      );
+
+      // 本页拆掉再放下一个相位：两棵树不互相串状态。
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets('门④对比态：入口置灰、按下去只解释原因（对比-控制层里那枚还在）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+
+    containerOf(tester)
+        .read(playerSessionProvider.notifier)
+        .enter(PlayerSessionMode.compareEditing);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('tool_cast')), findsOneWidget);
+    await pressBlockedCast(tester, '先退出对比或取景调整，再投屏');
+  });
+
+  testWidgets('门⑤渲染进行中：入口置灰、按下去只解释原因', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+
+    containerOf(tester).read(castRenderInProgressProvider.notifier).begin();
+    await tester.pumpAndSettle();
+
+    await pressBlockedCast(tester, '正在渲染投屏副本，渲完再投');
+  });
+
+  testWidgets('门都不命中：入口正常、点得开准备面板（门不是拦路虎）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+
+    expect(
+      toolIconColor(tester, 'tool_cast'),
+      isNot(kToolSlotDisabledIconColor),
+    );
+    await tester.tap(find.byKey(const Key('tool_cast')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('cast_prep_panel')), findsOneWidget);
+    expect(find.byKey(const Key('cast_entry_blocked_prompt')), findsNothing);
+  });
+
+  // ---- 失败分流（票 #35）：会话没建立起来的失败 ----
+
+  testWidgets('搜不到接收端：准备面板当场说明同一 Wi-Fi / 访客网络，并把重扫留在眼前', (tester) async {
+    setWideView(tester);
+    discovery = FakeCastReceiverDiscovery(script: [const []]);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+
+    await tester.tap(find.byKey(const Key('tool_cast')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('cast_prep_panel')), findsOneWidget);
+    expect(find.text('没找到接收端：手机与电视要在同一个 Wi-Fi，电视别开访客网络'), findsOneWidget);
+    expect(find.byKey(const Key('cast_prep_refresh')), findsOneWidget);
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(delivery.served, isEmpty);
+  });
+
+  testWidgets('推片被拒：短暂提示 + 停在编辑态、通道零残留', (tester) async {
+    setWideView(tester);
+    factory.configure = (session) =>
+        session.pushError = const CastActionRefused('拒播');
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(find.byKey(const Key('cast_not_started_prompt')), findsOneWidget);
+    expect(factory.sessions.single.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+  });
+
+  testWidgets('递出通道起不来：短暂提示 + 停在编辑态、零残留', (tester) async {
+    setWideView(tester);
+    delivery.serveError = StateError('没有可用的局域网地址');
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(find.byKey(const Key('cast_not_started_prompt')), findsOneWidget);
+    expect(factory.connectCalls, 0, reason: '通道没起起来就不连接收端');
+    expect(containerOf(tester).read(playerSessionProvider).pendingEntry, isNull);
+  });
+
+  // ---- 断开触发点收在既有复位一处 ----
+
+  testWidgets('系统返回两级：投屏-观看态内先断开回编辑态、再按一次才离开页面', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    containerOf(tester).read(playerSessionProvider.notifier).collapse();
+    await tester.pumpAndSettle();
+    expect(modeOf(tester), PlayerSessionMode.castWatching);
+
+    final first = await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(first, isTrue);
+    expect(factory.sessions.single.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(find.byType(PlayerPage), findsOneWidget, reason: '第一次不离开页面');
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerPage), findsNothing, reason: '第二次离开页面');
+  });
+
+  testWidgets('换视频：上一支舞的投屏断开并停服（与离开页面同一个复位触发点）', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final first = factory.sessions.single;
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+
+    // 换视频：在播放页之上再开一支舞——新页的打开恢复经既有复位一处。
+    unawaited(
+      Navigator.of(tester.element(find.byType(PlayerPage))).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PlayerPage(source: Uri.file('/videos/b.mp4')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(first.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(modeOf(tester), PlayerSessionMode.watching, reason: '复位回观看态');
+    expect(find.byKey(const Key('tool_cast_disconnect')), findsNothing);
+  });
+
+  // ---- 失败分流：会话建立之后的失败 ----
+
+  testWidgets('电视端停止：回前台问一次状态，那边停了就断开回编辑态并给短暂提示', (
+    tester,
+  ) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+    // 电视那边被按了停（或片子被卸了）：App 退后台再回来才知道。
+    cast.reportedState = CastPlaybackState.stopped;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(cast.calls, contains('playbackState'), reason: '回前台问的就是接收端');
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(cast.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsOneWidget);
+  });
+
+  testWidgets('电视端还在播：回前台问一次，投屏一位不动', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(cast.disconnected, isFalse);
+    expect(delivery.closed, isFalse);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsNothing);
+  });
+}
+
+/// 无输出设备替身（校准会话进入流程不碰平台通道）。
+class _NoAudioDevice implements AudioOutputDeviceController {
+  @override
+  Future<AvSyncDeviceInfo?> get() async => null;
+
+  @override
+  Stream<AvSyncDeviceInfo?> get deviceStream => const Stream.empty();
 }

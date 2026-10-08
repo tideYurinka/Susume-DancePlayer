@@ -14,6 +14,9 @@ class FakeCastDeliveryChannel implements CastDeliveryChannel {
   /// 非 null 时 [serve] 抛出它（递出失败用例）。
   Object? serveError;
 
+  /// 非 null 时 [close] 抛出它（停服失败用例：不阻断断连、不向上抛）。
+  Object? closeError;
+
   /// [close] 的调用次数。
   int closeCalls = 0;
 
@@ -30,5 +33,7 @@ class FakeCastDeliveryChannel implements CastDeliveryChannel {
   @override
   Future<void> close() async {
     closeCalls++;
+    final error = closeError;
+    if (error != null) throw error;
   }
 }

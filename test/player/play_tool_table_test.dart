@@ -301,7 +301,7 @@ void main() {
       expect(kPlayToolMore.icon, PlayToolIcon.more);
     });
 
-    test('门清单显式声明：只有「局部镜像」报无对象门，其余显式空清单', () {
+    test('门清单显式声明：局部镜像报无对象门、投屏报五条入口门，其余显式空清单', () {
       expect(kPlayToolUndo.gates, isEmpty);
       expect(kPlayToolRedo.gates, isEmpty);
       expect(kPlayToolAvSync.gates, isEmpty);
@@ -315,7 +315,13 @@ void main() {
       expect(kPlayToolLocalMirror.gates, [ToolGateKind.noSubject]);
       expect(kPlayToolSpeedSettings.gates, isEmpty);
       expect(kPlayToolCompare.gates, isEmpty);
-      expect(kPlayToolCast.gates, isEmpty);
+      expect(kPlayToolCast.gates, [
+        ToolGateKind.castCopyMissing,
+        ToolGateKind.castAvSyncCalibrating,
+        ToolGateKind.castRecording,
+        ToolGateKind.castCompareOrFraming,
+        ToolGateKind.castRendering,
+      ]);
       expect(kPlayToolDisconnectCast.gates, isEmpty);
       expect(
         kPlayToolSystemMirror.gates,

@@ -131,6 +131,7 @@ class PresentationLayerInput {
     required this.reviewingClip,
     required this.systemTopInset,
     required this.systemBottomInset,
+    required this.videoFilePath,
     required this.systemGestureInsets,
     required this.scrubPictureRectOf,
     required this.landscape,
@@ -196,6 +197,11 @@ class PresentationLayerInput {
   /// 布局事实（构建上下文读取留在组合根）：系统手势内缩——
   /// 贴底常驻入口在固定边距上叠加它避开手势让路区；为 0 时落位不变。
   final EdgeInsets systemGestureInsets;
+
+  /// 这支舞的**视频副本**路径（组合根唯一知道的那个路径）：投屏入口
+  /// 「副本丢失」门的输入（其余四条的读面在 `cast_entry_gate.dart` 里
+  /// 自己接）。
+  final String videoFilePath;
 
   /// 画面矩形现读闭包：组合根解一次、手势仲裁域
   /// 与浮层标记吃同一份；本层只转发，不重写 contain 算术。
@@ -471,6 +477,8 @@ class PresentationLayer extends ConsumerWidget {
                 onRequestOrientation: input.onRequestOrientation,
                 onDisconnectCast: input.onDisconnectCast,
                 onScrubCommitted: input.loopPrompt.markManualSeek,
+                // 投屏入口「副本丢失」门的输入：路径取自组合根。
+                videoFilePath: input.videoFilePath,
               );
             },
           ),

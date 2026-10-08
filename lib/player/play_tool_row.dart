@@ -5,12 +5,22 @@ part of 'control_layer.dart';
 /// 按槽身份在 `_assemblePlayTool` 穷尽装配。
 
 extension _ControlLayerPlayToolRow on ControlLayerState {
-  /// 顶栏唯一的门事实（收窄为具名谓词）：**有没有作用对象**——
-  /// 今天它就是「有没有局部镜像片段」。不再传恒空的宽类型事实对象
-  /// （[ToolFacts] 只活在共用求值入口内部）；将来顶栏真出现第二种门时，
-  /// 把本谓词升格成完整事实装配是一次有依据的改动。
+  /// 顶栏软门那条门事实（收窄为具名谓词）：**有没有作用对象**——
+  /// 今天它就是「有没有局部镜像片段」。投屏入口那五条门不走这个谓词，
+  /// 走 [_playToolCastGate]（完整事实装配）。
   bool get _playToolHasSubject =>
       ref.watch(localMirrorFragmentsProvider).isNotEmpty;
+
+  /// 投屏入口五条门的事实装配（唯一装配点在 `cast_entry_gate.dart`）：
+  /// 本处取一次，翻成共用判定表吃的 [ToolFacts]（置灰）与判定（可点性）
+  /// 读的是**同一份**事实，不重算一套。
+  ({ToolFacts toolFacts, bool castAvailable}) get _playToolCastGate {
+    final facts = ref.watch(castEntryFactsProvider(widget.videoFilePath));
+    return (
+      toolFacts: castEntryToolFacts(facts),
+      castAvailable: castEntryVerdict(facts).available,
+    );
+  }
 
   /// 顶栏装配一次所需的**活值**：声明在表（[PlayToolSlot]），本束
   /// 只装每次构建会变的求值结果；镜像状态机不经此束——装配点直读
@@ -29,11 +39,14 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     final speedSlotWidth = topBarSpeedSlotWidth(
       textScaler: MediaQuery.textScalerOf(context),
     );
+    final castGate = _playToolCastGate;
     return _PlayToolLive(
       speed: speed,
       canUndo: editHistory.canUndo,
       canRedo: editHistory.canRedo,
       hasSubject: _playToolHasSubject,
+      facts: castGate.toolFacts,
+      castAvailable: castGate.castAvailable,
       compareActive: compareActive,
       speedSlotWidth: speedSlotWidth,
     );
@@ -90,9 +103,15 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     );
   }
 
-  /// 可点性派生（共用求值入口的短手）：门事实取 [_playToolHasSubject]。
+  /// 可点性派生（共用求值入口的短手）：软门事实取 [_playToolHasSubject]，
+  /// 投屏那五条取 [live] 里的完整事实装配。
   bool _playToolTappable(PlayToolSlot slot, _PlayToolLive live, bool enabled) =>
-      playToolTappable(slot, hasSubject: live.hasSubject, enabled: enabled);
+      playToolTappable(
+        slot,
+        hasSubject: live.hasSubject,
+        enabled: enabled,
+        facts: live.facts,
+      );
 
   /// 单槽视图件（气泡锚点 + Listenable 包裹在此统一处理）：监听对象触发时
   /// **重装配**（按同一槽身份取当前活值，如镜像琥珀），不能用旧视图。
@@ -222,11 +241,15 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       //
       // 「练习镜像」。
       // 投屏：编辑面顶栏入口——落待办（进入前置 = 投屏准备），宿主编排
-      // 准备面板与起投后经唯一提交入口提交。投屏态顶栏没有本枚（换装成
+      // 准备面板与起投后经唯一提交入口提交。**五条门**（票 #35：副本丢失 /
+      // 音画同步校准中 / 录制中 / 对比态或取景调节态 / 渲染进行中）命中时
+      // 置灰（[live.castAvailable] 为假）但**仍可点**：按下去只解释原因
+      // （[_toggleCast] 与置灰读同一份事实）。投屏态顶栏没有本枚（换装成
       // 「断开投屏」），此支因此只在编辑面被走到。
       PlayToolSlotId.cast => _PlayToolView(
         slot: slot,
-        tappable: true,
+        enabled: live.castAvailable,
+        tappable: _playToolTappable(slot, live, live.castAvailable),
         onTap: _toggleCast,
       ),
       // 断开投屏：只在投屏态顶栏行集内——与左上角退出箭头同义，两处入口
@@ -527,6 +550,8 @@ class _PlayToolLive {
     required this.canUndo,
     required this.canRedo,
     required this.hasSubject,
+    required this.facts,
+    required this.castAvailable,
     required this.compareActive,
     required this.speedSlotWidth,
   });
@@ -538,6 +563,15 @@ class _PlayToolLive {
   /// 门事实「有没有作用对象」此刻的取值（具名谓词
   /// `ControlLayerState._playToolHasSubject` 的结果）。
   final bool hasSubject;
+
+  /// 投屏入口五条门的事实装配（唯一装配点的取值翻成的判定表事实；
+  /// 不声明这些门的槽不受它影响）。
+  final ToolFacts facts;
+
+  /// 投屏入口此刻是否可用（五条门一条都没命中）。置灰观感与点击解释
+  /// 同读它——与 [facts] 同源。
+  final bool castAvailable;
+
   final bool compareActive;
 
   /// 「倍速设置」槽的定宽（依赖系统字号，构建期求值）。

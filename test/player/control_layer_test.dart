@@ -334,6 +334,10 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
               rowTable: widget.rowTable,
               recording: false,
               onRequestOrientation: (_) {},
+              // 投屏入口「副本丢失」门的输入：本壳不测投屏入口，
+              // 给一条普通假路径即可（副本不存在时那枚入口只置灰，
+              // 不影响本文件其余断言）。
+              videoFilePath: '/videos/a.mp4',
             ),
           ),
         // 居中短暂提示：控制层触发面（软门解释、装载提示）的渲染宿主。

@@ -17,6 +17,17 @@
 ///   控件）。三个动作都**不抛**：失败由本域收口（断开 + 回编辑态 + 短暂
 ///   提示），本机播放不因一次投屏失败被带停。
 ///
+/// ## 失败分流（票 #35：两种收场，逐条钉住）
+///
+/// - **会话没建立起来的失败**（搜不到接收端 / 推片被拒 / 连不上 / 递出通道
+///   起不来 / 换接收端失败）：[start] 零残留地收干净并把异常**向上抛**，
+///   模式值一位不动（用户本就在编辑态）；失败面由宿主给一句短暂提示
+///   （`cast_not_started_prompt`）。「搜不到」更早一步发生在准备面板空态。
+/// - **会话建立之后的失败**（失联 / 电视端停止）：一律**回编辑态**再给短暂
+///   提示——遥控动作失败走 [_mirror] 的收口，电视端停止走
+///   [handlePlaybackState] 的收口，两条都落进 [_fail]（断开 + 停服 + 回编辑
+///   态 + `cast_interrupted_prompt`），且并发只收口一次。
+///
 /// ## 断开触发点收在既有复位一处
 ///
 /// 换视频与离开播放页都经 [PlayerSessionModel.reset]（见
@@ -177,6 +188,40 @@ class CastRunModel extends Notifier<CastRunState> implements CastMirror {
     } on Object {
       await _fail();
     }
+  }
+
+  /// **电视端停止**收口：接收端自己停了（那边被按了停 / 片子被卸了）。
+  ///
+  /// 会话建立之后的失败与遥控失败同一条收场——断开（含停服）+ 回编辑态 +
+  /// 短暂提示。接收端上报的当前播放状态由 [refreshPlaybackState]（回前台
+  /// 问一次）喂进来，本域只负责「停了就收口」，不自己起轮询。
+  /// 未投屏、或状态还在播 / 暂停 / 过渡 / 问不到时都是空操作。
+  Future<void> handlePlaybackState(CastPlaybackState state) async {
+    if (state != CastPlaybackState.stopped &&
+        state != CastPlaybackState.noMedia) {
+      return;
+    }
+    if (_session == null) return;
+    await _fail();
+  }
+
+  /// 回前台（播放页 `didChangeAppLifecycleState` 的 resumed 支）问一次接收端
+  /// 此刻的播放状态，喂给 [handlePlaybackState] 收口：那边已经停了就断开回
+  /// 编辑态、给短暂提示；还在播 / 暂停 / 问不到时一位不动。
+  ///
+  /// **问不到也算会话建立之后的失败**（掉线）——同样收口，不留一个点不动的
+  /// 界面。未投屏时空操作。
+  Future<void> refreshPlaybackState() async {
+    final session = _session;
+    if (session == null) return;
+    final CastPlaybackState reported;
+    try {
+      reported = await session.playbackState();
+    } on Object {
+      await _fail();
+      return;
+    }
+    await handlePlaybackState(reported);
   }
 
   /// 失败收口：断开（含停服）+ 回编辑态 + 短暂提示。无会话时是空操作——
