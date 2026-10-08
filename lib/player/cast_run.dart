@@ -19,6 +19,11 @@
 /// - **断开**：[disconnect] 是唯一出口——先停服（在飞连接一并断）、再断连，
 ///   并把在飞的后台渲染一并取消，随后 [PlayerSessionModel.exitCast] 回编辑态。
 ///   重复调用与未投屏时都是空操作；
+/// - **生命周期**（票 #41）：真正退到后台 / 锁屏 = 把**投屏会话视为暂停**
+///   （[pauseForBackground]：让接收端停下，不引前台服务、会话也不比播放页活
+///   得久）；回来时按接收端上报的状态**续上**（[refreshPlaybackState] →
+///   [handlePlaybackState]）——上报状态 → 界面 / 会话动作是一张穷尽映射
+///   （`cast_playback_follow.dart`，接收端是权威），paused 一支不留空操作；
 /// - **遥控镜像**（[CastMirror]）：投屏态内本机的播放 / 暂停 / 跳转**同时**
 ///   作用于接收端。跳转按**当前档**换算坐标（源坐标 ↔ 副本坐标），否则 0.5×
 ///   档上「跳到 10 秒」会让电视停在 10 秒处而不是源片第 10 秒；副本 0 是**首线**
@@ -89,6 +94,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_delivery_channel.dart';
 import '../cast/cast_failure.dart' show CastSessionDropped;
+import '../cast/cast_playback_follow.dart';
 import '../cast/cast_receiver.dart';
 import '../cast/cast_render_activity.dart' show castRenderInProgressProvider;
 import '../cast/cast_range_gate.dart'
@@ -102,6 +108,8 @@ import '../cast/cast_render_request.dart';
 import '../cast/cast_screen_awake.dart';
 import '../cast/cast_session.dart';
 import '../cast/cast_speed_tier.dart';
+import '../core/playback/playback_engine_providers.dart'
+    show playbackEngineProvider;
 import '../player_session/player_session.dart';
 import 'cast_mirror.dart';
 import 'cast_volume.dart' show CastVolume;
@@ -581,20 +589,59 @@ class CastRunModel extends Notifier<CastRunState>
   ///
   /// 会话建立之后的失败与遥控失败同一条收场——断开（含停服）+ 回编辑态 +
   /// 短暂提示。接收端上报的当前播放状态由 [refreshPlaybackState]（回前台
-  /// 问一次）喂进来，本域只负责「停了就收口」，不自己起轮询。
-  /// 未投屏、或状态还在播 / 暂停 / 过渡 / 问不到时都是空操作。
-  Future<void> handlePlaybackState(CastPlaybackState state) async {
-    if (state != CastPlaybackState.stopped &&
-        state != CastPlaybackState.noMedia) {
-      return;
-    }
+  /// 问一次）喂进来，本域只负责按穷尽映射续上，不自己起轮询。
+  /// 未投屏时空操作。
+  ///
+  /// **不是一个「只认停止、其余 return」的窄口**（票 #41）：上报状态的每个
+  /// 取值都经 [castPlaybackFollowOf] 落到一件明确的事——
+  ///
+  /// - 在播 → 本机界面追成播放态（**不重推接收端**）；
+  /// - 暂停 → 本机界面追成暂停态，**不自动抢播**；
+  /// - 已停 / 无媒体 → 既有失败收口（[_fail]）；
+  /// - 过渡中 / 问不到 → 一位不动（不猜）。
+  ///
+  /// 本机界面同步**走既有的播放态来源**（[playbackEngineProvider] 那只内核
+  /// ——界面显示的播放态就是它）：不在本域另起一个「投屏暂停位」让界面读，
+  /// 否则界面会与电视各说各话。同步失败不向上抛、也不收口——一次本机界面
+  /// 跟不上不该把还活着的投屏掐掉。
+  Future<void> handlePlaybackState(CastPlaybackState reported) async {
     if (_session == null) return;
-    await _fail();
+    switch (castPlaybackFollowOf(reported)) {
+      case CastPlaybackFollow.syncPlaying:
+        await _followLocalPlayback(playing: true);
+      case CastPlaybackFollow.syncPaused:
+        await _followLocalPlayback(playing: false);
+      case CastPlaybackFollow.failSession:
+        await _fail();
+      case CastPlaybackFollow.hold:
+        return;
+    }
+  }
+
+  /// 退后台 / 锁屏 = 把投屏会话**视为暂停**（票 #41）：让接收端停下。
+  ///
+  /// **落在会话层，不是界面态**——不引前台服务（退后台就不是「还在投」），
+  /// 会话本身也不在这里断（离开播放页 / 换视频由既有复位一处断开）：电视停在
+  /// 那一帧等着，回来时按它上报的状态续上（[refreshPlaybackState]）。
+  /// 本机界面在退后台这一刻不预判，与「接收端是权威」同一口径。
+  ///
+  /// **按不停也算会话建立之后的失败**（掉线 / 设备回绝）：一律走既有失败收口
+  /// （断开 + 停服 + 回编辑态 + 短暂提示），不另开第二条失败路径——电视若不听
+  /// 这一下，它就还在播，那就不是「视为暂停」。未投屏时空操作。
+  Future<void> pauseForBackground() async {
+    final session = _session;
+    if (session == null) return;
+    try {
+      await session.pause();
+    } on Object {
+      await _fail();
+    }
   }
 
   /// 回前台（播放页 `didChangeAppLifecycleState` 的 resumed 支）问一次接收端
-  /// 此刻的播放状态，喂给 [handlePlaybackState] 收口：那边已经停了就断开回
-  /// 编辑态、给短暂提示；还在播 / 暂停 / 问不到时一位不动。
+  /// 此刻的播放状态，喂给 [handlePlaybackState] 按穷尽映射续上：那边已停就
+  /// 断开回编辑态、给短暂提示；暂停 / 仍在播就同步本机界面；过渡 / 问不到
+  /// 一位不动。
   ///
   /// **问不到也算会话建立之后的失败**（掉线）——同样收口，不留一个点不动的
   /// 界面。未投屏时空操作。
@@ -609,6 +656,24 @@ class CastRunModel extends Notifier<CastRunState>
       return;
     }
     await handlePlaybackState(reported);
+  }
+
+  /// 本机界面追上接收端上报的播放态：驱动**既有播放态来源**（主内核）的
+  /// play / pause。
+  ///
+  /// **不向接收端回推**：这一趟是「界面追电视」，不是又一次遥控——paused
+  /// 一支尤其不许抢播。内核起不来 / 已随容器拆掉时静默跳过（不抛、不收口）。
+  Future<void> _followLocalPlayback({required bool playing}) async {
+    try {
+      final engine = ref.read(playbackEngineProvider);
+      if (playing) {
+        await engine.play();
+      } else {
+        await engine.pause();
+      }
+    } on Object {
+      // 本机界面跟不上一次不改变投屏这件事本身的去向。
+    }
   }
 
   /// 后台把 [plan] 里**起投档之外**的档逐档渲出来（顺序渲：一次一条命令）。

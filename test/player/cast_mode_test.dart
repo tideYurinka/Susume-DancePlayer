@@ -1058,7 +1058,26 @@ void main() {
     expect(find.byKey(const Key('cast_interrupted_prompt')), findsOneWidget);
   });
 
-  testWidgets('电视端还在播：回前台问一次，投屏一位不动', (tester) async {
+  testWidgets('投屏中断网：回前台问不到，同样走既有收口回编辑态并给短暂提示', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+    // 投屏中把电视断电 / 断网：这一问直接掉线（与「电视那边按了停」同一条
+    // 收口——不因为它是「问不到」就另开一条路）。
+    cast.actionError = const CastSessionDropped('连接早就没了');
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(modeOf(tester), PlayerSessionMode.editing);
+    expect(cast.disconnected, isTrue);
+    expect(delivery.closed, isTrue);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsOneWidget);
+  });
+
+  testWidgets('电视端还在播：回前台问一次，手机同步为播放态、投屏一位不动', (tester) async {
     setWideView(tester);
     await pumpPlayer(tester);
     await openControlLayer(tester);
@@ -1072,6 +1091,104 @@ void main() {
     expect(cast.disconnected, isFalse);
     expect(delivery.closed, isFalse);
     expect(find.byKey(const Key('cast_interrupted_prompt')), findsNothing);
+    // 接收端在播：本机界面同步为播放态，且**不重推接收端**（只有起投那一次
+    // play）。
+    expect(engine.isPlaying, isTrue);
+    expect(find.byTooltip('暂停'), findsOneWidget);
+    expect(
+      cast.calls,
+      ['push', 'play', 'supportedTransportActions', 'playbackState'],
+    );
+  });
+
+  testWidgets('退后台 / 锁屏视为暂停 → 回前台接收端报 paused：手机停在暂停态、不自动续播', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(
+      tester,
+      extraOverrides: [
+        audioOutputDeviceControllerProvider.overrideWithValue(
+          _NoAudioDevice(),
+        ),
+      ],
+    );
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+
+    expect(cast.calls, contains('pause'), reason: '退后台 = 会话层按停接收端');
+    expect(cast.disconnected, isFalse, reason: '会话还活着，只是被按停');
+    expect(delivery.closed, isFalse, reason: '退后台不断会话、也不停服');
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsNothing);
+
+    // 回前台：接收端报 paused（我们按停的那一下生效了）——手机界面同步为
+    // 暂停态，且**不自动抢播**（要续上由用户按播放键）。
+    cast.reportedState = CastPlaybackState.paused;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(engine.isPlaying, isFalse, reason: '手机停在暂停态');
+    expect(find.byTooltip('播放'), findsOneWidget);
+    expect(
+      cast.calls,
+      ['push', 'play', 'supportedTransportActions', 'pause', 'playbackState'],
+      reason: 'paused 一支不抢播：没有第二次 play',
+    );
+  });
+
+  testWidgets('回前台：接收端报 paused → 手机界面同步为暂停态、不自动抢播', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+    expect(engine.isPlaying, isTrue, reason: '投屏期本机也在播（静音）');
+    // 电视那边自己停了（或退后台那一下按停之后没人管）：回前台按它说的来。
+    cast.reportedState = CastPlaybackState.paused;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(engine.isPlaying, isFalse, reason: '手机界面同步为暂停态');
+    expect(find.byTooltip('播放'), findsOneWidget, reason: '底排播放键呈「播放」');
+    expect(
+      cast.calls,
+      ['push', 'play', 'supportedTransportActions', 'playbackState'],
+      reason: 'paused 一支不自动抢播：没有第二次 play',
+    );
+    expect(cast.disconnected, isFalse);
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(find.byKey(const Key('cast_interrupted_prompt')), findsNothing);
+  });
+
+  testWidgets('回前台：接收端仍在播（电视被自己遥控复播）→ 手机同步为播放态', (tester) async {
+    setWideView(tester);
+    await pumpPlayer(tester);
+    await openControlLayer(tester);
+    await startCast(tester);
+    final cast = factory.sessions.single;
+    // 本机先停在暂停态（遥控电视也停了）：这时电视那头被自己的遥控复播。
+    await tester.tap(find.byKey(const Key('toolbar_play')));
+    await tester.pumpAndSettle();
+    expect(engine.isPlaying, isFalse);
+    cast.reportedState = CastPlaybackState.playing;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(engine.isPlaying, isTrue, reason: '手机界面追成播放态');
+    expect(find.byTooltip('暂停'), findsOneWidget);
+    expect(
+      cast.calls,
+      ['push', 'play', 'supportedTransportActions', 'pause', 'playbackState'],
+      reason: '接收端已经在播：本机追上去就好，不向它重推动作',
+    );
+    expect(modeOf(tester), PlayerSessionMode.castControl);
+    expect(cast.disconnected, isFalse);
   });
 }
 

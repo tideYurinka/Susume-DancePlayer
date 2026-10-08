@@ -7,6 +7,8 @@ import 'package:dance_learning_app/cast/cast_receiver.dart';
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/core/playback/playback_engine_providers.dart'
+    show playbackEngineProvider;
 import 'package:dance_learning_app/player/cast_run.dart';
 import 'package:dance_learning_app/player/notice.dart'
     show NoticeId, noticeTriggerProvider;
@@ -16,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_session.dart';
+import '../helpers/fake_playback_engine.dart';
 
 /// 投屏运行域直测：起投（起通道 → 连 → 推 → 播）、断开（停服 + 断连 + 回
 /// 编辑态）、复位触发断开、遥控镜像与失败收口。经 #23 那三条接缝的脚本化
@@ -27,6 +30,7 @@ import '../helpers/fake_cast_session.dart';
 void main() {
   late FakeCastSessionFactory factory;
   late FakeCastDeliveryChannelFactory delivery;
+  late FakePlaybackEngine engine;
   late ProviderContainer container;
 
   CastReceiver receiverNamed(String name) => CastReceiver(
@@ -50,13 +54,18 @@ void main() {
   setUp(() {
     factory = FakeCastSessionFactory();
     delivery = FakeCastDeliveryChannelFactory();
+    engine = FakePlaybackEngine();
     container = ProviderContainer(
       overrides: [
         castSessionFactoryProvider.overrideWithValue(factory),
         castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
+        // 本机播放态来源（回前台续上时本机界面追的就是它）：替身注入，
+        // 不碰真解码。
+        playbackEngineProvider.overrideWithValue(engine),
       ],
     );
     addTearDown(container.dispose);
+    addTearDown(engine.dispose);
   });
 
   group('起投', () {
@@ -451,7 +460,7 @@ void main() {
       expect(interruptedNotices(), 1);
     });
 
-    test('还在播 / 暂停 / 过渡 / 问不到：不是停止，一位不动', () async {
+    test('还在播 / 暂停 / 过渡 / 问不到：不是停止，会话一位不动', () async {
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
       final cast = factory.sessions.single;
       container.read(playerSessionProvider.notifier).enter(
@@ -532,6 +541,134 @@ void main() {
       await run().refreshPlaybackState();
       expect(factory.connectCalls, 0);
       expect(interruptedNotices(), 0);
+    });
+  });
+
+  group('退后台 / 锁屏 = 投屏视为暂停；回前台按接收端上报续上', () {
+    test('退后台：让接收端停下（会话不散、本机界面不预判）', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      final before = cast.calls.length;
+
+      await run().pauseForBackground();
+      await pumpEventQueue();
+
+      expect(
+        cast.calls.sublist(before),
+        ['pause'],
+        reason: '「视为暂停」落在会话层：让接收端停下（不引前台服务）',
+      );
+      expect(cast.disconnected, isFalse, reason: '退后台不断会话，只是把它按停');
+      expect(state().active, isTrue);
+      expect(
+        session().mode,
+        PlayerSessionMode.castControl,
+        reason: '本机界面不在这里预判——续上只发生在回前台那一次',
+      );
+      expect(interruptedNotices(), 0);
+    });
+
+    test('未投屏：退后台是空操作', () async {
+      await run().pauseForBackground();
+      await pumpEventQueue();
+      expect(factory.connectCalls, 0);
+      expect(delivery.closeCalls, 0);
+      expect(interruptedNotices(), 0);
+    });
+
+    test('退后台按不停（掉线）：走既有失败收口，不另开第二条路', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      cast.actionError = const CastSessionDropped('连接被掐');
+
+      await run().pauseForBackground();
+      await pumpEventQueue();
+
+      expect(state().active, isFalse);
+      expect(cast.disconnected, isTrue);
+      expect(delivery.closed, isTrue);
+      expect(session().mode, PlayerSessionMode.editing);
+      expect(interruptedNotices(), 1);
+    });
+
+    test('退后台按停 → 回前台接收端报 paused：本机停在暂停态、不自动抢播', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      await engine.play();
+      await run().pauseForBackground();
+      final before = cast.calls.length;
+      cast.reportedState = CastPlaybackState.paused;
+
+      await run().refreshPlaybackState();
+      await pumpEventQueue();
+
+      expect(
+        cast.calls.sublist(before),
+        ['playbackState'],
+        reason: '只问一次：接收端已暂停，不再发 play 去抢播',
+      );
+      expect(engine.isPlaying, isFalse, reason: '本机界面同步为暂停态');
+      expect(engine.callLog, contains('pause'));
+      expect(state().active, isTrue, reason: '会话照旧，电视停在暂停处等用户按');
+      expect(interruptedNotices(), 0);
+    });
+
+    test('回前台接收端仍在播：本机界面同步为播放态（不重推接收端）', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      await engine.pause();
+      final before = cast.calls.length;
+      cast.reportedState = CastPlaybackState.playing;
+
+      await run().refreshPlaybackState();
+      await pumpEventQueue();
+
+      expect(
+        cast.calls.sublist(before),
+        ['playbackState'],
+        reason: '接收端已经在播：本机追上去就好，不向它重推动作',
+      );
+      expect(engine.isPlaying, isTrue);
+      expect(state().active, isTrue);
+      expect(interruptedNotices(), 0);
+    });
+
+    test('回前台问不到 / 过渡中：本机界面一位不动（不猜）', () async {
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      final cast = factory.sessions.single;
+      container.read(playerSessionProvider.notifier).enter(
+        PlayerSessionMode.castControl,
+      );
+      final before = cast.calls.length;
+      final beforeEngine = engine.callLog.length;
+
+      for (final report in const [
+        CastPlaybackState.transitioning,
+        CastPlaybackState.unknown,
+      ]) {
+        cast.reportedState = report;
+        await run().refreshPlaybackState();
+        expect(
+          engine.callLog.sublist(beforeEngine),
+          isEmpty,
+          reason: '$report：不猜，本机界面一位不动',
+        );
+        expect(state().active, isTrue, reason: '$report');
+        expect(interruptedNotices(), 0, reason: '$report');
+      }
+      expect(cast.calls.sublist(before), ['playbackState', 'playbackState']);
     });
   });
 

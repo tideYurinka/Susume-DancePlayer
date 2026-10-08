@@ -1435,6 +1435,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       unawaited(_compareRecordingClips.stop());
       // 相机：退后台即关前置摄像头。
       unawaited(_cameraStage.closePreview());
+      // 投屏：退后台 / 锁屏 = 把投屏会话**视为暂停**——让接收端停下（不引
+      // 前台服务，会话也不比播放页活得久；本机界面不在这里预判），回前台再
+      // 按接收端上报的状态续上（见 `cast_run.dart` 的 pauseForBackground /
+      // refreshPlaybackState）。
+      if (ref.read(playerSessionProvider).isCast) {
+        unawaited(ref.read(castRunProvider.notifier).pauseForBackground());
+      }
     } else if (state == AppLifecycleState.resumed) {
       // 回前台：解除不应活，下一帧 onFrame 按引擎真实播放态重开流。
       _beatDriver.setAppPaused(false);
@@ -1442,9 +1449,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       if (ref.read(playerSessionProvider).isCompare) {
         unawaited(_cameraStage.openPreview());
       }
-      // 投屏：回前台按接收端上报的状态续上——那边自己停了（或被卸载、
-      // 或连接已经没了）就收口回编辑态并给短暂提示，其余状态一位不动
-      // （见 `cast_run.dart` 的 refreshPlaybackState）。
+      // 投屏：回前台按接收端上报的状态续上——接收端是权威，每个上报取值都
+      // 有一件明确的事（在播 → 本机界面追成播放态；暂停 → 追成暂停态且不
+      // 抢播；已停 / 掉线 → 既有失败收口；过渡 / 问不到 → 一位不动，见
+      // `cast_run.dart` 的 refreshPlaybackState 与 `cast_playback_follow.dart`）。
       if (ref.read(playerSessionProvider).isCast) {
         unawaited(ref.read(castRunProvider.notifier).refreshPlaybackState());
       }
