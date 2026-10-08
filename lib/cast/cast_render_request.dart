@@ -24,6 +24,7 @@ import 'dart:typed_data';
 import '../annotation/framing_selection.dart';
 import '../core/local_mirror_fragment.dart';
 import 'cast_beat_count.dart';
+import 'cast_range_gate.dart' show CastRange;
 
 /// 渲染勾选档：**画面类**（含呈现类）与**声音类**两档。
 ///
@@ -315,6 +316,7 @@ class CastRenderRequest {
     this.stickers = const [],
     this.beatOverlay,
     this.beatClicks = const [],
+    this.range,
   });
 
   /// 源**视频副本**路径（渲染的输入；副本丢失时根本没有这一票）。
@@ -323,7 +325,9 @@ class CastRenderRequest {
   /// 这支舞的**视频标识**（缓存键的第一分量）。
   final String videoId;
 
-  /// 素材时长（进度的分母；也是拍声轨的长度）。
+  /// 素材**整片**时长（拍声轨按它合成，范围与进度分母都以它为基准——进度的
+  /// 分母是**副本**的期望时长，见 `cast_range_gate.dart` 的
+  /// `castCopyDurationOf`）。
   final Duration duration;
 
   final CastRenderChoices choices;
@@ -380,6 +384,18 @@ class CastRenderRequest {
 
   /// 拍声排程（声音类用；画面类不看它）。
   final List<CastBeatClick> beatClicks;
+
+  /// **投屏副本的范围**（`#37`；源时间轴上的半开区间）：这支舞的
+  /// **首线 → 尾线**，`null` = 整片。
+  ///
+  /// 与上屏、与缓存键读**同一份**取值：装配处（`player/cast_render_wiring.dart`）
+  /// 读一次 `annotationTimelineProvider` 的 `rangeStart` / `rangeEnd`，写进这里；
+  /// 画面链的 `trim` 与音轨链的 `atrim` 按它成窗（见 `cast_range_gate.dart`）。
+  ///
+  /// 它**不是缓存键的独立分量**：首尾区间已在 [annotationFingerprint] 里
+  /// （`cast_annotation_fingerprint.dart` 的 `'range'` 那一项），改首尾线即换
+  /// 指纹、即换键——重复收一次只会让键更长。
+  final CastRange? range;
 
   /// 这份请求对应的缓存键。
   CastRenderKey get cacheKey => CastRenderKey(

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dance_learning_app/cast/cast_beat_count.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_plan.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +42,7 @@ void main() {
     CastSpeedTier speedTier = CastSpeedTier.full,
     CastBeatCountOverlay? beatOverlay,
     List<CastSticker> stickers = const [],
+    CastRange? range,
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
@@ -52,6 +54,7 @@ void main() {
     stickers: stickers,
     beatOverlay: beatOverlay,
     beatClicks: const [],
+    range: range,
   );
 
   CastSticker sticker() => CastSticker(
@@ -69,6 +72,7 @@ void main() {
     CastSpeedTier speedTier = CastSpeedTier.full,
     CastBeatCountOverlay? beatOverlay,
     List<CastSticker> stickers = const [],
+    CastRange? range,
     String? beatSlidesPath = '/cache/a.beats.txt',
   }) => buildCastRenderArguments(
     request: request(
@@ -76,6 +80,7 @@ void main() {
       speedTier: speedTier,
       beatOverlay: beatOverlay,
       stickers: stickers,
+      range: range,
     ),
     outputPath: '/cache/a.part',
     beatTrackPath: '/cache/a.clicks.wav',
@@ -188,6 +193,73 @@ void main() {
       expect(RegExp(r'overlay=').allMatches(filter).length, 1);
       expect(filter, isNot(contains('enable=')));
       expect(filter, isNot(contains('drawtext')));
+    });
+  });
+
+  group('范围（#37）与层序：收窄发生在最后一层之后', () {
+    const range = CastRange(
+      start: Duration(seconds: 2),
+      end: Duration(seconds: 5),
+    );
+
+    test('数拍 + 贴纸 + 范围：trim 挂在最后一个 overlay 的输出上', () {
+      final filter = filterOf(
+        args(
+          beatOverlay: overlay(),
+          stickers: <CastSticker>[sticker()],
+          range: range,
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          '[vstk]trim=start=2:end=5,setpts=PTS-STARTPTS,'
+          'fps=30,format=yuv420p[vout]',
+        ),
+        reason: '层都看过整片之后才裁范围；第二路输入因此仍与主片同轴',
+      );
+      expect(
+        filter.indexOf('trim=start=2:end=5'),
+        greaterThan(filter.lastIndexOf('overlay=')),
+      );
+      expect(
+        filter.indexOf('trim=start=2:end=5'),
+        greaterThan(filter.indexOf('csti0')),
+      );
+      expect(filter, isNot(contains('-ss')));
+    });
+
+    test('范围 + 0.5× 档：trim 之后才是倍速 setpts（窗不随档漂移）', () {
+      final filter = filterOf(
+        args(
+          beatOverlay: overlay(),
+          range: range,
+          speedTier: CastSpeedTier.half,
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          '[vbeat]trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,'
+          'fps=30,format=yuv420p[vout]',
+        ),
+      );
+      expect(
+        filter.indexOf('trim=start=2:end=5'),
+        lessThan(filter.indexOf('setpts=PTS/0.5')),
+      );
+    });
+
+    test('数拍序列本身仍覆盖整片（清单不由范围裁剪：裁的是链上的帧）', () {
+      // 清单正文（每格的时长）由 `castBeatSlidesContent` 从逐拍行生成，与范围
+      // 无关；范围只在链上把范围外的帧丢掉——序列因此不会整体错位。
+      final arguments = args(beatOverlay: overlay(), range: range);
+
+      expect(arguments, contains('-f'));
+      expect(arguments, contains('/cache/a.beats.txt'));
+      expect(filterOf(arguments), contains('bseq2'));
     });
   });
 }

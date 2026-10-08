@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dance_learning_app/cast/cast_beat_count.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_orchestrator.dart';
@@ -58,6 +59,7 @@ void main() {
     CastBeatCountOverlay? beatOverlay,
     Duration duration = const Duration(seconds: 2),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRange? range,
   }) => CastRenderRequest(
     videoPath: p.join(root.path, 'source.mp4'),
     videoId: 'vid-a',
@@ -69,6 +71,7 @@ void main() {
     stickers: stickers,
     beatOverlay: beatOverlay,
     beatClicks: beatClicks,
+    range: range,
   );
 
   List<String> fileNames() => FakeCastRenderExecutor.fileNamesIn(root.path);
@@ -523,6 +526,91 @@ void main() {
 
       expect(executor.ran, isFalse);
       expect(fileNames(), isEmpty);
+    });
+  });
+
+  group('范围：进度分母与命令都按首线→尾线那一段（#37）', () {
+    const range = CastRange(
+      start: Duration(seconds: 2),
+      end: Duration(seconds: 5),
+    );
+
+    String filterOf(List<String> arguments) =>
+        arguments[arguments.indexOf('-filter_complex') + 1];
+
+    test('进度分母 = 那一段按倍速档换算（不是整片素材时长）', () async {
+      // 素材 30 秒、范围 2–5 秒（3 秒那一段）：0.5× 档分母 6 秒、0.75× 4 秒、
+      // 1× 3 秒。拿整片当分母会让进度条一直停在开头。
+      for (final tier in CastSpeedTier.values) {
+        await orchestrator.render(
+          request(
+            duration: const Duration(seconds: 30),
+            range: range,
+            speedTier: tier,
+            choices: const CastRenderChoices.all(),
+          ),
+        );
+      }
+
+      expect(executor.totals, const [
+        Duration(seconds: 6),
+        Duration(seconds: 4),
+        Duration(seconds: 3),
+      ]);
+    });
+
+    test('命令里带范围：画面 trim 与音轨 atrim 同段，且没有 -ss / -t / -to', () async {
+      await orchestrator.render(
+        request(
+          duration: const Duration(seconds: 30),
+          range: range,
+          choices: const CastRenderChoices.all(),
+        ),
+      );
+
+      final arguments = executor.lastArguments;
+      expect(filterOf(arguments), contains('trim=start=2:end=5'));
+      expect(filterOf(arguments), contains('atrim=start=2:end=5'));
+      expect(arguments.where((a) => a == '-ss'), isEmpty);
+      expect(arguments, isNot(contains('-t')));
+      expect(arguments, isNot(contains('-to')));
+    });
+
+    test('复制档（只勾声音类 + 1×）明确不收范围：分母仍是整片、链上没有裁剪', () async {
+      await orchestrator.render(
+        request(duration: const Duration(seconds: 30), range: range),
+      );
+
+      expect(executor.totals.single, const Duration(seconds: 30));
+      expect(
+        filterOf(executor.lastArguments),
+        isNot(contains('atrim=')),
+        reason: '复制出来的视频流切不动：这一档整片推、整片混',
+      );
+      expect(executor.lastArguments, containsAllInOrder(['-c:v', 'copy']));
+    });
+
+    test('整片范围（未设首尾线）与不设范围同键：命中缓存、不重渲', () async {
+      const whole = CastRange(
+        start: Duration.zero,
+        end: Duration(seconds: 30),
+      );
+
+      final first = await orchestrator.render(
+        request(duration: const Duration(seconds: 30)),
+      );
+      final second = await orchestrator.render(
+        request(duration: const Duration(seconds: 30), range: whole),
+      );
+
+      expect(first.exit, CastRenderExit.rendered);
+      expect(
+        second.exit,
+        CastRenderExit.cached,
+        reason: '整片范围不装节点、也不换键：与不设范围是同一份产物',
+      );
+      expect(executor.runs, hasLength(1));
+      expect(executor.totals.single, const Duration(seconds: 30));
     });
   });
 }

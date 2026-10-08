@@ -12,7 +12,9 @@
 /// - **只勾声音类**（且 1× 档）：`-c:v copy` —— 视频流原样复制、不重编码，
 ///   音轨重编码并把拍声 `amix` 进来。这是「秒级出结果」的全部机关。
 /// - **勾了画面类**：视频重编码（`h264_mediacodec` + 显式码率/ GOP / 帧率 /
-///   像素格式），画面滤镜链进 `filter_complex`；不勾声音类时音轨 `-c:a copy`。
+///   像素格式），画面滤镜链进 `filter_complex`；不勾声音类时音轨 `-c:a copy`
+///   （**有例外**：范围生效或非 1× 档时音轨也得重编码——复制改不了范围、也改
+///   不了时长，音轨不跟着收 / 不跟着缩放就会与画面错开）。
 ///   画面链的中段是**镜像闸门**（#27，见 `cast_mirror_gate.dart`）、**取景
 ///   窗口**（#28，见 `cast_framing_gate.dart`）、**数拍层**（#30，见
 ///   `cast_beat_gate.dart`：一路图像序列输入 + 一个 `overlay` 时间窗）与
@@ -37,22 +39,32 @@
 /// ## 倍速档：一档一份副本
 ///
 /// 倍速不靠接收端（DLNA 没有这门能力），靠**换文件**：`setpts` 压画面、
-/// `atempo` 拉音轨（拍声轨跟着一起缩放，否则换档就错开）。1× 档一个字段都不
-/// 写，与「不设倍速」逐字一致。**非 1× 档的视频不能复制**——`-c:v copy` 改不了
-/// 时长，所以只勾声音类也只在那三档里保留「原样复制」，非 1× 档退化成重编码
-/// （规格里「只勾声音 = 视频流不重编码」那条说的是 1× 这个默认档）。
+/// `atempo` 拉音轨（拍声轨跟着一起缩放，否则换档就错开）。1× 档**倍速**这两句
+/// 一个字段都不写，与「不设倍速」逐字一致（范围生效时链上另会多出 `trim` /
+/// `setpts=PTS-STARTPTS` 那一对，见下节——与倍速无关）。**非 1× 档的视频不能
+/// 复制**——`-c:v copy` 改不了时长，所以只勾声音类也只在那三档里保留「原样
+/// 复制」，非 1× 档退化成重编码（规格里「只勾声音 = 视频流不重编码」那条说的是
+/// 1× 这个默认档）。
 ///
-/// ## 范围
+/// ## 范围：首线→尾线，落在链的**中段**
 ///
-/// 首线→尾线那段范围**不在本票**：规格要求「从 0 整片解码、用时间窗偏移
-/// 表达、不用快速定位」，那条偏移属于画面滤镜链的中段（与局部镜像的时间窗
-/// 同处），由渲染各票一并落。本件因此不产出 `-ss` / `-to` / `-t`——半吊子的
-/// 关键帧切割会让副本范围对不上，且复制档根本切不准。
+/// 规格要求「从 0 整片解码、用时间窗偏移表达、不用快速定位」。本件因此不产出
+/// `-ss` / `-to` / `-t`（快速定位会把滤镜的时间基准归零，各闸门的时间窗就会与
+/// 手机上那一份错开），范围由 `cast_range_gate.dart` 的 `trim` / `atrim` 表达：
+/// 它们排在**全部层之后、倍速 `setpts` 之前**（与其他时间窗同处源时间轴那一段），
+/// 紧接一句 `setpts=PTS-STARTPTS` 把副本自己的时间轴挪到 0。画面与音轨（含拍声
+/// 轨）收在同一段上。
+///
+/// **复制档明确不接受范围**：只勾声音类 + 1× 档是唯一一条视频流原样复制的路
+/// （`-c:v copy`），复制出来的流改不了长度、滤镜链也碰不到它——那一档推的是
+/// 整片，音轨同样照整片混。范围落在视频被重编码的那些档（勾了画面类，或非 1×
+/// 档）。详见 `cast_range_gate.dart` 的库头。
 library;
 
 import 'cast_beat_gate.dart';
 import 'cast_framing_gate.dart';
 import 'cast_mirror_gate.dart';
+import 'cast_range_gate.dart';
 import 'cast_render_request.dart';
 import 'cast_sticker_gate.dart';
 
@@ -136,6 +148,18 @@ List<String> buildCastRenderArguments({
       1 + (choices.sound ? 1 : 0) + (beatActive ? 1 : 0);
 
   final filters = <String>[];
+  // **范围**（#37）：首线→尾线，源时间轴上的半开区间。复制档明确不收（见
+  // `cast_range_gate.dart` 库头），故这里拿到非空范围的档，视频一定在重编码。
+  final range = castActiveRangeOf(request);
+  final rangeVideo = castRangeVideoNodes(range);
+  final rangeAudio = castRangeAudioNodes(range);
+  final rangeVideoPrefix = rangeVideo.isEmpty ? '' : '${rangeVideo.join(',')},';
+  final rangeAudioPrefix = rangeAudio.isEmpty ? '' : '${rangeAudio.join(',')},';
+  // **音轨要不要重编码**：勾了声音类（拍声要混进这条轨）、非 1× 档（复制改不了
+  // 时长——视频按 `setpts` 缩放了，音轨不跟就会与画面错开）、或范围生效（复制
+  // 改不了范围）。三者都是「`-c:a copy` 做不到」的事；只有「1× + 无范围 + 不勾
+  // 声音类」这一档仍原样复制音轨。
+  final reencodeAudio = choices.sound || slowed || range != null;
   if (reencodeVideo) {
     // **镜像闸门**（#27）与**取景窗口**（#28）只在勾了画面类时装上：非 1× 档的
     // 「只勾声音类」也会重编码画面（复制改不了时长），但那一次重编码只为倍速
@@ -185,22 +209,30 @@ List<String> buildCastRenderArguments({
         label = graph.endLabel;
       }
       filters.add(
-        '[$label]${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+        '[$label]$rangeVideoPrefix${speed}fps=$kCastRenderFps,'
+        'format=yuv420p[vout]',
       );
     } else {
       final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
       filters.add(
-        '[0:v]$contentPrefix${speed}fps=$kCastRenderFps,format=yuv420p[vout]',
+        '[0:v]$contentPrefix$rangeVideoPrefix$speed'
+        'fps=$kCastRenderFps,format=yuv420p[vout]',
       );
     }
   }
-  if (choices.sound) {
+  if (reencodeAudio) {
     final speed = slowed ? 'atempo=$rate,' : '';
-    filters.add('[0:a]${speed}aresample=$kCastRenderSampleRate[amain]');
-    filters.add('[1:a]${speed}aresample=$kCastRenderSampleRate[abeat]');
     filters.add(
-      '[amain][abeat]amix=inputs=2:duration=first:dropout_transition=0[aout]',
+      '[0:a]$rangeAudioPrefix${speed}aresample=$kCastRenderSampleRate[amain]',
     );
+    if (choices.sound) {
+      filters.add(
+        '[1:a]$rangeAudioPrefix${speed}aresample=$kCastRenderSampleRate[abeat]',
+      );
+      filters.add(
+        '[amain][abeat]amix=inputs=2:duration=first:dropout_transition=0[aout]',
+      );
+    }
   }
 
   return <String>[
@@ -231,6 +263,11 @@ List<String> buildCastRenderArguments({
     if (choices.sound) ...<String>[
       '-map',
       '[aout]',
+    ] else if (reencodeAudio) ...<String>[
+      // 不勾声音类但音轨也得重编码（范围收了这一段，或这一档要跟画面一起缩放）：
+      // 取上面那条收窄 / 缩放过的 `[amain]`，而不是原样复制整片音轨。
+      '-map',
+      '[amain]',
     ] else if (choices.picture) ...<String>['-map', '0:a'],
     '-c:v',
     reencodeVideo ? kCastRenderVideoEncoder : 'copy',
@@ -244,7 +281,7 @@ List<String> buildCastRenderArguments({
       '-pix_fmt',
       'yuv420p',
     ],
-    if (choices.sound) ...<String>[
+    if (reencodeAudio) ...<String>[
       '-c:a',
       'aac',
       '-b:a',

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dance_learning_app/cast/cast_delivery_channel.dart';
 import 'package:dance_learning_app/cast/cast_failure.dart';
 import 'package:dance_learning_app/cast/cast_receiver.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart'
     show CastRenderVerdict, castRenderExecutorProvider;
@@ -58,24 +59,36 @@ void main() {
   CastRenderRequest requestOf(
     CastSpeedTier tier, {
     Duration duration = const Duration(seconds: 60),
+    CastRange? range,
+    CastRenderChoices choices = const CastRenderChoices.all(),
   }) => CastRenderRequest(
     videoPath: sourcePath,
     videoId: 'vid-a',
     duration: duration,
-    choices: const CastRenderChoices.all(),
+    choices: choices,
     speedTier: tier,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
+    range: range,
   );
 
   Map<CastSpeedTier, CastRenderRequest> requestsFor(
-    List<CastSpeedTier> tiers,
-  ) => {for (final tier in tiers) tier: requestOf(tier)};
+    List<CastSpeedTier> tiers, {
+    CastRange? range,
+    CastRenderChoices choices = const CastRenderChoices.all(),
+  }) => {
+    for (final tier in tiers)
+      tier: requestOf(tier, range: range, choices: choices),
+  };
 
   /// 等一个条件成立：后台渲染是 fire-and-forget（不阻塞前台），测试靠轮询
   /// 推进真实事件循环等它落位——真实文件 IO（拍声轨写盘）不吃假时钟。
+  ///
+  /// 轮询上限取与 `cast_render_orchestrator_test.dart` 同一个量级（约 2 秒）：
+  /// 后台那一轮是真实文件 IO，机器忙时 0.5 秒的窗口会偶发等不到（既有 flake，
+  /// 与本票无关——改动前照样本跑得出）。
   Future<void> until(bool Function() ready) async {
-    for (var i = 0; i < 500 && !ready(); i++) {
+    for (var i = 0; i < 2000 && !ready(); i++) {
       await Future<void>.delayed(const Duration(milliseconds: 1));
     }
     if (!ready()) fail('等不到条件成立');
@@ -92,11 +105,13 @@ void main() {
     required CastSpeedTier startTier,
     String file = startPath,
     ({Duration start, Duration end})? practiceSpan,
+    CastRange? range,
+    CastRenderChoices choices = const CastRenderChoices.all(),
   }) => run().start(
     receiver: receiverNamed('客厅电视'),
     file: File(file),
     plan: CastSpeedTierPlan(tiers: tiers, startTier: startTier),
-    requests: requestsFor(tiers),
+    requests: requestsFor(tiers, range: range, choices: choices),
     practiceSpan: practiceSpan,
   );
 
@@ -506,6 +521,143 @@ void main() {
         const Duration(seconds: 12),
       ], reason: '段尾源 6 秒 → 0.5× 档 12 秒（钳进段内）');
       expect(state().activeTier, CastSpeedTier.half);
+    });
+  });
+
+  group('范围生效时副本的时间轴原点挪到首线（#37）', () {
+    // 素材 60 秒、首线 10 秒、尾线 40 秒：副本覆盖源 10–40 秒（30 秒那一段）。
+    const range = CastRange(
+      start: Duration(seconds: 10),
+      end: Duration(seconds: 40),
+    );
+
+    test('1× 档：源坐标减去首线（副本 0 = 首线），并钳进那一段', () async {
+      await startWith(
+        tiers: [CastSpeedTier.full],
+        startTier: CastSpeedTier.full,
+        range: range,
+      );
+
+      await run().seek(const Duration(seconds: 20));
+      expect(session().seeks, [const Duration(seconds: 10)]);
+
+      await run().seek(const Duration(seconds: 5));
+      expect(
+        session().seeks.last,
+        Duration.zero,
+        reason: '首线之前的位置钳到副本头，不推给接收端一个负数',
+      );
+
+      // 源 50 秒 → 副本 40 秒，但这一段只有 30 秒。
+      await run().seek(const Duration(seconds: 50));
+      expect(session().seeks.last, const Duration(seconds: 30));
+    });
+
+    test('0.5× 档：先减首线、再按倍率缩放，且钳到那一段的长度', () async {
+      await startWith(
+        tiers: [CastSpeedTier.half],
+        startTier: CastSpeedTier.half,
+        range: range,
+      );
+
+      await run().seek(const Duration(seconds: 10));
+      expect(session().seeks, [Duration.zero], reason: '首线那一刻 = 副本 0');
+
+      await run().seek(const Duration(seconds: 15));
+      expect(session().seeks.last, const Duration(seconds: 10));
+
+      // 30 秒那一段在 0.5× 档上是 60 秒。
+      await run().seek(const Duration(seconds: 100));
+      expect(session().seeks.last, const Duration(seconds: 60));
+    });
+
+    test('接收端上报的副本位置加回首线（本地预览的源坐标）', () async {
+      await startWith(
+        tiers: [CastSpeedTier.half],
+        startTier: CastSpeedTier.half,
+        range: range,
+      );
+      session().reportedPosition = const Duration(seconds: 20);
+
+      expect(
+        await run().reportedPosition(),
+        const Duration(seconds: 20),
+        reason: '副本 20 秒 = 首线 10 秒 + 20×0.5',
+      );
+    });
+
+    test('复制档即便带着范围也不换算：副本原点仍是源片 0', () async {
+      await startWith(
+        tiers: [CastSpeedTier.full],
+        startTier: CastSpeedTier.full,
+        range: range,
+        choices: const CastRenderChoices(picture: false, sound: true),
+      );
+
+      await run().seek(const Duration(seconds: 20));
+      expect(
+        session().seeks,
+        [const Duration(seconds: 20)],
+        reason: '1× 复制档明确不收范围：推的是整片，坐标也照整片',
+      );
+      session().reportedPosition = const Duration(seconds: 20);
+      expect(await run().reportedPosition(), const Duration(seconds: 20));
+    });
+
+    test('换档续播：经过源坐标换算，两端各自的原点都被吸收', () async {
+      await startWith(
+        tiers: [CastSpeedTier.half, CastSpeedTier.full],
+        startTier: CastSpeedTier.full,
+        range: range,
+      );
+      await settleTier(CastSpeedTier.half);
+      // 电视在 1× 档上报副本 20 秒 = 源片 30 秒。
+      session().reportedPosition = const Duration(seconds: 20);
+
+      await run().switchTier(CastSpeedTier.half);
+
+      expect(session().seeks, [
+        const Duration(seconds: 40),
+      ], reason: '源 30 秒 → 0.5× 档 (30−10)÷0.5 = 40 秒');
+    });
+
+    test('换档续播：学习段钳制在源坐标上做（段外一律收到段尾）', () async {
+      await startWith(
+        tiers: [CastSpeedTier.half, CastSpeedTier.full],
+        startTier: CastSpeedTier.full,
+        range: range,
+        practiceSpan: (
+          start: const Duration(seconds: 12),
+          end: const Duration(seconds: 15),
+        ),
+      );
+      await settleTier(CastSpeedTier.half);
+      // 电视报了个远超段尾的位置（1× 档副本 20 秒 = 源 30 秒，段是 12–15 秒）。
+      session().reportedPosition = const Duration(seconds: 20);
+
+      await run().switchTier(CastSpeedTier.half);
+
+      expect(session().seeks, [
+        const Duration(seconds: 10),
+      ], reason: '段尾源 15 秒 → 0.5× 档 (15−10)÷0.5 = 10 秒');
+    });
+
+    test('只勾声音类：1× 复制档与 0.5× 重编码档原点不同，换档也不偏', () async {
+      await startWith(
+        tiers: [CastSpeedTier.half, CastSpeedTier.full],
+        startTier: CastSpeedTier.full,
+        range: range,
+        choices: const CastRenderChoices(picture: false, sound: true),
+      );
+      await settleTier(CastSpeedTier.half);
+      // 起投档是 1× 复制档（整片）：副本 30 秒 = 源片 30 秒。
+      session().reportedPosition = const Duration(seconds: 30);
+
+      await run().switchTier(CastSpeedTier.half);
+
+      expect(session().seeks, [
+        const Duration(seconds: 40),
+      ], reason: '0.5× 档收了范围：源 30 秒 → (30−10)÷0.5 = 40 秒');
     });
   });
 

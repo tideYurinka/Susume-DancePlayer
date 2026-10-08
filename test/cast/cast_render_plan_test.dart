@@ -1,4 +1,5 @@
 import 'package:dance_learning_app/annotation/framing_selection.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_plan.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:dance_learning_app/core/local_mirror_fragment.dart';
@@ -16,6 +17,7 @@ void main() {
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
+    CastRange? range,
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
@@ -27,6 +29,7 @@ void main() {
     mirrorFragments: mirrorFragments,
     framingSelection: framingSelection,
     beatClicks: const [],
+    range: range,
   );
 
   List<String> args({
@@ -38,6 +41,7 @@ void main() {
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
+    CastRange? range,
     String? beatTrackPath = '/cache/a.clicks.wav',
   }) => buildCastRenderArguments(
     request: request(
@@ -46,6 +50,7 @@ void main() {
       settings: settings,
       mirrorFragments: mirrorFragments,
       framingSelection: framingSelection,
+      range: range,
     ),
     outputPath: '/cache/a.part',
     beatTrackPath: beatTrackPath,
@@ -478,4 +483,282 @@ void main() {
       expect(arguments, containsAllInOrder(['-hide_banner', '-y']));
     });
   });
+
+  group('画面链里的范围（#37）：首线→尾线落在链的中段', () {
+    const all = CastRenderChoices(picture: true, sound: true);
+    const range = CastRange(
+      start: Duration(seconds: 2),
+      end: Duration(seconds: 5),
+    );
+    const selection = FramingSelection(
+      left: 0.1,
+      top: 0.2,
+      right: 0.9,
+      bottom: 0.8,
+    );
+    const fragment = LocalMirrorFragment(startMs: 3000, endMs: 4000);
+
+    /// 只勾画面类的命令行，按给定取值装配。
+    List<String> pictureArgs({
+      CastRange? range = range,
+      FramingSelection? framingSelection,
+      bool globalMirrored = false,
+      List<LocalMirrorFragment> mirrorFragments = const [],
+      CastSpeedTier speedTier = CastSpeedTier.full,
+    }) => args(
+      choices: all,
+      speedTier: speedTier,
+      settings: CastRenderSettings(globalMirrored: globalMirrored),
+      mirrorFragments: mirrorFragments,
+      framingSelection: framingSelection,
+      range: range,
+    );
+
+    /// 链尾那条（接 `[vout]` 的那一条）——范围与前几票的节点次序都在它身上看。
+    String tailChainOf(List<String> arguments) =>
+        filterOf(arguments).split(';').firstWhere((s) => s.contains('[vout]'));
+
+    test('范围：trim + 基准归零插在链的中段，链尾的 vout 不变', () {
+      final arguments = pictureArgs();
+
+      expect(
+        filterOf(arguments),
+        contains(
+          '[0:v]trim=start=2:end=5,setpts=PTS-STARTPTS,'
+          'fps=30,format=yuv420p[vout]',
+        ),
+      );
+      expect(arguments, containsAllInOrder(['-map', '[vout]']));
+    });
+
+    test('不用快速定位：命令行里没有 -ss / -t / -to（范围只在滤镜链里）', () {
+      final arguments = pictureArgs(speedTier: CastSpeedTier.half);
+
+      expect(arguments.where((a) => a == '-ss'), isEmpty);
+      expect(arguments, isNot(contains('-t')));
+      expect(arguments, isNot(contains('-to')));
+      expect(
+        filterOf(arguments),
+        contains('trim=start=2:end=5'),
+        reason: '范围由链中段的 trim 表达，不是命令行首的定位',
+      );
+    });
+
+    test('范围排在全部层之后、倍速 setpts 之前（闸门与窗仍判源时间轴）', () {
+      final filter = filterOf(
+        pictureArgs(
+          globalMirrored: true,
+          mirrorFragments: const [fragment],
+          framingSelection: selection,
+        ),
+      );
+      final tail = tailChainOf(
+        pictureArgs(
+          globalMirrored: true,
+          mirrorFragments: const [fragment],
+          framingSelection: selection,
+        ),
+      );
+
+      expect(
+        tail,
+        startsWith(
+          "[0:v]hflip,hflip=enable='gte(t,3)*lt(t,4)',"
+          'crop=w=max(2\\,floor(iw*0.8/2)*2)',
+        ),
+        reason: '镜像闸门与取景窗口照旧，窗判的仍是源时间轴上的 3–4 秒',
+      );
+      expect(
+        tail.indexOf('trim=start=2:end=5'),
+        greaterThan(tail.indexOf('setsar=1')),
+        reason: '收窄发生在取景之后：先按整片判哪一帧该翻、该切哪块',
+      );
+      expect(
+        tail.indexOf('trim=start=2:end=5'),
+        lessThan(tail.indexOf('fps=30')),
+        reason: '范围在链的中段，链尾的 fps / 像素格式收口一字不改',
+      );
+      expect(filter, isNot(contains('-ss')));
+    });
+
+    test('逐档：范围窗口逐字一致、位置不漂移，setpts 排在 trim 之后', () {
+      final tails = <CastSpeedTier, String>{
+        for (final tier in CastSpeedTier.values)
+          tier: tailChainOf(pictureArgs(speedTier: tier)),
+      };
+
+      for (final entry in tails.entries) {
+        expect(
+          entry.value,
+          contains('trim=start=2:end=5,setpts=PTS-STARTPTS'),
+          reason: '${entry.key.token} 档：窗在源时间轴上，逐字一致',
+        );
+      }
+      expect(
+        tails[CastSpeedTier.full],
+        contains('trim=start=2:end=5,setpts=PTS-STARTPTS,fps=30'),
+        reason: '1× 档没有第二句 setpts（与不设倍速一致）',
+      );
+      expect(
+        tails[CastSpeedTier.half],
+        contains(
+          'trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,fps=30',
+        ),
+        reason: '范围先收窄、倍速后缩放：先后定死，窗不随档漂移',
+      );
+      expect(
+        tails[CastSpeedTier.threeQuarter],
+        contains('setpts=PTS-STARTPTS,setpts=PTS/0.75'),
+      );
+    });
+
+    test('音轨与拍声轨收在同一段上（atrim 各接一份，再 mix）', () {
+      final filter = filterOf(pictureArgs(speedTier: CastSpeedTier.half));
+
+      expect(
+        filter,
+        contains(
+          '[0:a]atrim=start=2:end=5,asetpts=PTS-STARTPTS,'
+          'atempo=0.5,aresample=48000[amain]',
+        ),
+      );
+      expect(
+        filter,
+        contains(
+          '[1:a]atrim=start=2:end=5,asetpts=PTS-STARTPTS,'
+          'atempo=0.5,aresample=48000[abeat]',
+        ),
+        reason: '拍声轨不跟着收就会与画面错开',
+      );
+      expect(filtersAmixOf(filter), contains('[amain][abeat]amix=inputs=2'));
+    });
+
+    test('整片范围（未设首尾线）与不设范围逐字一致', () {
+      const whole = CastRange(
+        start: Duration.zero,
+        end: Duration(minutes: 3),
+      );
+
+      expect(
+        filterOf(pictureArgs(range: whole)),
+        filterOf(pictureArgs(range: null)),
+      );
+      expect(
+        args(choices: all, range: whole, speedTier: CastSpeedTier.half),
+        args(choices: all, range: null, speedTier: CastSpeedTier.half),
+      );
+    });
+
+    test('空区间 / 倒置区间：不装任何范围节点', () {
+      for (final degenerate in const [
+        CastRange(start: Duration(seconds: 5), end: Duration(seconds: 5)),
+        CastRange(start: Duration(seconds: 5), end: Duration(seconds: 3)),
+      ]) {
+        expect(
+          filterOf(pictureArgs(range: degenerate)),
+          isNot(contains('trim=')),
+          reason: '$degenerate 没有可收的一段',
+        );
+      }
+    });
+  });
+
+  group('复制档明确不接受范围（只勾声音类 + 1×）', () {
+    const range = CastRange(
+      start: Duration(seconds: 2),
+      end: Duration(seconds: 5),
+    );
+
+    test('复制档：视频原样复制、音轨照整片混，范围一个节点都不进', () {
+      final arguments = args(range: range);
+
+      expect(videoCodecOf(arguments), 'copy', reason: '秒级出结果靠的就是这一句');
+      expect(arguments, containsAllInOrder(['-c:a', 'aac']));
+      expect(
+        filterOf(arguments),
+        isNot(contains('trim=')),
+        reason: '复制出来的流改不了长度：这一档明确不收范围',
+      );
+      expect(
+        filterOf(arguments),
+        isNot(contains('atrim=')),
+        reason: '只收画面不收声音会让两者对不上，故整片一起推',
+      );
+      expect(
+        filterOf(arguments),
+        contains('[0:a]aresample=48000[amain]'),
+        reason: '音轨这一路也照整片来（没有 atrim）',
+      );
+      expect(arguments, containsAllInOrder(['-map', '0:v']));
+      expect(arguments, isNot(contains('-t')));
+      expect(arguments.where((a) => a == '-ss'), isEmpty);
+    });
+
+    test('只勾声音类 + 非 1×：视频要重编码，范围照收（画面被解出过）', () {
+      final arguments = args(range: range, speedTier: CastSpeedTier.half);
+
+      expect(videoCodecOf(arguments), kCastRenderVideoEncoder);
+      expect(
+        filterOf(arguments),
+        contains(
+          '[0:v]trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,'
+          'fps=30,format=yuv420p[vout]',
+        ),
+      );
+      expect(
+        filterOf(arguments),
+        contains('[1:a]atrim=start=2:end=5,asetpts=PTS-STARTPTS,atempo=0.5'),
+      );
+    });
+
+    test('勾画面类不勾声音 + 范围：音轨跟着收窄（复制改不了范围）', () {
+      final arguments = args(
+        choices: const CastRenderChoices(picture: true, sound: false),
+        range: range,
+        beatTrackPath: null,
+      );
+
+      expect(
+        arguments,
+        containsAllInOrder(['-c:a', 'aac']),
+        reason: '复制整片音轨会与收窄后的画面错开，只能重编码一条同段的',
+      );
+      expect(arguments, containsAllInOrder(['-map', '[amain]']));
+      expect(arguments, isNot(contains('/cache/a.clicks.wav')));
+      expect(
+        filterOf(arguments),
+        contains('[0:a]atrim=start=2:end=5,asetpts=PTS-STARTPTS,'
+            'aresample=48000[amain]'),
+      );
+    });
+
+    test('勾画面类不勾声音、无范围：音轨仍原样复制（与今天逐字一致）', () {
+      final arguments = args(
+        choices: const CastRenderChoices(picture: true, sound: false),
+        beatTrackPath: null,
+      );
+
+      expect(arguments, containsAllInOrder(['-c:a', 'copy']));
+      expect(arguments, containsAllInOrder(['-map', '0:a']));
+    });
+
+    test('不勾声音 + 非 1×：音轨跟着缩放（复制改不了时长，不跟就错开）', () {
+      final arguments = args(
+        choices: const CastRenderChoices(picture: true, sound: false),
+        speedTier: CastSpeedTier.half,
+        beatTrackPath: null,
+      );
+
+      expect(arguments, containsAllInOrder(['-c:a', 'aac']));
+      expect(
+        filterOf(arguments),
+        contains('[0:a]atempo=0.5,aresample=48000[amain]'),
+        reason: '画面按 setpts 拉长了，音轨不跟就会与画面错开',
+      );
+    });
+  });
 }
+
+/// `amix` 那一条节点（链里唯一一条把两条音轨合起来的）。
+String filtersAmixOf(String filter) =>
+    filter.split(';').firstWhere((node) => node.contains('amix'));

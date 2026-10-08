@@ -34,11 +34,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'cast_beat_gate.dart';
 import 'cast_beat_track.dart';
+import 'cast_range_gate.dart' show castCopyDurationOf;
 import 'cast_render_cache.dart';
 import 'cast_render_executor.dart';
 import 'cast_render_plan.dart';
 import 'cast_render_request.dart';
-import 'cast_speed_tier.dart' show castCopyDuration;
 
 /// 一次编排的结局。
 enum CastRenderExit {
@@ -155,10 +155,12 @@ class CastRenderOrchestrator {
       final verdict = await executor.run(
         CastRenderJob(
           arguments: arguments,
-          // 分母是**产物**的期望时长，不是源时长：`setpts=PTS/rate` 让 0.5×
-          // 档的产物长一倍，拿源时长当分母会在 ffmpeg 走到源片时长那一刻
-          // 就报 100%（那时产物还有一半没渲完）。
-          total: castCopyDuration(request.duration, request.speedTier),
+          // 分母是**产物**的期望时长，不是源时长：范围生效时产物只有首线→
+          // 尾线那一段，再按倍速档换算（`setpts=PTS/rate` 让 0.5× 档的产物长
+          // 一倍）。拿源时长当分母会在 ffmpeg 走到源片时长那一刻就报 100%
+          // （那时产物还有一半没渲完），拿整片当分母则会让收窄过的那一档一
+          // 直停在开头。
+          total: castCopyDurationOf(request),
         ),
         onProgress: onProgress,
       );

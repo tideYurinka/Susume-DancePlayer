@@ -18,6 +18,7 @@ import '../beat_track_state/beat_track_state.dart'
     show beatGridProvider, beatTrackStateProvider;
 import '../cast/cast_annotation_fingerprint.dart';
 import '../cast/cast_beat_count.dart';
+import '../cast/cast_range_gate.dart' show CastRange;
 import '../cast/cast_render_request.dart';
 import '../core/current_beat.dart' show BeatCountDisplay;
 import 'annotation_editor.dart'
@@ -351,7 +352,10 @@ buildCastBeatOverlay({
 /// [CastRenderRequest.stickers]（第二路输入）与设置快照里的**尺寸记号**
 /// （`stickerOverlay`；尺寸分数在这一处现算，不在指纹里——见
 /// [castStickerOverlayToken]）。**数拍层**（`#30`）同样读一次、喂两处：
-/// 设置快照里的落位记号（缓存键）与 [CastRenderRequest.beatOverlay]。渲染参数
+/// 设置快照里的落位记号（缓存键）与 [CastRenderRequest.beatOverlay]。**范围**
+/// （`#37`）同样从这一份 timeline 读：首线 / 尾线进 [CastRenderRequest.range]
+/// （画面链的 `trim` 与音轨链的 `atrim` 按它成窗），而首尾区间本来就在标注
+/// 指纹里——两处读的是同一个值对象的同两个字段，改首尾线即换键。渲染参数
 /// 与上屏取值因此读的是同一份取值，不是两处各自读一遍、各自对齐的口径。
 ///
 /// [pictureRect] 是**上屏画面矩形**（取景后那一块）的屏幕矩形：贴纸的尺寸分数
@@ -436,6 +440,10 @@ CastRenderRequest castRenderRequestFor(
     framingSelection: framing,
     stickers: stickers,
     beatOverlay: beat?.overlay,
+    // **范围**（#37）：首线 → 尾线，从**这一份** timeline 读（与标注指纹读的是
+    // 同一个值对象的那两个字段）。整片时照给——「整片不装节点」由
+    // `cast_range_gate.dart` 的 `castRangeActive` 判，装配处不做第二次判断。
+    range: CastRange(start: timeline.rangeStart, end: timeline.rangeEnd),
     beatClicks: buildCastBeatClicks(
       grid: grid,
       source: metronomeSourceEntryOfId(sourceId),

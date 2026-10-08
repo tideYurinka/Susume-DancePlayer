@@ -5,6 +5,7 @@ import 'package:dance_learning_app/annotation/half_beat_line.dart';
 import 'package:dance_learning_app/annotation/note_sticker.dart';
 import 'package:dance_learning_app/annotation/segment_line.dart';
 import 'package:dance_learning_app/cast/cast_beat_count.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:dance_learning_app/core/beat_point.dart';
 import 'package:dance_learning_app/beat_track_state/beat_track_state.dart'
@@ -57,8 +58,12 @@ void main() {
   AnnotationTimeline timeline({
     List<SegmentLine> segments = const [],
     List<HalfBeatLine> halfBeats = const [],
+    Duration rangeStart = Duration.zero,
+    Duration rangeEnd = const Duration(seconds: 30),
   }) => AnnotationTimeline.normalized(
     videoDuration: const Duration(seconds: 30),
+    rangeStart: rangeStart,
+    rangeEnd: rangeEnd,
     segmentLines: segments,
     halfBeatLines: halfBeats,
   );
@@ -246,6 +251,52 @@ void main() {
     expect(after.mirrorFragments, isNot(before.mirrorFragments));
     expect(after.annotationFingerprint, isNot(before.annotationFingerprint));
     expect(after.cacheKey, isNot(before.cacheKey));
+  });
+
+  test('范围进请求：首线 / 尾线从那一份 timeline 原样带过去', () {
+    final whole = requestFrom(container());
+    expect(
+      whole.range,
+      const CastRange(start: Duration.zero, end: Duration(seconds: 30)),
+      reason: '未设首尾线 = 整片（「整片不装节点」由范围闸门判）',
+    );
+
+    final clipped = requestFrom(
+      container(
+        timelineValue: timeline(
+          rangeStart: const Duration(seconds: 2),
+          rangeEnd: const Duration(seconds: 20),
+        ),
+      ),
+    );
+    expect(
+      clipped.range,
+      const CastRange(
+        start: Duration(seconds: 2),
+        end: Duration(seconds: 20),
+      ),
+      reason: '画面链的 trim 与音轨链的 atrim 读的就是这两个数',
+    );
+  });
+
+  test('首尾线改了就换键：它已在标注指纹里，范围不另立第二个键分量', () {
+    final before = requestFrom(container());
+    final after = requestFrom(
+      container(
+        timelineValue: timeline(
+          rangeStart: const Duration(seconds: 2),
+          rangeEnd: const Duration(seconds: 20),
+        ),
+      ),
+    );
+
+    expect(after.annotationFingerprint, isNot(before.annotationFingerprint));
+    expect(after.cacheKey, isNot(before.cacheKey));
+    expect(
+      after.cacheKey.token.split('#').length,
+      before.cacheKey.token.split('#').length,
+      reason: '键仍是那五个分量：范围没有多出一个独立分量',
+    );
   });
 
   test('拍声排程：有网格就逐拍落点，音量按槽位口径', () {
