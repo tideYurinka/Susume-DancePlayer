@@ -9,8 +9,8 @@ import '../helpers/source_guard.dart';
 ///
 /// 读源码的 import 边（相对路径与 package 路径都归一成 lib 下的目标路径），
 /// 落成三条结构性断言：
-/// - 域层（持久化/标注/基础/节拍/统计/计划/舞库/更新/打包）不得 import
-///   `lib/player/**`；
+/// - 域层（持久化/标注/基础/节拍/统计/计划/舞库/更新/打包/投屏）不得
+///   import `lib/player/**`；
 /// - `lib/core` 不得 import 其他上下文目录（唯一豁免是 `annotation/
 ///   annotation_timeline.dart` 这一纯值类型，由
 ///   `core/playback/seek_submitter.dart` 的注入签名消费；`player_session` /
@@ -31,6 +31,7 @@ const _contexts = [
   'dance',
   'update',
   'package',
+  'cast',
 ];
 
 /// `lib/home` 允许的 player import：页面导航（打开播放页 / 组员方案 / 命名）

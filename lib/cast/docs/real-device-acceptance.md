@@ -1,0 +1,110 @@
+# 投屏地基的真机验收步骤
+
+这一票（#23，规格 #21）在宿主测试里覆盖的是「三条接缝 + 本机假接收端」的全链；
+**真接收端的行为只能在真机上看见**。下面是从零到核对完的步骤，与分享面板那条
+口径一致：原生与真机行为留真机验收。
+
+## 真机上要验的四件事
+
+1. 能在局域网上发现接收端（SSDP 组播通、设备描述读得出）。
+2. 推片后接收端自己播；播放 / 暂停 / 停止 / 跳转 / 音量都对它生效；断开即停服。
+3. 我们发出去的 SOAP 指令与 CI 基线是同一串（不是"看起来也能播"）。
+4. 三个新增的普通权限在真机上是普通权限：全程没有权限弹窗。
+
+## 前置
+
+- 手机与接收端在**同一个 Wi-Fi、同一网段**；路由器关掉「AP 隔离」「访客网络」
+  ——这两样会让 SSDP 组播与递出通道都不通，表现是"搜不到任何接收端"。
+- 手机与用来对照的电脑也在同一个 Wi-Fi。
+- `adb devices` 能看到手机。
+
+## 路径 A：本机假接收端（零依赖，先跑这条）
+
+1. 在电脑上起一台假接收端：
+
+   ```bash
+   dart run tool/cast_fake_receiver.dart --name 客厅电视
+   ```
+
+   它会打印设备描述地址与两条控制端点（AVTransport / RenderingControl），并把
+   之后收到的**每条 SOAP 指令（动作名 + 请求体原文）**逐条打印。
+2. 放行电脑防火墙上的那个 HTTP 端口与 UDP 1900 入站。
+3. 手机上打开 Susume，在投屏准备面板里重扫：应能发现「客厅电视」。
+4. 投屏。假接收端那边应按下面的顺序打印：
+
+   `GetTransportInfo`（连接探测）→ `SetAVTransportURI` → `Play` → `Pause`
+   → `Seek` → `SetVolume` →（查询类）→ `Stop`。
+
+5. 看 `SetAVTransportURI` 的请求体：
+   - `CurrentURI` 是本机递出地址，路径形如 `/cast/<一次性随机串>/<文件名>`；
+   - `CurrentURIMetaData` 里有 `<upnp:class>object.item.videoItem</upnp:class>`
+     与一条 `res protocolInfo="http-get:*:video/mp4:*"`。
+6. 核对递出通道的 `Range`（地址就是上面那条 `CurrentURI`）：
+
+   ```bash
+   curl -v -H 'Range: bytes=0-1023' '<CurrentURI>'
+   ```
+
+   应回 `206` 与 `Content-Range: bytes 0-1023/<总长>`。
+7. 在 App 里断开投屏：假接收端应打印 `Stop`；再 `curl` 同一条地址应是
+   **连接被拒**（会话结束即停服）。
+
+## 路径 B：rygel（真实 DLNA 接收端）
+
+1. 在一台有桌面的 Linux 上装并起 rygel：
+
+   ```bash
+   sudo apt install rygel          # Debian/Ubuntu；Fedora：sudo dnf install rygel
+   rygel --disable-transcoding     # 前台跑，看得见日志
+   ```
+
+2. 确认它真的在 SSDP 上答（`gupnp-tools` 包提供 `gssdp-discover`）：
+
+   ```bash
+   gssdp-discover --timeout=3 | grep -i mediarenderer
+   ```
+
+   或者从 rygel 日志里取它的设备描述地址，`curl` 那份 XML 应含
+   `urn:schemas-upnp-org:service:AVTransport:1` 与
+   `urn:schemas-upnp-org:service:RenderingControl:1` 两个 `serviceType`。
+3. 手机与这台机器同网 → Susume 的投屏准备面板里应能发现它 → 投屏后 rygel 端
+   开始播放。
+4. rygel 的常见脾气：
+   - **不给或给错 DIDL 元数据**时它会回 UPnP 错误码（我们给的是最小视频元数据；
+     若它拒播，先看日志里具体的 `errorCode`，再核对 `res` 的类型与地址）。
+   - 转码开着时它会自己再转一道，比较起播延迟与画面时先 `--disable-transcoding`。
+
+## 怎么核对发出的 SOAP 指令
+
+- **首选路径 A**：假接收端逐条打印动作名与请求体——这就是"我们发出去的是什么"。
+- **真接收端**：
+
+  ```bash
+  sudo tcpdump -i any -A -s0 'tcp port <递出端口> or udp port 1900'
+  ```
+
+  或在 Wireshark 里过滤 `http.request.method == "POST"`，看 `SOAPAction` 头
+  （形如 `"urn:schemas-upnp-org:service:AVTransport:1#Play"`）与 `<u:Play>` 元素。
+- **期望的动作序列**（与 CI 基线 `test/cast/fake_receiver_e2e_test.dart` 同一份）：
+
+  ```
+  GetTransportInfo → SetAVTransportURI → Play → Pause → Seek → SetVolume
+  → GetCurrentTransportActions → GetTransportInfo → GetPositionInfo → GetVolume → Stop
+  ```
+
+  多一条少一条都说明行为变了。
+
+## 权限核对
+
+```bash
+adb shell dumpsys package top.yurinka.susume | grep -i -e ACCESS_NETWORK_STATE \
+  -e ACCESS_WIFI_STATE -e CHANGE_WIFI_MULTICAST_STATE
+```
+
+三条都应出现。三条都是**普通权限**：投屏全程不应弹出任何权限对话框。
+
+## 已知偏差（不是缺陷）
+
+- 投屏副本比源片**多一代有损压缩**，电视上会略软于手机本地播放。
+- 倍速靠换文件，**起播等待（约 1–3 秒）与 Seek 精度由接收端决定**，界面不做承诺。
+- 数拍数字与节拍动画是**渲染那一刻**算出来的，遥控跳段不会重锚定它们。
