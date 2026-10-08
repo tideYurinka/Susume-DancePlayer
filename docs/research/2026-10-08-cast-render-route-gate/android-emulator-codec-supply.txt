@@ -1,0 +1,32 @@
+# 本目标上的编解码器供给（2026-10-08，emulator-5554）
+
+adb shell service list | grep -i codec:
+35	android.hardware.media.c2.IComponentStore/software: [android.hardware.media.c2.IComponentStore]
+
+adb shell ls /vendor/lib64 | grep -i -E 'codec2|avc|hevc':
+libcodec2.so
+libcodec2_goldfish_avcdec.so
+libcodec2_goldfish_common.so
+libcodec2_goldfish_hevcdec.so
+libcodec2_goldfish_vp8dec.so
+libcodec2_goldfish_vp9dec.so
+libcodec2_hal_common.so
+libcodec2_hidl@1.0.so
+libcodec2_hidl@1.1.so
+libcodec2_hidl@1.2.so
+libcodec2_hidl_plugin.so
+libcodec2_vndk.so
+libgoldfish_codec2_store.so
+
+adb shell ls /system/lib64 | grep -i codec2:
+libcodec2.so
+libcodec2_aidl_client.so
+libcodec2_client.so
+libcodec2_hal_common.so
+libcodec2_hidl_client@1.0.so
+libcodec2_hidl_client@1.1.so
+libcodec2_hidl_client@1.2.so
+libcodec2_vndk.so
+
+adb shell dumpsys media.codec:
+Can't find service: media.codec

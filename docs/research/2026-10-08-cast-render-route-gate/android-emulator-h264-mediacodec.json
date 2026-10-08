@@ -1,0 +1,36 @@
+{
+  "runner": "android-device",
+  "ffmpeg": "n8.1.2",
+  "encoder": "h264_mediacodec",
+  "encoderIsGatePath": true,
+  "inputs": {
+    "origin": "pushed",
+    "source": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/source_1080p_30s.mp4",
+      "bytes": 23038761
+    },
+    "sticker": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/sticker_alpha.png",
+      "bytes": 736
+    },
+    "beat": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/beat_120bpm_30s.wav",
+      "bytes": 5760078
+    },
+    "note": "origin=pushed 时字节与宿主生成的那一份相同（哈希见宿主报告）"
+  },
+  "encoderCapability": {
+    "encoder": "h264_mediacodec",
+    "found": true,
+    "name": "h264_mediacodec",
+    "raw": "Encoder h264_mediacodec []:\n    General capabilities: dr1 delay hardware \n    Threading capabilities: none\n    Supported hardware devices: mediacodec \n    Supported pixel formats: mediacodec yuv420p nv12\nh264_mediacodec AVOptions:\n  -ndk_codec         <boolean>    E..V....... Use MediaCodec from NDK (default auto)\n  -ndk_async         <boolean>    E..V....... Try NDK MediaCodec in async mode (default false)\n  -codec_name        <string>     E..V....... Select codec by name\n  -bitrate_mode      <int>        E..V....... Bitrate control method (from -1 to INT_MAX) (default -1)\n     cq              0            E..V....... Constant quality mode\n     vbr             1            E..V....... Variable bitrate mode\n     cbr             2            E..V....... Constant bitrate mode\n     cbr_fd          3            E..V....... Constant bitrate mode with frame drops\n  -pts_as_dts        <boolean>    E..V....... Use PTS as DTS. It is enabled automatically if avctx max_b_frames <= 0, since most of Android devices don't output B frames by default. (default auto)\n  -operating_rate    <int>        E..V....... The desired operating rate that the codec will need to operate at, zero for unspecified (from 0 to INT_MAX) (default 0)\n  -qp_i_min          <int>        E..V....... minimum quantization parameter for I frame (from -1 to INT_MAX) (default -1)\n  -qp_p_min          <int>        E..V....... minimum quantization parameter for P frame (from -1 to INT_MAX) (default -1)\n  -qp_b_min          <int>        E..V....... minimum quantization parameter for B frame (from -1 to INT_MAX) (default -1)\n  -qp_i_max          <int>        E..V....... maximum quantization parameter for I frame (from -1 to INT_MAX) (default -1)\n  -qp_p_max          <int>        E..V....... maximum quantization parameter for P frame (from -1 to INT_MAX) (default -1)\n  -qp_b_max          <int>        E..V....... maximum quantization parameter for B frame (from -1 to INT_MAX) (default -1)\n  -level             <int>        E..V....... Specify level (from 0 to INT_MAX) (default 0)\n     1               1            E..V....... \n     1b              2            E..V....... \n     1.1             4            E..V....... \n     1.2             8            E..V....... \n     1.3             16           E..V....... \n     2               32           E..V....... \n     2.1             64           E..V....... \n     2.2             128          E..V....... \n     3               256          E..V....... \n     3.1             512          E..V....... \n     3.2             1024         E..V....... \n     4               2048         E..V....... \n     4.1             4096         E..V....... \n     4.2             8192         E..V....... \n     5               16384        E..V....... \n     5.1             32768        E..V....... \n     5.2             65536        E..V....... "
+  },
+  "codecPick": null,
+  "smokeOk": false,
+  "smokeLogTail": "frame=    0 fps=0.0 q=0.0 size=       0kB time=-00:00:00.02 bitrate=N/A speed=N/A    \rframe=    0 fps=0.0 q=0.0 size=       0kB time=00:00:00.87 bitrate=   0.4kbits/s speed=1.54x    \r[mp4 @ 0x7c29d3d333d0] Starting second pass: moving the moov atom to the beginning of the file / frame=    0 fps=0.0 q=0.0 Lsize=      13kB time=00:00:00.98 bitrate= 111.8kbits/s speed=1.63x     / video:0kB audio:12kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 8.057021% / [aac @ 0x7c28f3e91d90] Qavg: 57897.578",
+  "smokeLogFile": "/data/user/0/top.yurinka.susume.debug/files/cast_bench/smoke_1s.log",
+  "runs": [],
+  "summary": {},
+  "ok": false,
+  "finishedAt": "2026-10-08T23:12:30.592718"
+}

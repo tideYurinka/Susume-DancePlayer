@@ -1,0 +1,10 @@
+=== 2026-10-08T23:13:48+08:00 目标环境 ===
+sdk_gphone64_x86_64
+x86_64
+16
+36
+ranchu
+--- 编解码器服务 ---
+35	android.hardware.media.c2.IComponentStore/software: [android.hardware.media.c2.IComponentStore]
+--- 平台编码器（若能列出）---
+Can't find service: media.codec

@@ -1,0 +1,57 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/source_1080p_30s.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf58.76.100
+  Duration: 00:00:30.00, start: 0.000000, bitrate: 6143 kb/s
+  Stream #0:0[0x1](und): Video: h264, 1 reference frame (avc1 / 0x31637661), yuv420p(progressive, left), 1920x1080 [SAR 1:1 DAR 16:9], 6055 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+  Stream #0:1[0x2](und): Audio: aac (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 79 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+Input #1, png_pipe, from '/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/sticker_alpha.png':
+  Duration: N/A, bitrate: N/A
+  Stream #1:0: Video: png, 1 reference frame, rgba(pc, gbr/unknown/unknown), 480x162 [SAR 1:1 DAR 80:27], 25 fps, 25 tbr, 25 tbn
+Guessed Channel Layout for Input Stream #2.0 : stereo
+Input #2, wav, from '/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/beat_120bpm_30s.wav':
+  Metadata:
+    encoder         : Lavf58.76.100
+  Duration: 00:00:30.00, bitrate: 1536 kb/s
+  Stream #2:0: Audio: pcm_s16le ([1][0][0][0] / 0x0001), 48000 Hz, 2 channels, s16, 1536 kb/s
+Stream mapping:
+  Stream #0:0 (h264) -> fps:default
+  Stream #0:1 (aac) -> aresample:default
+  Stream #1:0 (png) -> format:default
+  Stream #2:0 (pcm_s16le) -> aresample:default
+  format:default -> Stream #0:0 (h264_mediacodec)
+  amix:default -> Stream #0:1 (aac)
+Press [q] to stop, [?] for help
+[out_0_1 @ 0x7c2903d9e430] The "all_channel_counts" option is deprecated: accept all channel counts
+[graph 0 input from stream 0:0 @ 0x7c2903d9c050] Changing video frame properties on the fly is not supported by all filters.
+[graph 0 input from stream 0:0 @ 0x7c2903d9c050] filter context - w: 1920 h: 1080 fmt: 0 csp: gbr range: unknown alpha: unspecified, incoming frame - w: 1920 h: 1080 fmt: 0 csp: unknown range: unknown alpha: unspecified pts_time: 0
+[graph 0 input from stream 1:0 @ 0x7c2903d9c910] Changing video frame properties on the fly is not supported by all filters.
+[graph 0 input from stream 1:0 @ 0x7c2903d9c910] filter context - w: 480 h: 162 fmt: 26 csp: gbr range: unknown alpha: unspecified, incoming frame - w: 480 h: 162 fmt: 26 csp: gbr range: pc alpha: straight pts_time: 0
+[swscaler @ 0x7c2a1402f350] No accelerated colorspace conversion found from yuv420p to rgba.
+[swscaler @ 0x7c2a1402f350] [swscaler @ 0x7c2a1408f3b0] No accelerated colorspace conversion found from yuv420p to rgba.
+[swscaler @ 0x7c2a1402f350] [swscaler @ 0x7c2a1406f390] No accelerated colorspace conversion found from yuv420p to rgba.
+[swscaler @ 0x7c2a1402f350] [swscaler @ 0x7c2a1407f3a0] No accelerated colorspace conversion found from yuv420p to rgba.
+[swscaler @ 0x7c2a1402f350] [swscaler @ 0x7c2a140cf3f0] No accelerated colorspace conversion found from yuv420p to rgba.
+[swscaler @ 0x7c2a1402f350] [swscaler @ 0x7c2a1409f3c0] No accelerated colorspace conversion found from yuv420p to rgba.
+Output #0, mp4, to '/data/user/0/top.yurinka.susume.debug/files/cast_bench/smoke_1s.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.12.102
+  Stream #0:0: Video: h264, 1 reference frame (avc1 / 0x31637661), yuv420p(gbr/unknown/unknown, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 8000 kb/s, 30 fps, 15360 tbn
+    Metadata:
+      encoder         : Lavc62.28.102 h264_mediacodec
+  Stream #0:1: Audio: aac (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, delay 1024, 192 kb/s
+    Metadata:
+      encoder         : Lavc62.28.102 aac
+frame=    0 fps=0.0 q=0.0 size=       0kB time=-00:00:00.02 bitrate=N/A speed=N/A    frame=    0 fps=0.0 q=0.0 size=       0kB time=00:00:00.87 bitrate=   0.4kbits/s speed=1.54x    [mp4 @ 0x7c29d3d333d0] Starting second pass: moving the moov atom to the beginning of the file
+frame=    0 fps=0.0 q=0.0 Lsize=      13kB time=00:00:00.98 bitrate= 111.8kbits/s speed=1.63x    
+video:0kB audio:12kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 8.057021%
+[aac @ 0x7c28f3e91d90] Qavg: 57897.578

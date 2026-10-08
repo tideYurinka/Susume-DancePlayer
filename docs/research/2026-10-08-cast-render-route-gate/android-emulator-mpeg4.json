@@ -1,0 +1,161 @@
+{
+  "runner": "android-device",
+  "ffmpeg": "n8.1.2",
+  "encoder": "mpeg4",
+  "encoderIsGatePath": false,
+  "androidSdk": "sdk_gphone64_x86_64-userdebug 16 BE2A.250530.026.F3 13894323 dev-keys",
+  "inputs": {
+    "origin": "pushed",
+    "source": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/source_1080p_30s.mp4",
+      "bytes": 23038761
+    },
+    "sticker": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/sticker_alpha.png",
+      "bytes": 736
+    },
+    "beat": {
+      "path": "/data/user/0/top.yurinka.susume.debug/files/cast_bench_inputs/beat_120bpm_30s.wav",
+      "bytes": 5760078
+    },
+    "note": "origin=pushed 时字节与宿主生成的那一份相同（哈希见宿主报告）"
+  },
+  "inputsFixed": {
+    "durationSeconds": 30,
+    "fps": 30,
+    "sourceWidth": 1920,
+    "sourceHeight": 1080,
+    "localMirrorWindows": [
+      [
+        2.0,
+        4.0
+      ],
+      [
+        10.0,
+        12.5
+      ]
+    ],
+    "stickerWindow": [
+      6.0,
+      9.0
+    ],
+    "stickerRectNormalized": [
+      0.05,
+      0.07,
+      0.25,
+      0.15
+    ],
+    "framingRectNormalized": [
+      0.05,
+      0.05,
+      0.9,
+      0.9
+    ],
+    "gop": 60,
+    "bitrate1080p": "8M",
+    "bitrate720p": "4M"
+  },
+  "encoderCapability": {
+    "encoder": "mpeg4",
+    "found": true,
+    "name": "mpeg4",
+    "raw": "Encoder mpeg4 []:\n    General capabilities: dr1 delay threads \n    Threading capabilities: slice\n    Supported pixel formats: yuv420p\nMPEG4 encoder AVOptions:\n  -data_partitioning <boolean>    E..V....... Use data partitioning. (default false)\n  -alternate_scan    <boolean>    E..V....... Enable alternate scantable. (default false)\n  -mpeg_quant        <int>        E..V....... Use MPEG quantizers instead of H.263 (from 0 to 1) (default 0)\n  -b_strategy        <int>        E..V....... Strategy to choose between I/P/B-frames (from 0 to 2) (default 0)\n  -b_sensitivity     <int>        E..V....... Adjust sensitivity of b_frame_strategy 1 (from 1 to INT_MAX) (default 40)\n  -brd_scale         <int>        E..V....... Downscale frames for dynamic B-frame decision (from 0 to 3) (default 0)\n  -mpv_flags         <flags>      E..V....... Flags common for all mpegvideo-based encoders. (default 0)\n     skip_rd                      E..V....... RD optimal MB level residual skipping\n     strict_gop                   E..V....... Strictly enforce gop size\n     qp_rd                        E..V....... Use rate distortion optimization for qp selection\n     cbp_rd                       E..V....... use rate distortion optimization for CBP\n     naq                          E..V....... normalize adaptive quantization\n     mv0                          E..V....... always try a mb with mv=<0,0>\n  -luma_elim_threshold <int>        E..V....... single coefficient elimination threshold for luminance (negative values also consider dc coefficient) (from INT_MIN to INT_MAX) (default 0)\n  -chroma_elim_threshold <int>        E..V....... single coefficient elimination threshold for chrominance (negative values also consider dc coefficient) (from INT_MIN to INT_MAX) (default 0)\n  -quantizer_noise_shaping <int>        E..V....... (from 0 to INT_MAX) (default 0)\n  -error_rate        <int>        E..V....... Simulate errors in the bitstream to test error concealment. (from 0 to INT_MAX) (default 0)\n  -qsquish           <float>      E..V....... how to keep quantizer between qmin and qmax (0 = clip, 1 = use differentiable function) (from 0 to 99) (default 0)\n  -rc_qmod_amp       <float>      E..V....... experimental quantizer modulation (from -FLT_MAX to FLT_MAX) (default 0)\n  -rc_qmod_freq      <int>        E..V....... experimental quantizer modulation (from INT_MIN to INT_MAX) (default 0)\n  -rc_eq             <string>     E..V....... Set rate control equation. When computing the expression, besides the standard functions defined in the section 'Expression Evaluation', the following functions are available: bits2qp(bits), qp2bits(qp). Also the following constants are available: iTex pTex tex mv fCode iCount mcVar var isI isP isB avgQP qComp avgIITex avgPITex avgPPTex avgBPTex avgTex.\n  -rc_init_cplx      <float>      E..V....... initial complexity for 1-pass encoding (from -FLT_MAX to FLT_MAX) (default 0)\n  -rc_buf_aggressivity <float>      E..V....... currently useless (from -FLT_MAX to FLT_MAX) (default 1)\n  -border_mask       <float>      E..V....... increase the quantizer for macroblocks close to borders (from -FLT_MAX to FLT_MAX) (default 0)\n  -lmin              <int>        E..V....... minimum Lagrange factor (VBR) (from 0 to INT_MAX) (default 236)\n  -lmax              <int>        E..V....... maximum Lagrange factor (VBR) (from 0 to INT_MAX) (default 3658)\n  -skip_threshold    <int>        E..V....... Frame skip threshold (from INT_MIN to INT_MAX) (default 0)\n  -skip_factor       <int>        E..V....... Frame skip factor (from INT_MIN to INT_MAX) (default 0)\n  -skip_exp          <int>        E..V....... Frame skip exponent (from INT_MIN to INT_MAX) (default 0)\n  -skip_cmp          <int>        E..V....... Frame skip compare function (from INT_MIN to INT_MAX) (default dctmax)\n     sad             0            E..V....... Sum of absolute differences, fast\n     sse             1            E..V....... Sum of squared errors\n     satd            2            E..V....... Sum of absolute Hadamard transformed differences\n     dct             3            E..V....... Sum of absolute DCT transformed differences\n     psnr            4            E..V....... Sum of squared quantization errors, low quality"
+  },
+  "codecPick": null,
+  "runs": [
+    {
+      "resolution": "p1080",
+      "wallClockMs": 13900,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=5.3 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   32 fps=0.0 q=7.5 size=    1024kB time=00:00:01.06 bitrate=7864.6kbits/s speed=1.95x    \rframe=   65 fps= 62 q=9.0 size=    2048kB time=00:00:02.16 bitrate=7743.5kbits/s speed=2.07x    \rframe=   99 fps= 64 q=8.3 size=    3072kB time=00:00:03.26 bitrate=7703.9kbits/s speed= 2.1x    \rframe=  132 fps= 64 q=8.1 size=    4352kB time=00:00:04.37 bitrate=8152.1kbits/s speed=2.12x    \rframe=  165 fps= 64 q=7.4 size=    5376kB time=00:00:05.50 bitrate=8007.4kbits/s speed=2.15x    \rframe=  196 fps= 64 q=7.8 size=    6400kB time=00:00:06.53 bitrate=8024.9kbits/s speed=2.13x    \rframe=  229 fps= 64 q=7.7 size=    7424kB time=00:00:07.60 bitrate=8002.3kbits/s speed=2.13x    \rframe=  260 fps= 64 q=7.3 size=    8448kB time=00:00:08.66 bitrate=7985.3kbits/s speed=2.13x    \rframe=  294 fps= 64 q=7.9 size=    9472kB time=00:00:09.76 bitrate=7944.9kbits/s speed=2.13x    \rframe=  327 fps= 64 q=7.9 size=   10752kB time=00:00:10.90 bitrate=8080.8kbits/s speed=2.14x    \rframe=  360 fps= 64 q=6.3 size=   11776kB time=00:00:12.00 bitrate=8039.1kbits/s speed=2.14x    \rframe=  394 fps= 65 q=7.5 size=   12800kB time=00:00:13.10 bitrate=8004.4kbits/s speed=2.15x    \rframe=  426 fps= 65 q=7.7 size=   13824kB time=00:00:14.20 bitrate=7975.1kbits/s speed=2.15x    \rframe=  460 fps= 65 q=7.6 size=   15104kB time=00:00:15.33 bitrate=8069.5kbits/s speed=2.16x    \rframe=  493 fps= 65 q=7.5 size=   16128kB time=00:00:16.43 bitrate=8039.8kbits/s speed=2.16x    \rframe=  527 fps= 65 q=7.4 size=   17152kB time=00:00:17.53 bitrate=8013.9kbits/s speed=2.16x    \rframe=  560 fps= 65 q=8.3 size=   18432kB time=00:00:18.63 bitrate=8103.5kbits/s speed=2.16x    \rframe=  593 fps= 65 q=7.6 size=   19456kB time=00:00:19.73 bitrate=8076.9kbits/s speed=2.16x    \rframe=  626 fps= 65 q=7.4 size=   20480kB time=00:00:20.84 bitrate=8049.5kbits/s speed=2.16x    \rframe=  659 fps= 65 q=7.7 size=   21504kB time=00:00:21.95 bitrate=8024.8kbits/s speed=2.16x    \rframe=  692 fps= 65 q=7.5 size=   22528kB time=00:00:23.03 bitrate=8012.3kbits/s speed=2.16x    \rframe=  725 fps= 65 q=7.6 size=   23808kB time=00:00:24.13 bitrate=8081.6kbits/s speed=2.16x    \rframe=  757 fps= 65 q=7.4 size=   24832kB time=00:00:25.23 bitrate=8061.7kbits/s speed=2.16x    \rframe=  790 fps= 65 q=7.6 size=   25856kB time=00:00:26.30 bitrate=8053.7kbits/s speed=2.16x    \rframe=  821 fps= 65 q=7.7 size=   26880kB time=00:00:27.36 bitrate=8046.3kbits/s speed=2.16x    \rframe=  854 fps= 65 q=7.7 size=   27904kB time=00:00:28.46 bitrate=8030.1kbits/s speed=2.16x    \rframe=  888 fps= 65 q=7.5 size=   29184kB time=00:00:29.56 bitrate=8086.0kbits/s speed=2.16x    \r[mp4 @ 0x7c29d3d3a770] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 65 q=7.6 Lsize=   29705kB time=00:00:29.99 bitrate=8112.8kbits/s speed=2.16x     / video:29349kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.090128% / [aac @ 0x7c28f3e4b3b0] Qavg: 65247.289"
+    },
+    {
+      "resolution": "p1080",
+      "wallClockMs": 13917,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=5.3 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   35 fps=0.0 q=7.5 size=    1024kB time=00:00:01.13 bitrate=7402.0kbits/s speed=2.07x    \rframe=   68 fps= 64 q=8.4 size=    2304kB time=00:00:02.26 bitrate=8327.1kbits/s speed=2.14x    \rframe=  103 fps= 66 q=8.4 size=    3328kB time=00:00:03.40 bitrate=8018.6kbits/s speed=2.18x    \rframe=  137 fps= 66 q=7.7 size=    4352kB time=00:00:04.53 bitrate=7864.4kbits/s speed= 2.2x    \rframe=  170 fps= 66 q=7.9 size=    5376kB time=00:00:05.63 bitrate=7817.8kbits/s speed= 2.2x    \rframe=  202 fps= 66 q=7.4 size=    6656kB time=00:00:06.70 bitrate=8138.3kbits/s speed=2.18x    \rframe=  234 fps= 66 q=8.0 size=    7680kB time=00:00:07.80 bitrate=8066.0kbits/s speed=2.19x    \rframe=  267 fps= 66 q=7.5 size=    8704kB time=00:00:08.86 bitrate=8041.8kbits/s speed=2.18x    \rframe=  298 fps= 65 q=7.8 size=    9728kB time=00:00:09.93 bitrate=8022.7kbits/s speed=2.17x    \rframe=  332 fps= 65 q=7.5 size=   10752kB time=00:00:11.06 bitrate=7959.1kbits/s speed=2.17x    \rframe=  365 fps= 65 q=8.5 size=   12032kB time=00:00:12.16 bitrate=8101.4kbits/s speed=2.18x    \rframe=  398 fps= 65 q=7.6 size=   13056kB time=00:00:13.23 bitrate=8082.2kbits/s speed=2.17x    \rframe=  428 fps= 65 q=7.7 size=   14080kB time=00:00:14.25 bitrate=8093.9kbits/s speed=2.16x    \rframe=  460 fps= 65 q=7.6 size=   15104kB time=00:00:15.33 bitrate=8069.5kbits/s speed=2.16x    \rframe=  493 fps= 65 q=7.5 size=   16128kB time=00:00:16.43 bitrate=8039.8kbits/s speed=2.16x    \rframe=  527 fps= 65 q=7.4 size=   17152kB time=00:00:17.53 bitrate=8013.9kbits/s speed=2.16x    \rframe=  559 fps= 65 q=8.6 size=   18432kB time=00:00:18.60 bitrate=8118.0kbits/s speed=2.16x    \rframe=  592 fps= 65 q=7.3 size=   19456kB time=00:00:19.70 bitrate=8090.6kbits/s speed=2.16x    \rframe=  624 fps= 65 q=7.5 size=   20480kB time=00:00:20.80 bitrate=8066.0kbits/s speed=2.16x    \rframe=  657 fps= 65 q=7.7 size=   21504kB time=00:00:21.90 bitrate=8043.9kbits/s speed=2.16x    \rframe=  690 fps= 65 q=7.7 size=   22528kB time=00:00:23.00 bitrate=8023.9kbits/s speed=2.16x    \rframe=  723 fps= 65 q=7.5 size=   23808kB time=00:00:24.10 bitrate=8092.8kbits/s speed=2.16x    \rframe=  756 fps= 65 q=7.7 size=   24832kB time=00:00:25.16 bitrate=8083.1kbits/s speed=2.16x    \rframe=  789 fps= 65 q=7.6 size=   25856kB time=00:00:26.26 bitrate=8063.9kbits/s speed=2.16x    \rframe=  823 fps= 65 q=7.8 size=   26880kB time=00:00:27.40 bitrate=8036.5kbits/s speed=2.16x    \rframe=  856 fps= 65 q=6.3 size=   28160kB time=00:00:28.50 bitrate=8094.3kbits/s speed=2.16x    \rframe=  889 fps= 65 q=7.6 size=   29184kB time=00:00:29.60 bitrate=8076.9kbits/s speed=2.16x    \r[mp4 @ 0x7c29d3d41b10] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 65 q=7.6 Lsize=   29705kB time=00:00:29.99 bitrate=8112.8kbits/s speed=2.16x     / video:29349kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.090128% / [aac @ 0x7c28f3ecb870] Qavg: 65247.289"
+    },
+    {
+      "resolution": "p1080",
+      "wallClockMs": 13989,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=5.3 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   34 fps=0.0 q=7.4 size=    1024kB time=00:00:01.10 bitrate=7626.3kbits/s speed=2.02x    \rframe=   67 fps= 64 q=8.3 size=    2304kB time=00:00:02.23 bitrate=8451.4kbits/s speed=2.14x    \rframe=   99 fps= 64 q=8.4 size=    3328kB time=00:00:03.30 bitrate=8261.6kbits/s speed=2.13x    \rframe=  132 fps= 64 q=8.0 size=    4352kB time=00:00:04.40 bitrate=8102.7kbits/s speed=2.14x    \rframe=  165 fps= 64 q=7.5 size=    5376kB time=00:00:05.46 bitrate=8056.2kbits/s speed=2.13x    \rframe=  196 fps= 64 q=8.0 size=    6400kB time=00:00:06.50 bitrate=8057.8kbits/s speed=2.12x    \rframe=  229 fps= 64 q=7.7 size=    7424kB time=00:00:07.60 bitrate=8002.3kbits/s speed=2.13x    \rframe=  262 fps= 64 q=7.4 size=    8448kB time=00:00:08.70 bitrate=7954.8kbits/s speed=2.13x    \rframe=  294 fps= 64 q=7.9 size=    9472kB time=00:00:09.76 bitrate=7944.9kbits/s speed=2.13x    \rframe=  327 fps= 64 q=7.9 size=   10752kB time=00:00:10.86 bitrate=8105.6kbits/s speed=2.13x    \rframe=  360 fps= 64 q=7.8 size=   11776kB time=00:00:11.96 bitrate=8061.5kbits/s speed=2.14x    \rframe=  391 fps= 64 q=7.5 size=   12800kB time=00:00:13.03 bitrate=8045.4kbits/s speed=2.14x    \rframe=  424 fps= 64 q=7.6 size=   13824kB time=00:00:14.10 bitrate=8031.7kbits/s speed=2.13x    \rframe=  457 fps= 64 q=7.5 size=   14848kB time=00:00:15.20 bitrate=8002.3kbits/s speed=2.14x    \rframe=  490 fps= 64 q=7.6 size=   15872kB time=00:00:16.30 bitrate=7976.9kbits/s speed=2.14x    \rframe=  523 fps= 64 q=7.6 size=   17152kB time=00:00:17.40 bitrate=8075.3kbits/s speed=2.14x    \rframe=  554 fps= 64 q=7.8 size=   18176kB time=00:00:18.46 bitrate=8063.1kbits/s speed=2.14x    \rframe=  588 fps= 64 q=7.7 size=   19200kB time=00:00:19.56 bitrate=8038.5kbits/s speed=2.14x    \rframe=  621 fps= 64 q=8.0 size=   20480kB time=00:00:20.67 bitrate=8115.9kbits/s speed=2.14x    \rframe=  654 fps= 64 q=7.9 size=   21248kB time=00:00:21.76 bitrate=7996.8kbits/s speed=2.15x    \rframe=  687 fps= 64 q=7.9 size=   22528kB time=00:00:22.86 bitrate=8070.7kbits/s speed=2.15x    \rframe=  720 fps= 65 q=7.4 size=   23552kB time=00:00:23.96 bitrate=8050.3kbits/s speed=2.15x    \rframe=  753 fps= 65 q=7.5 size=   24576kB time=00:00:25.06 bitrate=8031.7kbits/s speed=2.15x    \rframe=  785 fps= 64 q=7.3 size=   25600kB time=00:00:26.13 bitrate=8024.8kbits/s speed=2.15x    \rframe=  818 fps= 65 q=7.6 size=   26880kB time=00:00:27.26 bitrate=8075.8kbits/s speed=2.15x    \rframe=  852 fps= 65 q=7.6 size=   27904kB time=00:00:28.36 bitrate=8058.4kbits/s speed=2.15x    \rframe=  884 fps= 65 q=7.5 size=   28928kB time=00:00:29.46 bitrate=8042.3kbits/s speed=2.15x    \r[mp4 @ 0x7c29d3d38b50] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 65 q=7.6 Lsize=   29705kB time=00:00:29.99 bitrate=8112.8kbits/s speed=2.15x     / video:29349kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.090128% / [aac @ 0x7c28f3e7d5d0] Qavg: 65247.289"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 10183,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=4.6 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   45 fps=0.0 q=5.9 size=     768kB time=00:00:01.47 bitrate=4274.3kbits/s speed= 2.7x    \rframe=   90 fps= 86 q=5.3 size=    1536kB time=00:00:02.96 bitrate=4241.5kbits/s speed=2.82x    \rframe=  135 fps= 87 q=5.4 size=    2304kB time=00:00:04.46 bitrate=4225.7kbits/s speed=2.87x    \rframe=  181 fps= 88 q=4.5 size=    2816kB time=00:00:06.00 bitrate=3844.8kbits/s speed=2.91x    \rframe=  227 fps= 88 q=5.5 size=    3584kB time=00:00:07.53 bitrate=3897.4kbits/s speed=2.93x    \rframe=  273 fps= 89 q=5.2 size=    4352kB time=00:00:09.10 bitrate=3917.8kbits/s speed=2.95x    \rframe=  319 fps= 89 q=5.6 size=    5120kB time=00:00:10.60 bitrate=3956.9kbits/s speed=2.96x    \rframe=  362 fps= 89 q=6.1 size=    5888kB time=00:00:12.03 bitrate=4008.4kbits/s speed=2.94x    \rframe=  406 fps= 88 q=5.6 size=    6656kB time=00:00:13.53 bitrate=4029.0kbits/s speed=2.94x    \rframe=  452 fps= 89 q=5.6 size=    7424kB time=00:00:15.04 bitrate=4043.7kbits/s speed=2.95x    \rframe=  496 fps= 88 q=4.5 size=    8192kB time=00:00:16.50 bitrate=4067.2kbits/s speed=2.94x    \rframe=  539 fps= 88 q=5.6 size=    8960kB time=00:00:17.94 bitrate=4091.1kbits/s speed=2.93x    \rframe=  585 fps= 88 q=5.8 size=    9728kB time=00:00:19.46 bitrate=4093.8kbits/s speed=2.94x    \rframe=  629 fps= 88 q=5.3 size=   10496kB time=00:00:20.96 bitrate=4101.0kbits/s speed=2.94x    \rframe=  675 fps= 89 q=5.5 size=   11008kB time=00:00:22.46 bitrate=4013.9kbits/s speed=2.95x    \rframe=  718 fps= 88 q=5.7 size=   11776kB time=00:00:23.90 bitrate=4036.4kbits/s speed=2.94x    \rframe=  762 fps= 88 q=5.1 size=   12544kB time=00:00:25.36 bitrate=4051.0kbits/s speed=2.94x    \rframe=  808 fps= 88 q=5.4 size=   13312kB time=00:00:26.93 bitrate=4049.0kbits/s speed=2.95x    \rframe=  854 fps= 89 q=5.5 size=   14080kB time=00:00:28.46 bitrate=4051.9kbits/s speed=2.96x    \rframe=  900 fps= 89 q=5.3 size=   14848kB time=00:00:29.96 bitrate=4059.0kbits/s speed=2.96x    \r[mp4 @ 0x7c29d3d394b0] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 89 q=5.3 Lsize=   15063kB time=00:00:29.99 bitrate=4113.9kbits/s speed=2.96x     / video:14707kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.177894% / [aac @ 0x7c28f3ee3840] Qavg: 65247.289"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 10102,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=4.6 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   46 fps=0.0 q=5.9 size=     768kB time=00:00:01.50 bitrate=4194.5kbits/s speed=2.75x    \rframe=   88 fps= 84 q=5.4 size=    1280kB time=00:00:02.90 bitrate=3615.9kbits/s speed=2.77x    \rframe=  132 fps= 85 q=5.6 size=    2048kB time=00:00:04.40 bitrate=3813.1kbits/s speed=2.84x    \rframe=  178 fps= 87 q=5.5 size=    2816kB time=00:00:05.90 bitrate=3903.8kbits/s speed=2.88x    \rframe=  222 fps= 87 q=5.6 size=    3584kB time=00:00:07.36 bitrate=3985.6kbits/s speed=2.89x    \rframe=  267 fps= 87 q=5.4 size=    4352kB time=00:00:08.86 bitrate=4020.9kbits/s speed= 2.9x    \rframe=  309 fps= 87 q=5.7 size=    5120kB time=00:00:10.30 bitrate=4072.2kbits/s speed=2.89x    \rframe=  353 fps= 87 q=5.6 size=    5888kB time=00:00:11.73 bitrate=4110.9kbits/s speed=2.88x    \rframe=  399 fps= 87 q=5.2 size=    6656kB time=00:00:13.26 bitrate=4110.0kbits/s speed= 2.9x    \rframe=  446 fps= 88 q=5.5 size=    7424kB time=00:00:14.83 bitrate=4100.1kbits/s speed=2.92x    \rframe=  490 fps= 88 q=5.7 size=    8192kB time=00:00:16.33 bitrate=4108.7kbits/s speed=2.93x    \rframe=  536 fps= 88 q=5.4 size=    8704kB time=00:00:17.83 bitrate=3998.3kbits/s speed=2.93x    \rframe=  581 fps= 88 q=5.8 size=    9472kB time=00:00:19.33 bitrate=4013.5kbits/s speed=2.94x    \rframe=  626 fps= 88 q=5.6 size=   10240kB time=00:00:20.86 bitrate=4020.1kbits/s speed=2.94x    \rframe=  673 fps= 89 q=5.4 size=   11008kB time=00:00:22.40 bitrate=4025.8kbits/s speed=2.95x    \rframe=  720 fps= 89 q=5.3 size=   11776kB time=00:00:23.96 bitrate=4025.1kbits/s speed=2.96x    \rframe=  766 fps= 89 q=5.3 size=   12544kB time=00:00:25.50 bitrate=4029.8kbits/s speed=2.97x    \rframe=  812 fps= 89 q=5.5 size=   13312kB time=00:00:27.03 bitrate=4034.0kbits/s speed=2.97x    \rframe=  858 fps= 89 q=6.1 size=   14336kB time=00:00:28.56 bitrate=4111.1kbits/s speed=2.98x    \r[mp4 @ 0x7c29d3d3c390] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 89 q=5.3 Lsize=   15063kB time=00:00:29.99 bitrate=4113.9kbits/s speed=2.98x     / video:14707kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.177894% / [aac @ 0x7c28f3e5b220] Qavg: 65247.289"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 10256,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "logTail": "frame=    0 fps=0.0 q=4.6 size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    \rframe=   47 fps=0.0 q=5.9 size=     768kB time=00:00:01.53 bitrate=4103.4kbits/s speed= 2.8x    \rframe=   91 fps= 87 q=5.5 size=    1536kB time=00:00:03.00 bitrate=4183.3kbits/s speed=2.86x    \rframe=  135 fps= 87 q=5.6 size=    2304kB time=00:00:04.50 bitrate=4194.4kbits/s speed= 2.9x    \rframe=  181 fps= 88 q=5.8 size=    2816kB time=00:00:06.03 bitrate=3823.6kbits/s speed=2.93x    \rframe=  227 fps= 89 q=5.5 size=    3584kB time=00:00:07.53 bitrate=3897.4kbits/s speed=2.94x    \rframe=  272 fps= 89 q=5.2 size=    4352kB time=00:00:09.06 bitrate=3932.2kbits/s speed=2.96x    \rframe=  318 fps= 89 q=5.3 size=    5120kB time=00:00:10.56 bitrate=3969.4kbits/s speed=2.96x    \rframe=  362 fps= 89 q=6.1 size=    5888kB time=00:00:12.03 bitrate=4008.4kbits/s speed=2.96x    \rframe=  406 fps= 89 q=5.6 size=    6656kB time=00:00:13.53 bitrate=4029.0kbits/s speed=2.96x    \rframe=  450 fps= 89 q=5.6 size=    7424kB time=00:00:14.96 bitrate=4063.5kbits/s speed=2.94x    \rframe=  494 fps= 88 q=5.4 size=    8192kB time=00:00:16.43 bitrate=4083.7kbits/s speed=2.94x    \rframe=  537 fps= 88 q=5.5 size=    8960kB time=00:00:17.90 bitrate=4100.6kbits/s speed=2.94x    \rframe=  582 fps= 88 q=5.6 size=    9472kB time=00:00:19.36 bitrate=4006.6kbits/s speed=2.94x    \rframe=  625 fps= 88 q=5.4 size=   10240kB time=00:00:20.80 bitrate=4033.0kbits/s speed=2.93x    \rframe=  669 fps= 88 q=5.7 size=   11008kB time=00:00:22.26 bitrate=4049.9kbits/s speed=2.93x    \rframe=  713 fps= 88 q=5.7 size=   11776kB time=00:00:23.73 bitrate=4064.7kbits/s speed=2.93x    \rframe=  756 fps= 88 q=5.5 size=   12544kB time=00:00:25.16 bitrate=4083.2kbits/s speed=2.93x    \rframe=  799 fps= 88 q=5.7 size=   13312kB time=00:00:26.60 bitrate=4099.7kbits/s speed=2.92x    \rframe=  844 fps= 88 q=5.6 size=   14080kB time=00:00:28.13 bitrate=4099.9kbits/s speed=2.93x    \rframe=  890 fps= 88 q=5.5 size=   14592kB time=00:00:29.63 bitrate=4033.9kbits/s speed=2.93x    \r[mp4 @ 0x7c29d3d446d0] Starting second pass: moving the moov atom to the beginning of the file / frame=  900 fps= 88 q=5.3 Lsize=   15063kB time=00:00:29.99 bitrate=4113.9kbits/s speed=2.93x     / video:14707kB audio:329kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.177894% / [aac @ 0x7c28f3ed5800] Qavg: 65247.289"
+    }
+  ],
+  "summary": {
+    "p1080": {
+      "samplesMs": [
+        13900,
+        13917,
+        13989
+      ],
+      "medianMs": 13917,
+      "minMs": 13900,
+      "maxMs": 13989,
+      "realtimeFactor": 2.155636990730761
+    },
+    "p720": {
+      "samplesMs": [
+        10183,
+        10102,
+        10256
+      ],
+      "medianMs": 10183,
+      "minMs": 10102,
+      "maxMs": 10256,
+      "realtimeFactor": 2.9460866149464793
+    },
+    "resolutionCoefficient": 1.3666895806736719,
+    "rejectedRuns": 0
+  },
+  "ok": true,
+  "finishedAt": "2026-10-08T23:15:08.290367"
+}

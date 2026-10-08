@@ -1,0 +1,190 @@
+{
+  "runner": "host",
+  "ffmpeg": "ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers",
+  "encoder": "libx264",
+  "inputs": {
+    "source": {
+      "path": "/tmp/bench_host/inputs/source_1080p_30s.mp4",
+      "sha256": "cf4cd34435edfff5fe56921dec1f2b641c633bf2d8be8a3b58cd076520a2ce1e",
+      "bytes": 23038761
+    },
+    "sticker": {
+      "path": "/tmp/bench_host/inputs/sticker_alpha.png",
+      "sha256": "b50d0174e70e0cc16fc054da738b4295e43ed115dbecbe20e3623e6581bc6dff",
+      "bytes": 736,
+      "alphaRange": [
+        153,
+        153
+      ]
+    },
+    "beat": {
+      "path": "/tmp/bench_host/inputs/beat_120bpm_30s.wav",
+      "sha256": "44ef646f2c7ac11b9dae3d471dbb33684b9b48adb82af9d5a085ed63bfa83c34",
+      "bytes": 5760078
+    }
+  },
+  "inputsFixed": {
+    "durationSeconds": 30,
+    "fps": 30,
+    "sourceWidth": 1920,
+    "sourceHeight": 1080,
+    "localMirrorWindows": [
+      [
+        2.0,
+        4.0
+      ],
+      [
+        10.0,
+        12.5
+      ]
+    ],
+    "stickerWindow": [
+      6.0,
+      9.0
+    ],
+    "stickerRectNormalized": [
+      0.05,
+      0.07,
+      0.25,
+      0.15
+    ],
+    "framingRectNormalized": [
+      0.05,
+      0.05,
+      0.9,
+      0.9
+    ],
+    "gop": 60,
+    "bitrate1080p": "8M",
+    "bitrate720p": "4M"
+  },
+  "encoderCapability": {
+    "encoder": "libx264",
+    "found": true,
+    "name": "libx264",
+    "raw": "Encoder libx264 [libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10]:\n    General capabilities: delay threads \n    Threading capabilities: other\n    Supported pixel formats: yuv420p yuvj420p yuv422p yuvj422p yuv444p yuvj444p nv12 nv16 nv21 yuv420p10le yuv422p10le yuv444p10le nv20le gray gray10le\nlibx264 AVOptions:\n  -preset            <string>     E..V....... Set the encoding preset (cf. x264 --fullhelp) (default \"medium\")\n  -tune              <string>     E..V....... Tune the encoding params (cf. x264 --fullhelp)\n  -profile           <string>     E..V....... Set profile restrictions (cf. x264 --fullhelp) \n  -fastfirstpass     <boolean>    E..V....... Use fast settings when encoding first pass (default true)\n  -level             <string>     E..V....... Specify level (as defined by Annex A)\n  -passlogfile       <string>     E..V....... Filename for 2 pass stats\n  -wpredp            <string>     E..V....... Weighted prediction for P-frames\n  -a53cc             <boolean>    E..V....... Use A53 Closed Captions (if available) (default true)\n  -x264opts          <string>     E..V....... x264 options\n  -crf               <float>      E..V....... Select the quality for constant quality mode (from -1 to FLT_MAX) (default -1)\n  -crf_max           <float>      E..V....... In CRF mode, prevents VBV from lowering quality beyond this point. (from -1 to FLT_MAX) (default -1)\n  -qp                <int>        E..V....... Constant quantization parameter rate control method (from -1 to INT_MAX) (default -1)\n  -aq-mode           <int>        E..V....... AQ method (from -1 to INT_MAX) (default -1)\n     none            0            E..V.......\n     variance        1            E..V....... Variance AQ (complexity mask)\n     autovariance    2            E..V....... Auto-variance AQ\n     autovariance-biased 3            E..V....... Auto-variance AQ with bias to dark scenes\n  -aq-strength       <float>      E..V....... AQ strength. Reduces blocking and blurring in flat and textured areas. (from -1 to FLT_MAX) (default -1)\n  -psy               <boolean>    E..V....... Use psychovisual optimizations. (default auto)\n  -psy-rd            <string>     E..V....... Strength of psychovisual optimization, in <psy-rd>:<psy-trellis> format.\n  -rc-lookahead      <int>        E..V....... Number of frames to look ahead for frametype and ratecontrol (from -1 to INT_MAX) (default -1)\n  -weightb           <boolean>    E..V....... Weighted prediction for B-frames. (default auto)\n  -weightp           <int>        E..V....... Weighted prediction analysis method. (from -1 to INT_MAX) (default -1)\n     none            0            E..V.......\n     simple          1            E..V.......\n     smart           2            E..V.......\n  -ssim              <boolean>    E..V....... Calculate and print SSIM stats. (default auto)\n  -intra-refresh     <boolean>    E..V....... Use Periodic Intra Refresh instead of IDR frames. (default auto)\n  -bluray-compat     <boolean>    E..V....... Bluray compatibility workarounds. (default auto)\n  -b-bias            <int>        E..V....... Influences how often B-frames are used (from INT_MIN to INT_MAX) (default INT_MIN)\n  -b-pyramid         <int>        E..V....... Keep some B-frames as references. (from -1 to INT_MAX) (default -1)\n     none            0            E..V.......\n     strict          1            E..V....... Strictly hierarchical pyramid\n     normal          2            E..V....... Non-strict (not Blu-ray compatible)\n  -mixed-refs        <boolean>    E..V....... One reference per partition, as opposed to one reference per macroblock (default auto)"
+  },
+  "runs": [
+    {
+      "resolution": "p1080",
+      "wallClockMs": 6223,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x5e56f596e900] ref B L0: 73.1% 21.0%  5.9% / [libx264 @ 0x5e56f596e900] ref B L1: 92.8%  7.2% / [libx264 @ 0x5e56f596e900] kb/s:8034.09 / [aac @ 0x5e56f599e180] Qavg: 65412.445"
+    },
+    {
+      "resolution": "p1080",
+      "wallClockMs": 6263,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x628c54d05900] ref B L0: 73.1% 21.0%  5.9% / [libx264 @ 0x628c54d05900] ref B L1: 92.8%  7.2% / [libx264 @ 0x628c54d05900] kb/s:8034.09 / [aac @ 0x628c54d35180] Qavg: 65412.445"
+    },
+    {
+      "resolution": "p1080",
+      "wallClockMs": 6418,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x5939aa7d0900] ref B L0: 73.1% 21.0%  5.9% / [libx264 @ 0x5939aa7d0900] ref B L1: 92.8%  7.2% / [libx264 @ 0x5939aa7d0900] kb/s:8034.09 / [aac @ 0x5939aa800180] Qavg: 65412.445"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 5189,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x56a72cd70740] ref B L0: 73.5% 20.3%  6.2% / [libx264 @ 0x56a72cd70740] ref B L1: 94.2%  5.8% / [libx264 @ 0x56a72cd70740] kb/s:4021.12 / [aac @ 0x56a72cd76000] Qavg: 65412.445"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 5210,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x5c3a1be3b740] ref B L0: 73.5% 20.3%  6.2% / [libx264 @ 0x5c3a1be3b740] ref B L1: 94.2%  5.8% / [libx264 @ 0x5c3a1be3b740] kb/s:4021.12 / [aac @ 0x5c3a1be41000] Qavg: 65412.445"
+    },
+    {
+      "resolution": "p720",
+      "wallClockMs": 5321,
+      "rendered": true,
+      "artifactOk": true,
+      "artifactProblems": [],
+      "fullyDecodable": true,
+      "decodedFrames": 900,
+      "codecPick": null,
+      "stderrTail": "[libx264 @ 0x638a7ebd6740] ref B L0: 73.5% 20.3%  6.2% / [libx264 @ 0x638a7ebd6740] ref B L1: 94.2%  5.8% / [libx264 @ 0x638a7ebd6740] kb/s:4021.12 / [aac @ 0x638a7ebdc000] Qavg: 65412.445"
+    }
+  ],
+  "summary": {
+    "p1080": {
+      "samplesMs": [
+        6223,
+        6263,
+        6418
+      ],
+      "medianMs": 6263,
+      "minMs": 6223,
+      "maxMs": 6418,
+      "realtimeFactor": 4.790036723614881
+    },
+    "p720": {
+      "samplesMs": [
+        5189,
+        5210,
+        5321
+      ],
+      "medianMs": 5210,
+      "minMs": 5189,
+      "maxMs": 5321,
+      "realtimeFactor": 5.758157389635317
+    },
+    "resolutionCoefficient": 1.2021113243761996,
+    "rejectedRuns": 0
+  },
+  "filterOnlyMs1080p": 2824,
+  "flipGate": {
+    "ok": true,
+    "problems": [],
+    "probes": [
+      {
+        "t": 1.0,
+        "plain": 5.847101,
+        "flipped": 45.693764
+      },
+      {
+        "t": 3.0,
+        "plain": 44.529264,
+        "flipped": 5.8878
+      },
+      {
+        "t": 2.0,
+        "plain": 45.396267,
+        "flipped": 5.869125
+      },
+      {
+        "t": 4.0,
+        "plain": 5.894489,
+        "flipped": 44.673878
+      }
+    ],
+    "note": "t=1.0/4.0 应像翻过的那份，t=2.0/3.0 应像未翻的那份"
+  },
+  "finishedAt": "2026-10-08T23:16:19.791945"
+}
