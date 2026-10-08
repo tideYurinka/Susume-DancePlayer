@@ -40,7 +40,8 @@ void main() {
   group('模式 → 底排槽集', () {
     test('逐值断言现有全部会话模式取值', () {
       // 期望值是今天的既有行为（独立于实现抄写）：对照态换对比槽集、两个
-      // 待命态各换自己那份，其余取值共用正常槽集。
+      // 待命态各换自己那份，其余取值共用正常槽集；投屏态两值取空集
+      // （整排不出现）。
       const expected = <PlayerSessionMode, ToolSlotTable>{
         PlayerSessionMode.watching: ToolSlotTable.normal,
         PlayerSessionMode.editing: ToolSlotTable.normal,
@@ -51,6 +52,8 @@ void main() {
         PlayerSessionMode.compareEditing: ToolSlotTable.compare,
         PlayerSessionMode.compareFraming: ToolSlotTable.normal,
         PlayerSessionMode.framing: ToolSlotTable.normal,
+        PlayerSessionMode.castControl: ToolSlotTable.cast,
+        PlayerSessionMode.castWatching: ToolSlotTable.cast,
       };
       final missing = PlayerSessionMode.values
           .where((mode) => !expected.containsKey(mode))
@@ -64,12 +67,24 @@ void main() {
         );
       }
     });
+
+    test('投屏态槽集是空集：无槽可选、槽与添加条目的门禁一条也不在场', () {
+      expect(ToolSlotTable.cast.slots, isEmpty);
+      expect(
+        sessionModeSurfacesOf(PlayerSessionMode.castControl).slotTable.slots,
+        isEmpty,
+      );
+      expect(
+        sessionModeSurfacesOf(PlayerSessionMode.castWatching).slotTable.slots,
+        isEmpty,
+      );
+    });
   });
 
   group('模式 → 轨道行集', () {
     test('逐值断言现有全部会话模式取值', () {
-      // 今天只有对照-控制层换行集；观看面各取值（含两个取景调节态）都用
-      // 正常行集——取景调节态换的是画面呈现，不是轨道行集。
+      // 今天只有对照-控制层与投屏态两值换行集；观看面各取值（含两个取景
+      // 调节态）都用正常行集——取景调节态换的是画面呈现，不是轨道行集。
       const expected = <PlayerSessionMode, TrackRowTable>{
         PlayerSessionMode.watching: TrackRowTable.normal,
         PlayerSessionMode.editing: TrackRowTable.normal,
@@ -79,6 +94,8 @@ void main() {
         PlayerSessionMode.compareEditing: TrackRowTable.compare,
         PlayerSessionMode.compareFraming: TrackRowTable.normal,
         PlayerSessionMode.framing: TrackRowTable.normal,
+        PlayerSessionMode.castControl: TrackRowTable.cast,
+        PlayerSessionMode.castWatching: TrackRowTable.cast,
       };
       final missing = PlayerSessionMode.values
           .where((mode) => !expected.containsKey(mode))
@@ -92,12 +109,41 @@ void main() {
         );
       }
     });
+
+    test('投屏行集只留分段轨：无槽可选、无柄可拖（结构性只读）', () {
+      expect(TrackRowTable.cast.rows.map((r) => r.id), const [
+        TrackRowId.learning,
+      ]);
+      expect(TrackRowTable.cast.prefixLabels, const ['分段']);
+      // 无轨道手柄带行 = 首尾线与分段线的控制柄一并不渲染。
+      expect(TrackRowTable.cast.hasRow(TrackRowId.handleStrip), isFalse);
+      expect(
+        TrackRowTable.cast.hasRow(TrackRowId.note),
+        isFalse,
+        reason: '备注轨不在投屏态行集内',
+      );
+      expect(
+        TrackRowTable.cast.hasRow(TrackRowId.localMirror),
+        isFalse,
+        reason: '局部镜像轨不在投屏态行集内',
+      );
+      expect(
+        TrackRowTable.cast.hasRow(TrackRowId.beat),
+        isFalse,
+        reason: '节拍轨不在投屏态行集内',
+      );
+      expect(
+        TrackRowTable.cast.hasRow(TrackRowId.practiceVideo),
+        isFalse,
+        reason: '练习视频轨不在投屏态行集内',
+      );
+    });
   });
 
   group('模式 → 取景态谓词', () {
     test('逐值断言现有全部会话模式取值', () {
-      // 取景调节态两值（对照路径与单画面路径）为真，其余为假——含待命态与
-      // 对照-播放/控制层。
+      // 取景调节态两值（对照路径与单画面路径）为真，其余为假——含待命态、
+      // 对照-播放/控制层与投屏态两值。
       const expected = <PlayerSessionMode, bool>{
         PlayerSessionMode.watching: false,
         PlayerSessionMode.editing: false,
@@ -107,6 +153,8 @@ void main() {
         PlayerSessionMode.compareEditing: false,
         PlayerSessionMode.compareFraming: true,
         PlayerSessionMode.framing: true,
+        PlayerSessionMode.castControl: false,
+        PlayerSessionMode.castWatching: false,
       };
       final missing = PlayerSessionMode.values
           .where((mode) => !expected.containsKey(mode))

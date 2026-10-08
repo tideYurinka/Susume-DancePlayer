@@ -317,6 +317,7 @@ class _ControlHostState extends ConsumerState<_ControlHost> {
                   : widget.engine.play(),
               onDelayedPlay: () {},
               onBack: () {},
+              onDisconnectCast: () {},
               onCollapse: () =>
                   ref.read(playerSessionProvider.notifier).collapse(),
               onEditSignature: () => unawaited(
@@ -800,31 +801,37 @@ void main() {
         .toList();
   }
 
+  /// 泵过菜单 / 气泡这类过渡动画：控制层展开后顶栏标题跑幕动画常驻，
+  /// `pumpAndSettle` 永不收敛（标题可用宽随顶栏槽位增减而变，见
+  /// `pump_past_marquee.dart`）。步长与步数只覆盖过渡，不改变断言语义。
+  Future<void> pumpTransition(WidgetTester tester) =>
+      pumpPastMarquee(tester, steps: 8, step: const Duration(milliseconds: 50));
+
   /// 打开「添加」条目菜单：点「添加」槽 → 等菜单路由弹出。
   Future<void> openAddMenu(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('control_add')));
-    await tester.pumpAndSettle();
+    await pumpTransition(tester);
   }
 
   /// 经「添加」槽触达条目：点开「添加」菜单 → 选中条目。
   Future<void> tapAddEntry(WidgetTester tester, String entryKey) async {
     await openAddMenu(tester);
     await tester.tap(find.byKey(Key(entryKey)));
-    await tester.pumpAndSettle();
+    await pumpTransition(tester);
   }
 
   /// 打开「自动分段」条目菜单：点「自动分段」槽 → 等菜单路由
   /// 弹出。
   Future<void> openAutoMenu(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('control_auto_range')));
-    await tester.pumpAndSettle();
+    await pumpTransition(tester);
   }
 
   /// 经「自动分段」槽触达条目：点开菜单 → 选中条目。
   Future<void> tapAutoEntry(WidgetTester tester, String entryKey) async {
     await openAutoMenu(tester);
     await tester.tap(find.byKey(Key(entryKey)));
-    await tester.pumpAndSettle();
+    await pumpTransition(tester);
   }
 
   /// 菜单里实际渲染出的自动分段条目键（按树序）。
@@ -2133,7 +2140,7 @@ void main() {
       editor.submit(AddSegmentLine(at: const Duration(seconds: 10)));
       editor.submit(AddSegmentLine(at: const Duration(seconds: 20)));
       container.read(annotationSelectionDomainProvider).selectOnly(0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
@@ -2189,7 +2196,7 @@ void main() {
       editor.submit(AddSegmentLine(at: const Duration(seconds: 10)));
       editor.submit(AddSegmentLine(at: const Duration(seconds: 20)));
       container.read(annotationSelectionDomainProvider).selectOnly(0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
       await tester.pump();
@@ -2539,7 +2546,7 @@ void main() {
 
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(find.byKey(const Key('beat_prompt_panel')), findsOneWidget);
       // 第三列为「节拍矫正」菜单列（两入口），对齐控件本体不在
       // 本气泡内（点「节拍对齐」才开独立气泡）。
@@ -2552,7 +2559,7 @@ void main() {
 
       // 点「节拍对齐」→ 本气泡消失、独立对齐气泡出现（锚同一入口链接）。
       await tester.tap(find.byKey(const Key('beat_correction_align_button')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
       expect(find.byKey(const Key('beat_align_bubble')), findsOneWidget);
       final entry = tester.getRect(find.byKey(const Key('tool_beat_prompt')));
@@ -2564,7 +2571,7 @@ void main() {
       await pumpControlLayer(tester);
 
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(toolIconColor(tester, 'tool_beat_prompt'), isNot(kHighlightAmber));
     });
@@ -2647,7 +2654,7 @@ void main() {
       editor.submit(AddSegmentLine(at: const Duration(seconds: 10)));
       editor.submit(AddSegmentLine(at: const Duration(seconds: 20)));
       container.read(annotationSelectionDomainProvider).selectOnly(0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       return container;
     }
 
@@ -2659,7 +2666,7 @@ void main() {
       await tester.tap(
         find.byKey(const Key('speed_step_preset_builtin_first')),
       );
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     }
 
     testWidgets('默认（倍速 1.0、步进未启用、镜像关）：图标均不高亮、不显示倍率值', (tester) async {
@@ -2759,7 +2766,7 @@ void main() {
       await tester.tap(
         find.byKey(const Key('speed_step_preset_builtin_first')),
       );
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(engine.rate, 0.75);
       expect(toolIconColor(tester, 'tool_speed_settings'), kHighlightAmber);
@@ -2799,7 +2806,7 @@ void main() {
       await tester.tap(
         find.byKey(const Key('speed_step_preset_builtin_first')),
       );
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       final after = slotRect('tool_speed_settings');
       expect(after.width, before.width, reason: '停用步进不改槽宽');
       expect(after.center.dx, closeTo(before.center.dx, 0.01));
@@ -2843,6 +2850,10 @@ void main() {
       // 而报 RenderFlex 溢出。
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearAllTestValues);
+      // 宽视口：顶栏槽位到十三位后，默认 800 逻辑宽在 1.3× 下放不下带标签
+      // 行、整行收起为纯图标（定宽随之不生效）——本用例要量的正是带标签形态
+      // 的定宽，故与其它顶栏几何用例同用 960 视口。
+      setWideView(tester);
       await pumpControlLayer(tester);
       // 1.3× 下播放器标题溢出走自动滚动（repeat 动画，口径），
       // pumpAndSettle 不落定——播种与启用步进改用固定帧推进。
@@ -7498,7 +7509,7 @@ void main() {
 
       // 短按倍速设置图标即开合并气泡（左倍速栏 + 右步进栏）。
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       final bubble = tester.renderObject<RenderBox>(
         find.byKey(const Key('speed_bubble')),
@@ -9755,7 +9766,7 @@ void main() {
     /// 建一条片段（经「添加」菜单）：创建即生效 → 总开关自动打开。
     Future<void> addFragment(WidgetTester tester) async {
       await tapAddEntry(tester, 'control_local_mirror');
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     }
 
     testWidgets('两槽几何：「局部镜像」紧邻「全局镜像」右侧、同一分隔段内（槽文案与次序归表直测）', (tester) async {
@@ -9855,9 +9866,9 @@ void main() {
         find.byKey(const Key('mirror_fragment_0_icon')),
         warnIfMissed: false,
       );
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       await tester.tap(find.byKey(const Key('control_segment_delete')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(container.read(localMirrorFragmentsProvider), isEmpty);
       expect(
@@ -10447,12 +10458,12 @@ void main() {
 
       // 点节拍提示工具先被点外收起遮罩承接（关音画同步）；再点开节拍提示。
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(find.byKey(const Key('av_sync_bubble')), findsNothing);
       expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
 
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(find.byKey(const Key('beat_prompt_panel')), findsOneWidget);
     });
   });
@@ -10885,7 +10896,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('control_segment')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(find.byKey(const Key('beat_analyzing_prompt')), findsOneWidget);
       expect(container.read(guideSessionProvider).triggered, isEmpty);
@@ -10902,7 +10913,7 @@ void main() {
       );
 
       await tester.tap(find.byKey(const Key('control_auto_range')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(container.read(guideSessionProvider).triggered, isEmpty);
       final storage = container.read(
@@ -10910,7 +10921,7 @@ void main() {
       ) as InMemoryPrivateJsonStorage;
       expect(storage.snapshot['onboarding'], isNull);
       await tester.tapAt(const Offset(10, 10));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     });
 
     testWidgets('就绪后首次点分段：触达分段角标', (tester) async {
@@ -10920,7 +10931,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('control_segment')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(
         container.read(guideSessionProvider).triggered,
@@ -10932,7 +10943,7 @@ void main() {
       final (_, container, _, _) = await pumpControlLayer(tester);
 
       await tester.tap(find.byKey(const Key('control_auto_range')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(
         container.read(guideSessionProvider).triggered,
@@ -10940,21 +10951,21 @@ void main() {
       );
       // 收起菜单，不留定时器悬跨用例。
       await tester.tapAt(const Offset(10, 10));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     });
 
     testWidgets('首次打开节拍提示气泡（横屏顶栏）：触达节拍提示角标', (tester) async {
       final (_, container, _, _) = await pumpControlLayer(tester);
 
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(
         container.read(guideSessionProvider).triggered,
         contains(badgeBeatPromptUnitId),
       );
       await tester.tap(find.byKey(const Key('tool_beat_prompt')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     });
 
     testWidgets('竖屏视频工具栏打开节拍提示气泡：同样触达（锚点横竖屏都在场）', (tester) async {
@@ -10976,14 +10987,14 @@ void main() {
       final (_, container, _, _) = await pumpControlLayer(tester);
 
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(
         container.read(guideSessionProvider).triggered,
         contains(badgeSpeedUnitId),
       );
       await tester.tap(find.byKey(const Key('tool_speed_settings')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     });
   });
 
@@ -11288,7 +11299,7 @@ void main() {
     Future<void> dropHalfBeat(WidgetTester tester) async {
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_half_beat')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
     }
 
     testWidgets('全宽态落半拍线：窗口收拢到线附近（缩放条拉满 → 可视宽 2s），线在窗内', (tester) async {
@@ -11373,7 +11384,7 @@ void main() {
 
       // 落分段线。
       await tester.tap(find.byKey(const Key('control_segment')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(
         container.read(annotationTimelineProvider).segmentLines,
         hasLength(1),
@@ -11386,10 +11397,10 @@ void main() {
 
       // 标记分段线（先选中刚落的那条）。
       await tapSegmentLineHandle(tester, 0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_segment_flag')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(
         container.read(annotationTimelineProvider).segmentLines.single.flagged,
         isTrue,
@@ -11404,7 +11415,7 @@ void main() {
       // 落局部镜像。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_local_mirror')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(container.read(localMirrorFragmentsProvider), hasLength(1));
       expectWindow(
         windowAfter(),
@@ -11415,7 +11426,7 @@ void main() {
       // 落备注贴纸（弹出备注编辑器，关掉收场）。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_note_sticker')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(container.read(noteStickersProvider), hasLength(1));
       expectWindow(
         windowAfter(),
@@ -11503,9 +11514,9 @@ void main() {
       // 标记分段线：先落一条分段线并选中（此时仍停；「分段线」槽不在
       // 添加即暂停清单里），恢复在播再标记。
       await tester.tap(find.byKey(const Key('control_segment')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       await tapSegmentLineHandle(tester, 0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(container.read(selectedSegmentLineIndexProvider), 0);
       await engine.play();
       await tester.pump();
@@ -11626,9 +11637,9 @@ void main() {
       // 前置：选中一条分段线（供「标记分段线」）、10s 处已有备注（供
       // 「落点已占转编辑」那支）。前置本身不触引擎。
       await tester.tap(find.byKey(const Key('control_segment')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       await tapSegmentLineHandle(tester, 0);
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       expect(container.read(selectedSegmentLineIndexProvider), 0);
       container
           .read(annotationEditorProvider)
@@ -11639,19 +11650,19 @@ void main() {
       // 半拍标记。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_half_beat')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       // 局部镜像。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_local_mirror')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       // 标记分段线。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_segment_flag')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       // 备注贴纸（落点已占、转开既有备注编辑器）。
       await openAddMenu(tester);
       await tester.tap(find.byKey(const Key('control_note_sticker')));
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
 
       expect(engine.isPlaying, isFalse, reason: '暂停保持停');
       expect(engine.callLog.length, logBefore, reason: '没有多出来的播放/暂停/seek 调用');
@@ -11687,7 +11698,7 @@ void main() {
       await tapEntryPlaying(tester, 'control_note_sticker');
       expect(container.read(noteTextEditorTargetProvider), isNotNull);
       container.read(noteTextEditorTargetProvider.notifier).close();
-      await tester.pumpAndSettle();
+      await pumpTransition(tester);
       await tester.pump(const Duration(seconds: 5));
       expect(engine.isPlaying, isFalse, reason: '收起不续播');
     });

@@ -71,11 +71,11 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       labeledWidth +=
           v.fixedWidth ?? _topBarSlotWidth(v.label, textScaler: textScaler);
     }
-    // 分隔线各 1px 也计入估宽（槽位到 12 位后窄视口
+    // 分隔线各 1px 也计入估宽（槽位到 13 位后窄视口
     // 已无余量，漏计 2px 即真溢出）。
     labeledWidth += separatorCount.toDouble();
     // 收纳判据带安全余量：估宽与真实渲染之间存在
-    // 逐槽取整/对齐的累积差（槽位到 12 位后窄视口无余量吸收），判据宁早
+    // 逐槽取整/对齐的累积差（槽位到 13 位后窄视口无余量吸收），判据宁早
     // 不晚——早收标签只损失文字、晚收整行真溢出。
     const widthSafety = 8.0;
     final iconOnly = maxWidth != null && labeledWidth > maxWidth - widthSafety;
@@ -221,6 +221,21 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       // 取景入口统一为本枚顶栏「取景调整」，对比专用工具区只剩
       //
       // 「练习镜像」。
+      // 投屏：编辑面顶栏入口——落待办（进入前置 = 投屏准备），宿主编排
+      // 准备面板与起投后经唯一提交入口提交。投屏态顶栏没有本枚（换装成
+      // 「断开投屏」），此支因此只在编辑面被走到。
+      PlayToolSlotId.cast => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: _toggleCast,
+      ),
+      // 断开投屏：只在投屏态顶栏行集内——与左上角退出箭头同义，两处入口
+      // 都调宿主同一处动作（[ControlLayer.onDisconnectCast]）。
+      PlayToolSlotId.disconnectCast => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: widget.onDisconnectCast,
+      ),
       // 查看引导：槽填上、不再恒置灰——无作用对象也可点（本槽
       // 无门禁，门事实不参与），点击进帮助域的新手引导页。
       PlayToolSlotId.guide => _PlayToolView(
@@ -466,7 +481,7 @@ double _topBarSlotWidth(
   if (withRateSlot) {
     content += rateLabelSlotWidth(style, textScaler: textScaler);
   }
-  // 量宽逐槽向上取整（槽位到 12 位后窄视口无余量，
+  // 量宽逐槽向上取整（槽位到 13 位后窄视口无余量，
   // 渲染宽的逐槽取整累积不得超过估宽，否则 iconOnly 收不上、真溢出）。
   return math.max(22.0, content.ceilToDouble()) + 20.0;
 }
@@ -578,7 +593,7 @@ class _PlayToolView {
 }
 
 /// 图标 token → `IconData` 的映射（穷尽 `switch`）：表不引 Flutter，
-/// 映射归装配侧；取值 = 九枚图标的逐位对照。
+/// 映射归装配侧；取值 = 十三枚图标的逐位对照。
 IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.undo => Icons.undo,
   PlayToolIcon.redo => Icons.redo,
@@ -589,6 +604,9 @@ IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.speed => Icons.speed,
   PlayToolIcon.compare => Icons.compare,
   PlayToolIcon.cropFree => Icons.crop_free,
+  // 投屏 = 投屏图标（不是屏幕镜像那条路）；断开投屏 = 关掉的电视。
+  PlayToolIcon.cast => Icons.cast,
+  PlayToolIcon.castDisconnect => Icons.tv_off,
   PlayToolIcon.helpOutline => Icons.help_outline,
   PlayToolIcon.more => Icons.more_horiz,
 };

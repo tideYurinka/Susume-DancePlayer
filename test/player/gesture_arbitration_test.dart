@@ -1,3 +1,4 @@
+import 'package:dance_learning_app/player/cast_mirror.dart' show NoCastMirror;
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
 import 'package:dance_learning_app/player/framing_session_state.dart';
 import 'package:dance_learning_app/player/editor_entry.dart';
@@ -106,6 +107,7 @@ void main() {
       takenOver: () => takeover.active,
       avSyncActive: () => false,
       requestCameraPermission: () async => true,
+      prepareCast: () async => true,
       readTimeline: () =>
           AnnotationTimeline.wholeVideo(const Duration(seconds: 100)),
       readVideoDuration: () => const Duration(seconds: 100),
@@ -140,6 +142,7 @@ void main() {
     onPosition: () {},
     onCompleted: () async {},
     isMounted: () => true,
+    castMirrorOf: () => const NoCastMirror(),
   );
 
   /// 画面矩形：默认铺满 800×600 视口——

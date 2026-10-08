@@ -28,8 +28,8 @@ void main() {
   });
 
   group('声明数据（身份枚举与时长表）', () {
-    test('身份枚举十三个取值一次声明齐（增「无对象」；增「文档只读」）', () {
-      expect(NoticeId.values, hasLength(13));
+    test('身份枚举十五个取值一次声明齐（增「无对象」；增「文档只读」；增投屏两条）', () {
+      expect(NoticeId.values, hasLength(15));
       expect(
         NoticeId.values.toSet(),
         equals({
@@ -46,6 +46,8 @@ void main() {
           NoticeId.threeFingerToast,
           NoticeId.transition,
           NoticeId.documentReadOnly,
+          NoticeId.castInterrupted,
+          NoticeId.castNotStarted,
         }),
       );
     });

@@ -142,6 +142,7 @@ class PresentationLayerInput {
     required this.onExitClipReview,
     required this.onCloseBeatOverlay,
     required this.onRequestOrientation,
+    required this.onDisconnectCast,
   });
 
   final EngineSeek engineSeek;
@@ -204,6 +205,10 @@ class PresentationLayerInput {
   /// 宿主导航动作（构建上下文归组合根）：控制层返回与打开失败返回。
   final VoidCallback onControlLayerBack;
   final VoidCallback onOpenFailedBack;
+
+  /// 断开投屏（投屏态顶栏那枚工具）：与投屏态内的左上角退出箭头同义，
+  /// 两处入口都调宿主同一处动作。
+  final VoidCallback onDisconnectCast;
 
   /// 数拍跟练内容（读节拍发布值的自订阅件，由播放页组装后交来）。
   final Widget beatCountContent;
@@ -464,6 +469,7 @@ class PresentationLayer extends ConsumerWidget {
                 recording: recording,
                 // 横屏文字钮复用同一枚方向动作回调。
                 onRequestOrientation: input.onRequestOrientation,
+                onDisconnectCast: input.onDisconnectCast,
                 onScrubCommitted: input.loopPrompt.markManualSeek,
               );
             },

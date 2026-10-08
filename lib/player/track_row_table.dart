@@ -196,6 +196,24 @@ class TrackRowTable {
     gap: kTrackRowGap,
   );
 
+  /// 具名行集 `cast`（投屏态）：**只留分段轨**——学习段轨一行（行高
+  /// 48dp、片头短标签「分段」）。备注轨 / 局部镜像轨 / 节拍轨 / 练习视频轨
+  /// 与**轨道手柄带行**都不在本行集内：行缺席即不渲染，首尾线与分段线的
+  /// 控制柄因此一并不在场（**无柄可拖**）；分段只读是结构性的，不靠额外的
+  /// 只读门。时间类标注（分段线、半拍线、八拍锚点）仍可见——投屏态以
+  /// 「能跳到那一段」呈现它们，分段轨是它们唯一的落点。
+  static const TrackRowTable cast = TrackRowTable(
+    rows: [
+      TrackRow(
+        id: TrackRowId.learning,
+        height: kLearningTrackRowHeight,
+        key: 'track_learning',
+        prefixLabel: '分段',
+      ),
+    ],
+    gap: kTrackRowGap,
+  );
+
   /// 有序行列表：顺序即带内自上而下的行序。
   final List<TrackRow> rows;
 

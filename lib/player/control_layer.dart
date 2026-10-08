@@ -144,6 +144,7 @@ class ControlLayer extends ConsumerStatefulWidget {
     required this.session,
     required this.recording,
     required this.onRequestOrientation,
+    required this.onDisconnectCast,
     this.onScrubCommitted,
   });
 
@@ -164,7 +165,8 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 进度控件含「延迟播放」）。
   final VoidCallback onDelayedPlay;
 
-  /// 返回（对比-控制层先退对比态；否则宿主 pop 回来源页）。不承担转屏。
+  /// 返回（投屏态内先断开回编辑态；对比-控制层先退对比态；否则宿主 pop
+  /// 回来源页）。不承担转屏。
   final VoidCallback onBack;
 
   /// 收起控制层（宿主 setState 复位展开态 + 解锁自动旋转方向）。
@@ -190,6 +192,10 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 方向动作回调（唯一一枚，/04）：语义 = 「请求屏幕朝向转为 X」。
   /// 横屏那枚文字钮传 [ScreenOrientation.portrait]。
   final ValueChanged<ScreenOrientation> onRequestOrientation;
+
+  /// 断开投屏（投屏态顶栏那枚工具的动作）：宿主侧同一处实现，左上角退出
+  /// 箭头在投屏态内走的是**同一个**回调语义——两处入口、一个动作。
+  final VoidCallback onDisconnectCast;
 
   /// 显式用户拖进度收口落点回报：预览条拖动与非轨道区微调 scrub
   /// 会话结束时回调，宿主据此打循环提示放行标记。
@@ -420,14 +426,19 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
 
   Widget _buildTopBar() {
     // 竖屏顶栏只剩返回键与标题（标题拿回整行宽、跑马字幕照旧）；
-    // 横屏顶栏九枚工具内联一行。一行渲染的槽位集就是该行的全部槽位。
-    // 顶栏声明来自表——两个落点各读自己的具名行集（横屏 =
-    // [kPlayToolRowLandscapeTopBar]、竖屏标题栏 =
-    // [kPlayToolRowPortraitTitleBar]），活值由装配点按槽身份装配。
+    // 横屏顶栏十三条工具内联一行。一行渲染的槽位集就是该行的全部槽位。
+    // 顶栏**行集**由「模式 → 顶栏行集」唯一映射给出（
+    // `play_tool_table.dart` 的 [playToolTopBarRowFor]）：投屏态两值取自己
+    // 那份两枚行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档；活值
+    // 由装配点按槽身份装配。
     final portrait = widget.skeleton.portrait;
+    final session = ref.watch(playerSessionProvider);
+    final mode = session.mode;
+    final casting = session.isCast;
     // 返回键 tooltip 与实际动作一致：对比-控制层内第一次返回只
-    // 退对比态回单画面（见宿主 `_onControlLayerBack`），其余状态下 pop 回来源页。
-    final compareEditing = ref.watch(playerSessionProvider).isCompare;
+    // 退对比态回单画面（见宿主 `_onControlLayerBack`）；投屏态内是
+    // 「断开投屏」（同一动作的第二处入口）；其余状态下 pop 回来源页。
+    final compareEditing = session.isCompare;
     // 装载未完成：改名入口按与其它写盘入口同一道门取不可用
     // 视觉（置灰），热区仍可点、点一下弹「正在装载」（见 [_onTitleRenameTap]）。
     final titleRenameIconColor = ref.watch(loadGateActiveProvider)
@@ -453,7 +464,9 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                     color: Colors.white,
                     size: 24,
                   ),
-                  tooltip: compareEditing ? '退出对比' : '返回来源页',
+                  tooltip: casting
+                      ? '断开投屏'
+                      : (compareEditing ? '退出对比' : '返回来源页'),
                   focusColor: kKeyboardFocusHighlight,
                   onPressed: widget.onBack,
                 ),
@@ -475,7 +488,7 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                               kTopBarRenameIconGap -
                               kTopBarRenameIconSize;
                       // 尾部铅笔图标仅在标题位放得下「间隙 + 图标」时显示
-                      //（看片工具到 12 位后，大字号下
+                      //（看片工具到 13 位后，大字号下
                       // 标题位可能被挤到 18dp 以下——热区行不再容纳图标，
                       // 改名入口的语义按钮与热区本体仍在，不溢出）。
                       final showRenameIcon =
@@ -538,20 +551,30 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                 ),
                 if (!portrait) ...[
                   const SizedBox(width: kTopBarToolsGapWidth),
-                  // 横屏顶栏行集按**档位判据结果**选（紧凑档 → 紧凑行集，
-                  // 音画同步/取景调整/节拍提示收在「更多」的向上弹出菜单里；
-                  // 常规档 → 常规行集）：选择只有
-                  // [playToolLandscapeTopBarRow] 一处。
+                  // 顶栏行集按「模式 → 顶栏行集」唯一映射取：投屏态两值
+                  // 取投屏态那份行集；其余取值沿用朝向与紧凑档（紧凑档 →
+                  // 紧凑行集，音画同步/取景调整/节拍提示收在「更多」的向上
+                  // 弹出菜单里；常规档 → 常规行集）。选择只有
+                  // [playToolTopBarRowFor] 一处。
                   _playToolRow(
-                    playToolLandscapeTopBarRow(compact: _compactLandscape),
+                    playToolTopBarRowFor(
+                      mode: mode,
+                      portrait: false,
+                      compact: _compactLandscape,
+                    ),
                     maxWidth: toolsMaxWidth,
                   ),
                 ] else ...[
-                  // 撤销/重做/查看引导落竖屏标题栏右侧（返回键与标题之后，
-                  // 与标题之间留既有工具间隙）；行集 = 竖屏标题栏具名行集。
+                  // 撤销/重做/投屏/查看引导落竖屏标题栏右侧（返回键与标题
+                  // 之后，与标题之间留既有工具间隙）；行集同样取
+                  // [playToolTopBarRowFor]（竖屏标题栏，投屏态换成投屏那份）。
                   const SizedBox(width: kTopBarToolsGapWidth),
                   _playToolRow(
-                    kPlayToolRowPortraitTitleBar,
+                    playToolTopBarRowFor(
+                      mode: mode,
+                      portrait: true,
+                      compact: _compactLandscape,
+                    ),
                     maxWidth: toolsMaxWidth,
                   ),
                 ],
@@ -609,6 +632,18 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     ref
         .read(playerSessionProvider.notifier)
         .requestEntry(PlayerSessionMode.compareWatching);
+  }
+
+  /// 「投屏」工具：编辑面点按 = 落待办进入投屏-控制层（进入前置 =
+  /// 投屏准备，见 [playerSessionEntryDeclarationTable]）：宿主依次开准备面板、
+  /// 起递出通道与投屏会话，成功才经唯一提交入口提交；取消或起投失败零副作用
+  /// （模式值一位不动、待办清空）。已在投屏态内时本枚不在顶栏（换装成
+  /// 「断开投屏」），此支不承担断开——断开是 [ControlLayer.onDisconnectCast]。
+  void _toggleCast() {
+    if (ref.read(playerSessionProvider).isCast) return;
+    ref
+        .read(playerSessionProvider.notifier)
+        .requestEntry(PlayerSessionMode.castControl);
   }
 
   /// 取景调整：装载未完成门挡下并弹既有提示；
@@ -874,6 +909,11 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     // 竖屏底栏拆两行——标注工具行在上（该态槽集全部内联），播放
     // 控制工具行在下（播放控制组 + 帧号读数，读数字号 12 以容下「当前 /
     // 总长」两段）；横屏行走既有单行装配。两行的槽位集都是各行的全部槽位。
+    //
+    // **槽集为空 = 标注工具行整排不出现**（投屏态：分段只读是结构性的，
+    // 无槽可选）：空集下不画那一条行盒，不留空占位。播放控制组照常在场
+    // ——投屏态里它是遥控电视的那一条路。
+    final hasSlots = _slotTable.slots.isNotEmpty;
     return Container(
       key: const Key('control_layer_toolbar'),
       color: kControlToolbarScrimColor,
@@ -882,7 +922,7 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
         child: portrait
             ? Column(
                 children: [
-                  _buildAnnotationToolRow(),
+                  if (hasSlots) _buildAnnotationToolRow(),
                   Row(
                     children: [
                       ..._buildPlaybackControls(),
@@ -901,18 +941,19 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                   // 大字号下槽件自然高超出名义行高 48 时整组等比缩小（与
                   // 标注工具行同一口径：缩小仍可辨，撑破底栏则整列溢出）；
                   // 名义档内零缩放、取值不变。
-                  SizedBox(
-                    height: 48,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: _ToolSlotRow(
-                        table: _slotTable,
-                        mirror: widget.mirror,
-                        session: _session,
+                  if (hasSlots)
+                    SizedBox(
+                      height: 48,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: _ToolSlotRow(
+                          table: _slotTable,
+                          mirror: widget.mirror,
+                          session: _session,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
       ),

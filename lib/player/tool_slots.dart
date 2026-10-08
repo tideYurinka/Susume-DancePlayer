@@ -358,6 +358,11 @@ class ToolSlotTable {
     ),
   ]);
 
+  /// 投屏态槽集 = **空集**：底排槽位整排不出现——投屏期分段只读是**结构性**
+  /// 的（无槽可选、无动作可发），不靠额外的只读门挡。它与「哪些模式取哪份
+  /// 槽集」的映射同处一张声明表（`session_mode_surfaces.dart`）。
+  static const ToolSlotTable cast = ToolSlotTable([]);
+
   final List<ToolSlot> _slots;
 
   /// 本槽集的槽位与次序（声明次序即呈现次序）。

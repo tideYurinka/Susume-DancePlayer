@@ -21,6 +21,8 @@ void main() {
   bool avSyncActive = false;
   bool cameraGranted = true;
   int cameraGateCalls = 0;
+  bool castReady = true;
+  int castGateCalls = 0;
   AnnotationTimeline timeline = AnnotationTimeline.wholeVideo(Duration.zero);
   Duration? videoDuration;
   final resetCalls = <Duration>[];
@@ -40,6 +42,8 @@ void main() {
     avSyncActive = false;
     cameraGranted = true;
     cameraGateCalls = 0;
+    castReady = true;
+    castGateCalls = 0;
     timeline = AnnotationTimeline.wholeVideo(Duration.zero);
     videoDuration = null;
     resetCalls.clear();
@@ -53,6 +57,10 @@ void main() {
       requestCameraPermission: () {
         cameraGateCalls++;
         return Future<bool>.value(cameraGranted);
+      },
+      prepareCast: () {
+        castGateCalls++;
+        return Future<bool>.value(castReady);
       },
       readTimeline: () => timeline,
       readVideoDuration: () => videoDuration,
@@ -254,6 +262,58 @@ void main() {
         readSession().pendingEntry?.target,
         PlayerSessionMode.compareWatching,
       );
+    });
+
+    test('投屏-控制层待办：先走投屏准备门（不问相机），放行后提交进入投屏态', () async {
+      session.requestEntry(PlayerSessionMode.castControl);
+      await entry.orchestratePendingEntry();
+
+      expect(castGateCalls, 1);
+      expect(cameraGateCalls, 0, reason: '投屏准备与相机授权是两条前置');
+      expect(readSession().mode, PlayerSessionMode.castControl);
+      expect(readSession().pendingEntry, isNull);
+    });
+
+    test('投屏准备不成立（用户取消 / 起投失败）：取消待办、模式值一位不动', () async {
+      session.requestEntry(PlayerSessionMode.castControl);
+      castReady = false;
+      await entry.orchestratePendingEntry();
+
+      expect(castGateCalls, 1);
+      expect(readSession().mode, PlayerSessionMode.watching);
+      expect(readSession().pendingEntry, isNull);
+    });
+
+    test('投屏-观看态单击画面：落待办至投屏-控制层（点画面展开回来，不回编辑态）', () {
+      session.enter(PlayerSessionMode.castWatching);
+      entry.requestEntry();
+
+      expect(
+        readSession().pendingEntry?.target,
+        PlayerSessionMode.castControl,
+        reason: '投屏-观看态的进入目标 = 投屏-控制层',
+      );
+      expect(readSession().mode, PlayerSessionMode.castWatching);
+    });
+
+    test('录制接管期：投屏目标取消待办、模式值一位不动', () async {
+      session.requestEntry(PlayerSessionMode.castControl);
+      takenOver = true;
+      await entry.orchestratePendingEntry();
+
+      expect(castGateCalls, 0, reason: '互斥先于准备门：录制期不该弹准备面板');
+      expect(readSession().mode, PlayerSessionMode.watching);
+      expect(readSession().pendingEntry, isNull);
+    });
+
+    test('音画同步校准中：投屏目标取消待办、模式值一位不动', () async {
+      session.requestEntry(PlayerSessionMode.castControl);
+      avSyncActive = true;
+      await entry.orchestratePendingEntry();
+
+      expect(castGateCalls, 0);
+      expect(readSession().mode, PlayerSessionMode.watching);
+      expect(readSession().pendingEntry, isNull);
     });
   });
 

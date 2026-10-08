@@ -6,9 +6,10 @@
 ///
 /// ## 库头契约（不变量清单）
 ///
-/// 1. **取值与展开位**：模式取值八值——观看 / 编辑 / 待命态×2 /
-///    对比-播放态 / 对比-控制层 / 取景调节态（[PlayerSessionMode]）。控制层展开位由
-///    取值派生（[PlayerSession.controlOpen]：观看面为否，编辑面为是），
+/// 1. **取值与展开位**：模式取值十值——观看 / 编辑 / 待命态×2 /
+///    对比-播放态 / 对比-控制层 / 对比取景调节态 / 单画面取景调节态 /
+///    投屏态×2（投屏-控制层 / 投屏-观看态）（[PlayerSessionMode]）。控制层
+///    展开位由取值派生（[PlayerSession.controlOpen]：观看面为否，编辑面为是），
 ///    本库内外不存在可独立写的展开位布尔；「待命态却未展开」在类型上
 ///    写不出来。
 /// 2. **进入前置归属**：进入前置是**目标取值的属性**（逐值一行进
@@ -44,8 +45,9 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 播放会话模式八取值：观看 / 编辑 / 八拍矫正待命态 / 段内倍频待命态 /
-/// 对比-播放态 / 对比-控制层 / 对比取景调节态 / 单画面取景调节态。
+/// 播放会话模式十取值：观看 / 编辑 / 八拍矫正待命态 / 段内倍频待命态 /
+/// 对比-播放态 / 对比-控制层 / 对比取景调节态 / 单画面取景调节态 /
+/// 投屏-控制层 / 投屏-观看态。
 ///
 /// 控制层展开位由取值派生（[PlayerSession.controlOpen]：观看面为否，编辑
 /// 面为是），不存在可独立写的展开位字段——「待命态却未展开」这类组合在类型上
@@ -70,6 +72,16 @@ enum PlayerSessionMode {
   /// 除取景手势外手势全停、画面即源视频；不属于对比态、无进入前置；退出三同路
   /// （完成 / 系统返回 / 点画面外）一律回编辑态。
   framing,
+
+  /// 投屏-控制层：投屏态的编辑面取值——控制层展开，顶栏换成投屏态那份
+  /// 行集、底排槽集取空集、轨道带只留分段轨。进入前置 = **投屏准备**
+  /// （选接收端、起递出通道、推片、起播，编排在宿主侧）。
+  castControl,
+
+  /// 投屏-观看态：投屏态的观看面取值——控制层收起（投屏胶囊归
+  /// 另一票）；点画面即展开回投屏-控制层。进入前置为无（它由
+  /// 投屏-控制层收起而来，不再重跑投屏准备）。
+  castWatching,
 }
 
 /// 模式所在面：观看面 / 编辑面。
@@ -86,6 +98,11 @@ enum PlayerSessionEntryRequirement {
   /// 相机授权（进入对比-播放态先按系统流程询问相机权限；拒绝
   /// 不进入、零副作用，编排仍在宿主侧）。
   cameraPermission,
+
+  /// 投屏准备（进入投屏-控制层先选**接收端**、起递出通道、推片、起播；
+  /// 取消或起投失败不进入、零副作用，编排仍在宿主侧）——与相机授权同构：
+  /// 「需宿主编排」不等于「一定弹窗」。
+  castPreparation,
 }
 
 /// 进入声明：所在面 + 进入前置（逐值一行，N 维而非 N² 转换对表）。
@@ -141,6 +158,18 @@ const playerSessionEntryDeclarationTable =
         PlayerSessionFace.watchingFace,
         PlayerSessionEntryRequirement.none,
       ),
+      // 投屏-控制层：编辑面、进入前置 = 投屏准备（唯一入口是顶栏那枚投屏
+      // 工具落待办，宿主编排完准备面板与起投后经唯一提交入口提交）。
+      PlayerSessionMode.castControl: PlayerSessionEntryDeclaration(
+        PlayerSessionFace.editorFace,
+        PlayerSessionEntryRequirement.castPreparation,
+      ),
+      // 投屏-观看态：观看面、无进入前置——它只从投屏-控制层收起而来
+      // （点画面展开回去），不重跑投屏准备。
+      PlayerSessionMode.castWatching: PlayerSessionEntryDeclaration(
+        PlayerSessionFace.watchingFace,
+        PlayerSessionEntryRequirement.none,
+      ),
     };
 
 /// 所在面谓词：读进入声明表——面与进入前置在同一行声明；加取值漏行由
@@ -189,6 +218,13 @@ class PlayerSession {
   bool get isSegmentDensityStandby =>
       mode == PlayerSessionMode.segmentDensityStandby;
 
+  /// 是否处于投屏态（投屏-控制层或投屏-观看态）。两值同属一个取值族：只
+  /// 差控制层展开位——投屏态的三处换装（底排空集 / 只留分段轨 / 投屏顶栏）
+  /// 与「断开投屏」都按本谓词取。
+  bool get isCast =>
+      mode == PlayerSessionMode.castControl ||
+      mode == PlayerSessionMode.castWatching;
+
   PlayerSession _withMode(PlayerSessionMode mode) =>
       PlayerSession._(mode, pendingEntry);
 
@@ -219,12 +255,23 @@ class PlayerSessionModel extends Notifier<PlayerSession> {
 
   /// 收起控制层 = 回观看态（待命态随收起退出由结构承载）。对比-控制层
   /// 收起 = 退到对比-播放态（对比态开关语义：收起不退出对比，退出经
-  /// 顶栏槽或返回箭头）。
-  PlayerSessionEntryResult collapse() => enter(
-    state.mode == PlayerSessionMode.compareEditing
-        ? PlayerSessionMode.compareWatching
-        : PlayerSessionMode.watching,
-  );
+  /// 顶栏槽或返回箭头）；投屏-控制层收起 = 退到投屏-观看态（同理：收起不
+  /// 退出投屏）；投屏-观看态本就收起，是幂等 no-op——不把投屏态误收回
+  /// 普通观看态（那会让投屏会话悬挂）。穷尽 switch：加取值即编译报错。
+  PlayerSessionEntryResult collapse() => switch (state.mode) {
+    PlayerSessionMode.compareEditing => enter(
+      PlayerSessionMode.compareWatching,
+    ),
+    PlayerSessionMode.castControl => enter(PlayerSessionMode.castWatching),
+    PlayerSessionMode.castWatching => PlayerSessionEntryResult.alreadyThere,
+    PlayerSessionMode.watching ||
+    PlayerSessionMode.editing ||
+    PlayerSessionMode.beatCorrectionStandby ||
+    PlayerSessionMode.segmentDensityStandby ||
+    PlayerSessionMode.compareWatching ||
+    PlayerSessionMode.compareFraming ||
+    PlayerSessionMode.framing => enter(PlayerSessionMode.watching),
+  };
 
   /// 退出对比态 = 回观看态（单画面；退出口径：对比态内返回箭头先
   /// 退对比态回 `watching`、再按才回首页；系统返回同走此便捷）。非对比
@@ -236,6 +283,14 @@ class PlayerSessionModel extends Notifier<PlayerSession> {
       : PlayerSessionEntryResult.alreadyThere;
 
   PlayerSessionEntryResult openEditor() => enter(PlayerSessionMode.editing);
+
+  /// 断开投屏 = 回编辑态（**唯一退出路径**：顶栏那枚「断开投屏」工具与
+  /// 左上角退出箭头是同一动作的两处入口，两处都调本便捷）。非投屏态调用是
+  /// 幂等 no-op（返回「本就在目标态」、值一位不动——不误收控制层）。
+  /// 会话与递出通道的收尾归投屏运行域，本域只管模式值。
+  PlayerSessionEntryResult exitCast() => state.isCast
+      ? enter(PlayerSessionMode.editing)
+      : PlayerSessionEntryResult.alreadyThere;
 
   /// 落待办：槽是单槽，重复落待办不叠加（后一次取代前一次）。
   void requestEntry(PlayerSessionMode target) {

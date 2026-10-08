@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('player_session 取值与派生谓词', () {
-    test('八取值齐全：观看 / 编辑 / 八拍矫正待命 / 段内倍频待命 / 对比-播放 / 对比-控制层 / 对比取景 / 单画面取景', () {
-      expect(PlayerSessionMode.values, hasLength(8));
+    test('十取值齐全：观看 / 编辑 / 八拍矫正待命 / 段内倍频待命 / 对比-播放 / 对比-控制层 / 对比取景 / 单画面取景 / 投屏-控制层 / 投屏-观看态', () {
+      expect(PlayerSessionMode.values, hasLength(10));
       expect(PlayerSessionMode.values, contains(PlayerSessionMode.watching));
       expect(PlayerSessionMode.values, contains(PlayerSessionMode.editing));
       expect(
@@ -36,6 +36,41 @@ void main() {
         const PlayerSession(PlayerSessionMode.framing).controlOpen,
         isFalse,
       );
+      // 投屏态两值：投屏-控制层（编辑面）与投屏-观看态（观看面）。
+      expect(PlayerSessionMode.values, contains(PlayerSessionMode.castControl));
+      expect(
+        PlayerSessionMode.values,
+        contains(PlayerSessionMode.castWatching),
+      );
+    });
+
+    test('投屏态两值：所在面与控制层展开位由取值派生', () {
+      expect(
+        const PlayerSession(PlayerSessionMode.castControl).controlOpen,
+        isTrue,
+      );
+      expect(
+        const PlayerSession(PlayerSessionMode.castWatching).controlOpen,
+        isFalse,
+      );
+      expect(const PlayerSession(PlayerSessionMode.castControl).isCast, isTrue);
+      expect(
+        const PlayerSession(PlayerSessionMode.castWatching).isCast,
+        isTrue,
+      );
+    });
+
+    test('投屏谓词：投屏态两值为真、其余为假', () {
+      for (final mode in PlayerSessionMode.values) {
+        final expected =
+            mode == PlayerSessionMode.castControl ||
+            mode == PlayerSessionMode.castWatching;
+        expect(
+          PlayerSession(mode).isCast,
+          expected,
+          reason: '$mode 的 isCast 应为 $expected',
+        );
+      }
     });
 
     test('控制层展开位由取值派生：观看面为否，编辑面为是', () {
@@ -123,7 +158,7 @@ void main() {
       }
     });
 
-    test('所在面：观看面三值，编辑面三值（穷尽）', () {
+    test('所在面：观看面四值，编辑面四值（穷尽）', () {
       expect(
         faceOf(PlayerSessionMode.watching),
         PlayerSessionFace.watchingFace,
@@ -145,6 +180,30 @@ void main() {
       expect(
         faceOf(PlayerSessionMode.compareFraming),
         PlayerSessionFace.watchingFace,
+      );
+      expect(faceOf(PlayerSessionMode.framing), PlayerSessionFace.watchingFace);
+      // 投屏态两值：投屏-控制层是编辑面（控制层展开、顶栏换成投屏工具），
+      // 投屏-观看态是观看面（控制层收起）。
+      expect(
+        faceOf(PlayerSessionMode.castControl),
+        PlayerSessionFace.editorFace,
+      );
+      expect(
+        faceOf(PlayerSessionMode.castWatching),
+        PlayerSessionFace.watchingFace,
+      );
+    });
+
+    test('进入前置：投屏-控制层需投屏准备，投屏-观看态无前置', () {
+      expect(
+        playerSessionEntryDeclarationTable[PlayerSessionMode.castControl]!
+            .requirement,
+        PlayerSessionEntryRequirement.castPreparation,
+      );
+      expect(
+        playerSessionEntryDeclarationTable[PlayerSessionMode.castWatching]!
+            .requirement,
+        PlayerSessionEntryRequirement.none,
       );
     });
 
@@ -270,6 +329,39 @@ void main() {
       expect(result, PlayerSessionEntryResult.entered);
       expect(read().mode, PlayerSessionMode.compareWatching);
       expect(read().controlOpen, isFalse);
+    });
+
+    test('投屏-控制层收起 = 退到投屏-观看态（不退出投屏态）', () {
+      final model = container.read(playerSessionProvider.notifier);
+      model.enter(PlayerSessionMode.castControl);
+      final result = model.collapse();
+      expect(result, PlayerSessionEntryResult.entered);
+      expect(read().mode, PlayerSessionMode.castWatching);
+      expect(read().isCast, isTrue);
+      expect(read().controlOpen, isFalse);
+    });
+
+    test('投屏-观看态本就收起：收起是幂等 no-op、不退出投屏态', () {
+      final model = container.read(playerSessionProvider.notifier);
+      model.enter(PlayerSessionMode.castWatching);
+      expect(model.collapse(), PlayerSessionEntryResult.alreadyThere);
+      expect(read().mode, PlayerSessionMode.castWatching);
+    });
+
+    test('断开投屏（唯一退出路径）：投屏态两值都回编辑态；非投屏态幂等 no-op', () {
+      final model = container.read(playerSessionProvider.notifier);
+      model.enter(PlayerSessionMode.castControl);
+      expect(model.exitCast(), PlayerSessionEntryResult.entered);
+      expect(read().mode, PlayerSessionMode.editing);
+
+      model.enter(PlayerSessionMode.castWatching);
+      expect(model.exitCast(), PlayerSessionEntryResult.entered);
+      expect(read().mode, PlayerSessionMode.editing);
+
+      // 非投屏态：不误收控制层（观看态保持观看态）、值一位不动。
+      model.enter(PlayerSessionMode.watching);
+      expect(model.exitCast(), PlayerSessionEntryResult.alreadyThere);
+      expect(read().mode, PlayerSessionMode.watching);
     });
 
     test('对比态互转：enter 直达，自反幂等', () {

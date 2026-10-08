@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_receiver.dart' show CastReceiver;
 import '../core/playback/playback_loop_layer.dart';
 import '../core/playback/playback_loop_providers.dart';
 import '../help/content_registry.dart' show HandsOnCriterion;
@@ -116,6 +118,14 @@ import '../beat_track_state/beat_track_state.dart'
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider, playbackPositionProvider;
 import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
+import 'cast_mirror.dart' show CastMirror, NoCastMirror;
+import 'cast_prep_panel.dart' show CastPrepPanel;
+import 'cast_run.dart'
+    show
+        CastRunModel,
+        castInterruptedNoticeSpec,
+        castNotStartedNoticeSpec,
+        castRunProvider;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
 import 'resume_position.dart' show ResumeRecorder;
 import 'scheme_open.dart';
@@ -184,6 +194,8 @@ const List<NoticeSpec> kNoticeSpecs = [
   threeFingerToastNoticeSpec,
   transitionNoticeSpec,
   _documentReadOnlyNoticeSpec,
+  castInterruptedNoticeSpec,
+  castNotStartedNoticeSpec,
 ];
 
 /// 本帧交付轨道带的实际行集（档位 × 两轨当前空否的**唯一剪裁点**）。
@@ -249,6 +261,13 @@ TrackRowTable _rowTableForTier({
 ///   屏幕正中显示横向滑条（约屏宽 [kLevelAdjustSliderWidthFraction]，图标
 ///   在条左端区分太阳/喇叭、无数字，填充按当前值 0..1 从左到右实时更新），
 ///   松手即消失（无延迟淡出）；调节期间不暂停播放、不出现进度反馈
+/// - 投屏（本票范围）：顶栏那枚「投屏」工具 → **投屏准备面板**（列同一局域网
+///   上的接收端、可重扫、两条门当场拦下）→ 选一台**不渲染任何东西**、直接把
+///   这支舞的**原片**推过去 → 进**投屏态**（底排槽位整排不出现、轨道带只留
+///   分段轨、顶栏换成投屏那份两枚）；「断开投屏」与左上角退出箭头是同一动作，
+///   断开即停服并回编辑态；系统返回在投屏态内先断开、再按一次才离开页面；
+///   投屏态内本机的播放 / 暂停 / 跳转经 [CastMirror] 同时作用于接收端；
+///   离开播放页与换视频经**既有复位一处**断开（见 `cast_run.dart`）。
 /// - 镜像：首次打开询问「需要镜像吗？」并给出两栏
 ///   依据（左「不需要镜像」/ 右「需要镜像」）、选择后立即生效（渲染层水平
 ///   翻转，不修改源文件字节）；镜像状态按 video_id 存于视频索引，再次打开
@@ -438,6 +457,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   /// 缓存，dispose 内不可读 provider）。
   PlayerSessionModel? _sessionModel;
 
+  /// 投屏运行域缓存：**投屏遥控镜像口**经它交给引擎与 seek/scrub 域
+  /// （didChangeDependencies 缓存：dispose 收尾那次 `pause` 会经过镜像口，
+  /// 而 dispose 内不可读 provider）。
+  CastRunModel? _castRun;
+
+  /// 当前投屏遥控镜像口：未就位时是空操作那份（[NoCastMirror]）。
+  CastMirror get _castMirror => _castRun ?? const NoCastMirror();
+
   /// 对比录制与练习片段域：录制相位与四个值道、
   /// 录制钮的起停、素材入轨、练习片段的回放都收在域内；本页只把读取事实、
   /// 写缝与宿主动作接进去。
@@ -475,6 +502,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 模式值模型缓存：dispose 收尾复位用（dispose 内不可读
     // provider，didChangeDependencies 缓存模型实例）。
     _sessionModel ??= _containerCache!.read(playerSessionProvider.notifier);
+    // 投屏运行域同样在 dispose 之前缓存：镜像口要在收尾路径上仍可用
+    // （dispose 内不可读 provider）。
+    _castRun ??= _containerCache!.read(castRunProvider.notifier);
     _settingsPersistence ??= VideoSettingsPersistence(
       ProviderScope.containerOf(context),
     );
@@ -716,6 +746,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       onPosition: _onEnginePosition,
       onCompleted: _resumeRecorder.save,
       isMounted: () => mounted,
+      // 投屏遥控镜像：投屏态内本机播放 / 暂停 / 跳转同时作用于接收端；
+      // 未投屏时是空操作（见 cast_mirror.dart）。经缓存读、不在本闭包里
+      // 现读 provider——dispose 收尾那次 pause 也会走到这里。
+      castMirrorOf: () => _castMirror,
     )..attach();
     // 轨道带会话域：组合根建唯一实例——
     // 引擎与时间线读取、清循环回调、控制层宽读取显式接进去；三个消费方只
@@ -768,6 +802,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       takenOver: () => _engineSeek.takenOver,
       avSyncActive: () => ref.read(avSyncCalibrationSessionProvider).active,
       requestCameraPermission: () => _cameraStage.requestEntryPermission(),
+      prepareCast: _prepareCast,
       readTimeline: () => ref.read(annotationTimelineProvider),
       readVideoDuration: () => _engineSeek.engine.duration,
       resetTimeline: (duration) =>
@@ -1539,11 +1574,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     _lastSkeleton = skeleton;
     return PopScope(
       // 系统返回：对比-播放态先退对比态回单画面；取景调节态（对比路径）
-      // 先退回对比-控制层、（单画面路径）退回编辑态。
-      canPop: !(compareWatching || framingActive),
+      // 先退回对比-控制层、（单画面路径）退回编辑态；投屏态先断开回编辑态，
+      // 再按一次才离开页面（与对比态的两级返回同款）。
+      canPop: !(compareWatching || framingActive || session.isCast),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop || !mounted) return;
-        if (framingActive) {
+        if (session.isCast) {
+          _disconnectCast();
+        } else if (framingActive) {
           _editorEntry.exitFraming();
         } else if (compareWatching) {
           _editorEntry.exitCompare();
@@ -1614,15 +1652,62 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     }
   }
 
-  /// 控制层返回（对比态内先退对比态回单画面，再按才回首页）：导航与构建
-  /// 上下文读取留在组合根，演出层只收回调。
+  /// 控制层返回（对比态内先退对比态回单画面，投屏态内先断开回编辑态，再按
+  /// 才回首页）：导航与构建上下文读取留在组合根，演出层只收回调。投屏态这
+  /// 条与顶栏那枚「断开投屏」是**同一动作的两处入口**（同一个
+  /// [_disconnectCast]）。
   void _onControlLayerBack() {
+    if (ref.read(playerSessionProvider).isCast) {
+      _disconnectCast();
+      return;
+    }
     if (ref.read(playerSessionProvider).isCompare) {
       _editorEntry.exitCompare();
       return;
     }
     ref.read(playerSessionProvider.notifier).enter(PlayerSessionMode.editing);
     Navigator.of(context).maybePop();
+  }
+
+  /// 断开投屏（唯一出口的两处入口都走这里）：断开并停服 + 回编辑态。
+  ///
+  /// 断开本身不抛（会话契约），失败也回编辑态——用户按下的那一下不能被
+  /// 一次失败的收尾挡住。本机播放照旧（投屏只是把同一支舞也送到了电视上）。
+  void _disconnectCast() {
+    unawaited(ref.read(castRunProvider.notifier).disconnect());
+  }
+
+  /// 进入前置「投屏准备」的宿主编排：开准备面板选一台接收端 → 起递出通道
+  /// → 连会话 → 推**原片** → 起播；起投成功才返回 true（宿主随后经唯一
+  /// 提交入口提交进入投屏-控制层）。
+  ///
+  /// - **已在投屏内直接放行**：投屏-观看态点画面展开回控制层不能重跑准备
+  ///   （也不能把会话重投一遍）；
+  /// - 取消面板 / 起投失败 → false = 零副作用：模式值一位不动、待办由编排
+  ///   取消；起投失败另给一句短暂提示（面板已关，那是唯一的失败面）。
+  Future<bool> _prepareCast() async {
+    final cast = ref.read(castRunProvider.notifier);
+    if (cast.receiver != null) return true;
+    if (!mounted) return false;
+    final receiver = await showDialog<CastReceiver>(
+      context: context,
+      builder: (_) => CastPrepPanel(videoFilePath: widget.source.toFilePath()),
+    );
+    if (receiver == null || !mounted) return false;
+    try {
+      await cast.start(
+        receiver: receiver,
+        file: File(widget.source.toFilePath()),
+      );
+      return cast.receiver != null;
+    } on Object {
+      if (mounted) {
+        ref
+            .read(noticeTriggerProvider(NoticeId.castNotStarted).notifier)
+            .show();
+      }
+      return false;
+    }
   }
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
@@ -1678,6 +1763,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       scrubPictureRectOf: _scrubPictureRect,
       onControlLayerBack: _onControlLayerBack,
       onOpenFailedBack: () => Navigator.of(context).maybePop(),
+      onDisconnectCast: _disconnectCast,
       onRequestOrientation: _requestOrientation,
       beatCountContent: const BeatCountContent(),
       onTogglePlay: () => unawaited(_togglePlayPause()),

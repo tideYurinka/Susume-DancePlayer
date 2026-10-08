@@ -1,15 +1,19 @@
 /// 看片工具槽表：看片工具的声明单一来源。
 ///
 /// **模块面**：[PlayToolIcon]（图标 token）→ [PlayToolSlot]（一条槽的
-/// 声明：槽键、文案、图标、门清单、软门标记）→ 五份具名行集
-/// [kPlayToolRowLandscapeTopBar]（常规档横屏顶栏，十条工具加两条分隔线，
-/// 十二个位置）/ [kPlayToolRowLandscapeTopBarCompact]（紧凑档横屏顶栏，
-/// 八条加两条分隔线，十个位置）/ [kPlayToolRowPortraitTitleBar]
-/// （竖屏标题栏，三条）/
+/// 声明：槽键、文案、图标、门清单、软门标记）→ 六份具名行集
+/// [kPlayToolRowLandscapeTopBar]（常规档横屏顶栏，十一条工具加两条分隔线，
+/// 十三个位置）/ [kPlayToolRowLandscapeTopBarCompact]（紧凑档横屏顶栏，
+/// 九条加两条分隔线，十一个位置）/ [kPlayToolRowPortraitTitleBar]
+/// （竖屏标题栏，四条）/
 /// [kPlayToolRowPortraitVideoToolbarTop] 与
-/// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）；
-/// 横屏顶栏选哪一份由纯件 [playToolLandscapeTopBarRow] 按档位判据结果一处决定；
-/// 行集成员 [PlayToolRowItem]（一条槽的引用，或一条分隔线）。槽身份
+/// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）/
+/// [kPlayToolRowCastTopBar]（投屏态顶栏，两枚——先给「断开投屏」与
+/// 「查看引导」，后两票的倍速切换与画面开关接入时按规格次序补位）；
+/// 顶栏取哪一份行集由纯件 [playToolTopBarRowFor] 一处决定——**投屏态两值
+/// 有自己那份行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档**
+/// （[playToolLandscapeTopBarRow]）；行集成员 [PlayToolRowItem]（一条槽的
+/// 引用，或一条分隔线）。槽身份
 /// [PlayToolSlotId] 是唯一消费点穷尽 `switch` 装配活值的判定依据——加槽
 /// 漏补装配即编译报错。可点性派生
 /// [playToolTappable]（无门命中时随硬启用位、有门命中时随判定结果，软门另
@@ -31,7 +35,7 @@
 /// Flutter）。派生状态（可点性、生效标签、生效激活位）由视图在装配时
 /// 算出，不存进表。
 ///
-/// **一条工具一条声明**：十一条槽各一条 `const` 声明，五份行集引用同一份
+/// **一条工具一条声明**：十三条槽各一条 `const` 声明，六份行集引用同一份
 /// ——同一条槽出现在多份行集时结构上不可能出现两份可能分家的编码。
 /// 「分隔线不进竖屏行」是行集里明写的成员事实（竖屏三份行集不含分隔线
 /// 成员），不再依赖任何字段的缺省值。
@@ -42,9 +46,11 @@
 library;
 
 import 'package:dance_learning_app/player/tool_slots.dart';
+import 'package:dance_learning_app/player_session/player_session.dart'
+    show PlayerSessionMode;
 
 /// 看片工具的图标 token：表不引 Flutter，`IconData` 由装配点按 token
-/// 映射（映射取值 = 今天十枚图标的逐位对照，见各条目注释）。
+/// 映射（映射取值 = 今天十三枚图标的逐位对照，见各条目注释）。
 enum PlayToolIcon {
   undo, // Icons.undo
   redo, // Icons.redo
@@ -55,6 +61,8 @@ enum PlayToolIcon {
   speed, // Icons.speed（倍速设置）
   compare, // Icons.compare（对比练习）
   cropFree, // Icons.crop_free（取景调整）
+  cast, // Icons.cast（投屏）
+  castDisconnect, // Icons.tv_off（断开投屏）
   helpOutline, // Icons.help_outline（查看引导）
   more, // Icons.more_horiz（更多）
 }
@@ -72,6 +80,13 @@ enum PlayToolSlotId {
   speedSettings,
   compare,
   framingAdjust,
+
+  /// 投屏（编辑面顶栏入口：进投屏准备面板）。
+  cast,
+
+  /// 断开投屏（只在投屏态顶栏行集内：同一动作的第二处入口是左上角
+  /// 退出箭头）。
+  disconnectCast,
   guide,
   more,
 }
@@ -121,8 +136,8 @@ class PlayToolSlot {
   final bool carriesGuideAnchor;
 }
 
-/// 十一条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
-/// 两行共五份行集引用同一批，不内联复制。
+/// 十三条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
+/// 两行、投屏态顶栏共六份行集引用同一批，不内联复制。
 
 /// 撤销（硬启用位 = 有历史可撤销）。
 const PlayToolSlot kPlayToolUndo = PlayToolSlot(
@@ -223,6 +238,31 @@ const PlayToolSlot kPlayToolFramingAdjust = PlayToolSlot(
   softGate: false,
 );
 
+/// 投屏（编辑面顶栏入口）：点按落待办进**投屏准备**（进入前置声明见
+/// `player_session.dart` 的进入声明表），宿主编排准备面板与起投后经唯一
+/// 提交入口提交。本槽本身无门——「副本丢失」「搜不到接收端」两条门事实拦在
+/// 准备面板里（当场拦下并说明），不在顶栏置灰。
+const PlayToolSlot kPlayToolCast = PlayToolSlot(
+  id: PlayToolSlotId.cast,
+  key: 'tool_cast',
+  label: '投屏',
+  icon: PlayToolIcon.cast,
+  gates: [],
+  softGate: false,
+);
+
+/// 断开投屏：**只在投屏态顶栏行集**（[kPlayToolRowCastTopBar]）里的一枚，
+/// 与左上角退出箭头同义——两处入口都回编辑态。本槽不改文档、无门、恒可点
+/// （「断开本身不再抛」的会话契约）。
+const PlayToolSlot kPlayToolDisconnectCast = PlayToolSlot(
+  id: PlayToolSlotId.disconnectCast,
+  key: 'tool_cast_disconnect',
+  label: '断开投屏',
+  icon: PlayToolIcon.castDisconnect,
+  gates: [],
+  softGate: false,
+);
+
 /// 查看引导（进新手引导页）。
 const PlayToolSlot kPlayToolGuide = PlayToolSlot(
   id: PlayToolSlotId.guide,
@@ -276,9 +316,10 @@ class PlayToolRowSet {
   ];
 }
 
-/// 横屏顶栏：十条工具加两条分隔线，十二个位置——撤销 → 重做 → ｜ →
+/// 横屏顶栏：十一条工具加两条分隔线，十三个位置——撤销 → 重做 → ｜ →
 /// 音画同步 → 取景调整 → 节拍提示 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ →
-/// 对比练习 → 查看引导（取景调整在「音画同步」右侧）。
+/// 对比练习 → 投屏 → 查看引导（取景调整在「音画同步」右侧；投屏与
+/// 对比练习同属会话态入口、紧邻其右）。
 const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolUndo),
   PlayToolRowItem.slot(kPlayToolRedo),
@@ -291,11 +332,13 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolSpeedSettings),
   PlayToolRowItem.separator(),
   PlayToolRowItem.slot(kPlayToolCompare),
+  PlayToolRowItem.slot(kPlayToolCast),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
-/// 紧凑档横屏顶栏：八条工具加两条分隔线，十个位置——撤销 → 重做 → ｜ →
-/// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 查看引导。
+/// 紧凑档横屏顶栏：九条工具加两条分隔线，十一个位置——撤销 → 重做 → ｜ →
+/// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 投屏 →
+/// 查看引导。
 /// 「更多」落在「全局镜像」左侧，使「全局镜像 → 局部镜像 → 倍速设置」
 /// 这组视图设置的相邻关系不被打断；音画同步 / 取景调整 / 节拍提示由
 /// 「更多」的向上弹出菜单承载，次序为音画同步 → 取景调整 → 节拍提示。
@@ -309,6 +352,17 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolSpeedSettings),
   PlayToolRowItem.separator(),
   PlayToolRowItem.slot(kPlayToolCompare),
+  PlayToolRowItem.slot(kPlayToolCast),
+  PlayToolRowItem.slot(kPlayToolGuide),
+]);
+
+/// 投屏态顶栏：**两枚**——断开投屏 → 查看引导（查看引导恒在末位）。它
+/// 是投屏态两值自己的那份行集：与朝向、紧凑档无关，也不占编辑态的位置
+/// 预算（编辑态行集各自照旧）。规格里投屏态顶栏最终五枚（倍速切换、画面
+/// 开关、断开投屏、系统镜像、查看引导），后三枚随后两票接入，本票先给
+/// 「断开投屏」与末位的「查看引导」。
+const PlayToolRowSet kPlayToolRowCastTopBar = PlayToolRowSet([
+  PlayToolRowItem.slot(kPlayToolDisconnectCast),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
@@ -319,10 +373,36 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
 PlayToolRowSet playToolLandscapeTopBarRow({required bool compact}) =>
     compact ? kPlayToolRowLandscapeTopBarCompact : kPlayToolRowLandscapeTopBar;
 
-/// 竖屏标题栏：三条——撤销 → 重做 → 查看引导（返回键与标题之后）。
+/// 「模式 → 顶栏行集」唯一映射：**投屏态两值取自己那份行集**
+/// （[kPlayToolRowCastTopBar]，与朝向、紧凑档无关——投屏态是会话模式的一族，
+/// 三处换装随族走）；**其余取值沿用朝向与紧凑档**（竖屏标题栏 /
+/// 横屏 [playToolLandscapeTopBarRow]）。穷尽 switch：加会话模式取值即编译
+/// 报错，不会静默落到某个默认面。
+PlayToolRowSet playToolTopBarRowFor({
+  required PlayerSessionMode mode,
+  required bool portrait,
+  required bool compact,
+}) => switch (mode) {
+  PlayerSessionMode.castControl ||
+  PlayerSessionMode.castWatching => kPlayToolRowCastTopBar,
+  PlayerSessionMode.watching ||
+  PlayerSessionMode.editing ||
+  PlayerSessionMode.beatCorrectionStandby ||
+  PlayerSessionMode.segmentDensityStandby ||
+  PlayerSessionMode.compareWatching ||
+  PlayerSessionMode.compareEditing ||
+  PlayerSessionMode.compareFraming ||
+  PlayerSessionMode.framing =>
+    portrait
+        ? kPlayToolRowPortraitTitleBar
+        : playToolLandscapeTopBarRow(compact: compact),
+};
+
+/// 竖屏标题栏：四条——撤销 → 重做 → 投屏 → 查看引导（返回键与标题之后）。
 const PlayToolRowSet kPlayToolRowPortraitTitleBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolUndo),
   PlayToolRowItem.slot(kPlayToolRedo),
+  PlayToolRowItem.slot(kPlayToolCast),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 

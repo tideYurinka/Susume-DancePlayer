@@ -14,6 +14,10 @@
 /// 行集」；具名槽集 [ToolSlotTable] 与具名行集 [TrackRowTable] 自身不读模式、
 /// 不含映射。
 ///
+/// **顶栏行集不在本表**：它今天按朝向与紧凑档选，投屏态两值另有一份自己的
+/// 行集——那处「模式 → 顶栏行集」的唯一映射住在顶栏自己的声明库
+/// （`play_tool_table.dart` 的 `playToolTopBarRowFor`），与三处换装并列。
+///
 /// 本模块零 widget：不构控件、不读 provider，可在不启动 widget 环境的情况下
 /// 直测。
 library;
@@ -88,6 +92,20 @@ const sessionModeSurfaceDeclarationTable =
         slotTable: ToolSlotTable.normal,
         rowTable: TrackRowTable.normal,
         framingActive: true,
+      ),
+      // 投屏态两值：底排槽集取**空集**（槽位整排不出现）、轨道行集只留
+      // 分段轨（分段因此结构性只读）。两值同属一个取值族——三处换装全族
+      // 一致，只差控制层展开位。顶栏行集不在本表：它由
+      // `play_tool_table.dart` 的「模式 → 顶栏行集」唯一映射给出。
+      PlayerSessionMode.castControl: SessionModeSurfaces(
+        slotTable: ToolSlotTable.cast,
+        rowTable: TrackRowTable.cast,
+        framingActive: false,
+      ),
+      PlayerSessionMode.castWatching: SessionModeSurfaces(
+        slotTable: ToolSlotTable.cast,
+        rowTable: TrackRowTable.cast,
+        framingActive: false,
       ),
     };
 
