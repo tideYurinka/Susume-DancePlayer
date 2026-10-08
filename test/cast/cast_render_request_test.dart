@@ -1,8 +1,9 @@
+import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 投屏渲染请求与**缓存键**直测（纯件）：勾选档、倍速档、设置快照与标注
-/// 指纹各自进键，**任一分量变化即换一把键**——缓存的地基。
+/// 投屏渲染请求与**缓存键**直测（纯件）：勾选档、**分辨率档**、倍速档、设置
+/// 快照与标注指纹各自进键，**任一分量变化即换一把键**——缓存的地基。
 void main() {
   CastRenderRequest request({
     String videoId = 'vid-a',
@@ -11,6 +12,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
     CastRenderSettings settings = const CastRenderSettings(),
     String annotationFingerprint = 'fp-1',
     List<CastBeatClick> beatClicks = const [],
@@ -20,6 +22,7 @@ void main() {
     duration: const Duration(minutes: 3),
     choices: choices,
     speedTier: speedTier,
+    resolution: resolution,
     settings: settings,
     annotationFingerprint: annotationFingerprint,
     beatClicks: beatClicks,
@@ -90,6 +93,21 @@ void main() {
       );
     });
 
+    test('分辨率档变化即换键：降级与不降级是两份缓存条目', () {
+      final source = request(resolution: CastRenderResolution.source).cacheKey;
+      final p720 = request(resolution: CastRenderResolution.p720).cacheKey;
+
+      expect(p720, isNot(source));
+      expect(source.token, contains('#${CastRenderResolution.source.token}#'));
+      expect(p720.token, contains('#${CastRenderResolution.p720.token}#'));
+      // 除了分辨率档，两次请求逐字同源：差异只可能来自这一维。
+      expect(
+        request(resolution: CastRenderResolution.source).cacheKey,
+        source,
+        reason: '同一维同值给同一把键',
+      );
+    });
+
     test('设置快照每一项变化即换键', () {
       final base = request().cacheKey;
       final variants = <String, CastRenderSettings>{
@@ -128,6 +146,17 @@ void main() {
       expect(CastSpeedTier.full.rate, 1);
       final tokens = CastSpeedTier.values.map((t) => t.token).toSet();
       expect(tokens.length, CastSpeedTier.values.length);
+    });
+  });
+
+  group('分辨率档', () {
+    test('默认按源分辨率：没问过系统时不在请求上无谓降级', () {
+      expect(request().resolution, CastRenderResolution.source);
+    });
+
+    test('降级那一档按高度 720 行现算宽度（记号进键）', () {
+      expect(request(resolution: CastRenderResolution.p720).resolution.token,
+          '720p');
     });
   });
 

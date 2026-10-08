@@ -1,11 +1,13 @@
 /// 投屏渲染请求与**缓存键**（纯件，零 Flutter、零 IO）：投屏渲染要吃的那几样
 /// 输入，以及由它们算出的那把缓存键。
 ///
-/// ## 键 = 五个分量（ADR-0005 与规格的口径）
+/// ## 键 = 六个分量（ADR-0005 与规格的口径，分辨率档是 #36 加上的那一维）
 ///
-/// **视频标识 + 渲染勾选档 + 影响产物的设置快照 + 投屏倍速档 + 标注内容指纹**。
-/// 任一分量变一次就换一把键——「改了要重新渲染」因此不是界面纪律，而是键的
-/// 结构性后果：旧产物与新键对不上，缓存只会漏，不会命中一份过时的副本。
+/// **视频标识 + 渲染勾选档 + 渲染分辨率档 + 影响产物的设置快照 + 投屏倍速档 +
+/// 标注内容指纹**。任一分量变一次就换一把键——「改了要重新渲染」因此不是界面
+/// 纪律，而是键的结构性后果：旧产物与新键对不上，缓存只会漏，不会命中一份过时
+/// 的副本。**分辨率档**同理：保证 1× 实时与降到 720p 渲出来的画面尺寸不同，
+/// 两份因此各占一把键（降级与不降级不互相命中）。
 ///
 /// 设置快照按规格叫「**影响画面的设置快照**」；这里把**声音类**那几项
 /// （半拍声开关、节拍音量、响度基准、音源）一并收进同一份快照——它们同样
@@ -24,6 +26,7 @@ import 'dart:typed_data';
 import '../annotation/framing_selection.dart';
 import '../core/local_mirror_fragment.dart';
 import 'cast_beat_count.dart';
+import 'cast_encoder_realtime.dart';
 import 'cast_range_gate.dart' show CastRange;
 
 /// 渲染勾选档：**画面类**（含呈现类）与**声音类**两档。
@@ -309,6 +312,7 @@ class CastRenderRequest {
     required this.duration,
     required this.choices,
     required this.speedTier,
+    this.resolution = CastRenderResolution.source,
     required this.settings,
     required this.annotationFingerprint,
     this.mirrorFragments = const [],
@@ -333,6 +337,13 @@ class CastRenderRequest {
   final CastRenderChoices choices;
 
   final CastSpeedTier speedTier;
+
+  /// **渲染分辨率档**（缓存键的一维，也是画面链尾那个缩放节点与码率的来源）。
+  ///
+  /// 由**准备面板**按编码器能力三态定：保证 1× 实时 = 源档（按源分辨率），
+  /// 不保证与**问不到** = 720p（见 `cast_encoder_realtime.dart`）。默认源档，
+  /// 于是既有构造点不必改。
+  final CastRenderResolution resolution;
 
   final CastRenderSettings settings;
 
@@ -401,13 +412,19 @@ class CastRenderRequest {
   CastRenderKey get cacheKey => CastRenderKey(
     videoId: videoId,
     choices: choices,
+    resolution: resolution,
     settings: settings,
     speedTier: speedTier,
     annotationFingerprint: annotationFingerprint,
   );
 }
 
-/// 投屏缓存键：五个分量各自的记号按固定次序拼成一条可读串。
+/// 投屏缓存键：各分量各自的记号按固定次序拼成一条可读串（**视频标识 +
+/// 渲染勾选档 + 渲染分辨率档 + 影响产物的设置快照 + 投屏倍速档 + 标注内容
+/// 指纹**）。
+///
+/// 「分辨率档」是 #36 加上的那一维：同一支舞、同一勾选、同一倍速档，在降级
+/// 与不降级下是**两份不同的缓存条目**，不得互相命中。
 ///
 /// 可读串进缓存文件名前会经一次摘要（`cast_render_cache.dart`），因此这里
 /// 不含路径分隔符与非法字符的裁剪规则。
@@ -415,6 +432,7 @@ class CastRenderKey {
   const CastRenderKey({
     required this.videoId,
     required this.choices,
+    this.resolution = CastRenderResolution.source,
     required this.settings,
     required this.speedTier,
     required this.annotationFingerprint,
@@ -422,6 +440,7 @@ class CastRenderKey {
 
   final String videoId;
   final CastRenderChoices choices;
+  final CastRenderResolution resolution;
   final CastRenderSettings settings;
   final CastSpeedTier speedTier;
   final String annotationFingerprint;
@@ -430,6 +449,7 @@ class CastRenderKey {
   String get token => [
     videoId,
     choices.token,
+    resolution.token,
     settings.token,
     speedTier.token,
     annotationFingerprint,

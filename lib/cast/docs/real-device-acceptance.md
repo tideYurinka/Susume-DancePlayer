@@ -227,7 +227,7 @@ adb shell dumpsys package top.yurinka.susume | grep -i -e ACCESS_NETWORK_STATE \
    ——那是缓存命中；这是「命中不重渲」在设备上的样子。
 4. 改动**任一**会影响产物的东西（全局镜像 / 局部镜像总开关 / 取景 / 备注 /
    分段线 / 半拍线 / 拍点 / 节拍音量 / 音源）之后再投：应**重新渲染**一次
-   （缓存键里那五个分量任一变了）。
+   （缓存键里那六个分量任一变了；分辨率档那一维见路径 P）。
 5. **全选（画面类 + 声音类）**再投一次：这次应明显是分钟级，且产物在电视上比
    原片略软（多一代有损压缩，见下面的已知偏差）。
 6. 渲染中途按手机返回键 / 杀掉 App 再回来投：`cast_render/` 里不应留半成品，
@@ -665,3 +665,75 @@ RenderingControl，足以验第 1–3 步。第 4 步要在**不支持某一项*
    后台 / 锁屏（`paused`）才算。
 8. 锁屏超过一会儿再回来（系统回收了 App 进程）：重开播放页即全新一次投屏，
    电视那份不会自己续上——**不做跨页面的后台投屏**（本票明确不做前台服务）。
+
+## 路径 P：渲染能力查询与 720p 降级（#36）
+
+这一票在渲染**之前**问一句系统：「这台机器的编码器保证 1× 实时吗」。宿主侧
+全部可直测：三态 → 分辨率档是纯件（`test/cast/cast_encoder_realtime_test.dart`）、
+过桥与失败面是通道直测（`test/cast/platform_encoder_realtime_capability_test.dart`）、
+分辨率档进命令行与缓存键（`test/cast/cast_render_plan_test.dart`、
+`test/cast/cast_render_cache_test.dart`）、面板那句说明与请求装配
+（`test/player/cast_prep_panel_test.dart`）。**真机上要核对的是三件事**：这台
+机器的性能点读出来是什么、面板落在哪一侧、产物的帧尺寸真的是 720p。
+
+### 怎么读这台机的性能点
+
+1. 装一份 **debug 构建**（`flutter run`；下面的 `run-as` 要求可调试的包）。
+2. `adb logcat -c` 清一下，然后打开一支舞 → 顶栏「投屏」→ 准备面板。
+3. `adb logcat -s SusumeEncoderCapability` 看那一行（`EncoderRealtimeCapabilityPlugin`
+   打的）：
+
+   ```
+   SusumeEncoderCapability: c2.qti.avc.encoder（硬编=true）报了 3 条性能点，覆盖 1920x1080@30：true
+   ```
+
+   - 有性能点且 `覆盖 …：true` ⇒ `guaranteed`（按**源分辨率**渲）；
+   - 有性能点但 `覆盖 …：false` ⇒ `notGuaranteed`（**降到 720p**）；
+   - `没有任何 h264 编码器报得出性能点：按问不到处理`，或
+     `性能点 API 不在（API < 29）：按问不到处理`（**API 24–28 的设备走的正是
+     这一支**）⇒ `unknown`，与 `notGuaranteed` **同一侧**：也降到 720p
+     （兜底口径见 ADR-0004 的「渲染能力与降级」一节）。
+   - 「硬编=true」优先：投屏渲染走 ffmpeg 的 `h264_mediacodec`，性能点也只有
+     硬编会报。
+4. 想直接看系统自己列的那一份（格式随 Android 版本与 OEM 而变，**以第 3 步
+   我们的日志为准**）：
+
+   ```bash
+   adb shell dumpsys media.codec | grep -i -A3 performance
+   ```
+
+### 怎么核对面板真的说了、请求真的降了
+
+5. 面板上**保证 1×** 的机器**不该多说什么**；落在降级那一侧的机器应看到那一句
+   （在「画面要重编码…」下面）：
+
+   ```
+   这台机器没法保证 1× 实时渲染：这一份降到 720p，进度才不至于没底
+   ```
+
+   只勾声音类 + **1×** 档时**不该**出现这一句（视频流原样复制，没有可降的
+   编码）——那时产物照旧是源分辨率。
+6. 核对产物**真的**是 720p（降级那一侧）。渲染完一份之后把缓存里的产物拉出来
+   （`<包名>` 是这份安装身份：`flutter run` 装的**调试版**是
+   `top.yurinka.susume.debug`，release 是 `top.yurinka.susume`）：
+
+   ```bash
+   adb exec-out run-as <包名> \
+     find files/cast_render -name '*.mp4' -type f | tr -d '\r'
+   # 拿上面列出的路径：
+   adb exec-out run-as <包名> cat files/cast_render/<键目录>/<片名>.mp4 \
+     > /tmp/cast_720p.mp4
+   ffprobe -v error -select_streams v:0 \
+     -show_entries stream=width,height -of csv=p=0 /tmp/cast_720p.mp4
+   ```
+
+   降级那一份应是 `…,720`（**高 720 行**，宽度按源画面比例现算，不拉伸）；
+   保证那一侧应是源分辨率（取景时是选区那一块的尺寸，与路径 I 同一口径）。
+7. 缓存键那一维在设备上的样子：同一支舞、同一勾选、**同一倍速档**，降级前后
+   是 `files/cast_render/` 下的**两份不同目录**（键的第三分量不同），互不命中，
+   也不会互相顶掉——`test/cast/cast_render_cache_test.dart` 里那条用例是同一
+   件事的宿主侧版本。
+
+降不降级**由这台机器的系统读数决定**，不提供开关：想在一台机器上同时看到两侧，
+只有在真机上换一台设备（或换一个 API < 29 的镜像）——「保证」与「不保证」两条
+分支的行为差异全部由宿主测试穷尽（`cast_encoder_realtime_test.dart`）。

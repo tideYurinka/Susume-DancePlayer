@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
@@ -8,6 +9,7 @@ import 'package:dance_learning_app/cast/cast_receiver.dart';
 import 'package:dance_learning_app/cast/cast_speed_tier.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/cast/encoder_realtime_capability.dart';
 import 'package:dance_learning_app/cast/system_mirror.dart'
     show systemMirrorLauncherProvider;
 import 'package:dance_learning_app/dance/video_copy_presence.dart'
@@ -22,13 +24,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_cast_receiver_discovery.dart';
 import '../helpers/fake_cast_render_executor.dart';
+import '../helpers/fake_encoder_realtime_capability.dart';
 import '../helpers/fake_system_mirror_launcher.dart';
 import '../helpers/fake_video_copy_presence.dart';
 
 /// 投屏准备面板直测：两个勾选档与三句实话、列接收端、可重扫、两条门
 /// （副本丢失 / 发现不到接收端）当场拦下并说明；「搜不到接收端」空态里还有
 /// **同一条系统镜像入口**（与投屏态顶栏那枚同一个动作、同一份文案）；选中一台
-/// 即渲染并把**接收端 + 要推的文件**带出（渲好即带出产物，可取消、失败给一句）。
+/// 即渲染并把**接收端 + 要推的文件**带出（渲好即带出产物，可取消、失败给一句）；
+/// **编码器保证不了 1× 实时**时当场说一句、并把请求按 720p 档装配（#36）。
 ///
 /// 渲染链路经脚本化执行器与临时目录注入——widget 测试的假时钟下不做异步文件
 /// IO，所以「真渲一次」的路径由 `cast_render_orchestrator_test.dart` 覆盖，
@@ -60,12 +64,14 @@ void main() {
   CastRenderRequest request(
     CastRenderChoices choices, [
     CastSpeedTier tier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
   ]) => CastRenderRequest(
     videoPath: filePath,
     videoId: 'vid-a',
     duration: const Duration(seconds: 4),
     choices: choices,
     speedTier: tier,
+    resolution: resolution,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
   );
@@ -76,11 +82,16 @@ void main() {
     required FakeCastReceiverDiscovery discovery,
     required FakeVideoCopyPresence presence,
     required ValueNotifier<CastPrepOutcome?> picked,
-    CastRenderRequest Function(CastRenderChoices choices, CastSpeedTier tier)?
+    CastRenderRequest Function(
+      CastRenderChoices choices,
+      CastSpeedTier tier,
+      CastRenderResolution resolution,
+    )?
     requestOf,
     double manualRate = 1,
     FakeSystemMirrorLauncher? systemMirror,
     CastPrepMemoryPort? memory,
+    FakeEncoderRealtimeCapability? capability,
     // riverpod 3.4.2 未公开导出 Override 类型（与 settings_persistence_test
     // 同款）：用 List<dynamic> 承接，展开处照常判类型。
     List<dynamic> extraOverrides = const [],
@@ -92,6 +103,11 @@ void main() {
           videoCopyPresenceProvider.overrideWithValue(presence),
           castRenderExecutorProvider.overrideWithValue(executor),
           castRenderCacheDirectoryProvider.overrideWithValue(() async => root),
+          // 缺省：这台机器保证 1× 实时（按源分辨率渲、不出降级那一句）——
+          // 要验降级的用例各自注入别的答案。
+          castEncoderRealtimeCapabilityProvider.overrideWithValue(
+            capability ?? FakeEncoderRealtimeCapability(),
+          ),
           systemMirrorLauncherProvider.overrideWithValue(
             systemMirror ?? FakeSystemMirrorLauncher(),
           ),
@@ -372,7 +388,7 @@ void main() {
       discovery: discovery,
       presence: FakeVideoCopyPresence(),
       picked: picked,
-      requestOf: (_, _) => throw StateError('标注还没装载'),
+      requestOf: (_, _, _) => throw StateError('标注还没装载'),
     );
     await tester.tap(find.byKey(const Key('cast_receiver_udn-客厅电视')));
     await tester.pumpAndSettle();
@@ -998,6 +1014,160 @@ void main() {
       findsNothing,
       reason: '静默降级：不出任何说明文案',
     );
+  });
+
+  group('编码器保证不了 1× 实时：当场说一句、请求按 720p 档装配（#36）', () {
+    /// 开面板（当场核对那一句在不在）、选一台接收端、带出结局。
+    Future<ValueNotifier<CastPrepOutcome?>> pickOne(
+      WidgetTester tester, {
+      required FakeEncoderRealtimeCapability capability,
+      required bool noteOnPanel,
+    }) async {
+      final discovery = FakeCastReceiverDiscovery(
+        script: [
+          [receiver('客厅电视')],
+        ],
+      );
+      final picked = ValueNotifier<CastPrepOutcome?>(null);
+      addTearDown(picked.dispose);
+
+      await pumpHost(
+        tester,
+        discovery: discovery,
+        presence: FakeVideoCopyPresence(),
+        picked: picked,
+        capability: capability,
+      );
+      // 那一句在面板上**当场**出（还没开始渲），且逐字就是那条常量。
+      expect(
+        find.text(kCastPrepResolutionDowngradedText),
+        noteOnPanel ? findsOneWidget : findsNothing,
+      );
+      // 只勾画面类（不勾声音类）：这条路径不合成拍声轨，widget 测试的假时钟下
+      // 也不会碰异步文件 IO（沿既有用例）。
+      await tester.tap(find.byKey(const Key('cast_choice_sound')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cast_receiver_udn-客厅电视')));
+      await tester.pumpAndSettle();
+      return picked;
+    }
+
+    testWidgets('保证 1× 实时：不多说，请求按源分辨率渲', (tester) async {
+      final picked = await pickOne(
+        tester,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.guaranteed,
+        ),
+        noteOnPanel: false,
+      );
+
+      expect(
+        picked.value?.requests[CastSpeedTier.full]?.resolution,
+        CastRenderResolution.source,
+      );
+    });
+
+    testWidgets('不保证 1× 实时：那一句逐字在场，请求带 720p 档', (tester) async {
+      final picked = await pickOne(
+        tester,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.notGuaranteed,
+        ),
+        noteOnPanel: true,
+      );
+
+      expect(
+        picked.value?.requests[CastSpeedTier.full]?.resolution,
+        CastRenderResolution.p720,
+      );
+    });
+
+    testWidgets('问不到（API < 29 / 设备不报）：与不保证同一侧——明说并降级', (tester) async {
+      final picked = await pickOne(
+        tester,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.unknown,
+        ),
+        noteOnPanel: true,
+      );
+
+      expect(
+        picked.value?.requests[CastSpeedTier.full]?.resolution,
+        CastRenderResolution.p720,
+        reason: '问不到 = 按不可保证处理（宁可降分辨率，也不给没底的进度条）',
+      );
+    });
+
+    testWidgets('查询自己失败：面板不崩，按问不到兜底', (tester) async {
+      final picked = await pickOne(
+        tester,
+        capability: FakeEncoderRealtimeCapability()
+          ..failure = StateError('通道炸了'),
+        noteOnPanel: true,
+      );
+
+      expect(
+        picked.value?.requests[CastSpeedTier.full]?.resolution,
+        CastRenderResolution.p720,
+      );
+    });
+
+    testWidgets('降级那句就在面板上（还没选接收端也说得早）', (tester) async {
+      final discovery = FakeCastReceiverDiscovery(
+        script: [
+          [receiver('客厅电视')],
+        ],
+      );
+      final picked = ValueNotifier<CastPrepOutcome?>(null);
+      addTearDown(picked.dispose);
+
+      await pumpHost(
+        tester,
+        discovery: discovery,
+        presence: FakeVideoCopyPresence(),
+        picked: picked,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.notGuaranteed,
+        ),
+      );
+
+      expect(find.text(kCastPrepResolutionDowngradedText), findsOneWidget);
+      expect(
+        find.byKey(const Key('cast_resolution_downgraded')),
+        findsOneWidget,
+        reason: '逐字断言那条常量 + 那枚 key 都在',
+      );
+      expect(picked.value, isNull, reason: '只是说明，还没开始渲');
+    });
+
+    testWidgets('只勾声音 + 1×（视频原样复制）：没有可降的编码，那一句不出现', (tester) async {
+      final discovery = FakeCastReceiverDiscovery(
+        script: [
+          [receiver('客厅电视')],
+        ],
+      );
+      final picked = ValueNotifier<CastPrepOutcome?>(null);
+      addTearDown(picked.dispose);
+
+      await pumpHost(
+        tester,
+        discovery: discovery,
+        presence: FakeVideoCopyPresence(),
+        picked: picked,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.notGuaranteed,
+        ),
+      );
+      await tester.tap(find.byKey(const Key('cast_choice_picture')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+      expect(
+        find.text(kCastPrepResolutionDowngradedText),
+        findsNothing,
+        reason: '视频流原样复制，说「降到 720p」就是假话',
+      );
+    });
   });
 }
 

@@ -15,6 +15,8 @@ import 'package:dance_learning_app/cast/cast_render_request.dart'
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/cast/encoder_realtime_capability.dart'
+    show castEncoderRealtimeCapabilityProvider;
 import 'package:dance_learning_app/cast/system_mirror.dart'
     show systemMirrorLauncherProvider;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
@@ -65,6 +67,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/fake_camera_capture_service.dart';
 import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_receiver_discovery.dart';
+import '../helpers/fake_encoder_realtime_capability.dart';
 import '../helpers/fake_cast_render_executor.dart';
 import '../helpers/fake_cast_session.dart';
 import '../helpers/fake_playback_engine.dart';
@@ -154,6 +157,13 @@ void main() {
           castSessionFactoryProvider.overrideWithValue(factory),
           castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
           systemMirrorLauncherProvider.overrideWithValue(systemMirror),
+          // 编码器能力查询（#36）：本文件不验降级，按「保证 1× 实时」注入，
+          // 请求因此按源分辨率装配。**这条接缝必须注入**——平台通道在 widget
+          // 测试里不会被应答，不注入面板会挂在能力查询上（降级那几条用例在
+          // `cast_prep_panel_test.dart`）。
+          castEncoderRealtimeCapabilityProvider.overrideWithValue(
+            FakeEncoderRealtimeCapability(),
+          ),
           videoCopyPresenceProvider.overrideWithValue(
             presence ?? FakeVideoCopyPresence(),
           ),

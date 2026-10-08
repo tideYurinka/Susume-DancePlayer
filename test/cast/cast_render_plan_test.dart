@@ -1,4 +1,5 @@
 import 'package:dance_learning_app/annotation/framing_selection.dart';
+import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_range_gate.dart';
 import 'package:dance_learning_app/cast/cast_render_plan.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
@@ -14,6 +15,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
@@ -24,6 +26,7 @@ void main() {
     duration: const Duration(minutes: 3),
     choices: choices,
     speedTier: speedTier,
+    resolution: resolution,
     settings: settings,
     annotationFingerprint: 'fp-1',
     mirrorFragments: mirrorFragments,
@@ -38,6 +41,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
@@ -47,6 +51,7 @@ void main() {
     request: request(
       choices: choices,
       speedTier: speedTier,
+      resolution: resolution,
       settings: settings,
       mirrorFragments: mirrorFragments,
       framingSelection: framingSelection,
@@ -755,6 +760,78 @@ void main() {
         contains('[0:a]atempo=0.5,aresample=48000[amain]'),
         reason: '画面按 setpts 拉长了，音轨不跟就会与画面错开',
       );
+    });
+  });
+
+  group('分辨率档：保证 1× 按源分辨率，不保证降到 720p', () {
+    const picture = CastRenderChoices(picture: true, sound: true);
+
+    test('源档：不加缩放节点、码率 8M（链路与今天逐字一致）', () {
+      final arguments = args(choices: picture);
+      final filter = filterOf(arguments);
+
+      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(filter, isNot(contains('scale=')));
+      expect(arguments, containsAllInOrder(['-b:v', '8M']));
+    });
+
+    test('720p 档：链尾钉高 720 行、宽度按源比例，码率 4M', () {
+      final arguments = args(
+        choices: picture,
+        resolution: CastRenderResolution.p720,
+      );
+
+      expect(
+        filterOf(arguments),
+        contains('[0:v]scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]'),
+      );
+      expect(arguments, containsAllInOrder(['-b:v', '4M']));
+    });
+
+    test('720p 档接在镜像/取景/贴纸之后、链尾 fps 之前（层序不动）', () {
+      final filter = filterOf(
+        args(
+          choices: picture,
+          resolution: CastRenderResolution.p720,
+          settings: const CastRenderSettings(globalMirrored: true),
+          framingSelection: const FramingSelection(
+            left: 0.1,
+            top: 0.2,
+            right: 0.9,
+            bottom: 0.8,
+          ),
+        ),
+      );
+
+      expect(
+        filter,
+        contains(
+          ',scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
+          'scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]',
+        ),
+      );
+    });
+
+    test('只勾声音 + 1×：视频原样复制，分辨率档不进命令（没有可降的编码）', () {
+      final arguments = args(resolution: CastRenderResolution.p720);
+
+      expect(videoCodecOf(arguments), 'copy');
+      expect(filterOf(arguments), isNot(contains('[0:v]')));
+      expect(arguments, isNot(contains('-b:v')));
+    });
+
+    test('只勾声音 + 非 1×：视频重编码，分辨率档照样生效', () {
+      final arguments = args(
+        speedTier: CastSpeedTier.half,
+        resolution: CastRenderResolution.p720,
+      );
+
+      expect(videoCodecOf(arguments), kCastRenderVideoEncoder);
+      expect(
+        filterOf(arguments),
+        contains('[0:v]setpts=PTS/0.5,scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]'),
+      );
+      expect(arguments, containsAllInOrder(['-b:v', '4M']));
     });
   });
 }

@@ -59,6 +59,20 @@
 /// （`-c:v copy`），复制出来的流改不了长度、滤镜链也碰不到它——那一档推的是
 /// 整片，音轨同样照整片混。范围落在视频被重编码的那些档（勾了画面类，或非 1×
 /// 档）。详见 `cast_range_gate.dart` 的库头。
+///
+/// ## 分辨率档：链尾一个缩放节点（#36）
+///
+/// 画面链尾按**渲染分辨率档**装缩放：源档一个节点都不加（链路与今天逐字
+/// 一致）；720p 档在 `fps` 之前插一枚 `scale=-2:720,setsar=1`——只钉高 720 行、
+/// 宽度按源画面比例现算（`-2` 顺带保证偶数），**不拉伸**画面，方像素由那条
+/// `setsar=1` 钉住（`scale` 自己会改 SAR 去保 DAR）。码率跟着档走
+/// （源 8M / 720p 4M）。它同样只在**视频真重编码**时才进命令：只勾声音 + 1×
+/// 是 `-c:v copy`，没有可降的编码（[castRenderReencodesVideo]）。
+///
+/// **链序（#37 与 #36 合起来定死）**：范围 `trim` / 音轨 `atrim` 在**全部
+/// overlay 之后、倍速 `setpts` 之前**（它们判的是源时间轴那一段）；分辨率档的
+/// `scale` 与码率在**链尾 `fps` 之前**。两段互不干涉：缩放不改 `t`，时间窗也不
+/// 看像素尺寸——`trim → setpts → scale → fps → format` 这个次序同时满足两条规格。
 library;
 
 import 'cast_beat_gate.dart';
@@ -72,8 +86,8 @@ import 'cast_sticker_gate.dart';
 /// （ADR-0004 的渲染路线结论）。
 const String kCastRenderVideoEncoder = 'h264_mediacodec';
 
-/// 画面档的显式码率、GOP 与目标帧率（编码参数不靠默认值）。
-const String kCastRenderVideoBitrate = '8M';
+/// 画面档的 GOP 与目标帧率（编码参数不靠默认值）。**码率不在这里**：它随
+/// **渲染分辨率档**走（源档 8M / 720p 档 4M，见 `cast_encoder_realtime.dart`）。
 const int kCastRenderGop = 60;
 const int kCastRenderFps = 30;
 
@@ -81,6 +95,14 @@ const int kCastRenderFps = 30;
 const String kCastRenderAudioBitrate = '192k';
 const int kCastRenderSampleRate = 48000;
 const int kCastRenderChannels = 2;
+
+/// 这一档这次要不要**重编码视频**。
+///
+/// 勾了画面类当然要（画面内容要烤进去）；只勾声音类时只有**非 1× 档**要
+/// （`-c:v copy` 改不了时长）。准备面板那句「这一份降到 720p」按它决定说不说：
+/// 视频原样复制的档没有可降的编码，说了就是假话（#36）。
+bool castRenderReencodesVideo(CastRenderChoices choices, CastSpeedTier tier) =>
+    choices.picture || tier != CastSpeedTier.full;
 
 /// 装配一条投屏渲染命令。
 ///
@@ -120,7 +142,16 @@ List<String> buildCastRenderArguments({
   final rate = request.speedTier.token;
   final slowed = request.speedTier != CastSpeedTier.full;
   // 非 1× 档的视频必须重编码（复制改不了时长）。
-  final reencodeVideo = choices.picture || slowed;
+  final reencodeVideo = castRenderReencodesVideo(
+    request.choices,
+    request.speedTier,
+  );
+  // **分辨率档**（#36）：保证 1× 实时 = 源档（一个缩放节点都不加，链路与今天
+  // 逐字一致）；不保证或问不到 = 720p（链尾钉高 720 行、宽度按源画面比例）。
+  // 它只在**视频真重编码**时才进命令——只勾声音 + 1× 是 `-c:v copy`，没有可降
+  // 的编码（那时分辨率档只活在缓存键里，见 `cast_render_request.dart`）。
+  final scale = request.resolution.scaleNode;
+  final scaleNode = scale == null ? '' : '$scale,';
 
   // **数拍层**（#30）只在勾了画面类时装：它属于画面内容类。装了就要有序列清单
   // （没有清单就是编程错误，宁可不装配一条读不出东西的链）。
@@ -209,13 +240,13 @@ List<String> buildCastRenderArguments({
         label = graph.endLabel;
       }
       filters.add(
-        '[$label]$rangeVideoPrefix${speed}fps=$kCastRenderFps,'
+        '[$label]$rangeVideoPrefix$speed${scaleNode}fps=$kCastRenderFps,'
         'format=yuv420p[vout]',
       );
     } else {
       final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
       filters.add(
-        '[0:v]$contentPrefix$rangeVideoPrefix$speed'
+        '[0:v]$contentPrefix$rangeVideoPrefix$speed$scaleNode'
         'fps=$kCastRenderFps,format=yuv420p[vout]',
       );
     }
@@ -273,7 +304,7 @@ List<String> buildCastRenderArguments({
     reencodeVideo ? kCastRenderVideoEncoder : 'copy',
     if (reencodeVideo) ...<String>[
       '-b:v',
-      kCastRenderVideoBitrate,
+      request.resolution.bitrate,
       '-g',
       '$kCastRenderGop',
       '-r',

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:dance_learning_app/core/private_json.dart';
@@ -32,6 +33,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
     CastRenderSettings settings = const CastRenderSettings(),
     String annotationFingerprint = 'fp-1',
   }) => CastRenderRequest(
@@ -40,6 +42,7 @@ void main() {
     duration: const Duration(seconds: 60),
     choices: choices,
     speedTier: speedTier,
+    resolution: resolution,
     settings: settings,
     annotationFingerprint: annotationFingerprint,
   );
@@ -60,6 +63,26 @@ void main() {
     final other = request(videoId: 'vid-b');
     expect(await cache.find(other), isNull, reason: '换了视频标识不该命中上一支舞的产物');
     expect((await cache.partFileFor(other)).path, isNot(part.path));
+  });
+
+  test('降级与不降级不互相命中：分辨率档是键的一维', () async {
+    final source = request();
+    final downgraded = request(resolution: CastRenderResolution.p720);
+    final part = await cache.partFileFor(source);
+    File(part.path).writeAsStringSync('rendered');
+    final stored = await cache.promote(part, source);
+
+    expect((await cache.find(source))?.path, stored.path);
+    expect(
+      await cache.find(downgraded),
+      isNull,
+      reason: '按源分辨率渲的那一份不该被降级请求命中（同一支舞、同一勾选、同一倍速档）',
+    );
+    expect(
+      (await cache.partFileFor(downgraded)).path,
+      isNot(part.path),
+      reason: '两份各占各的键目录',
+    );
   });
 
   test('半成品与产物不同名：崩在中途不会被当成命中', () async {

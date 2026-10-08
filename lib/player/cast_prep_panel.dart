@@ -33,6 +33,15 @@
 /// 出 [CastPrepOutcome]——起递出通道、连会话、推片、起播与进入投屏态的编排
 /// 都在宿主。
 ///
+/// ## 渲染前先问一句**编码器保证得了 1× 实时吗**（#36）
+///
+/// 面板打开即经能力查询接缝（`encoder_realtime_capability.dart`）问一次系统，
+/// 把三态折成**分辨率档**（`cast_encoder_realtime.dart`）：保证 → 源分辨率，
+/// 不保证与**问不到** → 720p。选接收端时这一档与勾选档、倍速档一起进渲染
+/// 请求（因此也进缓存键）。降级在这一处**当面说清**（
+/// [kCastPrepResolutionDowngradedText]）：宁可降分辨率，也不给用户一个未知
+/// 时长的进度条；不降级一个字都不多说。
+///
 /// ## 两条门都在面板里当场拦下并说明
 ///
 /// - **副本丢失**（[kCastPrepCopyMissingText]）：这支舞的**视频副本**不在
@@ -52,12 +61,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_encoder_realtime.dart';
 import '../cast/cast_render_activity.dart' show castRenderInProgressProvider;
 import '../cast/cast_render_executor.dart' show CastRenderProgress;
 import '../cast/cast_render_orchestrator.dart';
+import '../cast/cast_render_plan.dart' show castRenderReencodesVideo;
 import '../cast/cast_render_request.dart';
 import '../cast/cast_receiver.dart';
 import '../cast/cast_speed_tier.dart';
+import '../cast/encoder_realtime_capability.dart';
 import '../dance/video_copy_presence.dart' show videoCopyPresenceProvider;
 import 'cast_prep_memory.dart'
     show CastPrepMemory, CastPrepMemoryPort, castPrepMemoryPortOf;
@@ -107,6 +119,15 @@ const String kCastPrepRenderFailedText = '这次没渲出来：可以再试一�
 /// 算出来的，烤死之后不随遥控跳段后的重锚定变化（ADR-0004 的 Consequences）。
 const String kCastPrepBeatFreezeText =
     '数拍数字按渲染那一刻算：投屏中重新锚定学习段，电视上那份不会跟着变';
+
+/// **降级那一句**（`#36`）：编码器保证不了 1× 实时（或系统**答不出来**）时，
+/// 这一份按 720p 渲——当场说清，不让用户无声地拿到一个更差的画面。
+///
+/// 措辞用「没法保证」而不是「不保证」：**问不到**（API < 29、设备不报、通道
+/// 不在、查询失败）与「性能点答得出来但覆盖不了」在这里是同一侧——问不到就
+/// 等于没法保证（兜底口径见 `cast_encoder_realtime.dart`）。
+const String kCastPrepResolutionDowngradedText =
+    '这台机器没法保证 1× 实时渲染：这一份降到 720p，进度才不至于没底';
 
 /// 正在渲染的那一句（后面带百分比）。
 const String kCastPrepRenderingText = '正在渲染投屏副本';
@@ -186,11 +207,13 @@ class CastPrepPanel extends ConsumerStatefulWidget {
   /// 由宿主读数交入——面板不认倍速域。
   final double manualRate;
 
-  /// 按当前勾选档与**某一档**装配一份渲染请求（各域读面由宿主读齐，见
-  /// `cast_render_wiring.dart`）。
+  /// 按当前勾选档、**某一档**与**这次的分辨率档**装配一份渲染请求（各域读面
+  /// 由宿主读齐，见 `cast_render_wiring.dart`）。分辨率档由本面板问出来
+  /// （见 [CastPrepPanel] 的库头）——它是请求的一维，因此也进缓存键。
   final CastRenderRequest Function(
     CastRenderChoices choices,
     CastSpeedTier tier,
+    CastRenderResolution resolution,
   )
   requestOf;
 
@@ -231,9 +254,33 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
 
   bool get _rendering => _pending != null;
 
+  /// **编码器能力三态**的答案（null = 还没答）。降级那一句按它出：还没答就
+  /// 一个字都不多说。
+  CastEncoderRealtime? _capability;
+
+  /// 这次问系统的那个 Future（问一次就够；渲染请求装配要等它）。
+  Future<CastRenderResolution>? _capabilityQuery;
+
+  /// 这次渲染用的**分辨率档**：还没答时按**不可保证**兜底——问不到与不保证在
+  /// 决策里本来就是同一侧（`cast_encoder_realtime.dart`）。渲染总发生在答案
+  /// 之后（见 [_pick]），所以这个兜底只在说明文案的判据上起作用。
+  CastRenderResolution get _resolution =>
+      castRenderResolutionFor(_capability ?? CastEncoderRealtime.unknown);
+
+  /// 降级那一句该不该出：答案已经回来、落在降级那侧，且这次**真有视频要重
+  /// 编码**——只勾声音 + 1× 是 `-c:v copy`，没有可降的编码，说「降到 720p」
+  /// 就是假话（`cast_render_plan.dart` 的 `castRenderReencodesVideo`）。
+  bool get _showsResolutionNote =>
+      _capability != null &&
+      _resolution == CastRenderResolution.p720 &&
+      _plan.tiers.any((tier) => castRenderReencodesVideo(_choices, tier));
+
   @override
   void initState() {
     super.initState();
+    // 渲染前先问一次系统：这台机器的编码器保证 1× 实时吗。答案只决定分辨率档
+    // 与那一句说明，问不到按不可保证兜底（不抛、不挡面板）。
+    unawaited(_ensureCapability());
     // 打开即扫一次；重扫就是再调一次（发现是「问一次答一次」，不是长跑
     // 订阅）。副本丢失时不必扫——那条门先拦住。
     if (!ref.read(videoCopyPresenceProvider).exists(widget.videoFilePath)) {
@@ -278,6 +325,25 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       _receivers = found;
       _scanning = false;
     });
+  }
+
+  /// 问一次系统（面板开着期间只问一次），返回这次该用的分辨率档。
+  ///
+  /// 接缝的契约是「问不到回 unknown、不抛」，这里仍接住任何漏出来的异常——
+  /// 一次能力查询失败不该把整块准备面板带崩：按**问不到**兜底，也就是降级
+  /// 那一侧。
+  Future<CastRenderResolution> _ensureCapability() =>
+      _capabilityQuery ??= _queryCapability();
+
+  Future<CastRenderResolution> _queryCapability() async {
+    CastEncoderRealtime answer;
+    try {
+      answer = await ref.read(castEncoderRealtimeCapabilityProvider).query();
+    } on Object {
+      answer = CastEncoderRealtime.unknown;
+    }
+    if (mounted) setState(() => _capability = answer);
+    return castRenderResolutionFor(answer);
   }
 
   void _setChoice(CastRenderChoices choices) {
@@ -326,13 +392,18 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
 
   /// 选中一台接收端 = 开始这次准备：装配各档请求 → 渲**起投档** → 带出结局
   /// （其余档投上之后由投屏运行域后台渲）。
+  ///
+  /// 装配请求**之前**先把编码器能力那一次问完：分辨率档是请求的一维（也就进
+  /// 缓存键），不能等渲到一半才补——问不到就按不可保证兜底（降级那一侧）。
   Future<void> _pick(CastReceiver receiver) async {
+    final resolution = await _ensureCapability();
+    if (!mounted) return;
     final CastSpeedTierPlan plan;
     final requests = <CastSpeedTier, CastRenderRequest>{};
     try {
       plan = _plan;
       for (final tier in plan.tiers) {
-        requests[tier] = widget.requestOf(_choices, tier);
+        requests[tier] = widget.requestOf(_choices, tier, resolution);
       }
     } on Object {
       // 读面还没就绪（例如标注尚未装载）——当场说明，不静默什么都不做。
@@ -432,6 +503,20 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              // 编码器保证不了 1× 实时（或**问不到**）才出这一句：降级是这台
+              // 机器的能力事实，当面说清——不降级一个字都不多说（#36）。
+              if (_showsResolutionNote) ...[
+                const SizedBox(height: 2),
+                const Text(
+                  kCastPrepResolutionDowngradedText,
+                  key: Key('cast_resolution_downgraded'),
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
                     height: 1.4,
                   ),
                 ),

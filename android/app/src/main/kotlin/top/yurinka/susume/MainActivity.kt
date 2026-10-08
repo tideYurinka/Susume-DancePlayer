@@ -11,6 +11,7 @@ class MainActivity : FlutterActivity() {
     private var nativeHapticPlugin: NativeHapticPlugin? = null
     private var installRequestPlugin: InstallRequestPlugin? = null
     private var systemMirrorSettingsPlugin: SystemMirrorSettingsPlugin? = null
+    private var encoderRealtimeCapabilityPlugin: EncoderRealtimeCapabilityPlugin? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -30,6 +31,9 @@ class MainActivity : FlutterActivity() {
             it.register(flutterEngine)
         }
         systemMirrorSettingsPlugin = SystemMirrorSettingsPlugin(this).also {
+            it.register(flutterEngine)
+        }
+        encoderRealtimeCapabilityPlugin = EncoderRealtimeCapabilityPlugin().also {
             it.register(flutterEngine)
         }
     }
@@ -53,6 +57,8 @@ class MainActivity : FlutterActivity() {
         installRequestPlugin = null
         systemMirrorSettingsPlugin?.unregister(flutterEngine)
         systemMirrorSettingsPlugin = null
+        encoderRealtimeCapabilityPlugin?.unregister(flutterEngine)
+        encoderRealtimeCapabilityPlugin = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 }

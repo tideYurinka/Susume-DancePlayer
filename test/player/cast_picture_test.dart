@@ -8,6 +8,8 @@ import 'package:dance_learning_app/cast/cast_screen_awake.dart';
 import 'package:dance_learning_app/cast/cast_session.dart';
 import 'package:dance_learning_app/cast/device_description.dart'
     show CastControlUrls;
+import 'package:dance_learning_app/cast/encoder_realtime_capability.dart'
+    show castEncoderRealtimeCapabilityProvider;
 import 'package:dance_learning_app/camera_capture/camera_capture.dart';
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
@@ -46,6 +48,7 @@ import '../helpers/fake_cast_delivery_channel.dart';
 import '../helpers/fake_cast_receiver_discovery.dart';
 import '../helpers/fake_cast_screen_awake.dart';
 import '../helpers/fake_cast_session.dart';
+import '../helpers/fake_encoder_realtime_capability.dart';
 import '../helpers/fake_playback_engine.dart';
 import '../helpers/fake_system_ui.dart';
 import '../helpers/fake_video_copy_presence.dart';
@@ -147,6 +150,13 @@ void main() {
           // 熄不熄」归真机验收，这里钉的是「谁在什么时候拿、什么时候放」。
           castScreenAwakeProvider.overrideWithValue(awake),
           videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
+          // 编码器能力查询（#36）：按「保证 1× 实时」注入，请求因此按源分辨率
+          // 装配。**这条接缝必须注入**——平台通道在 widget 测试里不会被应答，
+          // 不注入面板会挂在能力查询上（降级那几条用例在
+          // `cast_prep_panel_test.dart`）。
+          castEncoderRealtimeCapabilityProvider.overrideWithValue(
+            FakeEncoderRealtimeCapability(),
+          ),
           // 节拍分析挂起：数拍浮层的显隐由测试自行置开（画面开关那条断言
           // 要的是「投屏态不挂它」，不是分析结果）。
           beatAnalysisPipelineProvider.overrideWithValue(hangingBeatPipeline),

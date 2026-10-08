@@ -4,6 +4,7 @@ import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_encoder_realtime.dart' show CastRenderResolution;
 import '../cast/cast_render_request.dart'
     show CastRenderChoices, CastRenderRequest, CastSpeedTier;
 import '../cast/cast_session.dart' show CastRemoteItem;
@@ -1793,10 +1794,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     }
   }
 
-  /// 按勾选档与**某一档**装配一份渲染请求：各域现值由
+  /// 按勾选档、**某一档**与**这次的分辨率档**装配一份渲染请求：各域现值由
   /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹、拍声排程、备注贴纸与
   /// 数拍层都在那里各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回
-  /// 副本路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本。
+  /// 副本路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本；
+  /// **分辨率档**（准备面板按编码器能力三态定，`#36`）是更靠前的第三分量。
   ///
   /// **数拍层**（#30）的三样现读值在这里给全：四格浮层位与当前格
   /// （`MetronomeOverlayController` 的会话态）、当前视口（钳制框 = 浮层所在那块
@@ -1805,6 +1807,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   CastRenderRequest _castRenderRequest(
     CastRenderChoices choices,
     CastSpeedTier tier,
+    CastRenderResolution resolution,
   ) => castRenderRequestFor(
     ref.read,
     videoPath: widget.source.toFilePath(),
@@ -1812,6 +1815,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     globalMirrored: _mirror.mirrored,
     choices: choices,
     speedTier: tier,
+    resolution: resolution,
     // 贴纸的尺寸分数与数拍层的落位都按**上屏画面矩形**归一化（与手机同源）。
     pictureRect: _castStickerPictureRect(),
     textScaler: MediaQuery.textScalerOf(context),

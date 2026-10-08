@@ -18,6 +18,7 @@ import '../beat_track_state/beat_track_state.dart'
     show beatGridProvider, beatTrackStateProvider;
 import '../cast/cast_annotation_fingerprint.dart';
 import '../cast/cast_beat_count.dart';
+import '../cast/cast_encoder_realtime.dart' show CastRenderResolution;
 import '../cast/cast_range_gate.dart' show CastRange;
 import '../cast/cast_render_request.dart';
 import '../core/current_beat.dart' show BeatCountDisplay;
@@ -364,6 +365,10 @@ buildCastBeatOverlay({
 ///
 /// [beatPlacements] / [beatCell] / [beatViewport] 是数拍浮层在手机上的四格记忆
 /// 与当前视口（`MetronomeOverlayController` 的现读值），落位从它们算起。
+///
+/// [resolution] 是这次渲染的**分辨率档**（#36）：由准备面板按编码器能力三态
+/// 定（保证 1× = 源档，不保证与问不到 = 720p），在这里原样进请求——它是请求的
+/// 一维，因此也进缓存键。
 CastRenderRequest castRenderRequestFor(
   CastRenderRead read, {
   required String videoPath,
@@ -371,6 +376,7 @@ CastRenderRequest castRenderRequestFor(
   required bool globalMirrored,
   required CastRenderChoices choices,
   CastSpeedTier speedTier = CastSpeedTier.full,
+  CastRenderResolution resolution = CastRenderResolution.source,
   Rect? pictureRect,
   TextScaler textScaler = TextScaler.noScaling,
   OverlayPlacements? beatPlacements,
@@ -414,6 +420,7 @@ CastRenderRequest castRenderRequestFor(
     duration: timeline.videoDuration,
     choices: choices,
     speedTier: speedTier,
+    resolution: resolution,
     settings: CastRenderSettings(
       globalMirrored: globalMirrored,
       localMirrorEnabled: read(localMirrorEnabledProvider),
