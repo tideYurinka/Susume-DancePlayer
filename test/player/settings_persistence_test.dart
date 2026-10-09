@@ -18,6 +18,10 @@ import 'package:dance_learning_app/player/beat_prompt_memory.dart'
     show beatPromptMemoryProvider;
 import 'package:dance_learning_app/player/beat_prompt_panel.dart'
     show beatPromptEnabledProvider;
+import 'package:dance_learning_app/cast/cast_render_request.dart'
+    show CastRenderChoices, CastSpeedTier;
+import 'package:dance_learning_app/player/cast_prep_memory.dart'
+    show CastPrepMemory, castPrepMemoryProvider;
 import 'package:dance_learning_app/player/metronome_overlay.dart'
     show overlayPlacementProvider;
 import 'package:dance_learning_app/player/metronome_sound.dart'
@@ -1346,6 +1350,164 @@ void main() {
       await session.started;
       expect(container.read(beatPromptMemoryProvider)?.sound, isFalse);
       expect(container.read(metronomeSoundEnabledProvider), isFalse);
+    });
+  });
+
+  group('投屏准备记忆随舞：落盘与恢复（#40）', () {
+    test('变更即存：面板回写写进该舞 prefs.castPrep，公开标记文件不动', () async {
+      container = makeContainer();
+      addTearDown(container.dispose);
+      final session = persistence();
+      unawaited(session.startForVideo(idA));
+      await session.started;
+
+      container
+          .read(castPrepMemoryProvider.notifier)
+          .remember(
+            const CastPrepMemory(
+              choices: CastRenderChoices(picture: false, sound: true),
+              tiers: {CastSpeedTier.half, CastSpeedTier.full},
+            ),
+          );
+      await session.flush;
+
+      expect(storages[idA]!.localSnapshot['prefs']['castPrep'], {
+        'picture': false,
+        'sound': true,
+        'tiers': ['0.5', '1'],
+      });
+      expect(storages[idA]!.markersSnapshot, isEmpty);
+    });
+
+    test('重开恢复：记忆按这支舞读回，恢复本身不产生任何写盘', () async {
+      const seed = {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'picture': true,
+            'sound': false,
+            'tiers': ['0.5', '0.75'],
+          },
+        },
+      };
+      container = makeContainer(localFiles: {idA: seed});
+      addTearDown(container.dispose);
+      final session = persistence();
+      unawaited(session.startForVideo(idA));
+      await session.started;
+
+      final restored = container.read(castPrepMemoryProvider);
+      expect(restored?.picture, isTrue);
+      expect(restored?.sound, isFalse);
+      expect(restored?.tiers, ['0.5', '0.75']);
+      // 恢复是只读装载：盘上的内容逐字不变（含 version 3 不升级、不补键）。
+      await session.flush;
+      expect(storages[idA]!.localSnapshot, seed);
+    });
+
+    test('各视频相互独立：改 A 不碰 B 文件，重开 B 取 B 自己的记忆', () async {
+      container = makeContainer();
+      addTearDown(container.dispose);
+      final session = persistence();
+      unawaited(session.startForVideo(idA));
+      await session.started;
+      container
+          .read(castPrepMemoryProvider.notifier)
+          .remember(
+            const CastPrepMemory(
+              choices: CastRenderChoices.none(),
+              tiers: {CastSpeedTier.half},
+            ),
+          );
+      await session.flush;
+
+      expect(storages[idB]!.localSnapshot, isEmpty);
+
+      unawaited(session.startForVideo(idB));
+      await session.started;
+      expect(
+        container.read(castPrepMemoryProvider),
+        isNull,
+        reason: '换视频先清槽：上一支舞的记忆不留在下一支舞',
+      );
+      container
+          .read(castPrepMemoryProvider.notifier)
+          .remember(
+            const CastPrepMemory(
+              choices: CastRenderChoices.all(),
+              tiers: {CastSpeedTier.threeQuarter},
+            ),
+          );
+      await session.flush;
+
+      expect(storages[idB]!.localSnapshot['prefs']['castPrep'], {
+        'picture': true,
+        'sound': true,
+        'tiers': ['0.75'],
+      });
+      expect(storages[idA]!.localSnapshot['prefs']['castPrep'], {
+        'picture': false,
+        'sound': false,
+        'tiers': ['0.5'],
+      });
+    });
+
+    test('会话未识别身份：改动不落盘、不抛错', () async {
+      container = makeContainer();
+      addTearDown(container.dispose);
+      final session = persistence();
+      unawaited(session.startForVideo(null));
+      await session.started;
+
+      container
+          .read(castPrepMemoryProvider.notifier)
+          .remember(
+            const CastPrepMemory(
+              choices: CastRenderChoices.all(),
+              tiers: {CastSpeedTier.full},
+            ),
+          );
+      await session.flush;
+
+      expect(storages[idA]!.localSnapshot, isEmpty);
+      expect(storages[idB]!.localSnapshot, isEmpty);
+    });
+
+    test('值未变化不产生新写入：同值重写落盘内容不变', () async {
+      container = makeContainer();
+      addTearDown(container.dispose);
+      final storage = _CountingLocalStorage();
+      final index = InMemoryVideoIndexStorage(
+        initial: VideoIndex(
+          entries: [historyEntry(filePath: pathA, mirrored: false, videoId: idA)],
+        ),
+      );
+      container = ProviderContainer(
+        overrides: [
+          ...baseOverrides(),
+          videoIndexStoreProvider.overrideWithValue(index),
+          videoDocumentStorageProvider(idA).overrideWithValue(storage),
+        ],
+      );
+      addTearDown(container.dispose);
+      final session = persistence();
+      unawaited(session.startForVideo(idA));
+      await session.started;
+
+      const memory = CastPrepMemory(
+        choices: CastRenderChoices.all(),
+        tiers: {CastSpeedTier.half, CastSpeedTier.full},
+      );
+      container.read(castPrepMemoryProvider.notifier).remember(memory);
+      container.read(castPrepMemoryProvider.notifier).remember(memory);
+      await session.flush;
+
+      expect(storage.localWrites, 1, reason: '同值重写不重复写盘');
+      expect(storage.localSnapshot['prefs']['castPrep'], {
+        'picture': true,
+        'sound': true,
+        'tiers': ['0.5', '1'],
+      });
     });
   });
 }

@@ -44,6 +44,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'beat_animation.dart' show BeatAnimationStyle;
+import 'beat_count_layout.dart' show kBeatNumbersGap;
 import 'dashed_selection_box.dart' show DashedSelectionBoxPainter;
 import 'overlay.dart';
 import '../core/current_beat.dart';
@@ -116,29 +117,18 @@ class MetronomeOverlayController extends ChangeNotifier {
   /// 当前格（生效位置从它所属的格取值）。
   OverlayPlacementCell get cell => _cell;
 
-  /// 生效几何（偏移 + 内容尺寸）的唯一解析口：尺寸按形态系数解析（铺满
-  /// 钳制框为止）；偏移取当前格自定义值（缺席则按钳制框现算的默认位：
-  /// 贴左、纵向视口高 12%），再钳回钳制框内。
+  /// 生效几何（偏移 + 内容尺寸）的唯一解析口：**解析规则住
+  /// [resolveOverlayGeometry]**（与投屏装配的浮层落位同读那一处，不是两份
+  /// 口径）；本方法只是把控制器的现读值喂进去。
   ///
   /// **钳制只在此生效**：容器里存的值一字不改（钳制不回写）。宿主未接线
   /// （钳制框 null）时不钳，默认位回落屏左上原点。
-  ({Offset offset, Size size}) _effectiveGeometry() {
-    final box = _clampBox;
-    final size = resolveOverlaySize(
-      style: _style,
-      rectWidthFactor: _placements.rectWidthFactor,
-      pendulumScale: _placements.pendulumScale,
-      viewport: box,
-    );
-    final raw =
-        _placements.offsetFor(_cell) ??
-        (box == null ? Offset.zero : defaultOverlayOffset(box));
-    if (box == null) return (offset: raw, size: size);
-    return (
-      offset: clampOverlayOffset(offset: raw, contentSize: size, viewport: box),
-      size: size,
-    );
-  }
+  ({Offset offset, Size size}) _effectiveGeometry() => resolveOverlayGeometry(
+    placements: _placements,
+    cell: _cell,
+    style: _style,
+    viewport: _clampBox,
+  );
 
   /// 当前格**生效**的左上角偏移（显示位与命中区同源）。
   Offset get effectiveOffset => _effectiveGeometry().offset;
@@ -442,6 +432,28 @@ class OverlayMixedBurstTracker {
   }
 }
 
+/// 数拍数字的**文字取值**（八拍号 / 组上标 / 拍号）——上屏 widget 与投屏
+/// 副本的唯一一处派生（`#30`：拍号取值与手机同源）。
+///
+/// - 练习区：八拍号按「数四个八拍重新数」取号（[eightCountCycleDisplay]），
+///   相对八拍 > 4 时才带组上标；
+/// - 前导区：八拍号恒 `0`、无组上标（与 [LeadingBeatCount] 同款）。
+({String eightCount, String? group, String beatCount}) beatCountTextOf(
+  BeatCountDisplay display,
+) {
+  switch (display) {
+    case PracticeBeatCount(:final eightCount, :final beatCount):
+      final cycle = eightCountCycleDisplay(eightCount);
+      return (
+        eightCount: '${cycle.number}',
+        group: cycle.group == null ? null : '${cycle.group}',
+        beatCount: '$beatCount',
+      );
+    case LeadingBeatCount(:final eightCount, :final beatCount):
+      return (eightCount: '$eightCount', group: null, beatCount: '$beatCount');
+  }
+}
+
 /// 数拍数字内容（给定 [BeatCountDisplay] 渲染两数）。
 class BeatCountNumbers extends StatelessWidget {
   const BeatCountNumbers({super.key, required this.display});
@@ -450,32 +462,59 @@ class BeatCountNumbers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = beatCountTextOf(display);
     switch (display) {
-      case PracticeBeatCount(:final eightCount, :final beatCount):
-        final cycle = eightCountCycleDisplay(eightCount);
+      case PracticeBeatCount():
         return _BeatPairRow(
-          eightText: '${cycle.number}',
-          groupText: cycle.group == null ? null : '${cycle.group}',
-          beatText: '$beatCount',
+          eightText: text.eightCount,
+          groupText: text.group,
+          beatText: text.beatCount,
           rowKey: const Key('beat_count_practice'),
         );
-      case LeadingBeatCount(:final eightCount, :final beatCount):
+      case LeadingBeatCount():
         return _BeatPairRow(
-          eightText: '$eightCount',
-          beatText: '$beatCount',
+          eightText: text.eightCount,
+          beatText: text.beatCount,
           rowKey: const Key('beat_count_leading'),
         );
     }
   }
 }
 
+/// 数拍两数的字号与间距（**上屏与投屏副本同读这一份**；`#30`）。
+const double kBeatEightCountFontSize = 56;
+const double kBeatCountFontSize = 36;
+const double kBeatGroupFontSize = 14;
+
+/// 组上标为主数字让位的左内边距（上屏与副本同读）。
+const double kBeatGroupLeftInset = 15;
+
+/// 八拍号样式（青·大）。
+TextStyle beatEightCountTextStyle() => const TextStyle(
+  color: kCyanAccentColor,
+  fontSize: kBeatEightCountFontSize,
+  height: 1.0,
+  fontWeight: FontWeight.w700,
+);
+
+/// 拍号样式（白·小）。
+TextStyle beatCountTextStyle() => const TextStyle(
+  color: Colors.white,
+  fontSize: kBeatCountFontSize,
+  height: 1.0,
+  fontWeight: FontWeight.w600,
+);
+
+/// 组上标样式（青·上标）。
+TextStyle beatGroupTextStyle() => const TextStyle(
+  color: kCyanAccentColor,
+  fontSize: kBeatGroupFontSize,
+  height: 1.0,
+  fontWeight: FontWeight.w600,
+);
+
 /// 两数渲染（八拍号 青·大 + 拍号 白·小），练习区与前导区共用。
 class _BeatPairRow extends StatelessWidget {
-  static const _groupSuperscriptFontSize = 14.0;
-
-  /// 主数字为组序让位的左内边距（≥ 上标宽；随上标字号联动）。
-  static const _groupSuperscriptLeftInset = 15.0;
-
   const _BeatPairRow({
     required this.eightText,
     required this.beatText,
@@ -495,12 +534,7 @@ class _BeatPairRow extends StatelessWidget {
     final eight = Text(
       eightText,
       key: const Key('beat_count_eight'),
-      style: const TextStyle(
-        color: kCyanAccentColor,
-        fontSize: 56,
-        height: 1.0,
-        fontWeight: FontWeight.w700,
-      ),
+      style: beatEightCountTextStyle(),
     );
     return Stack(
       clipBehavior: Clip.none,
@@ -514,12 +548,7 @@ class _BeatPairRow extends StatelessWidget {
             child: Text(
               groupText!,
               key: const Key('beat_count_group'),
-              style: const TextStyle(
-                color: kCyanAccentColor,
-                fontSize: _groupSuperscriptFontSize,
-                height: 1.0,
-                fontWeight: FontWeight.w600,
-              ),
+              style: beatGroupTextStyle(),
             ),
           ),
         Row(
@@ -530,20 +559,15 @@ class _BeatPairRow extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                left: groupText == null ? 0 : _groupSuperscriptLeftInset,
+                left: groupText == null ? 0 : kBeatGroupLeftInset,
               ),
               child: eight,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: kBeatNumbersGap),
             Text(
               beatText,
               key: const Key('beat_count_beat'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 36,
-                height: 1.0,
-                fontWeight: FontWeight.w600,
-              ),
+              style: beatCountTextStyle(),
             ),
           ],
         ),
@@ -702,23 +726,26 @@ class _MetronomeOverlayState extends State<MetronomeOverlay> {
   Widget _sizedContent(BuildContext context) {
     final size = _controller.hitRect().size;
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final heightScale = textScale > 1 ? textScale : 1;
+    // 内容区尺寸的唯一式子住 [overlayContentSize]（投屏装配同读）。
+    final content = overlayContentSize(box: size, textScale: textScale);
     if (_controller.style != BeatAnimationStyle.pendulum) {
       return SizedBox(
-        width: size.width,
-        height: size.height * heightScale,
+        width: content.width,
+        height: content.height,
         child: widget.child,
       );
     }
     return SizedBox(
-      width: size.width,
-      height: size.height * heightScale,
+      width: content.width,
+      height: content.height,
       child: FittedBox(
         fit: BoxFit.fill,
         alignment: Alignment.topLeft,
         child: SizedBox(
           width: kPendulumBaseContentSize.width,
-          height: kPendulumBaseContentSize.height * heightScale,
+          height:
+              kPendulumBaseContentSize.height *
+              overlayContentHeightScale(textScale),
           child: widget.child,
         ),
       ),

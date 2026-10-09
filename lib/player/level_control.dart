@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../player_session/player_session.dart' show playerSessionProvider;
 import 'brightness.dart';
+import 'cast_run.dart' show castRunProvider;
+import 'cast_volume.dart' show CastAwareSystemMediaVolumeController;
 import 'system_volume.dart';
 
 /// 屏幕亮度控制注入点（左半屏上下滑调亮度）：真实实现走
@@ -15,10 +18,29 @@ final screenBrightnessControllerProvider = Provider<ScreenBrightnessController>(
 /// 系统媒体音量控制注入点（右半屏上下滑调系统媒体音量）：
 /// 真实实现走平台通道（AudioManager STREAM_MUSIC，与侧键同源）；测试注入
 /// fake 断言调用（见 `test/helpers/fake_system_volume.dart`）。
+///
+/// **生产的手势音量走下面那条**（[gestureVolumeControllerProvider]，按会话模式
+/// 分派）；这一条在生产路径上只剩「本机那一半」——它被手势那条包在里面用，
+/// 其余消费者是测试里的 override（那些用例验的是非投屏行为，不受分派影响）。
+/// 两条并存的理由见 `cast_volume.dart` 的库头：收成一条要同时改动一批既有
+/// 用例的注入面，收益只是少一层 Provider。
 final systemMediaVolumeControllerProvider =
     Provider<SystemMediaVolumeController>(
       (ref) => PlatformSystemMediaVolumeController(),
     );
+
+/// 手势用的音量控制器（[LevelControl] 的注入点）：**按会话模式分派**——投屏
+/// 态读写接收端（投屏会话的 `setVolume` / 起投探测读到的上报值），其余读写
+/// [systemMediaVolumeControllerProvider]（本机系统媒体音量，行为逐位不变）。
+/// 手势层只认这一条接缝（`player_page.dart` 把它交给 `LevelControl`），不新起
+/// 第二条写入支路。
+final gestureVolumeControllerProvider = Provider<SystemMediaVolumeController>(
+  (ref) => CastAwareSystemMediaVolumeController(
+    local: ref.watch(systemMediaVolumeControllerProvider),
+    isCasting: () => ref.read(playerSessionProvider).isCast,
+    cast: ref.read(castRunProvider.notifier),
+  ),
+);
 
 /// 亮度与音量域：自持这两个调节量的初始化、取值维护与写入
 /// 路径，宿主只启动会话、把纵向手势增量交给它。
@@ -30,7 +52,15 @@ final systemMediaVolumeControllerProvider =
 ///   归一化并累加到当前值（钳 0..1），随后写回对应系统面；返回值供手势
 ///   反馈层显示滑条填充。音量写入失败静默（平台通道未注册的测试环境），
 ///   亮度写入照既有路径不吞错；
+/// - [adoptReportedVolume] / [refreshVolume]：会话模式切换时重取音量基准
+///   （投屏态取**接收端上报**的音量，见 `cast_volume.dart` 的
+///   `CastAwareSystemMediaVolumeController`）；
 /// - [dispose]：取消音量流订阅。
+///
+/// **「音量这一项显不显示」不在这里**（票 #38）：遥控项的显示由投屏域的能力
+/// 判据一处回答（`cast_session.dart` 的 `CastRemoteControls.shows`）。本域只管
+/// **取值**——接收端报得上（[adoptReportedVolume] 给值）就把上报值当基准，
+/// 读不到就保持现值、不显示 0；界面那边不再读本域另判一遍。
 ///
 /// 单向依赖：本域只依赖两个接缝接口（[ScreenBrightnessController] /
 /// [SystemMediaVolumeController]），不读构建上下文、不碰容器中枢。
@@ -84,6 +114,39 @@ class LevelControl {
       // 兜底，不阻塞播放。
       onError: (Object _) {},
     );
+  }
+
+  /// 会话模式切换时更新音量基准（票 #38）。**投屏态**传起投探测那一次读到的
+  /// 接收端上报值（`cast_run.dart` 的 `CastRunState.reportedVolume`）——它与
+  /// 「音量遥控项显不显示」出自同一次探测，于是屏上的读数与那一项的在不在
+  /// 不会互相打脸；没有可用的上报值（没端点 / 设备不答 / 非投屏）时传 null，
+  /// 退到 [refreshVolume] 按当前会话模式读一次控制器（非投屏 = 本机系统媒体
+  /// 音量，行为逐位不变）。
+  ///
+  /// 读出结果一律**只更新取值**：读失败保持现值（不是显示一个 0），可不可
+  /// 显示由投屏域那一条判据回答。
+  Future<void> adoptReportedVolume(double? reported) async {
+    if (_disposed) return;
+    if (reported == null) return refreshVolume();
+    _volume = reported.clamp(0.0, 1.0);
+    _volumeBaselineReady = true;
+  }
+
+  /// 重新读一次音量基准（**会话模式切换时**调用，票 #38）：投屏态下控制器
+  /// 读的是**接收端上报**的音量，非投屏读的是本机系统媒体音量——进投屏态
+  /// 与断开投屏各走一次，屏上的读数才跟着「现在是谁在出声」走。
+  ///
+  /// 读取失败（平台通道未注册的测试环境 / 接收端不报音量）：保持现值，
+  /// 不阻塞手势、也不显示一个 0。
+  Future<void> refreshVolume() async {
+    try {
+      final value = await _volumeController.volume;
+      if (_disposed) return;
+      _volume = value.clamp(0.0, 1.0);
+      _volumeBaselineReady = true;
+    } on Object {
+      // 保持现值：显示面（音量滑条）取的就是这个值。
+    }
   }
 
   /// 应用纵向增量并写回应用亮度；返回写入后的值（0..1）。写入排在调用方

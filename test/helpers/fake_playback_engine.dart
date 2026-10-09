@@ -171,6 +171,12 @@ class FakePlaybackEngine implements PlaybackEngine {
     _rate = rate;
   }
 
+  /// 当前静音位（[setMuted] 的现值；投屏本地预览静音断言用）。
+  bool muted = false;
+
+  /// 每次 [setMuted] 收到的取值（按调用顺序）。
+  final List<bool> mutedCalls = [];
+
   /// 每次 [setAvSyncDelayMs] 收到的延迟值（按调用顺序，引擎 seam
   /// 断言用；callLog 同步记录 `avSync:<ms>`）。
   final List<int> avSyncDelayCalls = [];
@@ -179,6 +185,13 @@ class FakePlaybackEngine implements PlaybackEngine {
   Future<void> setAvSyncDelayMs(int delayMs) async {
     avSyncDelayCalls.add(delayMs);
     callLog.add('avSync:$delayMs');
+  }
+
+  @override
+  Future<void> setMuted(bool muted) async {
+    this.muted = muted;
+    mutedCalls.add(muted);
+    callLog.add('muted:$muted');
   }
 
   @override

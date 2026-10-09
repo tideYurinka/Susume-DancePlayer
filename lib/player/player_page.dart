@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_encoder_realtime.dart' show CastRenderResolution;
+import '../cast/cast_render_request.dart'
+    show CastRenderChoices, CastRenderRequest, CastSpeedTier;
 import '../core/playback/playback_loop_layer.dart';
 import '../core/playback/playback_loop_providers.dart';
 import '../help/content_registry.dart' show HandsOnCriterion;
@@ -87,7 +91,7 @@ import 'speed_step_entry.dart' show stepEnabledNoticeSpec;
 import 'recording_playback_takeover.dart';
 import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'framing_session_state.dart' show framingStateProvider;
-import 'framing_stage.dart' show singlePictureFramedPictureRectOnScreen;
+import 'framing_stage.dart' show pictureRectOnScreen;
 import 'framing_session.dart';
 import 'presentation_session.dart' show PresentationSession;
 import 'presentation_layer.dart'
@@ -116,9 +120,23 @@ import '../beat_track_state/beat_track_state.dart'
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider, playbackPositionProvider;
 import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
+import 'cast_entry_gate.dart' show castEntryBlockedNoticeSpec;
+import 'cast_mirror.dart' show CastMirror, NoCastMirror;
+import 'cast_prep_panel.dart' show CastPrepOutcome, CastPrepPanel;
+import 'cast_preview.dart' show castPreviewProvider;
+import 'cast_render_wiring.dart' show castRenderRequestFor;
+import 'cast_run.dart'
+    show
+        CastRunModel,
+        castInterruptedNoticeSpec,
+        castNotStartedNoticeSpec,
+        castRemoteItemShownProvider,
+        castRunProvider,
+        castSpeedSwitchFailedNoticeSpec;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
 import 'resume_position.dart' show ResumeRecorder;
 import 'scheme_open.dart';
+import 'session_mode_surfaces.dart' show sessionModeSurfacesOf;
 import 'settings_persistence.dart';
 import 'song_naming.dart';
 import 'song_naming_session.dart';
@@ -128,6 +146,7 @@ import 'track_band_session.dart';
 import 'speed_bubble.dart';
 import 'speed_control.dart';
 import 'system_ui.dart';
+import 'system_mirror_entry.dart' show systemMirrorUnavailableNoticeSpec;
 import 'notice.dart'
     show
         NoticeId,
@@ -183,6 +202,11 @@ const List<NoticeSpec> kNoticeSpecs = [
   threeFingerToastNoticeSpec,
   transitionNoticeSpec,
   _documentReadOnlyNoticeSpec,
+  castInterruptedNoticeSpec,
+  castNotStartedNoticeSpec,
+  castSpeedSwitchFailedNoticeSpec,
+  systemMirrorUnavailableNoticeSpec,
+  castEntryBlockedNoticeSpec,
 ];
 
 /// 本帧交付轨道带的实际行集（档位 × 两轨当前空否的**唯一剪裁点**）。
@@ -248,6 +272,15 @@ TrackRowTable _rowTableForTier({
 ///   屏幕正中显示横向滑条（约屏宽 [kLevelAdjustSliderWidthFraction]，图标
 ///   在条左端区分太阳/喇叭、无数字，填充按当前值 0..1 从左到右实时更新），
 ///   松手即消失（无延迟淡出）；调节期间不暂停播放、不出现进度反馈
+/// - 投屏（本票范围）：顶栏那枚「投屏」工具 → **投屏准备面板**（列同一局域网
+///   上的接收端、可重扫、两条门当场拦下）→ 选一台**不渲染任何东西**、直接把
+///   这支舞的**原片**推过去 → 进**投屏态**（底排槽位整排不出现、轨道带只留
+///   分段轨、顶栏换成投屏那份三枚：断开投屏、系统镜像、查看引导）；「断开
+///   投屏」与左上角退出箭头是同一动作，
+///   断开即停服并回编辑态；系统返回在投屏态内先断开、再按一次才离开页面；
+///   投屏态内本机的播放 / 暂停 / 跳转经 [CastMirror] 同时作用于接收端；
+///   离开播放页与换视频经**既有复位一处**断开（见 `cast_run.dart`）；
+///   顶栏那枚「系统镜像」先断开再跳系统设置（见 `system_mirror_entry.dart`）。
 /// - 镜像：首次打开询问「需要镜像吗？」并给出两栏
 ///   依据（左「不需要镜像」/ 右「需要镜像」）、选择后立即生效（渲染层水平
 ///   翻转，不修改源文件字节）；镜像状态按 video_id 存于视频索引，再次打开
@@ -437,6 +470,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   /// 缓存，dispose 内不可读 provider）。
   PlayerSessionModel? _sessionModel;
 
+  /// 投屏运行域缓存：**投屏遥控镜像口**经它交给引擎与 seek/scrub 域
+  /// （didChangeDependencies 缓存：dispose 收尾那次 `pause` 会经过镜像口，
+  /// 而 dispose 内不可读 provider）。
+  CastRunModel? _castRun;
+
+  /// 当前投屏遥控镜像口：未就位时是空操作那份（[NoCastMirror]）。
+  CastMirror get _castMirror => _castRun ?? const NoCastMirror();
+
   /// 对比录制与练习片段域：录制相位与四个值道、
   /// 录制钮的起停、素材入轨、练习片段的回放都收在域内；本页只把读取事实、
   /// 写缝与宿主动作接进去。
@@ -474,6 +515,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 模式值模型缓存：dispose 收尾复位用（dispose 内不可读
     // provider，didChangeDependencies 缓存模型实例）。
     _sessionModel ??= _containerCache!.read(playerSessionProvider.notifier);
+    // 投屏运行域同样在 dispose 之前缓存：镜像口要在收尾路径上仍可用
+    // （dispose 内不可读 provider）。
+    _castRun ??= _containerCache!.read(castRunProvider.notifier);
     _settingsPersistence ??= VideoSettingsPersistence(
       ProviderScope.containerOf(context),
     );
@@ -673,10 +717,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       },
       promptDenied: _promptCameraDenied,
     );
-    // 亮度/音量域：域自持初始化与写入路径，宿主只建会话。
+    // 亮度/音量域：域自持初始化与写入路径，宿主只建会话。音量走**按会话
+    // 模式分派**的那条接缝（投屏态读写接收端、其余读写本机系统媒体音量，
+    // 见 `level_control.dart` 与 `cast_volume.dart`）。
     _level = LevelControl(
       brightnessController: ref.read(screenBrightnessControllerProvider),
-      volumeController: ref.read(systemMediaVolumeControllerProvider),
+      volumeController: ref.read(gestureVolumeControllerProvider),
     );
 
     // 循环提示：播放到尾左下角弹提示，延迟一个八拍后自动
@@ -715,6 +761,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       onPosition: _onEnginePosition,
       onCompleted: _resumeRecorder.save,
       isMounted: () => mounted,
+      // 投屏遥控镜像：投屏态内本机播放 / 暂停 / 跳转同时作用于接收端；
+      // 未投屏时是空操作（见 cast_mirror.dart）。经缓存读、不在本闭包里
+      // 现读 provider——dispose 收尾那次 pause 也会走到这里。
+      castMirrorOf: () => _castMirror,
     )..attach();
     // 轨道带会话域：组合根建唯一实例——
     // 引擎与时间线读取、清循环回调、控制层宽读取显式接进去；三个消费方只
@@ -767,6 +817,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       takenOver: () => _engineSeek.takenOver,
       avSyncActive: () => ref.read(avSyncCalibrationSessionProvider).active,
       requestCameraPermission: () => _cameraStage.requestEntryPermission(),
+      prepareCast: _prepareCast,
       readTimeline: () => ref.read(annotationTimelineProvider),
       readVideoDuration: () => _engineSeek.engine.duration,
       resetTimeline: (duration) =>
@@ -1020,40 +1071,40 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
-  /// scrub 取消区的画面矩形（**唯一求解点**）：
-  /// 组合根解一次，手势仲裁域（取消区圆心/半径）与浮层标记经现读闭包吃同一
-  /// 份答案。对比态取源侧半区画面矩形（与取景渲染共用的
-  /// [compareFramingPictureRect]）；观看态走整屏 contain 居中（宽高比未知时
-  /// 退化为系统栏内的屏幕可用区）；编辑态微调不走本路径。
+  /// **上屏画面矩形**（**唯一求解点**）：贴纸尺寸分数与数拍落位的参考矩形、
+  /// 进度取消区（手势仲裁域圆心/半径与浮层标记）、角落提示卡、局部镜像标识与
+  /// 备注贴纸都经这一条现读闭包吃同一份答案。
   ///
-  /// 取景生效时改取**取景后的画面矩形**；取景态内画面显示整帧，故
-  /// 取景态按未取景；未调过即未取景的画面矩形。
-  Rect _scrubPictureRect() {
+  /// 三条规则收在 `framing_stage.dart` 的 [pictureRectOnScreen]：取景后取值、
+  /// 竖屏编辑贴底骨架、取景态内按整帧（取景读数传 `null`）；宽高比未知只有
+  /// 一条兜底（画面即容器 = 可用区本身）。对比态源半区取
+  /// [compareFramingPictureRect]（同一处判据，不各算一次）。
+  ///
+  /// 骨架参与条件 = 画面件那一条（控制层展开、或单画面取景态内贴底骨架仍
+  /// 在）：读数与渲染因此同源。
+  Rect _pictureRect() {
     final media = MediaQuery.of(context);
-    // 取景读数：取景态内画面显示整帧，读数按未取景；退出后按选区。
-    final selection = _framingActive
+    final session = ref.read(playerSessionProvider);
+    final framingActive = sessionModeSurfacesOf(session.mode).framingActive;
+    // 取景读数：取景态内画面按整帧显示，读数按未取景；退出后按选区。
+    final selection = framingActive
         ? null
         : ref.read(framingStateProvider).source;
-    if (ref.read(playerSessionProvider).isCompare) {
+    final aspectRatio = _engineSeek.engine.videoAspectRatio;
+    if (session.isCompare) {
       return compareFramingPictureRect(
         screen: media.size,
         landscape: media.orientation == Orientation.landscape,
-        aspectRatio: _engineSeek.engine.videoAspectRatio,
+        aspectRatio: aspectRatio,
         selection: selection,
       );
     }
-    final framed = singlePictureFramedPictureRectOnScreen(
+    return pictureRectOnScreen(
       screen: media.size,
       systemTopInset: media.padding.top,
-      skeleton: null,
-      aspectRatio: _engineSeek.engine.videoAspectRatio,
+      skeleton: session.controlOpen || framingActive ? _lastSkeleton : null,
+      aspectRatio: aspectRatio,
       selection: selection,
-    );
-    if (framed != null) return framed;
-    return videoPictureRect(
-      screen: media.size,
-      systemTopInset: media.padding.top,
-      videoAspectRatio: _engineSeek.engine.videoAspectRatio,
     );
   }
 
@@ -1072,7 +1123,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         isControlOpen: () => _controlOpen,
         isMounted: () => mounted,
         viewportSize: () => MediaQuery.sizeOf(context),
-        pictureRect: _scrubPictureRect,
+        pictureRect: _pictureRect,
         // 系统手势让路：现读系统上报的
         // 手势内缩，经几何纯件按每边 max(上报值, 固定下限) 求值——转屏与
         // 窗口变化后按新值重算。
@@ -1085,6 +1136,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         endTransientRate: () => _speedControl.endTransientRate(),
         onDoubleTap: _togglePlayPause,
         onTwoFingerDoubleTap: _delayedPlay.triggerNow,
+        // 投屏态内三枚遥控项（进度 / 播放暂停 / 音量）显不显示，只问那一份
+        // 判据（票 #38）：唯一回答处是 `castRemoteItemShownProvider`（票 #44
+        // 把「非投屏恒显示」的短路收进它一次），手势层与控制层同读它。音量
+        // 那枚**不再叠第二个条件**：接收端报不报得上音量在起投探测那一次就
+        // 折进判据了（`CastRemoteControls.showsVolume`，见 `cast_run.dart` 的
+        // `_probeRemoteControls`）。
+        castRemoteItemShown: (item) =>
+            ref.read(castRemoteItemShownProvider)(item),
         writeThreeFingerDirection: (direction) {
           ref.read(threeFingerToastDirectionProvider.notifier).write(direction);
           // 三指跳转做到过：提示触发（方向写面被调）即记入判据
@@ -1340,12 +1399,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     exitFraming: _editorEntry.exitFraming,
   );
 
-  /// 取景调节态谓词（模式值 = 对比取景 `compareFraming` 或单画面取景
-  /// `framing`）。
-  bool get _framingActive => switch (ref.read(playerSessionProvider).mode) {
-    PlayerSessionMode.compareFraming || PlayerSessionMode.framing => true,
-    _ => false,
-  };
+  /// 取景调节态谓词：取「模式 → 界面」声明表（唯一映射，不在此另写
+  /// 取值分支）。
+  bool get _framingActive =>
+      sessionModeSurfacesOf(ref.read(playerSessionProvider).mode).framingActive;
 
   /// 切后台强制 flush 标注保存：挂起 burst 不等到期窗口；
   /// 未接编排器（null sink）时零行为。写失败由编排器静默兜底。
@@ -1371,12 +1428,26 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       unawaited(_compareRecordingClips.stop());
       // 相机：退后台即关前置摄像头。
       unawaited(_cameraStage.closePreview());
+      // 投屏：退后台 / 锁屏 = 把投屏会话**视为暂停**——让接收端停下（不引
+      // 前台服务，会话也不比播放页活得久；本机界面不在这里预判），回前台再
+      // 按接收端上报的状态续上（见 `cast_run.dart` 的 pauseForBackground /
+      // refreshPlaybackState）。
+      if (ref.read(playerSessionProvider).isCast) {
+        unawaited(ref.read(castRunProvider.notifier).pauseForBackground());
+      }
     } else if (state == AppLifecycleState.resumed) {
       // 回前台：解除不应活，下一帧 onFrame 按引擎真实播放态重开流。
       _beatDriver.setAppPaused(false);
       // 相机：回前台若仍处对比态则恢复预览。
       if (ref.read(playerSessionProvider).isCompare) {
         unawaited(_cameraStage.openPreview());
+      }
+      // 投屏：回前台按接收端上报的状态续上——接收端是权威，每个上报取值都
+      // 有一件明确的事（在播 → 本机界面追成播放态；暂停 → 追成暂停态且不
+      // 抢播；已停 / 掉线 → 既有失败收口；过渡 / 问不到 → 一位不动，见
+      // `cast_run.dart` 的 refreshPlaybackState 与 `cast_playback_follow.dart`）。
+      if (ref.read(playerSessionProvider).isCast) {
+        unawaited(ref.read(castRunProvider.notifier).refreshPlaybackState());
       }
     }
   }
@@ -1438,6 +1509,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     }
     // 离开播放页后停止播放；引擎随 ProviderScope 存活，供再次打开复用。
     _engineSeek.pause();
+    // 离开页面即撤掉投屏期的本机静音（引擎是跨页复用的那只；下一页要出声）。
+    unawaited(_engineSeek.engine.setMuted(false));
     // 对比录制与练习片段域：离开页面先摘相位监听、复位值道
     // （离开播放页这一触发点），再停录制并释放回放控制器。
     _compareRecordingClips.dispose();
@@ -1474,11 +1547,33 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 对比-播放态、取景调节态。
     final session = ref.watch(playerSessionProvider);
     final controlOpen = session.controlOpen;
-    // 取景调节态（对比分屏 + 单画面）：两个模式值共用同一套
-    // 「控制层收起、手势独占、取景条」的面。
-    final framingActive =
-        session.mode == PlayerSessionMode.compareFraming ||
-        session.mode == PlayerSessionMode.framing;
+    // 投屏期本机不出声：进入投屏态即静音**主内核**、离开即恢复——手机在这
+    // 条路上是遥控器，声音归电视（否则电视与手机同时出声，用户故事里那句
+    // 「不要声音」就不成立）。另一半在画面开关那侧：预览内核构造即静音
+    // （见 `cast_preview.dart`）；两半合起来 = 手机不添第二份声音。
+    ref.listen(playerSessionProvider.select((session) => session.isCast), (
+      wasCasting,
+      casting,
+    ) {
+      if (wasCasting == casting) return;
+      unawaited(_engineSeek.engine.setMuted(casting));
+      // 音量读数跟着「现在是谁在出声」走（票 #38）：进投屏态取**起投探测
+      // 那一次读到的接收端上报值**（`CastRunState.reportedVolume`，与「音量
+      // 遥控项显不显示」出自同一次探测）、断开投屏重取本机系统媒体音量——
+      // 同一条接缝按会话模式分派（见 `level_control.dart` 的
+      // `gestureVolumeControllerProvider`）。探测没读到值（没端点 / 设备不答）
+      // 时退回一次现读；那次也读不到就保持现值，不显示 0。
+      unawaited(
+        _level.adoptReportedVolume(
+          casting ? ref.read(castRunProvider).reportedVolume : null,
+        ),
+      );
+    });
+    // 模式 → 界面三处换装（底排槽集 / 轨道行集 / 取景态谓词）取同一份声明表：
+    // 取景调节态（对比分屏 + 单画面）两值共用同一套「控制层收起、手势独占、
+    // 取景条」的面。
+    final surfaces = sessionModeSurfacesOf(session.mode);
+    final framingActive = surfaces.framingActive;
     final compareWatching = session.mode == PlayerSessionMode.compareWatching;
     // 回看中的练习片段（画面常驻出口件的出现条件）：build 期 watch——不
     // 用 read，避免在 build 里强制刷新被失效的 provider（与调度器同帧刷新
@@ -1487,12 +1582,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final reviewingClip = reviewingClipId == null
         ? null
         : practiceClipById(ref.watch(practiceClipsProvider), reviewingClipId);
-    // 模式 → 轨道行集：只在宿主这一处映射，骨架（整带高）与控制层（行集）
-    // 消费同一份取值。具名行集是该态的**全行集**，紧凑档下再由本处按
-    // 「两轨当前空否」剪裁（见 [_rowTableForTier]）。
-    final fullRowTable = session.mode == PlayerSessionMode.compareEditing
-        ? TrackRowTable.compare
-        : TrackRowTable.normal;
+    // 模式 → 轨道行集：骨架（整带高）与控制层（行集）消费同一份取值。具名
+    // 行集是该态的**全行集**，紧凑档下再由本处按「两轨当前空否」剪裁
+    // （见 [_rowTableForTier]）。
+    final fullRowTable = surfaces.rowTable;
     // 竖屏编辑骨架：方向判定与骨架分配都收成具名纯件
     // （`editor_skeleton.dart`），视频带落位与控制层消费同一份答案；取景域
     // 宿主也读本处缓存的 [_lastSkeleton]。宽高比未知时纯件按「剩余区够用」
@@ -1542,11 +1635,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     _lastSkeleton = skeleton;
     return PopScope(
       // 系统返回：对比-播放态先退对比态回单画面；取景调节态（对比路径）
-      // 先退回对比-控制层、（单画面路径）退回编辑态。
-      canPop: !(compareWatching || framingActive),
+      // 先退回对比-控制层、（单画面路径）退回编辑态；投屏态先断开回编辑态，
+      // 再按一次才离开页面（与对比态的两级返回同款）。
+      canPop: !(compareWatching || framingActive || session.isCast),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop || !mounted) return;
-        if (framingActive) {
+        if (session.isCast) {
+          _disconnectCast();
+        } else if (framingActive) {
           _editorEntry.exitFraming();
         } else if (compareWatching) {
           _editorEntry.exitCompare();
@@ -1578,6 +1674,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                       framingActive: framingActive,
                       compareWatching: compareWatching,
                       isCompare: session.isCompare,
+                      isCast: session.isCast,
                       reviewingClip: reviewingClip,
                     ),
                   ),
@@ -1617,9 +1714,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     }
   }
 
-  /// 控制层返回（对比态内先退对比态回单画面，再按才回首页）：导航与构建
-  /// 上下文读取留在组合根，演出层只收回调。
+  /// 控制层返回（对比态内先退对比态回单画面，投屏态内先断开回编辑态，再按
+  /// 才回首页）：导航与构建上下文读取留在组合根，演出层只收回调。投屏态这
+  /// 条与顶栏那枚「断开投屏」是**同一动作的两处入口**（同一个
+  /// [_disconnectCast]）。
   void _onControlLayerBack() {
+    if (ref.read(playerSessionProvider).isCast) {
+      _disconnectCast();
+      return;
+    }
     if (ref.read(playerSessionProvider).isCompare) {
       _editorEntry.exitCompare();
       return;
@@ -1627,6 +1730,100 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     ref.read(playerSessionProvider.notifier).enter(PlayerSessionMode.editing);
     Navigator.of(context).maybePop();
   }
+
+  /// 断开投屏（唯一出口的两处入口都走这里）：断开并停服 + 回编辑态。
+  ///
+  /// 断开本身不抛（会话契约），失败也回编辑态——用户按下的那一下不能被
+  /// 一次失败的收尾挡住。本机播放照旧（投屏只是把同一支舞也送到了电视上）。
+  void _disconnectCast() {
+    unawaited(ref.read(castRunProvider.notifier).disconnect());
+  }
+
+  /// 画面开关（投屏态顶栏那枚）：开 = 画面区切成静音本地预览（那一侧自己问
+  /// 接收端要位置、静音起播兄弟内核），关 = 回黑底 + 指路提示。源文件在宿主
+  /// 手上，故动作经这里交出——预览域不认播放页、也不持有视频路径。
+  void _toggleCastPicture() {
+    unawaited(
+      ref.read(castPreviewProvider.notifier).toggle(source: widget.source),
+    );
+  }
+
+  /// 进入前置「投屏准备」的宿主编排：开准备面板选一台接收端、勾选要渲染的
+  /// 东西与**投屏倍速档** → **面板内渲起投档**（进度与取消都在面板里）→
+  /// 起递出通道 → 连会话 → 推**起投档那一份** → 起播，**其余档交给投屏运行
+  /// 域后台渲**；起投成功才返回 true（宿主随后经唯一提交入口提交进入
+  /// 投屏-控制层）。
+  ///
+  /// - **已在投屏内直接放行**：投屏-观看态点画面展开回控制层不能重跑准备
+  ///   （也不能把会话重投一遍）；
+  /// - 取消面板 / 起投失败 → false = 零副作用：模式值一位不动、待办由编排
+  ///   取消；起投失败另给一句短暂提示（面板已关，那是唯一的失败面）。
+  /// - **学习段**：起投那一刻正在练的段（源坐标）一并交给运行域——换档时
+  ///   续播位置钳进换算后的段内（过了这段练习就不算这段了）。
+  Future<bool> _prepareCast() async {
+    final cast = ref.read(castRunProvider.notifier);
+    if (cast.receiver != null) return true;
+    if (!mounted) return false;
+    final practiceSpan = loopRangeRecord(ref.read(activeLoopRangeProvider));
+    final outcome = await showDialog<CastPrepOutcome>(
+      context: context,
+      builder: (_) => CastPrepPanel(
+        videoFilePath: widget.source.toFilePath(),
+        manualRate: ref.read(speedControlProvider).manualRate,
+        requestOf: _castRenderRequest,
+      ),
+    );
+    if (outcome == null || !mounted) return false;
+    try {
+      await cast.start(
+        receiver: outcome.receiver,
+        file: File(outcome.filePath),
+        plan: outcome.plan,
+        requests: outcome.requests,
+        practiceSpan: practiceSpan,
+      );
+      return cast.receiver != null;
+    } on Object {
+      if (mounted) {
+        ref
+            .read(noticeTriggerProvider(NoticeId.castNotStarted).notifier)
+            .show();
+      }
+      return false;
+    }
+  }
+
+  /// 按勾选档、**某一档**与**这次的分辨率档**装配一份渲染请求：各域现值由
+  /// `cast_render_wiring.dart` 读齐（设置快照、标注指纹、拍声排程、备注贴纸与
+  /// 数拍层都在那里各就各位）。视频标识取打开会话解析出的那一个；解析不出时退回
+  /// 副本路径（缓存键仍逐支舞互异）。倍速档进缓存键的第五分量——一档一份副本；
+  /// **分辨率档**（准备面板按编码器能力三态定，`#36`）是更靠前的第三分量。
+  ///
+  /// **数拍层**（#30）的三样现读值在这里给全：四格浮层位与当前格
+  /// （`MetronomeOverlayController` 的会话态）、当前视口（钳制框 = 浮层所在那块
+  /// 屏）、以及上屏画面矩形（与贴纸同源的那一块）。落位换算因此读的是手机上
+  /// 真正在用的那一份取值。
+  CastRenderRequest _castRenderRequest(
+    CastRenderChoices choices,
+    CastSpeedTier tier,
+    CastRenderResolution resolution,
+  ) => castRenderRequestFor(
+    ref.read,
+    videoPath: widget.source.toFilePath(),
+    videoId: ref.read(currentVideoIdProvider) ?? widget.source.toFilePath(),
+    globalMirrored: _mirror.mirrored,
+    choices: choices,
+    speedTier: tier,
+    resolution: resolution,
+    // 贴纸的尺寸分数与数拍层的落位都按**上屏画面矩形**归一化（与手机同源：
+    // 同一条唯一求解点的现读闭包）。
+    pictureRect: _pictureRect(),
+    textScaler: MediaQuery.textScalerOf(context),
+    beatPlacements: _presentation.metronome.placements,
+    beatCell: _presentation.metronome.cell,
+    beatViewport:
+        _presentation.metronome.clampBox ?? MediaQuery.sizeOf(context),
+  );
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
   /// 演出层自带 widget 子树，不反向读本页、不读中枢。
@@ -1638,6 +1835,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     required bool framingActive,
     required bool compareWatching,
     required bool isCompare,
+    required bool isCast,
     required PracticeClip? reviewingClip,
   }) {
     final padding = MediaQuery.paddingOf(context);
@@ -1666,11 +1864,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       framingActive: framingActive,
       compareWatching: compareWatching,
       isCompare: isCompare,
+      isCast: isCast,
       metronomeVisible: ref.watch(beatOverlayContentVisibleProvider),
       opened: _opened,
       openFailed: _openFailed,
       reviewingClip: reviewingClip,
-      landscape: MediaQuery.orientationOf(context) == Orientation.landscape,
       systemTopInset: padding.top,
       // 系统栏底内缩：与顶内缩同一条口径，
       // 供横屏编辑态的提示卡占用区上缘换算。
@@ -1678,10 +1876,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       // 系统手势内缩：组合根一次读出交入演出层，贴底常驻入口
       // 叠加它避开手势让路区。
       systemGestureInsets: MediaQuery.systemGestureInsetsOf(context),
-      scrubPictureRectOf: _scrubPictureRect,
+      // 上屏画面矩形的现读闭包：组合根唯一求解点解一次，取消区、提示卡、
+      // 贴纸落位与标识落位都吃同一份（本层只转发）。
+      pictureRectOf: _pictureRect,
       onControlLayerBack: _onControlLayerBack,
       onOpenFailedBack: () => Navigator.of(context).maybePop(),
+      onDisconnectCast: _disconnectCast,
+      onToggleCastPicture: _toggleCastPicture,
       onRequestOrientation: _requestOrientation,
+      // 投屏入口「副本丢失」门的输入：这支舞的视频副本路径。
+      videoFilePath: widget.source.toFilePath(),
       beatCountContent: const BeatCountContent(),
       onTogglePlay: () => unawaited(_togglePlayPause()),
       onDelayedPlay: _delayedPlay.triggerNow,

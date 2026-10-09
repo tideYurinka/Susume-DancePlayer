@@ -32,6 +32,12 @@
 /// | ⑤ | 预览线越界 | 置灰、不可点 | 无（静默） |
 /// | — | 都不命中 | 正常 | 正常 |
 ///
+/// **投屏入口的五条门复用同一张判定表**（票 #35：副本丢失 / 音画同步
+/// 校准中 / 录制中或录制准备中 / 对比态或取景调节态 / 渲染进行中）：它们
+/// 与「无对象 / 锁定 / 未就绪」同行——**置灰、可点、按下去只解释原因**。
+/// 门种 → 可点性只由 [toolSlotTappable] 一处给（今天唯「预览线越界」静默），
+/// 消费面（顶栏投屏槽）不另判一套。
+///
 /// 三句话优先级：装载未完成压倒一切（对象集本身来自尚未装载的文档，
 /// 此刻「有没有对象」无从判定）；无对象压倒锁定；锁定压倒未就绪与越界
 /// （就近写明，不靠优先级表的书写顺序）。
@@ -106,6 +112,11 @@ enum AddEntryId { halfBeat, localMirror, noteSticker, segmentFlag }
 enum AutoSegmentEntryId { clearSegments, fourBeats, eightBeats }
 
 /// 工具槽的门种类：槽声明「我这个动作有哪些门」。
+///
+/// 两块取值：**标注工具区**那五种（判定表就按它们写）与**投屏入口**那五条
+/// （票 #35；同属顶栏看片工具，判定表与点击语义完全复用同一条——都是
+/// 「置灰、可点、按下去只解释原因」）。两块取值的可点性今天恰好同向，故
+/// [toolSlotTappable] 只按「越界＝静默」一条判。
 enum ToolGateKind {
   /// 装载未完成（打开恢复落定之前）：对象集本身来自尚未装载的文档，
   /// 此刻「有没有对象」无从判定，故本门排在判定表最前。落定点是**标注
@@ -124,6 +135,28 @@ enum ToolGateKind {
 
   /// 预览线越界（在有效练习区间外）。
   previewOutOfBounds,
+
+  // ---- 投屏入口的五条门（第二块：今天只由顶栏「投屏」槽声明）----
+
+  /// 副本丢失：这支舞的**视频副本**不在本机——推一份不在盘上的文件没有
+  /// 意义，先把副本找回来。
+  castCopyMissing,
+
+  /// 音画同步校准中：校准在**本机内核**上量音画偏移，投屏把播放挪到电视
+  /// 上，两条播放接管互斥。
+  castAvSyncCalibrating,
+
+  /// 录制中或录制准备中：录制与投屏是两条互相冲突的播放接管（含准备期，
+  /// 与 `RecordingPlaybackTakeover.active` 同一口径）。
+  castRecording,
+
+  /// 对比态或取景调节态：这两个态各有自己的画面主张与手势面，投屏态不从
+  /// 它们里进去——先退出来再投。
+  castCompareOrFraming,
+
+  /// 渲染进行中：另一次投屏渲染还在跑（含后台渲其余倍速档）——起投会与它
+  /// 抢同一条渲染链，等它跑完。
+  castRendering,
 }
 
 /// 「无对象」门命中时该入口给的做法：说先选中哪一种**作用
@@ -207,7 +240,8 @@ const ToolSlot _autoRangeSlot = ToolSlot(
 
 /// 一份有序槽集：某态下有哪些槽、什么次序，即声明次序。
 ///
-/// 槽集对「当前模式」保持无知——「模式 → 槽集」的映射落在构造点一行。
+/// 槽集对「当前模式」保持无知——「模式 → 槽集」的映射收在
+/// `session_mode_surfaces.dart` 的声明表里逐值一行。
 ///
 /// 同一条槽同时进多份槽集时只声明一次：下面的
 /// [_masterySlot] / [_emphasisSlot] / [_autoRangeSlot] 各是一条共享
@@ -356,6 +390,11 @@ class ToolSlotTable {
       writesDocument: false,
     ),
   ]);
+
+  /// 投屏态槽集 = **空集**：底排槽位整排不出现——投屏期分段只读是**结构性**
+  /// 的（无槽可选、无动作可发），不靠额外的只读门挡。它与「哪些模式取哪份
+  /// 槽集」的映射同处一张声明表（`session_mode_surfaces.dart`）。
+  static const ToolSlotTable cast = ToolSlotTable([]);
 
   final List<ToolSlot> _slots;
 
@@ -566,12 +605,28 @@ class AutoSegmentEntryTable {
 /// 答错问题。不要按直觉把本表简化成「锁定一律优先」（那会答错问题、且
 /// 推翻待命态已钉住的「谓词不成立不进模块、锁也不弹提示」语义）。
 /// 就近写明，防止后来人「顺手简化」。
+///
+/// 第二块是**投屏入口的五条门**（票 #35）：两块取值不会同时挂在一个入口
+/// 上，故只有块内次序有意义——块内次序即「能说什么就先说什么」：副本丢失
+/// 是一切的前提；音画同步与录制是两条播放接管互斥（音画同步先，与验收
+/// 清单的列举同序）；对比态或取景调节态是模式冲突；渲染进行中是最短命的
+/// 那些事实，放最后。
+///
+/// **本表必须覆盖全部 [ToolGateKind] 取值**（缺一行即那个门永远不判、静默
+/// 失效，`cast_entry_gate_test.dart` 有结构断言钉住）；加取值只改本表一处。
 const List<ToolGateKind> kToolGatePriority = [
+  // 标注工具区（前五行：判定表原文）。
   ToolGateKind.loading,
   ToolGateKind.noSubject,
   ToolGateKind.locked,
   ToolGateKind.gridNotReady,
   ToolGateKind.previewOutOfBounds,
+  // 投屏入口（第二块：只由顶栏「投屏」槽声明）。
+  ToolGateKind.castCopyMissing,
+  ToolGateKind.castAvSyncCalibrating,
+  ToolGateKind.castRecording,
+  ToolGateKind.castCompareOrFraming,
+  ToolGateKind.castRendering,
 ];
 
 /// 判定结果：是否正常、命中的门、是否可点。
@@ -616,6 +671,10 @@ ToolSlotVerdict evaluateToolSlot(Iterable<ToolGateKind> hitGates) {
 /// **全局门事实**（四类）：[loading]（装载未完成）、[locked]（锁定分段）、
 /// [gridNotReady]（网格未就绪）、[previewOutOfBounds]（预览线越界）。
 ///
+/// **投屏入口门事实**（五条，票 #35；只有顶栏「投屏」槽声明它们）：
+/// [castCopyMissing]、[castAvSyncCalibrating]、[castRecording]、
+/// [castCompareOrFraming]、[castRendering]。
+///
 /// **具名作用对象事实**：[selectedLearningSegmentInInterval]（选中段在
 /// 区间内）、[selectedSegmentLine]（选中分段线）、[anyLineSelected]（任一线
 /// 被选中——分段线 / 半拍线 / 局部镜像片段）、[selectedPracticeClip]（选中的练习片段）、
@@ -627,6 +686,11 @@ class ToolFacts {
     this.locked = false,
     this.gridNotReady = false,
     this.previewOutOfBounds = false,
+    this.castCopyMissing = false,
+    this.castAvSyncCalibrating = false,
+    this.castRecording = false,
+    this.castCompareOrFraming = false,
+    this.castRendering = false,
     this.selectedLearningSegmentInInterval = false,
     this.selectedSegmentLine = false,
     this.anyLineSelected = false,
@@ -647,6 +711,21 @@ class ToolFacts {
 
   /// 预览线越界（在有效练习区间外）。
   final bool previewOutOfBounds;
+
+  /// 投屏入口：这支舞的视频副本不在本机。
+  final bool castCopyMissing;
+
+  /// 投屏入口：音画同步校准会话进行中。
+  final bool castAvSyncCalibrating;
+
+  /// 投屏入口：录制中或录制准备中。
+  final bool castRecording;
+
+  /// 投屏入口：处于对比态或取景调节态。
+  final bool castCompareOrFraming;
+
+  /// 投屏入口：投屏渲染进行中。
+  final bool castRendering;
 
   /// 选中段在区间内（熟练度 / 重点槽的作用对象）。
   final bool selectedLearningSegmentInInterval;
@@ -680,19 +759,19 @@ class ToolFacts {
 /// 门序、可点性、点击语义全由既有判定表（[evaluateToolSlot]）给出，取值
 /// 逐位不变。
 ///
+/// **命中集的算法只有一处**（票 #44）：按门优先级逐条走声明表，**按门取
+/// 事实**（[_gateHolds] 的穷尽 `switch`）——门种多少条都只这一遍迭代，
+/// 不再逐门抄一行 `if (declared.contains(X) && facts.X)`。
+///
 /// **无对象的按槽解析**：`noSubject` 是否命中由 [ToolSlot.id] 的穷尽
 /// switch（[toolEntryHasSubject]）在库内解析；加槽漏补事实即编译报错。
-/// 求值核心：声明的门清单 + 事实 → verdict。
 /// [hasSubject] = 该入口「此刻有没有作用对象」（没有 `noSubject` 前提的
 /// 入口恒传 true）；[lockApplies] = 该入口「此刻是否被本锁覆盖」（缺省
 /// true——直接消费条目表的调用点不带按对象判的锁定前提；槽面由
 /// [evaluateToolEntry] 传 [toolEntryLayoutLockApplies] 的解析值）；
 /// [noSubjectExplained] = 该入口有没有一句「该怎么做」（缺省 true
 /// ——顶栏那枚软门的解释走它自己的动作），由入口的
-/// [ToolSlot.noSubjectHint] / [AddEntry.noSubjectHint] 声明回答；
-/// 命中集 = 声明的门 ∩ 事实成立的门——事实不越过声明（未声明的门不被事实
-/// 点亮），门序、可点性、点击语义全由既有判定表（[evaluateToolSlot]）
-/// 给出，取值逐位不变。
+/// [ToolSlot.noSubjectHint] / [AddEntry.noSubjectHint] 声明回答。
 ToolSlotVerdict evaluateDeclaredGates(
   Set<ToolGateKind> declared,
   ToolFacts facts, {
@@ -701,17 +780,15 @@ ToolSlotVerdict evaluateDeclaredGates(
   bool noSubjectExplained = true,
 }) {
   final verdict = evaluateToolSlot([
-    if (declared.contains(ToolGateKind.loading) && facts.loading)
-      ToolGateKind.loading,
-    if (declared.contains(ToolGateKind.noSubject) && !hasSubject)
-      ToolGateKind.noSubject,
-    if (declared.contains(ToolGateKind.locked) && facts.locked && lockApplies)
-      ToolGateKind.locked,
-    if (declared.contains(ToolGateKind.gridNotReady) && facts.gridNotReady)
-      ToolGateKind.gridNotReady,
-    if (declared.contains(ToolGateKind.previewOutOfBounds) &&
-        facts.previewOutOfBounds)
-      ToolGateKind.previewOutOfBounds,
+    for (final gate in kToolGatePriority)
+      if (declared.contains(gate) &&
+          _gateHolds(
+            gate,
+            facts,
+            hasSubject: hasSubject,
+            lockApplies: lockApplies,
+          ))
+        gate,
   ]);
   // 第②行的一支：入口**没有一句做法可给**时，这一门仍按旧口径
   // 收场——置灰、按不动、静默。「可点」要有可点的东西：没话说就别空报一个
@@ -726,6 +803,30 @@ ToolSlotVerdict evaluateDeclaredGates(
   }
   return verdict;
 }
+
+/// 一条门此刻成不成立：**按门取事实**（唯一一处）。十种门各对一位事实，
+/// 两处例外带自己的前提——「无对象」的事实是入参 [hasSubject]，「锁定」还要
+/// [lockApplies] 说这一下真落在锁内。
+///
+/// 穷尽 `switch`：加 [ToolGateKind] 取值即编译报错（不会静默不判），
+/// 这是命中集算法「只有一份」的护栏。
+bool _gateHolds(
+  ToolGateKind gate,
+  ToolFacts facts, {
+  required bool hasSubject,
+  required bool lockApplies,
+}) => switch (gate) {
+  ToolGateKind.loading => facts.loading,
+  ToolGateKind.noSubject => !hasSubject,
+  ToolGateKind.locked => facts.locked && lockApplies,
+  ToolGateKind.gridNotReady => facts.gridNotReady,
+  ToolGateKind.previewOutOfBounds => facts.previewOutOfBounds,
+  ToolGateKind.castCopyMissing => facts.castCopyMissing,
+  ToolGateKind.castAvSyncCalibrating => facts.castAvSyncCalibrating,
+  ToolGateKind.castRecording => facts.castRecording,
+  ToolGateKind.castCompareOrFraming => facts.castCompareOrFraming,
+  ToolGateKind.castRendering => facts.castRendering,
+};
 
 /// 按条目解析「此刻有没有作用对象」（穷尽 switch，
 /// 与槽面 [toolEntryHasSubject] 同构）：加一个 [AddEntryId] 取值而漏补事实

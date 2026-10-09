@@ -1,4 +1,6 @@
+import 'package:dance_learning_app/player/cast_mirror.dart' show NoCastMirror;
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
+import 'package:dance_learning_app/cast/cast_session.dart' show CastRemoteItem;
 import 'package:dance_learning_app/player/framing_session_state.dart';
 import 'package:dance_learning_app/player/editor_entry.dart';
 import 'package:dance_learning_app/player/engine_seek.dart';
@@ -56,6 +58,11 @@ void main() {
   late _RecordingPresentationSession presentation;
   late AnnotationTimeline jumpTimeline;
 
+  /// 投屏态下**不显示**的那几枚遥控项（票 #38）：空集 = 全显示（非投屏态
+  /// 与「接收端全支持」同一口径）；用例置某一项进来模拟接收端不支持 /
+  /// 探测失败。
+  late Set<CastRemoteItem> hiddenCastRemoteItems;
+
   setUp(() {
     engine = FakePlaybackEngine(duration: const Duration(seconds: 100));
     feedback = GestureFeedbackController();
@@ -80,6 +87,7 @@ void main() {
     rawPointerUps = <int>[];
     framingActive = false;
     controlOpen = false;
+    hiddenCastRemoteItems = const {};
     takeover = RecordingPlaybackTakeover(
       disableRecordingLoop: () {},
       restoreLearningSegmentLoop: () {},
@@ -106,6 +114,7 @@ void main() {
       takenOver: () => takeover.active,
       avSyncActive: () => false,
       requestCameraPermission: () async => true,
+      prepareCast: () async => true,
       readTimeline: () =>
           AnnotationTimeline.wholeVideo(const Duration(seconds: 100)),
       readVideoDuration: () => const Duration(seconds: 100),
@@ -140,6 +149,7 @@ void main() {
     onPosition: () {},
     onCompleted: () async {},
     isMounted: () => true,
+    castMirrorOf: () => const NoCastMirror(),
   );
 
   /// 画面矩形：默认铺满 800×600 视口——
@@ -184,6 +194,7 @@ void main() {
         endTransientRate: () async => endRateCalls++,
         onDoubleTap: () async => doubleTapCalls++,
         onTwoFingerDoubleTap: () => twoFingerDoubleTapCalls++,
+        castRemoteItemShown: (item) => !hiddenCastRemoteItems.contains(item),
         writeThreeFingerDirection: writtenDirections.add,
         showNotice: shownNotices.add,
         presentation: presentation,
@@ -263,6 +274,72 @@ void main() {
       await arbLeft.onScaleUpdate(update(dx: 0, dy: -60));
       expect(feedback.levelKind, LevelAdjustKind.brightness);
       expect(feedback.levelValue, closeTo(0.5 + 60 / 600, 1e-9));
+    });
+  });
+
+  group('投屏遥控项判据（票 #38）', () {
+    test('「进度」不显示：横向拖动整段吞掉（不起拖动会话、不入队 seek）', () async {
+      hiddenCastRemoteItems = const {CastRemoteItem.progress};
+      final arb = build();
+      await engine.seek(const Duration(seconds: 10));
+      engine.seekCalls.clear();
+
+      arb.onScaleStart(start(focal: const Offset(400, 300)));
+      await arb.onScaleUpdate(update(dx: 30, dy: 0));
+      await pumpEventQueue();
+
+      expect(engine.seekCalls, isEmpty);
+      expect(feedback.isScrubbing, isFalse);
+    });
+
+    test('「音量」不显示：右半屏纵向滑不出滑条、不动任何音量', () async {
+      hiddenCastRemoteItems = const {CastRemoteItem.volume};
+      level.start();
+      await pumpEventQueue();
+      final arb = build();
+
+      arb.onScaleStart(start(focal: const Offset(700, 300)));
+      await arb.onScaleUpdate(update(dx: 0, dy: -100));
+
+      expect(feedback.isLevelAdjusting, isFalse);
+      expect(volume.setCalls, isEmpty);
+      expect(feedback.levelValue, 0.0);
+    });
+
+    test('「音量」不显示不影响亮度：左半屏纵向滑照旧生效', () async {
+      hiddenCastRemoteItems = const {CastRemoteItem.volume};
+      level.start();
+      await pumpEventQueue();
+      final arb = build();
+
+      arb.onScaleStart(start(focal: const Offset(100, 300)));
+      await arb.onScaleUpdate(update(dx: 0, dy: -60));
+
+      expect(feedback.levelKind, LevelAdjustKind.brightness);
+      expect(brightness.setCalls, isNotEmpty);
+    });
+
+    test('「播放暂停」不显示：双击不触发页面播放态取反', () async {
+      hiddenCastRemoteItems = const {CastRemoteItem.playPause};
+      final arb = build();
+      arb.doubleTapRecognizer.onDoubleTap?.call();
+      await pumpEventQueue();
+      expect(doubleTapCalls, 0);
+    });
+
+    test('「进度」不显示：三指跳转整段吞掉（不跳、不写方向、不弹提示）', () async {
+      hiddenCastRemoteItems = const {CastRemoteItem.progress};
+      final arb = build();
+      await engine.seek(const Duration(seconds: 10));
+      engine.seekCalls.clear();
+
+      arb.onScaleStart(start(pointerCount: 3, focal: const Offset(400, 300)));
+      await arb.onScaleUpdate(update(dx: -50, dy: 0, pointerCount: 3));
+      await pumpEventQueue();
+
+      expect(engine.seekCalls, isEmpty);
+      expect(writtenDirections, isEmpty);
+      expect(shownNotices, isEmpty);
     });
   });
 

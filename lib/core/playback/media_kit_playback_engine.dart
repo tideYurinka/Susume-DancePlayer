@@ -20,7 +20,15 @@ import 'playback_engine.dart';
 ///
 /// 冒烟属真机步骤，不在无头测试环境跑真实解码。
 class MediaKitPlaybackEngine implements PlaybackEngine {
-  MediaKitPlaybackEngine() {
+  /// [holdsScreenAwake] = 本内核的**画面件**持不持那份「播放期间屏幕常亮」的
+  /// 唤醒（画面件的 `Video(wakelock:)`，见 [_MediaKitVideoSurface]）。
+  ///
+  /// 缺省 true = 播放链路今天的样子（画面在放就屏幕常亮），非投屏态逐位不变。
+  /// 投屏态的**静音本地预览**要 false：那一屏的唤醒由投屏侧自己持
+  /// （`lib/cast/cast_screen_awake.dart`，票 #39）——预览件再有第二份持有者，
+  /// 画面开关一关 / 预览播完就会把投屏期那一次常亮一并放掉，两份持有者打在同
+  /// 一处平台开关上的架。
+  MediaKitPlaybackEngine({this.holdsScreenAwake = true}) {
     _positionSubscription = _player.stream.position.listen((p) {
       // 快速寻址闭环：mpv 的 position 事件即「在途 seek 完成」信号。
       if (_fastBusy) _onFastCompleted();
@@ -42,6 +50,9 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
   }
 
   final Player _player = Player();
+
+  /// 本内核的画面件持不持「播放期间屏幕常亮」那份唤醒（构造时定，见构造器）。
+  final bool holdsScreenAwake;
 
   final StreamController<Duration> _position =
       StreamController<Duration>.broadcast();
@@ -270,6 +281,11 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
   Future<void> setRate(double rate) => _player.setRate(rate);
 
   @override
+  Future<void> setMuted(bool muted) =>
+      // mpv/media_kit 的音量是 0–100 的百分比：静音即 0。
+      _player.setVolume(muted ? 0 : 100);
+
+  @override
   Future<void> setAvSyncDelayMs(int delayMs) {
     // media_kit Dart 面无 audio-delay API，走 NativePlayer.setProperty
     // （mpv 属性）：秒值 = −Δ·rate（负 = 延迟视频；墙钟延迟恒为 Δ，
@@ -344,6 +360,10 @@ class _MediaKitVideoSurfaceState extends State<_MediaKitVideoSurface> {
       fit: BoxFit.contain,
       fill: Colors.black,
       controls: NoVideoControls,
+      // 唤醒的持有者归内核的构造参数（`holdsScreenAwake`）：投屏本地预览
+      // 那一只不持（投屏期那一次常亮由投屏侧单持，票 #39），其余内核维持
+      // media_kit 缺省的「在放就常亮」。
+      wakelock: widget.engine.holdsScreenAwake,
     );
   }
 }

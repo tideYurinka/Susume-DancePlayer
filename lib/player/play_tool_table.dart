@@ -1,15 +1,20 @@
 /// 看片工具槽表：看片工具的声明单一来源。
 ///
 /// **模块面**：[PlayToolIcon]（图标 token）→ [PlayToolSlot]（一条槽的
-/// 声明：槽键、文案、图标、门清单、软门标记）→ 五份具名行集
-/// [kPlayToolRowLandscapeTopBar]（常规档横屏顶栏，十条工具加两条分隔线，
-/// 十二个位置）/ [kPlayToolRowLandscapeTopBarCompact]（紧凑档横屏顶栏，
-/// 八条加两条分隔线，十个位置）/ [kPlayToolRowPortraitTitleBar]
-/// （竖屏标题栏，三条）/
+/// 声明：槽键、文案、图标、门清单、软门标记、提示文案）→ 六份具名行集
+/// [kPlayToolRowLandscapeTopBar]（常规档横屏顶栏，十一条工具加两条分隔线，
+/// 十三个位置）/ [kPlayToolRowLandscapeTopBarCompact]（紧凑档横屏顶栏，
+/// 九条加两条分隔线，十一个位置）/ [kPlayToolRowPortraitTitleBar]
+/// （竖屏标题栏，四条）/
 /// [kPlayToolRowPortraitVideoToolbarTop] 与
-/// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）；
-/// 横屏顶栏选哪一份由纯件 [playToolLandscapeTopBarRow] 按档位判据结果一处决定；
-/// 行集成员 [PlayToolRowItem]（一条槽的引用，或一条分隔线）。槽身份
+/// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）/
+/// [kPlayToolRowCastTopBar]（投屏态顶栏，五枚——「倍速切换」→「画面开关」→
+/// 「断开投屏」→「系统镜像」→ 末位的「查看引导」）；
+/// **顶栏取哪一份行集**由会话模式声明表一行决定（`session_mode_surfaces.dart`
+/// 的 `topBarRowOf`）——投屏态两值取自己那份行集（与朝向、紧凑档无关），
+/// 其余取值取 [playToolOrientationTopBarRow]（朝向与紧凑档只在这一支里参与）；
+/// 行集成员 [PlayToolRowItem]（一条槽的
+/// 引用，或一条分隔线）。槽身份
 /// [PlayToolSlotId] 是唯一消费点穷尽 `switch` 装配活值的判定依据——加槽
 /// 漏补装配即编译报错。可点性派生
 /// [playToolTappable]（无门命中时随硬启用位、有门命中时随判定结果，软门另
@@ -18,11 +23,14 @@
 /// **与标注工具区的关系**：两个工具面并列、各自成表；只共用门判定——
 /// 门种类 [ToolGateKind] 与求值入口 [evaluateDeclaredGates] 取自槽库
 /// `tool_slots.dart`，「灰着的入口按下去绝不执行动作」这条契约因此只有
-/// 一份实现。顶栏今天只吃一类门事实——有没有作用对象（求值的
-/// `hasSubject` 入参）。
+/// 一份实现。顶栏的门事实今天有两类：那枚软门的「有没有作用对象」
+/// （求值的 `hasSubject` 入参）与投屏入口那五条（`facts` 入参，票 #35
+/// 起升格为完整事实装配）——两类都经同一次 [evaluateDeclaredGates] 求值，
+/// 命中集 = 声明 ∩ 事实。
 ///
 /// **什么进表、什么进视图**：唯一判据是「不动的东西才进表」——槽键、
-/// 文案、图标、门清单、软门标记、引导锚点声明六样不变的事实进表；一切
+/// 文案、图标、门清单、软门标记、引导锚点声明、提示文案七样不变的事实进表；
+/// 一切
 /// 需要构建期求值或实例同一性的东西进视图，由唯一消费点按槽装配：激活位
 /// 与激活标签
 /// （生效中的设置）、倍率读数、定宽（依赖系统字号）、气泡锚点（需要稳定
@@ -31,7 +39,7 @@
 /// Flutter）。派生状态（可点性、生效标签、生效激活位）由视图在装配时
 /// 算出，不存进表。
 ///
-/// **一条工具一条声明**：十一条槽各一条 `const` 声明，五份行集引用同一份
+/// **一条工具一条声明**：十六条槽各一条 `const` 声明，六份行集引用同一份
 /// ——同一条槽出现在多份行集时结构上不可能出现两份可能分家的编码。
 /// 「分隔线不进竖屏行」是行集里明写的成员事实（竖屏三份行集不含分隔线
 /// 成员），不再依赖任何字段的缺省值。
@@ -44,7 +52,7 @@ library;
 import 'package:dance_learning_app/player/tool_slots.dart';
 
 /// 看片工具的图标 token：表不引 Flutter，`IconData` 由装配点按 token
-/// 映射（映射取值 = 今天十枚图标的逐位对照，见各条目注释）。
+/// 映射（映射取值 = 今天十五枚图标的逐位对照，见各条目注释）。
 enum PlayToolIcon {
   undo, // Icons.undo
   redo, // Icons.redo
@@ -55,6 +63,10 @@ enum PlayToolIcon {
   speed, // Icons.speed（倍速设置）
   compare, // Icons.compare（对比练习）
   cropFree, // Icons.crop_free（取景调整）
+  cast, // Icons.cast（投屏）
+  castDisconnect, // Icons.tv_off（断开投屏）
+  systemMirror, // Icons.screen_share（系统镜像）
+  visibility, // Icons.visibility（画面开关）
   helpOutline, // Icons.help_outline（查看引导）
   more, // Icons.more_horiz（更多）
 }
@@ -72,11 +84,31 @@ enum PlayToolSlotId {
   speedSettings,
   compare,
   framingAdjust,
+
+  /// 投屏（编辑面顶栏入口：进投屏准备面板）。
+  cast,
+
+  /// 画面开关（只在投屏态顶栏行集内）：把画面区从黑底切成静音本地预览。
+  /// 激活高亮 = 预览开着。
+  castPicture,
+
+  /// 倍速切换（只在投屏态顶栏行集内，且是该行**首枚**）：点开投屏倍速面板，
+  /// 点一枚已渲好的档就让接收端换一个文件播（一档一份副本）。
+  castSpeed,
+
+  /// 断开投屏（只在投屏态顶栏行集内：同一动作的第二处入口是左上角
+  /// 退出箭头）。
+  disconnectCast,
+
+  /// 系统镜像（只在投屏态顶栏行集内：先断开投屏、再跳到系统自带的
+  /// 「投屏 / 无线显示」设置，见 [kPlayToolSystemMirror]）。
+  systemMirror,
   guide,
   more,
 }
 
-/// 单条看片工具槽的声明：槽键、文案、图标、门清单、软门标记与引导锚点。
+/// 单条看片工具槽的声明：槽键、文案、图标、门清单、软门标记、引导锚点与
+/// 提示文案。
 ///
 /// 槽键字符串与渲染层 Key 逐位一致，是渲染层与测试共同的定位手段；
 /// 门清单显式声明（无门写成空清单，不靠缺席表达——读者能区分「故意
@@ -90,6 +122,7 @@ class PlayToolSlot {
     required this.gates,
     required this.softGate,
     this.carriesGuideAnchor = false,
+    this.tooltip,
   });
 
   /// 槽身份（装配点穷尽 `switch` 的判定依据；全表唯一——两条槽共用同一
@@ -119,10 +152,17 @@ class PlayToolSlot {
   /// 槽键集判：同一枚槽键出现在多份行集里是同一份声明，声明为真的槽由渲染
   /// 点包锚点包装器，读者从声明就能区分「故意不接」与「忘了接」。
   final bool carriesGuideAnchor;
+
+  /// 入口上的**提示文案**（长按/悬停时显示；null = 本槽没有额外提示）。
+  /// 文案是「不动的事实」故进表，与 [label] 同源同处：今天只有「系统镜像」
+  /// 声明一条——那枚入口自己承担两条路的取舍说明（ADR-0004：整屏镜像有
+  /// 延迟、手机屏要亮着、控制层也上电视），这是它的**唯一一份**文案，
+  /// 准备面板空态里那同一枚入口也读它。
+  final String? tooltip;
 }
 
-/// 十一条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
-/// 两行共五份行集引用同一批，不内联复制。
+/// 十六条槽声明（唯一一份）：横屏顶栏两份、竖屏标题栏、竖屏视频工具栏
+/// 两行、投屏态顶栏共六份行集引用同一批，不内联复制。
 
 /// 撤销（硬启用位 = 有历史可撤销）。
 const PlayToolSlot kPlayToolUndo = PlayToolSlot(
@@ -223,6 +263,103 @@ const PlayToolSlot kPlayToolFramingAdjust = PlayToolSlot(
   softGate: false,
 );
 
+/// 投屏（编辑面顶栏入口）：点按落待办进**投屏准备**（进入前置声明见
+/// `player_session.dart` 的进入声明表），宿主编排准备面板与起投后经唯一
+/// 提交入口提交。
+///
+/// **本槽声明五条门**（票 #35）：副本丢失 / 音画同步校准中 / 录制中（含
+/// 准备期）/ 对比态或取景调节态 / 渲染进行中。命中任一条即置灰，但
+/// **仍可点**——按下去只解释原因、绝不落待办、绝不开面板（判定表与点击
+/// 语义复用底排同一条，见 `tool_slots.dart`）。**接收端不可达 / 搜不到**
+/// 不在这五条里：它只能靠发现或起投那一下才知道，拦在准备面板与起投失败
+/// 面上（短暂提示），做不成入口置灰。
+///
+/// 准备面板里那条「副本丢失」拦下是同一事实的**第二道**（防御进入与面板
+/// 之间文件才丢的窗口），两道同说一句话。
+const PlayToolSlot kPlayToolCast = PlayToolSlot(
+  id: PlayToolSlotId.cast,
+  key: 'tool_cast',
+  label: '投屏',
+  icon: PlayToolIcon.cast,
+  gates: [
+    ToolGateKind.castCopyMissing,
+    ToolGateKind.castAvSyncCalibrating,
+    ToolGateKind.castRecording,
+    ToolGateKind.castCompareOrFraming,
+    ToolGateKind.castRendering,
+  ],
+  softGate: false,
+);
+
+/// 断开投屏：**只在投屏态顶栏行集**（[kPlayToolRowCastTopBar]）里的一枚，
+/// 与左上角退出箭头同义——两处入口都回编辑态。本槽不改文档、无门、恒可点
+/// （「断开本身不再抛」的会话契约）。
+const PlayToolSlot kPlayToolDisconnectCast = PlayToolSlot(
+  id: PlayToolSlotId.disconnectCast,
+  key: 'tool_cast_disconnect',
+  label: '断开投屏',
+  icon: PlayToolIcon.castDisconnect,
+  gates: [],
+  softGate: false,
+);
+
+/// 系统镜像：**只在投屏态顶栏行集**（[kPlayToolRowCastTopBar]）里的一枚，
+/// 位置在「断开投屏」与末位的「查看引导」之间。点它 = **先断开投屏（含立即
+/// 停服）、再跳**系统自带的「投屏 / 无线显示」设置——投屏与整屏镜像同时
+/// 在场，电视上会两份画面打架；跳不动时降级到显示设置、再不行给一句**短暂
+/// 提示**（降级链见 `lib/cast/platform_system_mirror.dart`）。
+///
+/// 本项目**不做屏幕镜像**（ADR-0004）；这枚入口只负责把用户送过去，因此
+/// **无门、恒可点**——"跳不动"不是置灰的理由，是那条降级链要回答的事。
+/// [tooltip] 是本槽唯一的提示文案：一句话说清两条路的代价差，准备面板
+/// "搜不到接收端"空态里的同一枚入口也读它。
+const PlayToolSlot kPlayToolSystemMirror = PlayToolSlot(
+  id: PlayToolSlotId.systemMirror,
+  key: 'tool_system_mirror',
+  label: '系统镜像',
+  icon: PlayToolIcon.systemMirror,
+  gates: [],
+  softGate: false,
+  tooltip: kSystemMirrorHintText,
+);
+
+/// 系统镜像入口的提示文案（唯一一份）：一句话说清两条路的边界——整屏镜像
+/// 那三笔代价（有延迟、手机屏要亮着、控制层也上电视）与"我们这条路"推的是
+/// 什么。投屏态顶栏那枚与准备面板"搜不到接收端"空态那枚共用。
+const String kSystemMirrorHintText =
+    '整屏镜像：有延迟、手机屏要亮着、控制层也上电视；'
+    '我们这条路推的是渲染好的投屏副本';
+
+/// 画面开关：**只在投屏态顶栏行集**里的一枚——把画面区从黑底 + 指路提示切成
+/// **静音本地预览**。无门、非软门（未投屏时本槽不在场）；激活高亮 = 预览
+/// 开着（生效态，不是面板展开）。
+const PlayToolSlot kPlayToolCastPicture = PlayToolSlot(
+  id: PlayToolSlotId.castPicture,
+  key: 'tool_cast_picture',
+  label: '画面开关',
+  icon: PlayToolIcon.visibility,
+  gates: [],
+  softGate: false,
+);
+
+/// 倍速切换：**只在投屏态顶栏行集**里的**首枚**（规格次序：倍速切换 →
+/// 画面开关 → 断开投屏 → 系统镜像 → 查看引导）。点开投屏倍速面板
+/// （`cast_speed_panel.dart`）：三档各自的状态与进度都在那里，点一枚**已渲
+/// 好**的档就让接收端换一个文件播——倍速不靠接收端支持，靠一档一份副本。
+///
+/// 无门、非软门（未投屏时本槽不在场）：哪一档现在能不能切是**运行事实**
+/// （后台渲到哪一档了），归面板自己的可点性，不在这里置灰。
+/// **注意**：本槽不是编辑面那枚「倍速设置」（[kPlayToolSpeedSettings]），
+/// 投屏态顶栏里没有那枚——倍速步进也随它结构性不在场。
+const PlayToolSlot kPlayToolCastSpeed = PlayToolSlot(
+  id: PlayToolSlotId.castSpeed,
+  key: 'tool_cast_speed',
+  label: '倍速切换',
+  icon: PlayToolIcon.speed,
+  gates: [],
+  softGate: false,
+);
+
 /// 查看引导（进新手引导页）。
 const PlayToolSlot kPlayToolGuide = PlayToolSlot(
   id: PlayToolSlotId.guide,
@@ -276,9 +413,10 @@ class PlayToolRowSet {
   ];
 }
 
-/// 横屏顶栏：十条工具加两条分隔线，十二个位置——撤销 → 重做 → ｜ →
+/// 横屏顶栏：十一条工具加两条分隔线，十三个位置——撤销 → 重做 → ｜ →
 /// 音画同步 → 取景调整 → 节拍提示 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ →
-/// 对比练习 → 查看引导（取景调整在「音画同步」右侧）。
+/// 对比练习 → 投屏 → 查看引导（取景调整在「音画同步」右侧；投屏与
+/// 对比练习同属会话态入口、紧邻其右）。
 const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolUndo),
   PlayToolRowItem.slot(kPlayToolRedo),
@@ -291,11 +429,13 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolSpeedSettings),
   PlayToolRowItem.separator(),
   PlayToolRowItem.slot(kPlayToolCompare),
+  PlayToolRowItem.slot(kPlayToolCast),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
-/// 紧凑档横屏顶栏：八条工具加两条分隔线，十个位置——撤销 → 重做 → ｜ →
-/// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 查看引导。
+/// 紧凑档横屏顶栏：九条工具加两条分隔线，十一个位置——撤销 → 重做 → ｜ →
+/// 更多 → 全局镜像 → 局部镜像 → 倍速设置 → ｜ → 对比练习 → 投屏 →
+/// 查看引导。
 /// 「更多」落在「全局镜像」左侧，使「全局镜像 → 局部镜像 → 倍速设置」
 /// 这组视图设置的相邻关系不被打断；音画同步 / 取景调整 / 节拍提示由
 /// 「更多」的向上弹出菜单承载，次序为音画同步 → 取景调整 → 节拍提示。
@@ -309,6 +449,22 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolSpeedSettings),
   PlayToolRowItem.separator(),
   PlayToolRowItem.slot(kPlayToolCompare),
+  PlayToolRowItem.slot(kPlayToolCast),
+  PlayToolRowItem.slot(kPlayToolGuide),
+]);
+
+/// 投屏态顶栏：**五枚**——倍速切换 → 画面开关 → 断开投屏 → 系统镜像 →
+/// 查看引导（查看引导恒在末位）。它是投屏态两值自己的那份行集：与朝向、紧凑
+/// 档无关，也不占编辑态的位置预算（编辑态行集各自照旧）。
+///
+/// 首枚「倍速切换」是**一档一份副本**那条路在投屏态的入口（面板列出三档各自
+/// 的准备进度）；编辑面那枚「倍速设置」（含倍速步进）不在本行集里——投屏态
+/// 结构性没有倍速步进。
+const PlayToolRowSet kPlayToolRowCastTopBar = PlayToolRowSet([
+  PlayToolRowItem.slot(kPlayToolCastSpeed),
+  PlayToolRowItem.slot(kPlayToolCastPicture),
+  PlayToolRowItem.slot(kPlayToolDisconnectCast),
+  PlayToolRowItem.slot(kPlayToolSystemMirror),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
@@ -319,10 +475,25 @@ const PlayToolRowSet kPlayToolRowLandscapeTopBarCompact = PlayToolRowSet([
 PlayToolRowSet playToolLandscapeTopBarRow({required bool compact}) =>
     compact ? kPlayToolRowLandscapeTopBarCompact : kPlayToolRowLandscapeTopBar;
 
-/// 竖屏标题栏：三条——撤销 → 重做 → 查看引导（返回键与标题之后）。
+/// 顶栏行集按**朝向与紧凑档**取（「模式 → 顶栏行集」里**非投屏那一支**的
+/// 唯一一处）：竖屏取竖屏标题栏 [kPlayToolRowPortraitTitleBar]，横屏按紧凑档
+/// 取 [playToolLandscapeTopBarRow]。投屏态两值不读它——那一支取自己那份
+/// [kPlayToolRowCastTopBar]（见 `session_mode_surfaces.dart` 的模式声明表）。
+///
+/// 与 [playToolLandscapeTopBarRow] 同属本表的朝向/档位知识；声明表只回答
+/// 「哪个会话模式取值走这一支」，不重抄朝向与档位的对应。
+PlayToolRowSet playToolOrientationTopBarRow({
+  required bool portrait,
+  required bool compact,
+}) => portrait
+    ? kPlayToolRowPortraitTitleBar
+    : playToolLandscapeTopBarRow(compact: compact);
+
+/// 竖屏标题栏：四条——撤销 → 重做 → 投屏 → 查看引导（返回键与标题之后）。
 const PlayToolRowSet kPlayToolRowPortraitTitleBar = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolUndo),
   PlayToolRowItem.slot(kPlayToolRedo),
+  PlayToolRowItem.slot(kPlayToolCast),
   PlayToolRowItem.slot(kPlayToolGuide),
 ]);
 
@@ -344,25 +515,49 @@ const PlayToolRowSet kPlayToolRowPortraitVideoToolbarBottom = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolCompare),
 ]);
 
-/// 可点性派生：无门命中时随硬启用位（[enabled]——撤销/重做等置灰即不可
-/// 点）；有门命中时随判定结果（共用底排同一求值入口 [evaluateDeclaredGates]
-/// 与判定表——「灰着的入口按下去绝不执行动作」只有一份实现），软门另或上
-/// 自己的标记（今天与判定表第②行同向：无对象也是「置灰、可点」）。
+/// 一条槽此刻的**置灰观感与可点性**：一次判定求值一起给出两样（票 #44）——
+/// 同一份事实不喂进判定表两遍。入参 [enabled] 是硬启用位（撤销/重做等），
+/// 无门命中时置灰观感与可点性都随它；有门命中时观感随判定结果、可点性随
+/// 判定表（共用底排同一求值入口 [evaluateDeclaredGates] 与判定表——「灰着的
+/// 入口按下去绝不执行动作」只有一份实现），软门另或上自己的标记（今天与
+/// 判定表第②行同向：无对象也是「置灰、可点」）。
 ///
-/// 入参 [hasSubject] 就是顶栏唯一的门事实「有没有作用对象」（具名谓词）；
-/// 恒空的宽类型 [ToolFacts] 只活在共用求值入口内部，不出现在顶栏调用处。
-/// 今天顶栏只有「无对象」一类门，命中时按底排判定即「置灰、可点」；将来
-/// 顶栏真出现第二种门时再升格为完整事实装配——届时再裁定表现，
-/// 不在此预防性偏离底排判定表。
+/// 投屏入口那五条门的事实就在 [facts] 里（票 #35 起升格为完整事实装配）：
+/// 挂它的槽读这一处的 `available` 当置灰观感、`tappable` 当可点性——两样
+/// 出自同一次判定，`castEntryVerdict` 不再被顶栏为置灰重跑一遍。
+({bool available, bool tappable}) playToolAvailability(
+  PlayToolSlot slot, {
+  required bool hasSubject,
+  required bool enabled,
+  ToolFacts facts = const ToolFacts(),
+}) {
+  final verdict = evaluateDeclaredGates(
+    slot.gates.toSet(),
+    facts,
+    hasSubject: hasSubject,
+  );
+  return (
+    available: verdict.available,
+    tappable: verdict.available ? enabled : slot.softGate || verdict.tappable,
+  );
+}
+
+/// 可点性派生（[playToolAvailability] 的单值短手）：无门命中时随硬启用位
+/// （[enabled]——撤销/重做等置灰即不可点）；有门命中时随判定结果（共用底排
+/// 同一求值入口 [evaluateDeclaredGates] 与判定表），软门另或上自己的标记。
+///
+/// 入参 [hasSubject] 是顶栏那枚软门的门事实「有没有作用对象」（具名谓词）；
+/// [facts] 是**完整事实装配**（票 #35 起）：投屏入口那五条门的事实都在里面，
+/// 不声明它们的槽一位不受影响（命中集 = 声明 ∩ 事实）。顶栏因此与底排读同
+/// 一张判定表——门种 → 可点性不在本处另判。
 bool playToolTappable(
   PlayToolSlot slot, {
   required bool hasSubject,
   required bool enabled,
-}) {
-  final verdict = evaluateDeclaredGates(
-    slot.gates.toSet(),
-    const ToolFacts(),
-    hasSubject: hasSubject,
-  );
-  return verdict.available ? enabled : slot.softGate || verdict.tappable;
-}
+  ToolFacts facts = const ToolFacts(),
+}) => playToolAvailability(
+  slot,
+  hasSubject: hasSubject,
+  enabled: enabled,
+  facts: facts,
+).tappable;

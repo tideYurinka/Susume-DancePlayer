@@ -5,12 +5,16 @@ part of 'control_layer.dart';
 /// 按槽身份在 `_assemblePlayTool` 穷尽装配。
 
 extension _ControlLayerPlayToolRow on ControlLayerState {
-  /// 顶栏唯一的门事实（收窄为具名谓词）：**有没有作用对象**——
-  /// 今天它就是「有没有局部镜像片段」。不再传恒空的宽类型事实对象
-  /// （[ToolFacts] 只活在共用求值入口内部）；将来顶栏真出现第二种门时，
-  /// 把本谓词升格成完整事实装配是一次有依据的改动。
+  /// 顶栏软门那条门事实（收窄为具名谓词）：**有没有作用对象**——
+  /// 今天它就是「有没有局部镜像片段」。投屏入口那五条门不走这个谓词，
+  /// 走 [_playToolCastGate]（完整事实装配）。
   bool get _playToolHasSubject =>
       ref.watch(localMirrorFragmentsProvider).isNotEmpty;
+
+  /// 投屏入口五条门的**唯一装配点**取值（`cast_entry_gate.dart`）：装配点直出
+  /// 共用判定表吃的那份事实，顶栏不再有第二份事实类型、也没有搬运层。
+  ToolFacts get _playToolCastFacts =>
+      ref.watch(castEntryFactsProvider(widget.videoFilePath));
 
   /// 顶栏装配一次所需的**活值**：声明在表（[PlayToolSlot]），本束
   /// 只装每次构建会变的求值结果；镜像状态机不经此束——装配点直读
@@ -24,6 +28,8 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     final editHistory = ref.watch(annotationEditHistoryProvider);
     // 「对比练习」槽的激活高亮 = 处于对比态（对比-控制层内可见）。
     final compareActive = ref.watch(playerSessionProvider).isCompare;
+    // 「画面开关」槽的激活高亮 = 投屏本地预览开着（生效态；面板展开不算）。
+    final castPictureOn = ref.watch(castPreviewProvider);
     // 定宽：激活标签 + 倍率槽形态与未激活形态取宽者，使启用 /
     // 停用步进不改槽宽、顶栏不重排；渲染宽与定宽同源。
     final speedSlotWidth = topBarSpeedSlotWidth(
@@ -34,7 +40,9 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       canUndo: editHistory.canUndo,
       canRedo: editHistory.canRedo,
       hasSubject: _playToolHasSubject,
+      facts: _playToolCastFacts,
       compareActive: compareActive,
+      castPictureOn: castPictureOn,
       speedSlotWidth: speedSlotWidth,
     );
   }
@@ -71,11 +79,11 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       labeledWidth +=
           v.fixedWidth ?? _topBarSlotWidth(v.label, textScaler: textScaler);
     }
-    // 分隔线各 1px 也计入估宽（槽位到 12 位后窄视口
+    // 分隔线各 1px 也计入估宽（槽位到 13 位后窄视口
     // 已无余量，漏计 2px 即真溢出）。
     labeledWidth += separatorCount.toDouble();
     // 收纳判据带安全余量：估宽与真实渲染之间存在
-    // 逐槽取整/对齐的累积差（槽位到 12 位后窄视口无余量吸收），判据宁早
+    // 逐槽取整/对齐的累积差（槽位到 13 位后窄视口无余量吸收），判据宁早
     // 不晚——早收标签只损失文字、晚收整行真溢出。
     const widthSafety = 8.0;
     final iconOnly = maxWidth != null && labeledWidth > maxWidth - widthSafety;
@@ -90,9 +98,34 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
     );
   }
 
-  /// 可点性派生（共用求值入口的短手）：门事实取 [_playToolHasSubject]。
+  /// 可点性派生（共用求值入口的短手）：软门事实取 [_playToolHasSubject]，
+  /// 投屏那五条取 [live] 里的完整事实装配。
   bool _playToolTappable(PlayToolSlot slot, _PlayToolLive live, bool enabled) =>
-      playToolTappable(slot, hasSubject: live.hasSubject, enabled: enabled);
+      playToolTappable(
+        slot,
+        hasSubject: live.hasSubject,
+        enabled: enabled,
+        facts: live.facts,
+      );
+
+  /// 投屏入口那一枚：五条门的事实与判定**只算一次**——置灰观感取判定的
+  /// available、可点性取同一次判定的 tappable（[playToolAvailability]），
+  /// 不再先求一遍 verdict 再把事实交给可点性求值重跑（票 #44）。
+  _PlayToolView _castPlayToolView(PlayToolSlot slot, _PlayToolLive live) {
+    final availability = playToolAvailability(
+      slot,
+      hasSubject: live.hasSubject,
+      // 投屏入口没有别的硬启用位：置灰只由那五条门决定。
+      enabled: true,
+      facts: live.facts,
+    );
+    return _PlayToolView(
+      slot: slot,
+      enabled: availability.available,
+      tappable: availability.tappable,
+      onTap: _toggleCast,
+    );
+  }
 
   /// 单槽视图件（气泡锚点 + Listenable 包裹在此统一处理）：监听对象触发时
   /// **重装配**（按同一槽身份取当前活值，如镜像琥珀），不能用旧视图。
@@ -221,6 +254,48 @@ extension _ControlLayerPlayToolRow on ControlLayerState {
       // 取景入口统一为本枚顶栏「取景调整」，对比专用工具区只剩
       //
       // 「练习镜像」。
+      // 投屏：编辑面顶栏入口——落待办（进入前置 = 投屏准备），宿主编排
+      // 准备面板与起投后经唯一提交入口提交。**五条门**（票 #35：副本丢失 /
+      // 音画同步校准中 / 录制中 / 对比态或取景调节态 / 渲染进行中）命中时
+      // 置灰但**仍可点**：按下去只解释原因（[_toggleCast] 按同一份事实问一次，
+      // 那时事实可能已变）。置灰观感与可点性出自**同一次**判定求值
+      // （[_castPlayToolView]）。投屏态顶栏没有本枚（换装成「断开投屏」），
+      // 此支因此只在编辑面被走到。
+      PlayToolSlotId.cast => _castPlayToolView(slot, live),
+      // 倍速切换：只在投屏态顶栏行集内、且是该行首枚——点开投屏倍速面板
+      // （三档各自的准备进度都在那里；点一枚已渲好的档就让接收端换一个文件
+      // 播）。它与编辑面那枚「倍速设置」不是同一枚：投屏态没有倍速步进。
+      PlayToolSlotId.castSpeed => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: () => unawaited(showCastSpeedPanel(context)),
+      ),
+      // 画面开关：只在投屏态顶栏行集内——打开即把画面区从黑底切成静音本地
+      // 预览（起播定位与静音归投屏预览域），动作本体在宿主（源文件在宿主
+      // 手上）。激活高亮 = 预览开着。
+      PlayToolSlotId.castPicture => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        active: live.castPictureOn,
+        onTap: widget.onToggleCastPicture,
+      ),
+      // 断开投屏：只在投屏态顶栏行集内——与左上角退出箭头同义，两处入口
+      // 都调宿主同一处动作（[ControlLayer.onDisconnectCast]）。
+      PlayToolSlotId.disconnectCast => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: widget.onDisconnectCast,
+      ),
+      // 系统镜像：只在投屏态顶栏行集内——先断开投屏（含立即停服）、再跳
+      // 系统的「投屏 / 无线显示」设置；跳不动时降级到显示设置、再不行给一句
+      // 短暂提示。整条动作只有一个实现（[openSystemMirrorEntry]），准备面板
+      // "搜不到接收端"空态里那同一枚入口也走它——两处入口一个动作，顺序不会
+      // 分家。
+      PlayToolSlotId.systemMirror => _PlayToolView(
+        slot: slot,
+        tappable: true,
+        onTap: () => unawaited(openSystemMirrorEntry(ref)),
+      ),
       // 查看引导：槽填上、不再恒置灰——无作用对象也可点（本槽
       // 无门禁，门事实不参与），点击进帮助域的新手引导页。
       PlayToolSlotId.guide => _PlayToolView(
@@ -466,7 +541,7 @@ double _topBarSlotWidth(
   if (withRateSlot) {
     content += rateLabelSlotWidth(style, textScaler: textScaler);
   }
-  // 量宽逐槽向上取整（槽位到 12 位后窄视口无余量，
+  // 量宽逐槽向上取整（槽位到 13 位后窄视口无余量，
   // 渲染宽的逐槽取整累积不得超过估宽，否则 iconOnly 收不上、真溢出）。
   return math.max(22.0, content.ceilToDouble()) + 20.0;
 }
@@ -494,15 +569,17 @@ double topBarSpeedSlotWidth({TextScaler textScaler = TextScaler.noScaling}) {
 
 /// 顶栏装配一次所需的**活值束**：声明在表（[PlayToolSlot]），本束
 /// 只装每次构建会变的求值结果——倍速态、撤销/重做可用位、门事实谓词取值、
-/// 对比态与倍速槽定宽。镜像状态机不经此束（装配点直读 `widget.mirror`，
-/// 使监听对象触发的重装配取到当前值）。
+/// 对比态、投屏本地预览开关与倍速槽定宽。镜像状态机不经此束（装配点直读
+/// `widget.mirror`，使监听对象触发的重装配取到当前值）。
 class _PlayToolLive {
   const _PlayToolLive({
     required this.speed,
     required this.canUndo,
     required this.canRedo,
     required this.hasSubject,
+    required this.facts,
     required this.compareActive,
+    required this.castPictureOn,
     required this.speedSlotWidth,
   });
 
@@ -513,7 +590,16 @@ class _PlayToolLive {
   /// 门事实「有没有作用对象」此刻的取值（具名谓词
   /// `ControlLayerState._playToolHasSubject` 的结果）。
   final bool hasSubject;
+
+  /// 投屏入口五条门的事实装配（唯一装配点的取值；它就是共用判定表吃的那份
+  /// 事实，不声明这些门的槽不受它影响）。置灰观感与可点性由读它的那一次
+  /// 判定一起给出（[_castPlayToolView]）。
+  final ToolFacts facts;
+
   final bool compareActive;
+
+  /// 投屏本地预览开着（「画面开关」槽的激活位）。
+  final bool castPictureOn;
 
   /// 「倍速设置」槽的定宽（依赖系统字号，构建期求值）。
   final double speedSlotWidth;
@@ -578,7 +664,7 @@ class _PlayToolView {
 }
 
 /// 图标 token → `IconData` 的映射（穷尽 `switch`）：表不引 Flutter，
-/// 映射归装配侧；取值 = 九枚图标的逐位对照。
+/// 映射归装配侧；取值 = 十四枚图标的逐位对照。
 IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.undo => Icons.undo,
   PlayToolIcon.redo => Icons.redo,
@@ -589,6 +675,13 @@ IconData _playToolIconData(PlayToolIcon token) => switch (token) {
   PlayToolIcon.speed => Icons.speed,
   PlayToolIcon.compare => Icons.compare,
   PlayToolIcon.cropFree => Icons.crop_free,
+  // 投屏 = 投屏图标（不是屏幕镜像那条路）；断开投屏 = 关掉的电视；
+  // 系统镜像 = 整屏共享（那枚只管把用户送到系统设置，不自己镜像）。
+  PlayToolIcon.cast => Icons.cast,
+  PlayToolIcon.castDisconnect => Icons.tv_off,
+  PlayToolIcon.systemMirror => Icons.screen_share,
+  // 画面开关 = 眼睛（把画面显示出来）。
+  PlayToolIcon.visibility => Icons.visibility,
   PlayToolIcon.helpOutline => Icons.help_outline,
   PlayToolIcon.more => Icons.more_horiz,
 };
@@ -641,16 +734,24 @@ Widget _buildPlayToolWidget(
   _PlayToolView v, {
   required bool iconOnly,
   VoidCallback? onTap,
-}) => _PlayTool(
-  key: Key(v.slot.key),
-  label: v.label,
-  rate: v.rate,
-  icon: _playToolIconData(v.slot.icon),
-  active: v.active,
-  enabled: v.enabled,
-  tappable: v.tappable,
-  iconOnly: iconOnly,
-  // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
-  labelMetrics: v.fixedWidth != null ? _kTopToolLabelStyle : null,
-  onTap: onTap ?? v.onTap,
-);
+}) {
+  final tool = _PlayTool(
+    key: Key(v.slot.key),
+    label: v.label,
+    rate: v.rate,
+    icon: _playToolIconData(v.slot.icon),
+    active: v.active,
+    enabled: v.enabled,
+    tappable: v.tappable,
+    iconOnly: iconOnly,
+    // 定宽槽：标签按估宽口径渲染，渲染宽才不会超出定宽。
+    labelMetrics: v.fixedWidth != null ? _kTopToolLabelStyle : null,
+    onTap: onTap ?? v.onTap,
+  );
+  // 槽自己的提示文案（表里声明；今天只有「系统镜像」一条）：文案是那枚入口
+  // 承担的取舍说明，长按/悬停时显示——**不**塞进标签（顶栏标签是两个字
+  // 的入口名），也不另开第二处文案。
+  final tooltip = v.slot.tooltip;
+  if (tooltip == null) return tool;
+  return Tooltip(message: tooltip, child: tool);
+}

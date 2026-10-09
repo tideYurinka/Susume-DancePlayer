@@ -635,6 +635,223 @@ void main() {
     });
   });
 
+  group('LocalDocument 投屏准备记忆（票 #40）', () {
+    test('全字段往返：两个勾选档与档表写进 prefs.castPrep，读回逐字段相等', () {
+      const doc = LocalDocument(
+        castPrep: CastPrepMemoryFields(
+          picture: false,
+          sound: true,
+          tiers: ['0.5', '1'],
+        ),
+      );
+
+      final json = doc.toJson();
+      expect(json['version'], 4);
+      expect(json['prefs']['castPrep'], {
+        'picture': false,
+        'sound': true,
+        'tiers': ['0.5', '1'],
+      });
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.castPrep!.picture, isFalse);
+      expect(restored.castPrep!.sound, isTrue);
+      expect(restored.castPrep!.tiers, ['0.5', '1']);
+      expect(restored, doc);
+      expect(restored.hashCode, doc.hashCode);
+    });
+
+    test('只写部分字段：缺席字段读回仍是缺席，不被补成默认值', () {
+      const doc = LocalDocument(castPrep: CastPrepMemoryFields(picture: true));
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep'], {'picture': true});
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.castPrep!.picture, isTrue);
+      expect(restored.castPrep!.sound, isNull);
+      expect(restored.castPrep!.tiers, isEmpty);
+      expect(restored, doc);
+    });
+
+    test('档表空 = 没有意见：不写该键，读回缺键（与「记着一档」可区分）', () {
+      const remembered = LocalDocument(
+        castPrep: CastPrepMemoryFields(picture: true, tiers: ['0.5']),
+      );
+      expect(remembered.toJson()['prefs']['castPrep'], {
+        'picture': true,
+        'tiers': ['0.5'],
+      });
+
+      const noOpinion = LocalDocument(
+        castPrep: CastPrepMemoryFields(picture: true),
+      );
+      expect(noOpinion.toJson()['prefs']['castPrep'], {'picture': true});
+      expect(LocalDocument.fromJson(noOpinion.toJson()).castPrep!.tiers, isEmpty);
+    });
+
+    test('记忆字段落 prefs 段自己的一格：整份缺失 vs 记录在但全字段缺席可区分', () {
+      const noRecord = LocalDocument();
+      const emptyRecord = LocalDocument(castPrep: CastPrepMemoryFields());
+
+      expect(noRecord.toJson()['prefs'].containsKey('castPrep'), isFalse);
+      expect(emptyRecord.toJson()['prefs']['castPrep'], <String, dynamic>{});
+      expect(LocalDocument.fromJson(emptyRecord.toJson()).castPrep, isNotNull);
+      expect(LocalDocument.fromJson(noRecord.toJson()).castPrep, isNull);
+      expect(emptyRecord == noRecord, isFalse);
+    });
+
+    test('withCastPrep(null) 清除整格：文件里不再有该键', () {
+      const doc = LocalDocument(
+        castPrep: CastPrepMemoryFields(sound: false, tiers: ['0.75']),
+      );
+      final cleared = doc.withCastPrep(null);
+      expect(cleared.toJson()['prefs'].containsKey('castPrep'), isFalse);
+      expect(LocalDocument.fromJson(cleared.toJson()).castPrep, isNull);
+    });
+
+    test('畸形形状兜底：非法字段逐项按缺席，不抛错、不写回非法值', () {
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'picture': 'yes',
+            'sound': true,
+            'tiers': 'not-a-list',
+          },
+        },
+      });
+      expect(doc.castPrep!.picture, isNull);
+      expect(doc.castPrep!.sound, isTrue);
+      expect(doc.castPrep!.tiers, isEmpty);
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep'], {'sound': true});
+
+      // 档表里混进非字符串元素：只剔掉那一项，其余照留。
+      final mixed = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'tiers': ['0.5', 3, null, '1'],
+          },
+        },
+      });
+      expect(mixed.castPrep!.tiers, ['0.5', '1']);
+    });
+
+    test('档位记号在文档层原样往返：认不认得由投屏域的候选档回答', () {
+      // 档位记号的**词表是投屏域的事实**（候选档的 `token`）：文档层只认
+      // 「记号是字符串」这一条，不把词表抄第二遍（`#21` 整改）。
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'tiers': ['0.5', '2', 'double', '1'],
+          },
+        },
+      });
+      expect(
+        doc.castPrep!.tiers,
+        ['0.5', '2', 'double', '1'],
+        reason: '文档层不裁词表：认不得的记号也不在这里吞掉',
+      );
+
+      // 写回逐字照原样：本版认不得的记号（未来的档、手改的串）不被吃成空表，
+      // 换回认得它的那一版仍读得回来。
+      expect(doc.toJson()['prefs']['castPrep'], {
+        'tiers': ['0.5', '2', 'double', '1'],
+      });
+    });
+
+    test('未知键保底：prefs 段与 castPrep 子对象里的陌生键原样带回写回', () {
+      final fromFile = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrepReserved': 'p',
+          'castPrep': {'picture': true, 'memoryReserved': 'm'},
+        },
+      });
+      final json = fromFile.toJson();
+      expect(json['prefs']['castPrepReserved'], 'p');
+      expect(json['prefs']['castPrep']['memoryReserved'], 'm');
+      expect(json['prefs']['castPrep']['picture'], isTrue);
+      // 保底区不参与相等：本版本字段相同的文档互相相等。
+      expect(
+        fromFile,
+        const LocalDocument(castPrep: CastPrepMemoryFields(picture: true)),
+      );
+    });
+
+    test('wither 链携带：withCastPrep 不擦其它字段，其它写入不擦记忆', () {
+      const memory = CastPrepMemoryFields(
+        picture: false,
+        sound: false,
+        tiers: ['0.75'],
+      );
+      final chained = const LocalDocument(
+        overlay: OverlayPlacementFields(dx: 1.0, dy: 2.0),
+        beatPrompt: BeatPromptMemoryFields(animation: true),
+      ).withCastPrep(memory).withSnap(previewSnapEnabled: false);
+      expect(chained.castPrep, memory);
+      expect(chained.beatPrompt!.animation, isTrue);
+      expect(chained.overlay!.dx, 1.0);
+      expect(chained.previewSnapEnabled, isFalse);
+
+      final other = const LocalDocument(castPrep: memory)
+          .withLayoutLocked(true)
+          .withBeatPrompt(const BeatPromptMemoryFields(sound: true));
+      expect(other.castPrep, memory);
+      expect(other.layoutLocked, isTrue);
+      expect(other.beatPrompt!.sound, isTrue);
+    });
+
+    test('字段参与相等：记忆值不同判不等，null 与空记录判不等', () {
+      expect(
+        const LocalDocument(castPrep: CastPrepMemoryFields(picture: false)) ==
+            const LocalDocument(),
+        isFalse,
+      );
+      expect(
+        const LocalDocument(castPrep: CastPrepMemoryFields(tiers: ['0.5'])) ==
+            const LocalDocument(castPrep: CastPrepMemoryFields(tiers: ['0.5'])),
+        isTrue,
+      );
+    });
+
+    test('两份按舞记忆共用一片登记但各归各：一份在、另一份缺席可区分', () {
+      // 记忆片由登记表（`_memoryBindings`）派生（`#47`）：两条记忆仍是各自
+      // 一格一个键，存在性、字段与陌生键保底互不串门。
+      const doc = LocalDocument(
+        beatPrompt: BeatPromptMemoryFields(sound: true),
+      );
+
+      final json = doc.toJson();
+      expect(json['prefs']['beatPrompt'], {'sound': true});
+      expect(json['prefs'].containsKey('castPrep'), isFalse);
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.beatPrompt!.sound, isTrue);
+      expect(restored.castPrep, isNull);
+      expect(restored, doc);
+    });
+
+    test('一份记忆子对象里的陌生键不落到另一份的保底区', () {
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {'picture': true, 'reserved': 'c'},
+          'beatPrompt': {'sound': true, 'reserved': 'b'},
+        },
+      });
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep']['reserved'], 'c');
+      expect(json['prefs']['beatPrompt']['reserved'], 'b');
+      expect(json['prefs'].containsKey('castPrepReserved'), isFalse);
+    });
+  });
+
   group('v3 → v4 迁移：旧取景键直接复位', () {
     const v3Doc = <String, dynamic>{
       'version': 3,
@@ -677,6 +894,35 @@ void main() {
       final once = LocalDocument.fromJson(v3Doc).toJson();
       final twice = LocalDocument.fromJson(once).toJson();
       expect(twice, once);
+    });
+
+    test('v3 升 v4 不造投屏准备记忆：旧文件没有该键 → 读回无记忆、写回仍不造键', () {
+      final doc = LocalDocument.fromJson(v3Doc);
+      expect(doc.castPrep, isNull, reason: '旧文件没记过投屏准备，不该被补出一份默认记忆');
+
+      final prefs = doc.toJson()['prefs'] as Map;
+      expect(prefs.containsKey('castPrep'), isFalse);
+    });
+
+    test('v3 头带着 castPrep（手改或回降级文件）：迁移逐字保留，不经迁移丢失', () {
+      final json = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'picture': false,
+            'sound': true,
+            'tiers': ['0.5'],
+            'memoryReserved': 'm',
+          },
+        },
+      }).toJson();
+      expect(json['version'], 4);
+      expect(json['prefs']['castPrep'], {
+        'picture': false,
+        'sound': true,
+        'tiers': ['0.5'],
+        'memoryReserved': 'm',
+      });
     });
   });
 }

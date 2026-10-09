@@ -16,7 +16,8 @@
 /// （[TrackRowTable.rows] 顺序即带内自上而下的行序）；具名行集
 /// [TrackRowTable.normal] 与 [TrackRowTable.compare]（对比
 /// 练习）为当前两份行集。轨道带对「模式」无知——换一份
-/// 行集即换掉整条带的行数与行序，映射由构造点一行表达。
+/// 行集即换掉整条带的行数与行序；「模式 → 行集」的映射收在
+/// `session_mode_surfaces.dart` 的声明表里逐值一行。
 ///
 /// **坐标 → 行的边界口径**：行区间含两端（行顶与行底都判为命中该行）、
 /// 行优先于间隙；落在间隙、带外或负坐标返回空。口径由直测钉住。
@@ -190,6 +191,24 @@ class TrackRowTable {
         height: kBeatTrackRowHeight,
         key: 'track_beat',
         prefixLabel: '节拍',
+      ),
+    ],
+    gap: kTrackRowGap,
+  );
+
+  /// 具名行集 `cast`（投屏态）：**只留分段轨**——学习段轨一行（行高
+  /// 48dp、片头短标签「分段」）。备注轨 / 局部镜像轨 / 节拍轨 / 练习视频轨
+  /// 与**轨道手柄带行**都不在本行集内：行缺席即不渲染，首尾线与分段线的
+  /// 控制柄因此一并不在场（**无柄可拖**）；分段只读是结构性的，不靠额外的
+  /// 只读门。时间类标注（分段线、半拍线、八拍锚点）仍可见——投屏态以
+  /// 「能跳到那一段」呈现它们，分段轨是它们唯一的落点。
+  static const TrackRowTable cast = TrackRowTable(
+    rows: [
+      TrackRow(
+        id: TrackRowId.learning,
+        height: kLearningTrackRowHeight,
+        key: 'track_learning',
+        prefixLabel: '分段',
       ),
     ],
     gap: kTrackRowGap,

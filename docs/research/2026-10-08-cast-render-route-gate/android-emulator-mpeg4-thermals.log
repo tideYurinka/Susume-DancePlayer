@@ -1,0 +1,120 @@
+=== 2026-10-08T23:13:48+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 75000
+host thermal_zone1: 75000
+host thermal_zone2: 63000
+host thermal_zone3: 54000
+host thermal_zone4: 66000
+47, 210 MHz, 0x0000000000000001
+=== 2026-10-08T23:14:04+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 73000
+host thermal_zone1: 73000
+host thermal_zone2: 70000
+host thermal_zone3: 53000
+host thermal_zone4: 75000
+47, 210 MHz, 0x0000000000000001
+=== 2026-10-08T23:14:19+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 73000
+host thermal_zone1: 73000
+host thermal_zone2: 77000
+host thermal_zone3: 53000
+host thermal_zone4: 64000
+46, 210 MHz, 0x0000000000000001
+=== 2026-10-08T23:14:34+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 72000
+host thermal_zone1: 72000
+host thermal_zone2: 67000
+host thermal_zone3: 51000
+host thermal_zone4: 73000
+46, 210 MHz, 0x0000000000000001
+=== 2026-10-08T23:14:49+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 72000
+host thermal_zone1: 72000
+host thermal_zone2: 71000
+host thermal_zone3: 51000
+host thermal_zone4: 65000
+46, 210 MHz, 0x0000000000000001
+=== 2026-10-08T23:15:04+08:00 ===
+  status: 2
+  level: 100
+  temperature: 250
+  Capacity level: -1
+Thermal Status: 0
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.1, mType=3, mName=skin, mStatus=0}
+	Temperature{mValue=30.2, mType=2, mName=battery, mStatus=0}
+Temperature static thresholds from HAL:
+	TemperatureThreshold{mType=3, mName=skin, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+	TemperatureThreshold{mType=2, mName=battery, mHotThrottlingThresholds=[30.0, 31.0, 32.0, 33.0, 34.0, 35.0, 36.0], mColdThrottlingThresholds=[]}
+Temperature headroom thresholds:
+host thermal_zone0: 74000
+host thermal_zone1: 74000
+host thermal_zone2: 79000
+host thermal_zone3: 52000
+host thermal_zone4: 77000
+46, 210 MHz, 0x0000000000000001

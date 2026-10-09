@@ -33,13 +33,13 @@ import 'package:dance_learning_app/player/framing_selection_view.dart'
 import 'package:dance_learning_app/player/framing_session_state.dart'
     show framingStateProvider;
 import 'package:dance_learning_app/player/framing_stage.dart'
-    show singlePictureFramedPictureRectOnScreen;
+    show pictureRectOnScreen;
 import 'package:dance_learning_app/player/local_mirror_picture_mark.dart'
     show kLocalMirrorPictureMarkKey;
 import 'package:dance_learning_app/player/metronome_overlay.dart'
     show MetronomeOverlay;
 import 'package:dance_learning_app/player/note_sticker_overlay.dart'
-    show NoteStickerText;
+    show NoteStickerOverlay, NoteStickerText;
 import 'package:dance_learning_app/player/player_page.dart';
 import 'package:dance_learning_app/player/system_ui.dart'
     show systemUiControllerProvider;
@@ -116,10 +116,13 @@ void main() {
 
   late FakePlaybackEngine engine;
 
-  Future<ProviderContainer> pumpPlayer(WidgetTester tester) async {
+  Future<ProviderContainer> pumpPlayer(
+    WidgetTester tester, {
+    double? videoAspectRatio = 16 / 9,
+  }) async {
     engine = FakePlaybackEngine(
       duration: const Duration(seconds: 30),
-      videoAspectRatio: 16 / 9,
+      videoAspectRatio: videoAspectRatio,
     );
     final source = Uri.file('/videos/a.mp4');
     final docStorage = InMemoryVideoDocumentStorage();
@@ -265,13 +268,13 @@ void main() {
       final before = tester.getRect(find.byType(NoteStickerText));
       await applyFraming(tester, container, leftHalfSelection);
 
-      final contentRect = singlePictureFramedPictureRectOnScreen(
+      final contentRect = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: leftHalfSelection,
-      )!;
+      );
       final after = tester.getRect(find.byType(NoteStickerText));
       expect(after.center.dx, closeTo(contentRect.center.dx, 0.5));
       expect(after.center.dy, closeTo(contentRect.center.dy, 0.5));
@@ -291,13 +294,13 @@ void main() {
       );
       await applyFraming(tester, container, leftHalfSelection);
 
-      final contentRect = singlePictureFramedPictureRectOnScreen(
+      final contentRect = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: leftHalfSelection,
-      )!;
+      );
       final sticker = tester.getRect(find.byType(NoteStickerText));
       expect(find.byType(NoteStickerText), findsOneWidget, reason: '不隐藏');
       expect(sticker.right, lessThanOrEqualTo(contentRect.right + 0.5));
@@ -312,13 +315,13 @@ void main() {
       );
       final unframed = tester.getRect(find.byType(NoteStickerText));
       // 观看看态整屏 contain 画面矩形里按源点映射（无窗口换算）。
-      final picture = singlePictureFramedPictureRectOnScreen(
+      final picture = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: null,
-      )!;
+      );
       expect(
         unframed.center.dx,
         closeTo(picture.left + 0.3 * picture.width, 0.5),
@@ -344,13 +347,13 @@ void main() {
       }
       await tester.pump();
 
-      final contentRect = singlePictureFramedPictureRectOnScreen(
+      final contentRect = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: leftHalfSelection,
-      )!;
+      );
       final mark = find.byKey(const Key('scrub_cancel_mark'));
       expect(mark, findsOneWidget);
       expect(
@@ -383,13 +386,13 @@ void main() {
 
       await applyFraming(tester, container, leftHalfSelection);
 
-      final contentRect = singlePictureFramedPictureRectOnScreen(
+      final contentRect = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: leftHalfSelection,
-      )!;
+      );
       final mark = tester.getRect(find.byKey(kLocalMirrorPictureMarkKey));
       expect(mark.left, closeTo(contentRect.left, 0.5));
       expect(mark.top, closeTo(contentRect.top, 0.5));
@@ -439,13 +442,13 @@ void main() {
       final card = find.byKey(const Key('loop_prompt'));
       expect(card, findsOneWidget);
 
-      final contentRect = singlePictureFramedPictureRectOnScreen(
+      final contentRect = pictureRectOnScreen(
         screen: screen,
         systemTopInset: 0,
         skeleton: null,
         aspectRatio: 16 / 9,
         selection: leftHalfSelection,
-      )!;
+      );
       final rect = tester.getRect(card);
       // 未调过时卡贴画面左下角内缩 24dp；让路带（底 44）可能把底边推出。
       expect(rect.left, greaterThanOrEqualTo(contentRect.left));
@@ -514,6 +517,144 @@ void main() {
       await applyFraming(tester, container, const FramingSelection.fullFrame());
       final fullFrame = tester.getRect(find.byType(NoteStickerText));
       expect(fullFrame, unframed, reason: '整帧选区与未调过同一份显示');
+    });
+  });
+
+  /// 一条常显备注（窗覆盖整段）。
+  AnnotationRestoreDocument notesDocument() => const AnnotationRestoreDocument(
+    notes: [
+      NoteSticker(
+        startMs: 0,
+        endMs: 30000,
+        text: '注意手',
+        geometry: NoteGeometry(centerX: 0.5, centerY: 0.5),
+      ),
+    ],
+  );
+
+  NoteStickerOverlay stickerOverlayOf(WidgetTester tester) =>
+      tester.widget<NoteStickerOverlay>(find.byType(NoteStickerOverlay));
+
+  /// 横向拖动 = 进度拖动（取消标记随之常显于画面矩形左上角）。
+  Future<TestGesture> scrubAcross(WidgetTester tester) async {
+    final gesture = await tester.startGesture(const Offset(180, 400));
+    for (var i = 0; i < 8; i++) {
+      await gesture.moveBy(const Offset(18, 0));
+      await tester.pump();
+    }
+    await tester.pump();
+    return gesture;
+  }
+
+  group('贴底分支：三处读数同一块画面矩形（票 #45）', () {
+    testWidgets('贴纸落位、局部镜像标识与提示卡同读一条解出的画面矩形', (tester) async {
+      useNamedViewport(tester, ViewportTier.compact);
+      final container = await pumpPlayer(tester);
+      // 先展开控制层（贴纸还没落，单击不被它接走），再补上两轨内容。
+      await openEditor(tester);
+      expect(
+        container.read(playerSessionProvider).mode,
+        PlayerSessionMode.editing,
+      );
+      // 备注 + 局部镜像片段各一条：紧凑档下两轨都非空，行集不剪裁。
+      container.read(annotationEditorProvider).restoreDocument(notesDocument());
+      await tester.pumpAndSettle();
+      final outcome = container
+          .read(annotationEditorProvider)
+          .submit(const AddLocalMirrorFragment(at: Duration(seconds: 2)));
+      expect(outcome.applied, isTrue);
+      final fragment = container.read(localMirrorFragmentsProvider).single;
+      await engine.seek(Duration(milliseconds: fragment.startMs + 10));
+      await tester.pumpAndSettle();
+
+      await applyFraming(tester, container, tallSelection);
+
+      final skeleton = editorSkeletonFor(
+        screen: screen,
+        compact: true,
+        trackBandHeight: TrackRowTable.normal.totalHeight,
+        videoAspectRatio: 16 / 9,
+        framingAspectRatio: tallSelection.contentAspectRatio(16 / 9),
+      );
+      expect(skeleton.sticksToBottom, isTrue, reason: '前置：本布景走贴底画面带');
+      final picture = pictureRectOnScreen(
+        screen: screen,
+        systemTopInset: 0,
+        skeleton: skeleton,
+        aspectRatio: 16 / 9,
+        selection: tallSelection,
+      );
+      expect(
+        picture.width,
+        lessThan(screen.width),
+        reason: '前置：选区更「高」，画面在带里左右留黑——不是整条带',
+      );
+
+      // 贴纸落位的参考矩形 = 那唯一一处解（真机逻辑尺寸是 361.1…，容差 0.5）。
+      final sticker = stickerOverlayOf(tester).contentRect;
+      expect(sticker.left, closeTo(picture.left, 0.5));
+      expect(sticker.top, closeTo(picture.top, 0.5));
+      expect(sticker.width, closeTo(picture.width, 0.5));
+      expect(sticker.height, closeTo(picture.height, 0.5));
+
+      // 局部镜像标识贴同一块矩形。
+      final mark = tester.getRect(find.byKey(kLocalMirrorPictureMarkKey));
+      expect(mark.left, closeTo(sticker.left, 0.5));
+      expect(mark.top, closeTo(sticker.top, 0.5));
+      expect(mark.width, closeTo(sticker.width, 0.5));
+      expect(mark.height, closeTo(sticker.height, 0.5));
+
+      // 播放到尾 → 左下角循环提示卡：锚也贴同一块画面矩形的左下角。
+      await engine.seek(const Duration(seconds: 29));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
+      final card = find.byKey(const Key('loop_prompt'));
+      expect(card, findsOneWidget);
+      expect(
+        tester.getRect(card).left,
+        closeTo(sticker.left + 24, 0.5),
+        reason: '提示卡横向贴同一块画面的左缘',
+      );
+    });
+  });
+
+  group('宽高比未知：三处读数共用同一条兜底（票 #45）', () {
+    testWidgets('观看态：取消区标记与贴纸落位同一块画面矩形（画面即容器 = 整屏）', (tester) async {
+      useNamedViewport(tester, ViewportTier.compact);
+      // 顶系统栏内缩非零：旧的「系统栏内可用区」兜底与整屏兜底在这里分道。
+      tester.view.padding = FakeViewPadding(
+        top: 39.4 * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.reset);
+      final container = await pumpPlayer(tester, videoAspectRatio: null);
+      container.read(annotationEditorProvider).restoreDocument(notesDocument());
+      await tester.pumpAndSettle();
+
+      final picture = pictureRectOnScreen(
+        screen: screen,
+        systemTopInset: 39.4,
+        skeleton: null,
+        aspectRatio: null,
+        selection: null,
+      );
+      expect(picture, Rect.fromLTWH(0, 0, screen.width, screen.height));
+
+      final gesture = await scrubAcross(tester);
+      final mark = find.byKey(const Key('scrub_cancel_mark'));
+      expect(mark, findsOneWidget);
+      expect(
+        tester.getTopLeft(mark),
+        offsetMoreOrLessEquals(
+          stickerOverlayOf(tester).contentRect.topLeft,
+          epsilon: 0.5,
+        ),
+        reason: '取消区与贴纸读同一条兜底（不是系统栏内的可用区）',
+      );
+      expect(
+        tester.getTopLeft(mark),
+        offsetMoreOrLessEquals(picture.topLeft, epsilon: 0.5),
+      );
+      await gesture.up();
     });
   });
 

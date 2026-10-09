@@ -130,6 +130,14 @@ VoidCallback? _explainReasonTap(
     // 可给的，如待命态锚点三槽）保持既有的「按不动、静默」。
     ToolGateKind.noSubject => onNoSubject,
     ToolGateKind.previewOutOfBounds || null => null,
+    // 投屏入口那五条门（票 #35）只挂在顶栏投屏槽上，底排标注工具区
+    // 不声明它们——走到这里是不可能的组合；显式列出而不是吞进兜底，
+    // 读的人知道它们被想过。
+    ToolGateKind.castCopyMissing ||
+    ToolGateKind.castAvSyncCalibrating ||
+    ToolGateKind.castRecording ||
+    ToolGateKind.castCompareOrFraming ||
+    ToolGateKind.castRendering => null,
   };
 }
 

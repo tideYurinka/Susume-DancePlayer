@@ -237,6 +237,60 @@ void main() {
       expect(subject.volume, 1.0);
     });
   });
+
+  group('音量基准（票 #38：会话模式切换时换来源）', () {
+    test('非投屏态读取失败：保持现值（既有行为逐位不变）', () async {
+      final failing = _UnreadableVolumeController();
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: failing,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.refreshVolume();
+
+      expect(subject.volume, 1.0, reason: '读取失败保持默认基准');
+    });
+
+    test('投屏态：采纳起投探测读到的接收端上报值，不再向控制器问一遍', () async {
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: volume,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.adoptReportedVolume(0.4);
+
+      expect(subject.volume, closeTo(0.4, 1e-9));
+      expect(volume.readCalls, 0, reason: '值与「这一项显不显示」出自同一次探测');
+    });
+
+    test('投屏态没有可用上报值（没端点 / 设备不答）：退回现读一次控制器', () async {
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: volume,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.adoptReportedVolume(null);
+
+      expect(volume.readCalls, 1, reason: '探测没读到就现读一次');
+      expect(subject.volume, closeTo(0.4, 1e-9));
+    });
+
+    test('投屏态现读也失败：保持现值（不是显示 0）', () async {
+      final failing = _UnreadableVolumeController();
+      final subject = LevelControl(
+        brightnessController: brightness,
+        volumeController: failing,
+      );
+      addTearDown(subject.dispose);
+
+      await subject.adoptReportedVolume(null);
+
+      expect(subject.volume, 1.0, reason: '读不到就保持现值，不凭空显示一个 0');
+    });
+  });
 }
 
 /// 读取/写入都抛错的亮度件：断言基线读取兜底（既有「不阻塞播放」口径）。
@@ -246,6 +300,18 @@ class _FailingBrightnessController implements ScreenBrightnessController {
 
   @override
   Future<void> setBrightness(double value) async {}
+}
+
+/// 读取抛错的音量件（写入仍可用）：断言「问不到音量」时取值保持现值——
+/// 非投屏态与非投屏那一侧的既有口径（读不到不阻塞手势，也不显示 0）。
+class _UnreadableVolumeController extends FakeSystemMediaVolumeController {
+  _UnreadableVolumeController() : super(currentVolume: 0.4);
+
+  @override
+  Future<double> get volume async {
+    readCalls++;
+    throw StateError('设备不报音量');
+  }
 }
 
 /// 写入抛错的音量件：断言音量写入口吞错（与真实平台通道未注册同口径）。

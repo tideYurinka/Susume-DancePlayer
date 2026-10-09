@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// - 每个身份有且只有一个声明被组合根装配；每个身份的时长查询返回
 ///   非零停留；
-/// - 身份枚举十三个取值一次声明齐；未列出的身份取缺省。
+/// - 身份枚举十八个取值一次声明齐；未列出的身份取缺省。
 void main() {
   group('声明覆盖与时长非零', () {
     test('每个身份有且只有一个声明被组合根装配', () {
@@ -28,8 +28,8 @@ void main() {
   });
 
   group('声明数据（身份枚举与时长表）', () {
-    test('身份枚举十三个取值一次声明齐（增「无对象」；增「文档只读」）', () {
-      expect(NoticeId.values, hasLength(13));
+    test('身份枚举十八个取值一次声明齐（增「无对象」；增「文档只读」；增投屏五条）', () {
+      expect(NoticeId.values, hasLength(18));
       expect(
         NoticeId.values.toSet(),
         equals({
@@ -46,6 +46,11 @@ void main() {
           NoticeId.threeFingerToast,
           NoticeId.transition,
           NoticeId.documentReadOnly,
+          NoticeId.castInterrupted,
+          NoticeId.castNotStarted,
+          NoticeId.systemMirrorUnavailable,
+          NoticeId.castEntryBlocked,
+          NoticeId.castSpeedSwitchFailed,
         }),
       );
     });

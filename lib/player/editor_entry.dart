@@ -5,11 +5,12 @@
 ///
 /// - [requestEntry]：宿主自身发起的进入请求（单击画面）。门禁逐条：未挂载、
 ///   控制层已展开、装载未完成、录制接管期——任一成立即静默拦截、待办不落。
-///   目标取值由当前模式决定：对比-播放态 → 对比-控制层，其余 → 编辑态。
+///   目标取值由当前模式决定：对比-播放态 → 对比-控制层，投屏-观看态 →
+///   投屏-控制层（点画面展开回来，不重跑投屏准备），其余 → 编辑态。
 /// - [orchestratePendingEntry]：待办槽的编排与提交。发起路径可多、提交点唯一
 ///   （[PlayerSessionModel.commit]）——校准会话互斥、录制接管互斥、相机授权门、
-///   画布准备都在这里；不成立则 [PlayerSessionModel.cancelPendingEntry]
-///   （模式值一位不动）。
+///   投屏准备门、画布准备都在这里；不成立则
+///   [PlayerSessionModel.cancelPendingEntry]（模式值一位不动）。
 /// - [collapse]：收起控制层（回观看态，或对比-控制层回对比-播放态）。
 /// - [exitCompare]：退出对比态（回观看态）。
 /// - [exitFraming]：退出取景调节态（对比取景回对比-控制层；单画面取景回
@@ -19,9 +20,9 @@
 ///
 /// 模式取值仍归其既有单一 owner [PlayerSessionModel]（`player_session` 小库）；
 /// 本域只消费该 owner 的读面与写缝，不自持第二份模式值。模式取值上的判据逐条
-/// 穷尽 switch（加第七个取值即编译报错）；相机授权门直接读
+/// 穷尽 switch（加取值即编译报错）；相机授权门与投屏准备门都直接读
 /// owner 的进入前置声明表（[playerSessionEntryDeclarationTable]，
-/// §决定2：进入前置是目标取值的属性）。异步相机门返回后的复查（页面是否仍在
+/// §决定2：进入前置是目标取值的属性）。异步门返回后的复查（页面是否仍在
 /// 树上、待办是否仍在槽）是「失败零副作用」的实现。
 ///
 /// ## 画布准备
@@ -33,8 +34,8 @@
 /// ## 依赖方向（单向）
 ///
 /// 本域 → [PlayerSessionModel] 与 [AnnotationTimeline]（值类型）；其余跨域事实
-/// （装载门、录制接管、校准会话、相机授权门、引擎时长、画布与选中）全部经构造
-/// 注入的显式闭包取得。本域不 import 播放页、不 import 中枢、
+/// （装载门、录制接管、校准会话、相机授权门、投屏准备门、引擎时长、画布与
+/// 选中）全部经构造注入的显式闭包取得。本域不 import 播放页、不 import 中枢、
 /// 不读构建上下文、不注容器，可在无 ProviderScope 下直测。反向依赖不存在。
 library;
 
@@ -50,6 +51,7 @@ class EditorEntry {
     required this._takenOver,
     required this._avSyncActive,
     required this._requestCameraPermission,
+    required this._prepareCast,
     required this._readTimeline,
     required this._readVideoDuration,
     required this._resetTimeline,
@@ -74,6 +76,10 @@ class EditorEntry {
 
   /// 进入对比态前的相机授权门（编排在相机与练习面域）。
   final Future<bool> Function() _requestCameraPermission;
+
+  /// 进入投屏态前的**投屏准备**门（准备面板 + 起投的编排在播放页）：
+  /// 返回 true = 已经投上了（或本就在投），可以提交进入投屏-控制层。
+  final Future<bool> Function() _prepareCast;
 
   /// 当前标注时间线（画布兜底读它的有效时长）。
   final AnnotationTimeline Function() _readTimeline;
@@ -122,6 +128,18 @@ class EditorEntry {
         return;
       }
     }
+    // 投屏准备门：目标取值的进入前置（声明表 castPreparation）——准备面板
+    // 与起投的编排在宿主；取消或起投失败不进入、零副作用。已在投屏内的
+    // 展开跃迁（投屏-观看态 → 投屏-控制层）由宿主直接放行、不重跑准备。
+    if (_needsCastPrep(target)) {
+      final ready = await _prepareCast();
+      if (!_isMounted()) return;
+      if (_readSession().pendingEntry == null) return;
+      if (!ready) {
+        _session.cancelPendingEntry();
+        return;
+      }
+    }
     if (!_isMounted()) return;
     if (_readSession().pendingEntry == null) return;
     _prepareCanvas();
@@ -158,15 +176,21 @@ class EditorEntry {
   }
 
   /// 单击画面的进入目标（穷尽 switch：加取值即编译报错）。
+  ///
+  /// 投屏-观看态 → 投屏-控制层：点画面把控制层展开回来（投屏期手势语义
+  /// 不变），**不重跑投屏准备**（已在投屏内）。投屏-控制层走不到这里
+  /// （[requestEntry] 先按控制层已展开拦下），保底取自身 = 幂等。
   PlayerSessionMode _entryTargetFor(PlayerSessionMode mode) => switch (mode) {
     PlayerSessionMode.compareWatching => PlayerSessionMode.compareEditing,
+    PlayerSessionMode.castWatching => PlayerSessionMode.castControl,
     PlayerSessionMode.watching ||
     PlayerSessionMode.editing ||
     PlayerSessionMode.beatCorrectionStandby ||
     PlayerSessionMode.segmentDensityStandby ||
     PlayerSessionMode.compareEditing ||
     PlayerSessionMode.compareFraming ||
-    PlayerSessionMode.framing => PlayerSessionMode.editing,
+    PlayerSessionMode.framing ||
+    PlayerSessionMode.castControl => PlayerSessionMode.editing,
   };
 
   /// 相机授权前置取自 owner 的进入声明表（逐值一行，加取值只改表一处）。
@@ -175,29 +199,46 @@ class EditorEntry {
       playerSessionEntryDeclarationTable[target]?.requirement ==
           PlayerSessionEntryRequirement.cameraPermission;
 
+  /// 投屏准备前置同样取自进入声明表（与相机授权同一口径）。
+  bool _needsCastPrep(PlayerSessionMode? target) =>
+      target != null &&
+      playerSessionEntryDeclarationTable[target]?.requirement ==
+          PlayerSessionEntryRequirement.castPreparation;
+
   /// 音画同步校准会话与之互斥的进入目标（穷尽 switch；null = 无待办，不冲突）。
+  ///
+  /// 投屏与之互斥：校准在**本机内核**上量音画偏移，投屏把播放挪到电视上，
+  /// 两者同时进行互相打脸——进入投屏时的静默拒绝即这一条。
   bool _conflictsWithAvSync(PlayerSessionMode? target) => switch (target) {
     PlayerSessionMode.compareWatching ||
-    PlayerSessionMode.compareEditing => true,
+    PlayerSessionMode.compareEditing ||
+    PlayerSessionMode.castControl => true,
     PlayerSessionMode.watching ||
     PlayerSessionMode.editing ||
     PlayerSessionMode.beatCorrectionStandby ||
     PlayerSessionMode.segmentDensityStandby ||
     PlayerSessionMode.compareFraming ||
     PlayerSessionMode.framing ||
+    PlayerSessionMode.castWatching ||
     null => false,
   };
 
   /// 录制接管期拒绝的进入目标（穷尽 switch；null = 无待办，不冲突）。
+  ///
+  /// 录制期进投屏同样拒绝：录制与投屏是两条互相冲突的播放接管。
+  /// 投屏-观看态不在此列——它由收起而来、不经本编排，且录制期不会处在
+  /// 投屏态内。
   bool _conflictsWithRecording(PlayerSessionMode? target) => switch (target) {
     PlayerSessionMode.compareEditing ||
     PlayerSessionMode.compareFraming ||
-    PlayerSessionMode.framing => true,
+    PlayerSessionMode.framing ||
+    PlayerSessionMode.castControl => true,
     PlayerSessionMode.watching ||
     PlayerSessionMode.editing ||
     PlayerSessionMode.beatCorrectionStandby ||
     PlayerSessionMode.segmentDensityStandby ||
     PlayerSessionMode.compareWatching ||
+    PlayerSessionMode.castWatching ||
     null => false,
   };
 }

@@ -1,11 +1,31 @@
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
 import 'package:dance_learning_app/player/engine_seek.dart';
+import 'package:dance_learning_app/player/cast_mirror.dart'
+    show CastMirror, NoCastMirror;
 import 'package:dance_learning_app/player/gesture_feedback.dart';
 import 'package:dance_learning_app/player/recording_playback_takeover.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_playback_engine.dart';
+
+/// 记录每一次镜像的假投屏镜像口（投屏态内本机动作 → 接收端）。
+class _RecordingCastMirror implements CastMirror {
+  final List<String> calls = [];
+  final List<Duration> seeks = [];
+
+  @override
+  Future<void> play() async => calls.add('play');
+
+  @override
+  Future<void> pause() async => calls.add('pause');
+
+  @override
+  Future<void> seek(Duration position) async {
+    calls.add('seek');
+    seeks.add(position);
+  }
+}
 
 /// EngineSeek 模块面测试：不 pump widget、不注
 /// 容器，直接驱动引擎与 seek/scrub 域，断言它交出的外部可观察事实——接管
@@ -30,7 +50,7 @@ void main() {
     stopRecordingSession: () async {},
   );
 
-  EngineSeek build({RecordingPlaybackTakeover? takeover}) {
+  EngineSeek build({RecordingPlaybackTakeover? takeover, CastMirror? mirror}) {
     engine = FakePlaybackEngine(duration: const Duration(seconds: 100));
     feedback = GestureFeedbackController();
     scrubTarget = ValueNotifier(Duration.zero);
@@ -55,6 +75,7 @@ void main() {
       onPosition: () => positionTicks++,
       onCompleted: () async => completedCalls++,
       isMounted: () => true,
+      castMirrorOf: () => mirror ?? const NoCastMirror(),
     );
   }
 
@@ -190,6 +211,62 @@ void main() {
       final domain = build();
       await domain.seekAndSettle(const Duration(seconds: 42));
       expect(engine.seekCalls, [const Duration(seconds: 42)]);
+    });
+  });
+
+  group('投屏遥控镜像（投屏态内本机动作同时作用于接收端）', () {
+    test('播放 / 暂停：本机照常 + 接收端各收一条', () async {
+      final mirror = _RecordingCastMirror();
+      final domain = build(mirror: mirror);
+
+      await domain.play();
+      await domain.pause();
+
+      expect(engine.callLog, ['play', 'pause'], reason: '本机动作照常');
+      expect(mirror.calls, ['play', 'pause']);
+    });
+
+    test('seek 单发：落点（钳制后）镜像给接收端', () async {
+      final mirror = _RecordingCastMirror();
+      final domain = build(mirror: mirror);
+
+      domain.seek(const Duration(seconds: 150));
+      await pumpEventQueue();
+
+      expect(mirror.seeks, [const Duration(seconds: 100)]);
+    });
+
+    test('seekAndSettle（学习段跳段首一类）：落点同样镜像', () async {
+      final mirror = _RecordingCastMirror();
+      final domain = build(mirror: mirror);
+
+      await domain.seekAndSettle(const Duration(seconds: 42));
+
+      expect(mirror.seeks, [const Duration(seconds: 42)]);
+    });
+
+    test('拖进度：拖动期间不镜像、离手后只按收口落点镜像一次', () async {
+      final mirror = _RecordingCastMirror();
+      final domain = build(mirror: mirror);
+      await engine.seek(const Duration(seconds: 10));
+
+      await domain.beginScrub();
+      domain.moveScrubBy(const Duration(seconds: 2));
+      domain.moveScrubBy(const Duration(seconds: 2));
+      await pumpEventQueue();
+      expect(mirror.seeks, isEmpty, reason: '逐帧拖动不发往接收端');
+
+      await domain.endScrub();
+      await pumpEventQueue();
+      expect(mirror.seeks, hasLength(1));
+      expect(mirror.seeks.single, scrubTarget.value);
+    });
+
+    test('未接投屏（空操作那份）：本机动作照常、无任何镜像', () async {
+      final domain = build();
+      await domain.play();
+      await domain.pause();
+      expect(engine.callLog, ['play', 'pause']);
     });
   });
 

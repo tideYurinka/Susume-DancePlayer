@@ -51,6 +51,7 @@ import 'annotation_edit.dart'
         SetSelectedSegmentsDensity,
         SetVideoRange,
         ToggleSelectedSegmentsEmphasis;
+import 'cast_entry_gate.dart' show castEntryBlocksStart, castEntryFactsProvider;
 import 'load_gate.dart';
 import 'gesture_surface_session.dart';
 import 'notice.dart' show NoticeId, noticeTriggerProvider;
@@ -80,10 +81,16 @@ import 'beat_correction.dart'
         hasEightBeatAnchorsProvider,
         previewAnchorOccupiedProvider,
         previewDownbeatProvider;
+import '../cast/cast_session.dart' show CastRemoteItem;
+import 'cast_preview.dart' show castPreviewProvider;
+import 'cast_run.dart' show castRemoteItemShownProvider;
+import 'cast_speed_panel.dart' show showCastSpeedPanel;
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
 import 'settings_cluster.dart' show SettingsCluster, settingsStripVisibleFor;
+import 'session_mode_surfaces.dart' show sessionModeSurfacesOf;
 import 'speed_control.dart';
+import 'system_mirror_entry.dart' show openSystemMirrorEntry;
 import 'system_ui.dart' show ScreenOrientation;
 import 'tool_slots.dart';
 import 'tool_menu_actions.dart';
@@ -143,6 +150,9 @@ class ControlLayer extends ConsumerStatefulWidget {
     required this.session,
     required this.recording,
     required this.onRequestOrientation,
+    required this.onDisconnectCast,
+    required this.videoFilePath,
+    required this.onToggleCastPicture,
     this.onScrubCommitted,
   });
 
@@ -163,7 +173,8 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 进度控件含「延迟播放」）。
   final VoidCallback onDelayedPlay;
 
-  /// 返回（对比-控制层先退对比态；否则宿主 pop 回来源页）。不承担转屏。
+  /// 返回（投屏态内先断开回编辑态；对比-控制层先退对比态；否则宿主 pop
+  /// 回来源页）。不承担转屏。
   final VoidCallback onBack;
 
   /// 收起控制层（宿主 setState 复位展开态 + 解锁自动旋转方向）。
@@ -189,6 +200,19 @@ class ControlLayer extends ConsumerStatefulWidget {
   /// 方向动作回调（唯一一枚，/04）：语义 = 「请求屏幕朝向转为 X」。
   /// 横屏那枚文字钮传 [ScreenOrientation.portrait]。
   final ValueChanged<ScreenOrientation> onRequestOrientation;
+
+  /// 断开投屏（投屏态顶栏那枚工具的动作）：宿主侧同一处实现，左上角退出
+  /// 箭头在投屏态内走的是**同一个**回调语义——两处入口、一个动作。
+  final VoidCallback onDisconnectCast;
+
+  /// 这支舞的**视频副本**路径（宿主唯一知道的那份）：投屏入口五条门里
+  /// 「副本丢失」一条的输入（其余四条由 `cast_entry_gate.dart` 自己接）。
+  final String videoFilePath;
+
+  /// 画面开关（投屏态顶栏那枚工具的动作）：宿主把画面区从黑底切成静音本地
+  /// 预览、或切回黑底。起播定位（问接收端要位置）与静音都归投屏预览域，
+  /// 这里只交出「用户点了这一下」——源文件在宿主手上。
+  final VoidCallback onToggleCastPicture;
 
   /// 显式用户拖进度收口落点回报：预览条拖动与非轨道区微调 scrub
   /// 会话结束时回调，宿主据此打循环提示放行标记。
@@ -419,14 +443,20 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
 
   Widget _buildTopBar() {
     // 竖屏顶栏只剩返回键与标题（标题拿回整行宽、跑马字幕照旧）；
-    // 横屏顶栏九枚工具内联一行。一行渲染的槽位集就是该行的全部槽位。
-    // 顶栏声明来自表——两个落点各读自己的具名行集（横屏 =
-    // [kPlayToolRowLandscapeTopBar]、竖屏标题栏 =
-    // [kPlayToolRowPortraitTitleBar]），活值由装配点按槽身份装配。
+    // 横屏顶栏十三条工具内联一行。一行渲染的槽位集就是该行的全部槽位。
+    // 顶栏**行集**由会话模式声明表那一行自己给出（
+    // `session_mode_surfaces.dart` 的 [SessionModeSurfaces.topBarRowOf]）：
+    // 投屏态两值取自己那份五枚行集（与朝向、紧凑档无关），其余取值吃朝向与
+    // 紧凑档；活值由装配点按槽身份装配。
     final portrait = widget.skeleton.portrait;
+    final session = ref.watch(playerSessionProvider);
+    final mode = session.mode;
+    final casting = session.isCast;
+    final topBarRowOf = sessionModeSurfacesOf(mode).topBarRowOf;
     // 返回键 tooltip 与实际动作一致：对比-控制层内第一次返回只
-    // 退对比态回单画面（见宿主 `_onControlLayerBack`），其余状态下 pop 回来源页。
-    final compareEditing = ref.watch(playerSessionProvider).isCompare;
+    // 退对比态回单画面（见宿主 `_onControlLayerBack`）；投屏态内是
+    // 「断开投屏」（同一动作的第二处入口）；其余状态下 pop 回来源页。
+    final compareEditing = session.isCompare;
     // 装载未完成：改名入口按与其它写盘入口同一道门取不可用
     // 视觉（置灰），热区仍可点、点一下弹「正在装载」（见 [_onTitleRenameTap]）。
     final titleRenameIconColor = ref.watch(loadGateActiveProvider)
@@ -452,7 +482,9 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                     color: Colors.white,
                     size: 24,
                   ),
-                  tooltip: compareEditing ? '退出对比' : '返回来源页',
+                  tooltip: casting
+                      ? '断开投屏'
+                      : (compareEditing ? '退出对比' : '返回来源页'),
                   focusColor: kKeyboardFocusHighlight,
                   onPressed: widget.onBack,
                 ),
@@ -474,7 +506,7 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                               kTopBarRenameIconGap -
                               kTopBarRenameIconSize;
                       // 尾部铅笔图标仅在标题位放得下「间隙 + 图标」时显示
-                      //（看片工具到 12 位后，大字号下
+                      //（看片工具到 13 位后，大字号下
                       // 标题位可能被挤到 18dp 以下——热区行不再容纳图标，
                       // 改名入口的语义按钮与热区本体仍在，不溢出）。
                       final showRenameIcon =
@@ -537,20 +569,22 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                 ),
                 if (!portrait) ...[
                   const SizedBox(width: kTopBarToolsGapWidth),
-                  // 横屏顶栏行集按**档位判据结果**选（紧凑档 → 紧凑行集，
-                  // 音画同步/取景调整/节拍提示收在「更多」的向上弹出菜单里；
-                  // 常规档 → 常规行集）：选择只有
-                  // [playToolLandscapeTopBarRow] 一处。
+                  // 顶栏行集取声明表那一行的取道：投屏态两值取投屏态那份
+                  // 行集；其余取值吃朝向与紧凑档（紧凑档 → 紧凑行集，音画
+                  // 同步/取景调整/节拍提示收在「更多」的向上弹出菜单里；
+                  // 常规档 → 常规行集）。朝向与档位的对应住在看片工具表，
+                  // 本处只读声明表。
                   _playToolRow(
-                    playToolLandscapeTopBarRow(compact: _compactLandscape),
+                    topBarRowOf(portrait: false, compact: _compactLandscape),
                     maxWidth: toolsMaxWidth,
                   ),
                 ] else ...[
-                  // 撤销/重做/查看引导落竖屏标题栏右侧（返回键与标题之后，
-                  // 与标题之间留既有工具间隙）；行集 = 竖屏标题栏具名行集。
+                  // 撤销/重做/投屏/查看引导落竖屏标题栏右侧（返回键与标题
+                  // 之后，与标题之间留既有工具间隙）；行集同样取声明表那一行
+                  // 的取道（竖屏标题栏，投屏态换成投屏那份）。
                   const SizedBox(width: kTopBarToolsGapWidth),
                   _playToolRow(
-                    kPlayToolRowPortraitTitleBar,
+                    topBarRowOf(portrait: true, compact: _compactLandscape),
                     maxWidth: toolsMaxWidth,
                   ),
                 ],
@@ -608,6 +642,29 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     ref
         .read(playerSessionProvider.notifier)
         .requestEntry(PlayerSessionMode.compareWatching);
+  }
+
+  /// 「投屏」工具：编辑面点按 = 落待办进入投屏-控制层（进入前置 =
+  /// 投屏准备，见 [playerSessionEntryDeclarationTable]）：宿主依次开准备面板、
+  /// 起递出通道与投屏会话，成功才经唯一提交入口提交；取消或起投失败零副作用
+  /// （模式值一位不动、待办清空）。已在投屏态内时本枚不在顶栏（换装成
+  /// 「断开投屏」），此支不承担断开——断开是 [ControlLayer.onDisconnectCast]。
+  ///
+  /// **五条门先在这里拦下**（票 #35）：门命中时本枚已置灰（可点性经共用判定
+  /// 表派生，见 `play_tool_row.dart`），按下去只弹一句原因——**不落待办、
+  /// 不开面板**。判定用与置灰同一份事实（[castEntryFactsProvider]），
+  /// 不重算一套。
+  void _toggleCast() {
+    if (ref.read(playerSessionProvider).isCast) return;
+    if (castEntryBlocksStart(
+      ref,
+      facts: ref.read(castEntryFactsProvider(widget.videoFilePath)),
+    )) {
+      return;
+    }
+    ref
+        .read(playerSessionProvider.notifier)
+        .requestEntry(PlayerSessionMode.castControl);
   }
 
   /// 取景调整：装载未完成门挡下并弹既有提示；
@@ -873,6 +930,11 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     // 竖屏底栏拆两行——标注工具行在上（该态槽集全部内联），播放
     // 控制工具行在下（播放控制组 + 帧号读数，读数字号 12 以容下「当前 /
     // 总长」两段）；横屏行走既有单行装配。两行的槽位集都是各行的全部槽位。
+    //
+    // **槽集为空 = 标注工具行整排不出现**（投屏态：分段只读是结构性的，
+    // 无槽可选）：空集下不画那一条行盒，不留空占位。播放控制组照常在场
+    // ——投屏态里它是遥控电视的那一条路。
+    final hasSlots = _slotTable.slots.isNotEmpty;
     return Container(
       key: const Key('control_layer_toolbar'),
       color: kControlToolbarScrimColor,
@@ -881,7 +943,7 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
         child: portrait
             ? Column(
                 children: [
-                  _buildAnnotationToolRow(),
+                  if (hasSlots) _buildAnnotationToolRow(),
                   Row(
                     children: [
                       ..._buildPlaybackControls(),
@@ -900,18 +962,19 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                   // 大字号下槽件自然高超出名义行高 48 时整组等比缩小（与
                   // 标注工具行同一口径：缩小仍可辨，撑破底栏则整列溢出）；
                   // 名义档内零缩放、取值不变。
-                  SizedBox(
-                    height: 48,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: _ToolSlotRow(
-                        table: _slotTable,
-                        mirror: widget.mirror,
-                        session: _session,
+                  if (hasSlots)
+                    SizedBox(
+                      height: 48,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: _ToolSlotRow(
+                          table: _slotTable,
+                          mirror: widget.mirror,
+                          session: _session,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
       ),
@@ -920,21 +983,31 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
 
   /// 播放控制按钮组（提行复用）：播放/暂停、延迟播放、左移一步、
   /// 右移一步——横屏底栏左段与竖屏播放控制工具行同一份装配。
+  ///
+  /// **投屏态内两枚遥控项由接收端能力判据决定在不在**（票 #38）：「播放暂停」
+  /// 与「进度（帧步进）」判据说这一项不显示（探测不到 / 探测失败 / 设备确实
+  /// 不支持）就不进装配——按下去没反应的控件不留。判据的唯一回答处是
+  /// [castRemoteItemShownProvider]（手势仲裁读同一份；非投屏态的短路写在
+  /// 那里面）——本处不另判一套。
   List<Widget> _buildPlaybackControls() {
+    final showsRemoteItem = ref.watch(castRemoteItemShownProvider);
+    final showsPlayPause = showsRemoteItem(CastRemoteItem.playPause);
+    final showsProgress = showsRemoteItem(CastRemoteItem.progress);
     return [
       // 播放/暂停、延迟播放（与空白区双指双击同一条路径
       // ——收起 + 触发）。
-      IconButton(
-        key: const Key('toolbar_play'),
-        icon: Icon(
-          widget.playing ? Icons.pause : Icons.play_arrow,
-          color: Colors.white,
-          size: 28,
+      if (showsPlayPause)
+        IconButton(
+          key: const Key('toolbar_play'),
+          icon: Icon(
+            widget.playing ? Icons.pause : Icons.play_arrow,
+            color: Colors.white,
+            size: 28,
+          ),
+          tooltip: widget.playing ? '暂停' : '播放',
+          focusColor: kKeyboardFocusHighlight,
+          onPressed: widget.onTogglePlay,
         ),
-        tooltip: widget.playing ? '暂停' : '播放',
-        focusColor: kKeyboardFocusHighlight,
-        onPressed: widget.onTogglePlay,
-      ),
       IconButton(
         key: const Key('toolbar_delayed_play'),
         icon: const _DelayedPlayIcon(),
@@ -944,20 +1017,22 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
       // 帧步进：目标优先级与门禁语义见 [_stepFrame]；
       // 长按连续步进：文案固定「左移/右移一步」，选中线/端标
       // 时不做长按连续（见 [_stepTargetSelected]）。
-      _FrameStepButton(
-        buttonKey: const Key('toolbar_frame_step_back'),
-        icon: Icons.chevron_left,
-        tooltip: '左移一步',
-        holdToRepeat: !_stepTargetSelected,
-        onStep: () => _stepFrame(-1),
-      ),
-      _FrameStepButton(
-        buttonKey: const Key('toolbar_frame_step_forward'),
-        icon: Icons.chevron_right,
-        tooltip: '右移一步',
-        holdToRepeat: !_stepTargetSelected,
-        onStep: () => _stepFrame(1),
-      ),
+      if (showsProgress)
+        _FrameStepButton(
+          buttonKey: const Key('toolbar_frame_step_back'),
+          icon: Icons.chevron_left,
+          tooltip: '左移一步',
+          holdToRepeat: !_stepTargetSelected,
+          onStep: () => _stepFrame(-1),
+        ),
+      if (showsProgress)
+        _FrameStepButton(
+          buttonKey: const Key('toolbar_frame_step_forward'),
+          icon: Icons.chevron_right,
+          tooltip: '右移一步',
+          holdToRepeat: !_stepTargetSelected,
+          onStep: () => _stepFrame(1),
+        ),
       const SizedBox(width: 8),
     ];
   }
@@ -1019,15 +1094,10 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
     );
   }
 
-  /// 「模式 → 槽集」唯一映射（横屏行与竖屏标注行共用一处声明）。
+  /// 本态底排槽集：取「模式 → 界面」声明表（横屏行与竖屏标注行共用同一份
+  /// 答案，映射不在此另写）。
   ToolSlotTable get _slotTable =>
-      switch (ref.watch(playerSessionProvider).mode) {
-        PlayerSessionMode.compareEditing => ToolSlotTable.compare,
-        PlayerSessionMode.beatCorrectionStandby => ToolSlotTable.standby,
-        PlayerSessionMode.segmentDensityStandby =>
-          ToolSlotTable.segmentDensityStandby,
-        _ => ToolSlotTable.normal,
-      };
+      sessionModeSurfacesOf(ref.watch(playerSessionProvider).mode).slotTable;
 
   /// 帧号读数单元（共用）：Expanded 左对齐独占剩余
   /// 宽——横屏底栏中段与竖屏播放控制工具行同一装配，字号由行决定。

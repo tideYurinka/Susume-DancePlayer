@@ -95,3 +95,52 @@ Offset clampOverlayOffset({
     maxDy <= 0 ? 0 : offset.dy.clamp(0.0, maxDy),
   );
 }
+
+/// 浮层这一刻的**生效几何**（偏移 + 内容尺寸）——控制器与投屏装配共用的
+/// **唯一一处解析**（两处各自写一遍就是两份口径）。
+///
+/// - **尺寸**按形态系数解析（矩形只消费宽系数、摆锤只消费等比系数），
+///   视口联动生效上限（铺满视口为止）；
+/// - **偏移**取当前格的自定义值（缺席 = 未自定义 → 按视口现算的默认位：
+///   贴左、纵向视口高 12%），再钳回视口内（钳制只进生效面，容器里的存值
+///   一字不改）。
+///
+/// [viewport] 为 null（宿主未接线）时不钳、默认位回落原点——与
+/// [MetronomeOverlayController] 的既有语义逐位一致。
+({Offset offset, Size size}) resolveOverlayGeometry({
+  required OverlayPlacements placements,
+  required OverlayPlacementCell cell,
+  required BeatAnimationStyle style,
+  required Size? viewport,
+}) {
+  final size = resolveOverlaySize(
+    style: style,
+    rectWidthFactor: placements.rectWidthFactor,
+    pendulumScale: placements.pendulumScale,
+    viewport: viewport,
+  );
+  final raw =
+      placements.offsetFor(cell) ??
+      (viewport == null ? Offset.zero : defaultOverlayOffset(viewport));
+  if (viewport == null) return (offset: raw, size: size);
+  return (
+    offset: clampOverlayOffset(
+      offset: raw,
+      contentSize: size,
+      viewport: viewport,
+    ),
+    size: size,
+  );
+}
+
+/// 浮层内容区的竖向容量倍率（系统字号 ≤ 1 不收缩，沿用槽位定宽的既有
+/// 口径）——`MetronomeOverlay._sizedContent` 与投屏装配同读本函数。
+double overlayContentHeightScale(double textScale) =>
+    textScale > 1 ? textScale : 1;
+
+/// 浮层**内容区**的尺寸：`宽 × 高·字号容量倍率`——两形态的外框同形
+/// （摆锤的等比缩放发生在框内），故这一条对两形态是同一个式子。
+Size overlayContentSize({required Size box, required double textScale}) => Size(
+  box.width,
+  box.height * overlayContentHeightScale(textScale),
+);

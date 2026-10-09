@@ -33,6 +33,13 @@
 /// 原始朝向 ⊕ 本表取值（`F = R ⊕ D`），两面因此各带自己的缩放。
 /// 录像文件面（素材方向 = 平台保存基准，经 [SurfaceBaselines.materialDirection]
 /// 读出）与导出文件面尚未接进面表。
+///
+/// **源视频面那条式子的唯一声明处**是 [SourceVideoFlip]：上屏取它的**逐位置**
+/// 读法（[SourceVideoFlip.mirroredAt]），投屏渲染取它的**逐区间**读法
+/// （[SourceVideoFlip.localActiveWindows]，写成时间窗）——「电视上的翻转与
+/// 手机上实际显示的逐帧一致」因此是同一个值的两种读法，不是两处各自对齐的
+/// 两条口径。
+///
 /// **平台基准**（平台预览基准、平台保存基准）由装配点在快照里注入，本库内没有
 /// 平台基准的字面量——设备级**基准键**住设备级私密文件（`player/
 /// surface_basis_key.dart`，与设备级镜像默认键同文件同形状），读得到就按
@@ -225,6 +232,51 @@ class SurfaceMoment {
   final SurfaceBaselines baselines;
 }
 
+/// **源视频面的翻转闸门**：源画面该翻不该翻的那一式的**唯一声明处**——
+/// 全局镜像 ⊕（局部镜像总开关 ∧ 位置落在任一片段内）。
+///
+/// 它是同一份取值的两种读法：上屏按**位置**读（[localActiveAt] /
+/// [mirroredAt]，画面件与画面标识都取它），投屏渲染按**区间**读
+/// （[localActiveWindows]，写成 `gte(t,起)*lt(t,止)` 的时间窗）。两处因此
+/// 不是各自对齐的两条口径，而是同一个值——加一个输入位只改这里。
+class SourceVideoFlip {
+  const SourceVideoFlip({
+    required this.globalMirrored,
+    required this.localMirrorEnabled,
+    required this.fragments,
+  });
+
+  /// 全局镜像：整支视频的镜像开关。
+  final bool globalMirrored;
+
+  /// 局部镜像总开关（视频级视图开关）：关时片段整组不参与。
+  final bool localMirrorEnabled;
+
+  /// 会话内启用片段集合（升序、两两不重叠、半开区间）。
+  final List<LocalMirrorFragment> fragments;
+
+  /// 局部镜像此刻是否生效：总开关开 ∧ 位置落在某片段的半开区间
+  /// `[startMs, endMs)` 内（多片段为并集）。
+  bool localActiveAt(int positionMs) =>
+      localMirrorEnabled &&
+      fragments.any((f) => f.startMs <= positionMs && positionMs < f.endMs);
+
+  /// 全局镜像 ⊕ 局部镜像生效：源视频面此刻的方向。
+  FaceDirection directionAt(int positionMs) =>
+      _compose(_flipOf(globalMirrored), _flipOf(localActiveAt(positionMs)));
+
+  /// 源视频面此刻是否呈镜像（上屏的翻转结果）。
+  bool mirroredAt(int positionMs) => directionAt(positionMs).isMirrored;
+
+  /// **局部镜像生效的时间窗**（源时间轴、半开区间）：总开关关掉时片段整组不
+  /// 参与，给出空表；否则就是片段表本身（升序、两两不重叠）。
+  ///
+  /// 渲染侧按它写 `gte(t,起)*lt(t,止)`，窗外只剩全局那一枚闸门——两处读法
+  /// 出自同一个闸门，逐帧同判。
+  List<LocalMirrorFragment> get localActiveWindows =>
+      localMirrorEnabled ? fragments : const [];
+}
+
 /// 面方向的唯一答案源：拿一份快照，回答每个面此刻朝哪一边、该施加什么缩放。
 class SurfaceDirection {
   const SurfaceDirection({required this.moment});
@@ -279,19 +331,22 @@ class SurfaceDirection {
     SurfaceFace.exportFile => throw UnimplementedError('画面方向：$face 的取值表口径尚未接线'),
   };
 
-  /// 局部镜像此刻是否生效：总开关开 ∧ 当前位置落在某片段的半开区间
-  /// `[startMs, endMs)` 内（多片段为并集）。**画面翻转与画面上的标识读同一个
+  /// 局部镜像此刻是否生效：读**源视频面翻转闸门**（
+  /// [SourceVideoFlip.localActiveAt]）。**画面翻转与画面上的标识读同一个
   /// 取值**——本取值是那一式的唯一出处，源视频面方向由它合成，不另立第二条
   /// 镜像口径。
-  bool get localMirrorActive =>
-      moment.localMirrorEnabled &&
-      moment.fragments.any(
-        (f) => f.startMs <= moment.positionMs && moment.positionMs < f.endMs,
-      );
+  bool get localMirrorActive => _sourceFlip.localActiveAt(moment.positionMs);
+
+  /// 源视频面本次求值的**翻转闸门**：全局镜像、局部镜像总开关与片段表三样
+  /// 折成的一处取值（源视频面的两个读法都取它）。
+  SourceVideoFlip get _sourceFlip => SourceVideoFlip(
+    globalMirrored: moment.globalMirrored,
+    localMirrorEnabled: moment.localMirrorEnabled,
+    fragments: moment.fragments,
+  );
 
   /// 全局镜像 ⊕ 局部镜像生效；局部镜像关闭时片段整组不参与。
-  FaceDirection get _sourceVideo =>
-      _compose(_flipOf(moment.globalMirrored), _flipOf(localMirrorActive));
+  FaceDirection get _sourceVideo => _sourceFlip.directionAt(moment.positionMs);
 
   /// 练习镜像 ⊕ 平台预览基准 ⊕ 基准键 = 练习镜像 ⊕ 平台保存基准——与片段
   /// 回放面同一表达式，「录制所见 == 回看所见」因此是恒等式而非调用纪律。

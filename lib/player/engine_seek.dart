@@ -27,6 +27,7 @@ import 'package:flutter/foundation.dart';
 
 import '../annotation/annotation_timeline.dart';
 import '../core/playback/playback_engine.dart';
+import 'cast_mirror.dart';
 import 'gesture_feedback.dart';
 import 'recording_playback_takeover.dart';
 import 'scrub_session.dart';
@@ -48,11 +49,13 @@ class EngineSeek {
     required void Function() onPosition,
     required Future<void> Function() onCompleted,
     required bool Function() isMounted,
+    required CastMirror Function() castMirrorOf,
   }) : _resolveTakeover = takeoverOf,
        _positionTick = onPosition,
        _playingEdge = onPlayingEdge,
        _completed = onCompleted,
-       _hostAlive = isMounted {
+       _hostAlive = isMounted,
+       _resolveCastMirror = castMirrorOf {
     _submitter = SeekSubmitter(
       engineSeek: (target) {
         // 任何 seek 都打断在途延迟起播：撤锚并
@@ -94,6 +97,22 @@ class EngineSeek {
   final Future<void> Function() _completed;
   final bool Function() _hostAlive;
 
+  /// 投屏遥控镜像（见 [CastMirror]）：**投屏态内非空**，本机播放 / 暂停 /
+  /// 跳转同时作用于接收端；未投屏给 [NoCastMirror]（空操作）。失败由镜像
+  /// 口自己收口——本域不判投屏态、也不为它改变本机动作。
+  final CastMirror Function() _resolveCastMirror;
+
+  /// 当前镜像口。
+  CastMirror get _castMirror => _resolveCastMirror();
+
+  /// 镜像一次播放 / 暂停：**不 await**——遥控是旁路，本机播放不因一次网络
+  /// 往返变慢；失败由镜像口自己收口（本口不抛）。
+  void _mirrorPlay() => unawaited(_castMirror.play());
+
+  void _mirrorPause() => unawaited(_castMirror.pause());
+
+  void _mirrorSeek(Duration target) => unawaited(_castMirror.seek(target));
+
   late final SeekSubmitter _submitter;
   late final ScrubSession _scrubSession;
 
@@ -129,9 +148,18 @@ class EngineSeek {
   Future<void> open(Uri source, {bool play = false}) =>
       engine.open(source, play: play);
 
-  Future<void> play() => engine.play();
+  /// 播放（本机照常 + 投屏镜像；镜像口未接投屏时是空操作）。
+  Future<void> play() {
+    _mirrorPlay();
+    return engine.play();
+  }
 
-  Future<void> pause() => engine.pause();
+  /// 暂停（本机照常 + 投屏镜像）。拖动会话内部用的是**内核**自己的
+  /// pause/play（定格-恢复不走本入口），故拖动期间不会把电视也按停。
+  Future<void> pause() {
+    _mirrorPause();
+    return engine.pause();
+  }
 
   /// 录制期（含准备期）事实：取自接管域，供宿主拒绝播放类动作。
   bool get takenOver => _resolveTakeover().active;
@@ -139,12 +167,20 @@ class EngineSeek {
   /// 拖动会话是否激活。
   bool get scrubbing => _scrubSession.isActive;
 
-  /// seek 单发：钳制后入队，返回钳制后实际入队值。
-  Duration seek(Duration target) => _submitter.submit(target);
+  /// seek 单发：钳制后入队，返回钳制后实际入队值；落点同时镜像给接收端
+  /// （三指跳转、学习段跳段首一类单发 seek 因此也作用于电视）。
+  Duration seek(Duration target) {
+    final landed = _submitter.submit(target);
+    _mirrorSeek(landed);
+    return landed;
+  }
 
-  /// seek 单发并等队列排空（「seek 落定后再续播」类顺序语义）。
-  Future<void> seekAndSettle(Duration target) =>
-      _submitter.submitAndSettle(target);
+  /// seek 单发并等队列排空（「seek 落定后再续播」类顺序语义）；落点同样
+  /// 镜像给接收端。
+  Future<void> seekAndSettle(Duration target) async {
+    await _submitter.submitAndSettle(target);
+    _mirrorSeek(target);
+  }
 
   /// 起拖动会话（在播先暂停定格，基准 = 定格点快照；返回值 false = 时长未知
   /// 未起会话，调用方丢弃本帧）。
@@ -155,8 +191,13 @@ class EngineSeek {
 
   /// 结束拖动会话：恢复手势前播放态、[cancel] 时回退到定格基准；宿主已收尾
   /// 或会话未激活时 no-op（幂等）。
+  ///
+  /// **拖动收口只镜像一次**：逐帧拖动的高频 seek 不发往接收端（那会变成
+  /// 一串 SOAP），手指离手后按最终落点（显示位，`cancel` 时已回退到基准）
+  /// 让电视跳一次。
   Future<void> endScrub({bool cancel = false}) async {
     if (!_hostAlive() || !_scrubSession.isActive) return;
     await _scrubSession.end(cancel: cancel);
+    _mirrorSeek(scrubTarget.value);
   }
 }

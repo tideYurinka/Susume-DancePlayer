@@ -1,6 +1,8 @@
 import 'dart:ui' show Rect, Size;
 
 import 'package:dance_learning_app/player/editor_skeleton.dart';
+import 'package:dance_learning_app/player/framing_stage.dart'
+    show pictureRectOnScreen;
 import 'package:dance_learning_app/player/track_row_table.dart'
     show TrackRowTable;
 import 'package:dance_learning_app/player/visual_tokens.dart'
@@ -342,11 +344,12 @@ void main() {
       double systemTopInset = 24,
       double? aspectRatio = 16 / 9,
       EditorSkeleton? skeleton,
-    }) => videoPictureRect(
+    }) => pictureRectOnScreen(
       screen: screen,
       systemTopInset: systemTopInset,
-      videoAspectRatio: aspectRatio,
       skeleton: skeleton,
+      aspectRatio: aspectRatio,
+      selection: null,
     );
 
     test('观看态竖屏：16:9 源 contain 居中，圆心落在画面上角而非屏幕上角', () {
@@ -375,17 +378,17 @@ void main() {
       expect(rect.top, greaterThan(0));
     });
 
-    test('宽高比未知：退化为系统栏内的屏幕可用区（照旧可用、不崩）', () {
+    test('宽高比未知：只有一条兜底——画面即容器，可用区即整屏（照旧可用、不崩）', () {
       final rect = rectFor(aspectRatio: null);
       expect(rect.left, 0);
-      expect(rect.top, 24);
+      expect(rect.top, 0, reason: '画面即容器：不按系统栏内缩截一刀');
       expect(rect.width, portraitScreen.width);
-      expect(rect.height, portraitScreen.height - 24);
+      expect(rect.height, portraitScreen.height);
       final rectNonPositive = rectFor(aspectRatio: -1);
-      expect(rectNonPositive.top, 24);
+      expect(rectNonPositive.top, 0);
     });
 
-    test('编辑态贴底分支：矩形 = 画面带（带顶按系统栏换算）', () {
+    test('编辑态贴底分支：可用区 = 画面带（带顶按系统栏换算），画面在带里 contain', () {
       const stick = EditorSkeleton(
         compact: false,
         portrait: true,
@@ -395,11 +398,12 @@ void main() {
         pictureBandTop: 50,
       );
       final rect = rectFor(skeleton: stick);
-      // bandTopIn = 系统栏 24 + 顶栏 52 + 带顶 50。
+      // bandTopIn = 系统栏 24 + 顶栏 52 + 带顶 50；带 361.1×100 里 16:9 画面
+      // contain = 177.78×100、水平居中。
       expect(rect.top, 24 + kEditorTopBarHeight + 50);
       expect(rect.height, 100);
-      expect(rect.left, 0);
-      expect(rect.width, portraitScreen.width);
+      expect(rect.width, closeTo(100 * 16 / 9, 0.01));
+      expect(rect.center.dx, closeTo(portraitScreen.width / 2, 0.01));
     });
 
     test('编辑态背景位（骨架非贴底）：同观看态整屏 contain 居中', () {

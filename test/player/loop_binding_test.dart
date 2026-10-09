@@ -1,3 +1,4 @@
+import 'package:dance_learning_app/player/cast_mirror.dart' show NoCastMirror;
 import 'package:dance_learning_app/annotation/annotation_timeline.dart';
 import 'package:dance_learning_app/core/beat_grid.dart'
     show placeholderBeatGrid;
@@ -68,6 +69,7 @@ void main() {
       onPosition: () {},
       onCompleted: () async {},
       isMounted: () => true,
+      castMirrorOf: () => const NoCastMirror(),
     );
     binding = LoopBinding(
       engineSeek: engineSeek,

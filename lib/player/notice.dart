@@ -26,7 +26,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/notice_badge.dart';
 import 'segment_jump.dart' show ThreeFingerSwipeDirection;
 
-/// 提示身份：十二条短暂提示一次声明齐，按**语义**
+/// 提示身份：十八条短暂提示一次声明齐，按**语义**
 /// 命名（不按它渲染什么）。内容由所属域经 [NoticeSpec] 声明，不出现在本
 /// 模块里。
 enum NoticeId {
@@ -66,6 +66,22 @@ enum NoticeId {
 
   /// 文档只读（按视频文档读到只读版本、写回被挡时）。
   documentReadOnly,
+
+  /// 投屏断了（遥控动作失败 / 掉线：断开并回编辑态）。
+  castInterrupted,
+
+  /// 没接上接收端（起投失败：连不上 / 被拒 / 递出通道起不来）。
+  castNotStarted,
+
+  /// 系统投屏设置打不开（系统镜像入口的降级链两级都没接住）。
+  systemMirrorUnavailable,
+
+  /// 投屏入口被门挡下（副本丢失 / 校准中 / 录制中 / 对比或取景 / 渲染中：
+  /// 灰着那枚按下去只解释原因）。
+  castEntryBlocked,
+
+  /// 投屏换档没成功（新文件拉不到：已回退旧文件，投屏照旧）。
+  castSpeedSwitchFailed,
 }
 
 /// 一条提示的声明（由所属域给出）：身份 + 内容 + 定位 key。

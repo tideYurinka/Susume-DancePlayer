@@ -30,6 +30,9 @@
 ///   预备的居中大数字与长按 2× 提示住在这一层的 Stack 里（层序与既有整页
 ///   渲染逐位一致），但两者自订阅宿主侧 provider，故由宿主传入 widget、层只
 ///   负责摆位。它们不属于「这一层要什么」的领域事实，故单列。
+/// - `pictureOverride`：**画面区覆盖件**——非空时它取代源视频画面、且中央
+///   播放大图标不出现（今天唯一使用者是投屏态：黑底指路 / 静音本地预览）。
+///   同属摆位槽：层只把它放进画面区，不管它是什么、也不读它背后的 provider。
 ///
 /// 值对象按内容判等（[PictureLayerInput.==]）：输入相等时这一层不重建子树
 /// （画面件构建器不再被调用），输入真变才重建。
@@ -69,6 +72,7 @@ class PictureLayerInput {
     required this.gesture,
     required this.prepCenterNumber,
     required this.doubleSpeedBadge,
+    this.pictureOverride,
   });
 
   /// 画面方向快照。
@@ -99,6 +103,15 @@ class PictureLayerInput {
   /// 层内叠加件：长按 2× 提示（层序在反馈层之上，与既有整页渲染逐位一致）。
   final Widget doubleSpeedBadge;
 
+  /// **画面区覆盖件**：非空时它取代源视频画面（[video] 的构建器不再被调用），
+  /// 且中央播放/暂停大图标不出现——覆盖件自带完整画面语义（今天唯一的使用者
+  /// 是投屏态：黑底 + 指路提示，或静音本地预览；源片此时不上手机屏，电视上
+  /// 那份才是正的），与源片的播放态无关。
+  ///
+  /// 手势层件与反馈层照旧包在它外面：覆盖件自己不挂任何手势（落上去的点按
+  /// 归本层既有那三件），也不吃触摸——投屏态的手势仍遥控电视。
+  final Widget? pictureOverride;
+
   @override
   bool operator ==(Object other) =>
       other is PictureLayerInput &&
@@ -110,7 +123,8 @@ class PictureLayerInput {
       other.playback == playback &&
       other.gesture == gesture &&
       other.prepCenterNumber == prepCenterNumber &&
-      other.doubleSpeedBadge == doubleSpeedBadge;
+      other.doubleSpeedBadge == doubleSpeedBadge &&
+      other.pictureOverride == pictureOverride;
 
   @override
   int get hashCode => Object.hash(
@@ -123,6 +137,7 @@ class PictureLayerInput {
     gesture,
     prepCenterNumber,
     doubleSpeedBadge,
+    pictureOverride,
   );
 }
 
@@ -431,7 +446,11 @@ class _PictureLayerState extends State<PictureLayer> {
   /// （scrubbing 定格预览、levelAdjust 音量/亮度调节）不显示暂停态大图标
   /// ——避免遮挡反馈内容；结束按真实状态如实显示（相位由控制器通知驱动
   /// 重建）。
+  ///
+  /// 有画面区覆盖件时不显示：那时画面区画的是覆盖件自己那份内容（投屏态：
+  /// 黑底指路 / 静音本地预览），源片的暂停态与它无关。
   Widget _buildPlayIndicator(PictureLayerInput input) {
+    if (input.pictureOverride != null) return const SizedBox.shrink();
     final playback = input.playback;
     return ListenableBuilder(
       listenable: input.feedback.controller,
@@ -505,7 +524,12 @@ class _PictureLayerState extends State<PictureLayer> {
   /// 镜像为渲染层翻转（[PictureFaceInput.source] 为镜像时对画面控件做水平
   /// Transform），不修改源文件字节。对比态在骨架之前返回；编辑面非空时按
   /// 骨架落位两分支（贴底 / 背景位），否则整屏 contain 居中。
+  ///
+  /// [PictureLayerInput.pictureOverride] 非空时整块换成它：连源画面件都不
+  /// 构造（源片不上屏），骨架落位与取景变换也不参与。
   Widget _buildVideoArea(PictureLayerInput input) {
+    final override = input.pictureOverride;
+    if (override != null) return override;
     final surface = _SourceVideoSurface(
       direction: input.face.source,
       surfaceBuilder: input.video.surfaceBuilder,
