@@ -8,6 +8,9 @@
 ///    组合与档：都不勾 = 直接推原片；只勾声音 + 1× 档 = 秒级；只勾声音 +
 ///    非 1× 档 = 这一档的视频要重编码、不是秒级；勾了画面 = 预计分钟级、
 ///    改一次设置就要重渲一次（见 [castPrepRenderSentenceFor]）。
+///    **只勾声音 + 1× 且这支舞设了首尾线**时另多一句实话
+///    （[kCastPrepSentenceSoundOnlyTail]）：这一档视频流原样复制、收不了范围，
+///    电视上放的是整片（`#21` 整改；那是 #37 明确接受的一档）。
 /// 2. **投几档**：**投屏倍速档多选**——候选只有 0.5 / 0.75 / 1 三档，默认勾
 ///    与当前手动倍率最接近的那一档（`cast_speed_tier.dart` 的纯件）；至少留
 ///    一档。都不勾渲染档时只剩原片这一档（1×）：没有副本可换，勾别档没有
@@ -62,10 +65,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../cast/cast_encoder_realtime.dart';
+import '../cast/cast_range_gate.dart' show castRangeActive;
 import '../cast/cast_render_activity.dart' show castRenderInProgressProvider;
 import '../cast/cast_render_executor.dart' show CastRenderProgress;
 import '../cast/cast_render_orchestrator.dart';
-import '../cast/cast_render_plan.dart' show castRenderReencodesVideo;
 import '../cast/cast_render_request.dart';
 import '../cast/cast_receiver.dart';
 import '../cast/cast_speed_tier.dart';
@@ -95,6 +98,13 @@ const String kCastPrepSentencePassThrough = '不渲染：直接把原片推给�
 
 /// 只勾声音类、**1× 档**时的实话：视频流原样复制，秒级。
 const String kCastPrepSentenceSoundOnly = '只重做音轨：拍声混进去，秒级出结果';
+
+/// 只勾声音类 + **1× 档**、且这支舞**设了首尾线**时的第二句实话（`#21` 整改）：
+/// 这一档的视频流原样复制（`-c:v copy`），复制出来的流改不了长度，收不了范围
+/// ——电视上放的是**整片**，片头片尾都在（见 `cast_range_gate.dart` 库头
+/// 「复制档明确不接受范围」，那是 #37 明确接受的一档）。
+const String kCastPrepSentenceSoundOnlyTail =
+    '这一档的画面是原样复制的，收不住首尾线：电视上会从片头放到片尾';
 
 /// 只勾声音类、**非 1× 档**时的实话：`-c:v copy` 改不了时长，这一档的视频
 /// 也得重编码（见 `cast_render_plan.dart` 的 `slowed`）——不是秒级。
@@ -269,11 +279,47 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
 
   /// 降级那一句该不该出：答案已经回来、落在降级那侧，且这次**真有视频要重
   /// 编码**——只勾声音 + 1× 是 `-c:v copy`，没有可降的编码，说「降到 720p」
-  /// 就是假话（`cast_render_plan.dart` 的 `castRenderReencodesVideo`）。
+  /// 就是假话（`cast_render_request.dart` 的 `castRenderReencodesVideo`）。
   bool get _showsResolutionNote =>
       _capability != null &&
       _resolution == CastRenderResolution.p720 &&
       _plan.tiers.any((tier) => castRenderReencodesVideo(_choices, tier));
+
+  /// 只勾声音时那份**任一起投档**的请求（[kCastPrepSentenceSoundOnlyTail] 的
+  /// 判据从它上面读；只有勾了声音类时才装配，只勾画面类那条路不收这份实话）。
+  CastRenderRequest? _soundOnlyRequestFor(CastSpeedTier tier) {
+    if (_choices.picture) return null;
+    try {
+      return widget.requestOf(_choices, tier, _resolution);
+    } on Object {
+      // 读面还没就绪（标注尚未装载）：退到「没有范围可收」那一侧，不多说。
+      return null;
+    }
+  }
+
+  /// **首尾线那一句**该不该出（`#21` 整改）：只勾声音类时视频流原样复制
+  /// （`-c:v copy`），而复制出来的流改不了长度——**这支舞真设了首尾线**、而
+  /// 这次备的档里**有收不了它的**那一档（复制档）时，当场说清；没设首尾线、
+  /// 或这次备的档个个收得住，就一个字都不多说。
+  ///
+  /// 判据两步、都读纯件：`castRangeActive` 判「有没有一段可收的」（与链上装
+  /// 不装 `trim` 同一条口径），`castRenderReencodesVideo` 判「这一档收不收得
+  /// 了」（复制档明确不收，见 `cast_range_gate.dart` 库头）。合起来正好是
+  /// 「用户设了首尾线、电视上却会从片头放起」那一档。
+  bool get _showsSoundOnlyTailNote {
+    for (final tier in _plan.tiers) {
+      final request = _soundOnlyRequestFor(tier);
+      if (request == null) continue;
+      final takesRange = castRenderReencodesVideo(
+        request.choices,
+        request.speedTier,
+      );
+      if (!takesRange && castRangeActive(request.range, request.duration)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -346,13 +392,24 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
     return castRenderResolutionFor(answer);
   }
 
-  void _setChoice(CastRenderChoices choices) {
-    if (_rendering) return;
+  /// 用户改了一次取值：翻新界面态（顺带清掉上一次的渲染失败话）并**回写这支舞
+  /// 的记忆**。两处改动（勾选档、倍速档表）共用这一步——「改了就存」是同一件
+  /// 事，不是两套纪律。
+  void _applyPrepEdits({
+    CastRenderChoices? choices,
+    Set<CastSpeedTier>? tiers,
+  }) {
     setState(() {
-      _choices = choices;
+      if (choices != null) _choices = choices;
+      if (tiers != null) _tiers = tiers;
       _renderFailed = false;
     });
     _remember();
+  }
+
+  void _setChoice(CastRenderChoices choices) {
+    if (_rendering) return;
+    _applyPrepEdits(choices: choices);
   }
 
   /// 用户改了取值就回写这支舞的记忆（#40）：**变更即存**，面板关闭不丢
@@ -383,11 +440,7 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
       if (next.length <= 1) return;
       next.remove(tier);
     }
-    setState(() {
-      _tiers = next;
-      _renderFailed = false;
-    });
-    _remember();
+    _applyPrepEdits(tiers: next);
   }
 
   /// 选中一台接收端 = 开始这次准备：装配各档请求 → 渲**起投档** → 带出结局
@@ -500,6 +553,21 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                 const Text(
                   kCastPrepBeatFreezeText,
                   key: Key('cast_beat_freeze_sentence'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              // 只勾声音 + 1×（视频原样复制）**且这支舞设了首尾线**才出这一句：
+              // 这一档收不了范围，电视上放的是整片——不设首尾线时一个字都不多
+              // 说（#21 整改）。
+              if (_showsSoundOnlyTailNote) ...[
+                const SizedBox(height: 2),
+                const Text(
+                  kCastPrepSentenceSoundOnlyTail,
+                  key: Key('cast_sound_only_tail_sentence'),
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 11,

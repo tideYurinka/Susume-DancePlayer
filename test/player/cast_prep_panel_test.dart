@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
+import 'package:dance_learning_app/cast/cast_range_gate.dart' show CastRange;
 import 'package:dance_learning_app/cast/cast_render_cache.dart';
 import 'package:dance_learning_app/cast/cast_render_executor.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
@@ -61,6 +62,12 @@ void main() {
     if (root.existsSync()) root.deleteSync(recursive: true);
   });
 
+  /// 这支舞的**首尾线**（源时间轴上的半开区间 #37）：`null` = 未设（整片）。
+  /// 面板那句「这一档收不住首尾线」正看这一样。
+  const rangeStart = Duration(seconds: 1);
+  const rangeEnd = Duration(seconds: 3);
+  const setRange = CastRange(start: rangeStart, end: rangeEnd);
+
   CastRenderRequest request(
     CastRenderChoices choices, [
     CastSpeedTier tier = CastSpeedTier.full,
@@ -74,6 +81,23 @@ void main() {
     resolution: resolution,
     settings: const CastRenderSettings(),
     annotationFingerprint: 'fp-1',
+  );
+
+  /// 设了首尾线（1s–3s，半开）的那份请求：复制档 + 有范围 = 那句实话的现场。
+  CastRenderRequest requestWithRange(
+    CastRenderChoices choices, [
+    CastSpeedTier tier = CastSpeedTier.full,
+    CastRenderResolution resolution = CastRenderResolution.source,
+  ]) => CastRenderRequest(
+    videoPath: filePath,
+    videoId: 'vid-a',
+    duration: const Duration(seconds: 4),
+    choices: choices,
+    speedTier: tier,
+    resolution: resolution,
+    settings: const CastRenderSettings(),
+    annotationFingerprint: 'fp-1',
+    range: setRange,
   );
 
   /// 面板宿主：按钮开面板、把出参记进通知器。
@@ -838,6 +862,123 @@ void main() {
 
     expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
     expect(find.text(kCastPrepSentenceSoundOnlySlowed), findsNothing);
+  });
+
+  testWidgets('只勾声音 + 1× 且这支舞设了首尾线：面板当场说清这一档收不住范围', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      requestOf: requestWithRange,
+    );
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+
+    // 只勾声音 + 1×（视频原样复制）+ 有首尾线：两句都在场——秒级那句是实话，
+    // 收不住范围那句是它缺的那半句（#37 明确接受这一档，但不能不说）。
+    expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+    expect(
+      find.text(kCastPrepSentenceSoundOnlyTail),
+      findsOneWidget,
+      reason: '设了首尾线的舞看到的是片头，用户故事 31 的预期会被打破',
+    );
+    expect(
+      find.byKey(const Key('cast_sound_only_tail_sentence')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('没设首尾线：那一句一个字都不多说', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+    );
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+    expect(find.text(kCastPrepSentenceSoundOnlyTail), findsNothing);
+  });
+
+  testWidgets('勾了画面类（视频要重编码、范围收得住）：那一句也不出', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      requestOf: requestWithRange,
+    );
+
+    expect(find.text(kCastPrepSentencePicture), findsOneWidget);
+    expect(
+      find.text(kCastPrepSentenceSoundOnlyTail),
+      findsNothing,
+      reason: '画面重编码的档收得住范围，那句话在这里是假话',
+    );
+  });
+
+  testWidgets('设了首尾线、这次备的档里有 1× 复制档：那一句照样出', (tester) async {
+    final discovery = FakeCastReceiverDiscovery(
+      script: [
+        [receiver('客厅电视')],
+      ],
+    );
+    final picked = ValueNotifier<CastPrepOutcome?>(null);
+    addTearDown(picked.dispose);
+
+    await pumpHost(
+      tester,
+      discovery: discovery,
+      presence: FakeVideoCopyPresence(),
+      picked: picked,
+      requestOf: requestWithRange,
+      // 手动倍率 0.5：默认只勾 0.5×（那一档收得住范围）。
+      manualRate: 0.5,
+    );
+    await tester.tap(find.byKey(const Key('cast_choice_picture')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(kCastPrepSentenceSoundOnlyTail),
+      findsNothing,
+      reason: '只有 0.5× 一档时视频要重编码，范围收得住，别说假话',
+    );
+
+    // 勾上 1×（复制档）：这次就会有从片头放到片尾的那一份。
+    await tester.tap(find.byKey(castPrepTierKey(CastSpeedTier.full)));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(kCastPrepSentenceSoundOnlyTail),
+      findsOneWidget,
+      reason: '备的档里有 1× 复制档，那一份收不住首尾线',
+    );
   });
 
   // ---- 投屏准备记忆（票 #40）：按舞预置与回写 ----

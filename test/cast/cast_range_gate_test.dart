@@ -120,7 +120,7 @@ void main() {
         ),
       );
 
-      expect(castRangeVideoNodes(tail), <String>[
+      expect(tail?.videoNodes, <String>[
         'trim=start=0:end=5',
         'setpts=PTS-STARTPTS',
       ]);

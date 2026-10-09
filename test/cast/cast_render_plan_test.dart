@@ -775,7 +775,7 @@ void main() {
       expect(arguments, containsAllInOrder(['-b:v', '8M']));
     });
 
-    test('720p 档：链尾钉高 720 行、宽度按源比例，码率 4M', () {
+    test('720p 档：链尾高度封在 720 行（只降不升）、宽度按源比例，码率 4M', () {
       final arguments = args(
         choices: picture,
         resolution: CastRenderResolution.p720,
@@ -783,7 +783,10 @@ void main() {
 
       expect(
         filterOf(arguments),
-        contains('[0:v]scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]'),
+        contains(
+          "[0:v]scale=-2:'min(720,ih)',setsar=1,fps=30,format=yuv420p[vout]",
+        ),
+        reason: '高度取 min(720,ih)：裁切后不足 720 行的选区原样留着，不放大',
       );
       expect(arguments, containsAllInOrder(['-b:v', '4M']));
     });
@@ -807,7 +810,7 @@ void main() {
         filter,
         contains(
           ',scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
-          'scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]',
+          "scale=-2:'min(720,ih)',setsar=1,fps=30,format=yuv420p[vout]",
         ),
       );
     });
@@ -829,7 +832,10 @@ void main() {
       expect(videoCodecOf(arguments), kCastRenderVideoEncoder);
       expect(
         filterOf(arguments),
-        contains('[0:v]setpts=PTS/0.5,scale=-2:720,setsar=1,fps=30,format=yuv420p[vout]'),
+        contains(
+          "[0:v]setpts=PTS/0.5,scale=-2:'min(720,ih)',setsar=1,"
+          'fps=30,format=yuv420p[vout]',
+        ),
       );
       expect(arguments, containsAllInOrder(['-b:v', '4M']));
     });

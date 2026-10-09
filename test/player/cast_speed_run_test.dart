@@ -147,7 +147,12 @@ void main() {
 
       // 起投这一刻：只递出起投档那一份，会话已经推上去并起播。
       expect(delivery.served.map((file) => file.path), [startPath]);
-      expect(session().calls, ['push', 'play', 'supportedTransportActions']);
+      expect(session().calls, [
+        'push',
+        'play',
+        'supportedTransportActions',
+        'volume',
+      ]);
       expect(state().activeTier, CastSpeedTier.full);
       expect(state().renderFor(CastSpeedTier.full)!.ready, isTrue);
       expect(
@@ -213,6 +218,7 @@ void main() {
         'push',
         'play',
         'supportedTransportActions',
+        'volume',
         'pause',
         'seek',
       ]);
@@ -294,7 +300,7 @@ void main() {
         startPath,
         half.filePath,
       ]);
-      expect(session().calls.sublist(3), [
+      expect(session().calls.sublist(4), [
         'position',
         'push',
         'seek',

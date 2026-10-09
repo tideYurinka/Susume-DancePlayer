@@ -622,7 +622,7 @@ void main() {
     expect(local.currentVolume, 0.9);
   });
 
-  testWidgets('接收端有音量端点但不报音量：音量项按「不显示」收（不是显示 0）', (tester) async {
+  testWidgets('接收端有音量端点但起投探测问不到音量：判据说这一项不显示（不是显示 0）', (tester) async {
     setWideView(tester);
     final local = FakeSystemMediaVolumeController(currentVolume: 0.9);
     discovery = FakeCastReceiverDiscovery(
@@ -644,12 +644,14 @@ void main() {
     await startCast(tester);
     final cast = factory.sessions.single;
 
-    // 判据说音量这一项在（有端点），但接收端上报读不到 → 按「不显示」收。
+    // 起投探测把「有端点但读不到」折进判据本身（票 #38 的唯一判据口径）：
+    // 显示与否只看这一处，界面不再自己另判一遍。
     expect(
       containerOf(tester).read(castRemoteControlsProvider).showsVolume,
-      isTrue,
+      isFalse,
+      reason: '读不到音量 = 与「没有端点」同一个出口：不显示',
     );
-    expect(cast.calls, contains('volume'), reason: '进投屏态问过一次接收端音量');
+    expect(cast.calls, contains('volume'), reason: '起投探测问过一次接收端音量');
 
     containerOf(tester).read(playerSessionProvider.notifier).collapse();
     await tester.pumpAndSettle();

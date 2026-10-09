@@ -77,7 +77,11 @@ void main() {
       expect(factory.connectCalls, 1);
       expect(factory.lastReceiver?.friendlyName, '客厅电视');
       final cast = factory.sessions.single;
-      expect(cast.calls, ['push', 'play', 'supportedTransportActions']);
+      expect(
+        cast.calls,
+        ['push', 'play', 'supportedTransportActions', 'volume'],
+        reason: '起投探测同时问动作集与音量（问一次答一次）',
+      );
       expect(cast.pushedUri, delivery.url);
       expect(state().receiver?.friendlyName, '客厅电视');
       expect(state().active, isTrue);
@@ -142,13 +146,15 @@ void main() {
   });
 
   group('遥控项判据（接收端能力，票 #38）', () {
-    test('起投时问一次支持的动作：判据进运行账（音量端点由设备描述派生）', () async {
-      factory.configure = (session) => session.reportedActions =
-          const CastTransportActions({
-            CastTransportAction.play,
-            CastTransportAction.pause,
-            CastTransportAction.seek,
-          });
+    test('起投时问一次动作集与音量：判据与基线进运行账', () async {
+      factory.configure = (session) {
+        session.reportedActions = const CastTransportActions({
+          CastTransportAction.play,
+          CastTransportAction.pause,
+          CastTransportAction.seek,
+        });
+        session.reportedVolume = 0.4;
+      };
 
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
       await pumpEventQueue();
@@ -159,15 +165,25 @@ void main() {
       expect(
         controls.showsVolume,
         isTrue,
-        reason: '设备描述里有 RenderingControl 端点：音量遥控项显示',
+        reason: '端点在场且探测读到了上报值：音量遥控项显示',
       );
       expect(controls.showsStop, isFalse, reason: '设备没自述 Stop');
       expect(controls.shows(CastRemoteItem.progress), isTrue);
       expect(controls.shows(CastRemoteItem.playPause), isTrue);
       expect(controls.shows(CastRemoteItem.volume), isTrue);
+      expect(
+        state().reportedVolume,
+        closeTo(0.4, 1e-9),
+        reason: '同一次探测读到的值就是音量显示的基线',
+      );
+      expect(
+        factory.sessions.single.calls,
+        ['push', 'play', 'supportedTransportActions', 'volume'],
+        reason: '问一次答一次：音量与动作集各问一遍，都只在起投探测里',
+      );
     });
 
-    test('设备描述里没有 RenderingControl 端点：音量项不显示', () async {
+    test('设备描述里没有 RenderingControl 端点：音量项不显示，也不问音量', () async {
       final noVolume = CastReceiver(
         id: 'udn-无音量端点',
         friendlyName: '无音量端点',
@@ -182,6 +198,30 @@ void main() {
 
       expect(state().remoteControls.showsVolume, isFalse);
       expect(state().remoteControls.showsPlayPause, isTrue);
+      expect(state().reportedVolume, isNull);
+      expect(
+        factory.sessions.single.calls,
+        isNot(contains('volume')),
+        reason: '没有端点就不问（省一次注定失败的往返）',
+      );
+    });
+
+    test('有端点但设备不报音量：音量项不显示（不是显示 0）', () async {
+      factory.configure = (session) => session.volumeError =
+          const CastActionRefused('设备不报音量');
+
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+
+      expect(
+        state().remoteControls.showsVolume,
+        isFalse,
+        reason: '「问不到音量」与「没有端点」收敛到同一个出口',
+      );
+      expect(state().reportedVolume, isNull);
+      expect(state().remoteControls.showsPlayPause, isTrue, reason: '动作集那一路不受影响');
+      expect(state().active, isTrue, reason: '探测失败不该把投屏整条收掉');
+      expect(interruptedNotices(), 0);
     });
 
     test('探测失败（设备不答 / 掉线）：收敛到「哪一项都不显示」，会话照旧', () async {
@@ -217,14 +257,20 @@ void main() {
       );
     });
 
-    test('音量：读接收端上报值、写 SetVolume；没端点时问都不问', () async {
+    test('音量：读的是起投探测读到的那条上报值、写 SetVolume', () async {
+      factory.configure = (session) => session.reportedVolume = 0.4;
+
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
       await pumpEventQueue();
       final cast = factory.sessions.single;
-      cast.reportedVolume = 0.4;
+      final afterProbe = List.of(cast.calls);
 
       expect(await run().reportedVolume(), closeTo(0.4, 1e-9));
-      expect(cast.calls, contains('volume'));
+      expect(
+        cast.calls,
+        afterProbe,
+        reason: '读显示值不再向接收端问一遍（探测那一次就是唯一一次）',
+      );
 
       await run().setVolume(0.7);
       expect(cast.volumes, [0.7]);
@@ -236,12 +282,19 @@ void main() {
       expect(cast.volumes, [0.7]);
     });
 
-    test('设备不报音量：读为 null、静默降级（不把投屏收掉）', () async {
+    test('有端点但起投探测问不到音量：读为 null、写是空操作（静默降级）', () async {
+      factory.configure = (session) =>
+          session.volumeError = const CastActionRefused('不报音量');
+
       await run().start(receiver: receiverNamed('客厅电视'), file: file);
       await pumpEventQueue();
-      factory.sessions.single.volumeError = const CastActionRefused('不报音量');
 
       expect(await run().reportedVolume(), isNull);
+      expect(
+        factory.sessions.single.volumes,
+        isEmpty,
+        reason: '判据说这一项不显示：写也不发出去',
+      );
       expect(state().active, isTrue);
       expect(interruptedNotices(), 0);
     });
@@ -328,8 +381,8 @@ void main() {
       final second = factory.sessions.last;
       expect(
         second.calls,
-        ['push', 'play', 'supportedTransportActions'],
-        reason: '会话被重新推片 + 起播，并重新问一次遥控项判据',
+        ['push', 'play', 'supportedTransportActions', 'volume'],
+        reason: '会话被重新推片 + 起播，并重新问一次遥控项判据（含音量）',
       );
       expect(second.pushedUri, delivery.channels.last.url);
       expect(state().receiver?.friendlyName, '卧室盒子');
@@ -388,6 +441,7 @@ void main() {
         'push',
         'play',
         'supportedTransportActions',
+        'volume',
         'pause',
         'seek',
         'play',

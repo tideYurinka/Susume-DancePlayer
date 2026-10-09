@@ -18,15 +18,22 @@ final screenBrightnessControllerProvider = Provider<ScreenBrightnessController>(
 /// 系统媒体音量控制注入点（右半屏上下滑调系统媒体音量）：
 /// 真实实现走平台通道（AudioManager STREAM_MUSIC，与侧键同源）；测试注入
 /// fake 断言调用（见 `test/helpers/fake_system_volume.dart`）。
+///
+/// **生产的手势音量走下面那条**（[gestureVolumeControllerProvider]，按会话模式
+/// 分派）；这一条在生产路径上只剩「本机那一半」——它被手势那条包在里面用，
+/// 其余消费者是测试里的 override（那些用例验的是非投屏行为，不受分派影响）。
+/// 两条并存的理由见 `cast_volume.dart` 的库头：收成一条要同时改动一批既有
+/// 用例的注入面，收益只是少一层 Provider。
 final systemMediaVolumeControllerProvider =
     Provider<SystemMediaVolumeController>(
       (ref) => PlatformSystemMediaVolumeController(),
     );
 
 /// 手势用的音量控制器（[LevelControl] 的注入点）：**按会话模式分派**——投屏
-/// 态读写接收端（投屏会话的 `setVolume` / 接收端上报值），其余读写
+/// 态读写接收端（投屏会话的 `setVolume` / 起投探测读到的上报值），其余读写
 /// [systemMediaVolumeControllerProvider]（本机系统媒体音量，行为逐位不变）。
-/// 手势层只认这一条接缝，不新起第二条写入支路。
+/// 手势层只认这一条接缝（`player_page.dart` 把它交给 `LevelControl`），不新起
+/// 第二条写入支路。
 final gestureVolumeControllerProvider = Provider<SystemMediaVolumeController>(
   (ref) => CastAwareSystemMediaVolumeController(
     local: ref.watch(systemMediaVolumeControllerProvider),
@@ -45,27 +52,26 @@ final gestureVolumeControllerProvider = Provider<SystemMediaVolumeController>(
 ///   归一化并累加到当前值（钳 0..1），随后写回对应系统面；返回值供手势
 ///   反馈层显示滑条填充。音量写入失败静默（平台通道未注册的测试环境），
 ///   亮度写入照既有路径不吞错；
-/// - [refreshVolume]：会话模式切换时重取音量基准（投屏态取**接收端上报**的
-///   音量，见 [isCasting] 与 [volumeAvailable]）；
+/// - [adoptReportedVolume] / [refreshVolume]：会话模式切换时重取音量基准
+///   （投屏态取**接收端上报**的音量，见 `cast_volume.dart` 的
+///   `CastAwareSystemMediaVolumeController`）；
 /// - [dispose]：取消音量流订阅。
 ///
+/// **「音量这一项显不显示」不在这里**（票 #38）：遥控项的显示由投屏域的能力
+/// 判据一处回答（`cast_session.dart` 的 `CastRemoteControls.shows`）。本域只管
+/// **取值**——接收端报得上（[adoptReportedVolume] 给值）就把上报值当基准，
+/// 读不到就保持现值、不显示 0；界面那边不再读本域另判一遍。
+///
 /// 单向依赖：本域只依赖两个接缝接口（[ScreenBrightnessController] /
-/// [SystemMediaVolumeController]）与一个模式谓词（[isCasting]），不读构建
-/// 上下文、不碰容器中枢。
+/// [SystemMediaVolumeController]），不读构建上下文、不碰容器中枢。
 class LevelControl {
   LevelControl({
     required this._brightnessController,
     required this._volumeController,
-    this._isCasting,
   });
 
   final ScreenBrightnessController _brightnessController;
   final SystemMediaVolumeController _volumeController;
-
-  /// 现在是不是投屏态（现读闭包；缺省 = 不是）：投屏态下音量读数取自接收端，
-  /// **读不到 = 音量遥控项不显示**（[volumeAvailable]），不是显示 0；非投屏态
-  /// 读不到沿用默认基准（既有口径，行为逐位不变）。
-  final bool Function()? _isCasting;
 
   StreamSubscription<double>? _volumeSubscription;
 
@@ -80,12 +86,6 @@ class LevelControl {
   /// 基线读取到达时，跳过基线写入——外部新值不被读取返回的陈旧值覆盖。
   bool _volumeBaselineReady = false;
 
-  /// 音量这一项现在可不可显示 / 可不可调（0..1 读数取得到吗）。**投屏态**下
-  /// 由接收端上报是否问得到决定：问不到 = 不显示（不是显示 0，见
-  /// [refreshVolume]）；非投屏态恒 true（既有口径：平台通道读不到也照常给
-  /// 手势一个默认基准，行为逐位不变）。
-  bool _volumeAvailable = true;
-
   /// 会话已收尾：异步基线读取晚于 [dispose] 返回时不再写取值（既有
   /// 「widget 已卸载则不写」的生命周期口径）。
   bool _disposed = false;
@@ -95,10 +95,6 @@ class LevelControl {
 
   /// 当前系统媒体音量（0..1）。
   double get volume => _volume;
-
-  /// 音量这一项现在可不可显示 / 可不可调：投屏态内接收端不报音量时为 false
-  /// （音量遥控项不显示——**不是**显示一个 0）；其余恒 true。
-  bool get volumeAvailable => _volumeAvailable;
 
   /// 本次手势会话的起手快照：首次调节动作时记录当时的取值，取消收尾写回；
   /// null = 本会话未产生过该轴的调节动作。
@@ -120,24 +116,36 @@ class LevelControl {
     );
   }
 
-  /// 重新取一次音量基准（**会话模式切换时**调用，票 #38）：投屏态下控制器
-  /// 读的是**接收端上报**的音量，非投屏读的是本机系统媒体音量——进投屏态
-  /// 与断开投屏各重取一次，屏上的读数才跟着「现在是谁在出声」走。
+  /// 会话模式切换时更新音量基准（票 #38）。**投屏态**传起投探测那一次读到的
+  /// 接收端上报值（`cast_run.dart` 的 `CastRunState.reportedVolume`）——它与
+  /// 「音量遥控项显不显示」出自同一次探测，于是屏上的读数与那一项的在不在
+  /// 不会互相打脸；没有可用的上报值（没端点 / 设备不答 / 非投屏）时传 null，
+  /// 退到 [refreshVolume] 按当前会话模式读一次控制器（非投屏 = 本机系统媒体
+  /// 音量，行为逐位不变）。
   ///
-  /// 读取失败（平台通道未注册的测试环境 / 接收端不报音量）：**投屏态下按
-  /// 「这一项不显示」收**（[volumeAvailable] = false——不是显示一个 0）；非
-  /// 投屏态保持现值（既有口径，不阻塞手势）。下一次读成功即恢复可显示。
+  /// 读出结果一律**只更新取值**：读失败保持现值（不是显示一个 0），可不可
+  /// 显示由投屏域那一条判据回答。
+  Future<void> adoptReportedVolume(double? reported) async {
+    if (_disposed) return;
+    if (reported == null) return refreshVolume();
+    _volume = reported.clamp(0.0, 1.0);
+    _volumeBaselineReady = true;
+  }
+
+  /// 重新读一次音量基准（**会话模式切换时**调用，票 #38）：投屏态下控制器
+  /// 读的是**接收端上报**的音量，非投屏读的是本机系统媒体音量——进投屏态
+  /// 与断开投屏各走一次，屏上的读数才跟着「现在是谁在出声」走。
+  ///
+  /// 读取失败（平台通道未注册的测试环境 / 接收端不报音量）：保持现值，
+  /// 不阻塞手势、也不显示一个 0。
   Future<void> refreshVolume() async {
     try {
       final value = await _volumeController.volume;
       if (_disposed) return;
       _volume = value.clamp(0.0, 1.0);
-      _volumeAvailable = true;
       _volumeBaselineReady = true;
     } on Object {
-      if (_isCasting?.call() ?? false) {
-        _volumeAvailable = false;
-      }
+      // 保持现值：显示面（音量滑条）取的就是这个值。
     }
   }
 

@@ -1,12 +1,22 @@
 /// 投屏期的音量接缝（票 #38）：音量手势的**写入路径按会话模式分派**——
 /// 非投屏走既有的系统媒体音量接缝（`system_volume.dart`），投屏走**投屏
-/// 会话**的 `setVolume` / `volume`（接收端上报值）。
+/// 会话**的 `setVolume` / `reportedVolume`（起投探测读到的接收端上报值）。
 ///
 /// 手势层只认 [SystemMediaVolumeController] 这一条接缝（见 `level_control.dart`
 /// 的 `LevelControl`）：本文件的 [CastAwareSystemMediaVolumeController] 是它的
 /// 一个实现——**不新起第二条写入支路**，投屏与否只在这里分流。真实接收端侧
 /// 的读写由 [CastVolume] 的实现（`cast_run.dart` 的 `CastRunModel`）承担：它
-/// 自己收口失败（掉线收口、问不到静默降级），本层不碰网络。
+/// 自己收口失败（掉线由别的遥控动作与回前台续上负责收口、问不到静默降级），
+/// 本层不碰网络。
+///
+/// ## 两条音量 provider 为什么都活着
+///
+/// 生产的手势音量走 `level_control.dart` 的 `gestureVolumeControllerProvider`
+/// （就是本类）；`systemMediaVolumeControllerProvider` 是它包在里面的那一半
+/// （本机系统媒体音量），其余消费者是测试里按它注入假件的既有用例——那些用例
+/// 验的是**非投屏行为**，与分派无关。收成一条要同时改那批用例的注入面，而这两
+/// 条的语义本来就是「分派器 + 被分派的本机那一半」，因此保持现状、在此点明：
+/// **手势音量走 [CastAwareSystemMediaVolumeController] 这一条**。
 library;
 
 import 'system_volume.dart';

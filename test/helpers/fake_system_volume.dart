@@ -13,11 +13,18 @@ class FakeSystemMediaVolumeController implements SystemMediaVolumeController {
   /// 控制器一致：写入口即钳制语义）。
   final List<double> setCalls = [];
 
+  /// 读当前音量（[volume]）被问过几次——断言「投屏态那个值来自哪一次探测、
+  /// 有没有再多问一遍控制器」用。
+  int readCalls = 0;
+
   final StreamController<double> _changes =
       StreamController<double>.broadcast();
 
   @override
-  Future<double> get volume async => currentVolume;
+  Future<double> get volume async {
+    readCalls++;
+    return currentVolume;
+  }
 
   @override
   Future<void> setVolume(double value) async {

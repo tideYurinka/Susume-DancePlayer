@@ -118,21 +118,24 @@ bool castRangeActive(CastRange? range, Duration videoDuration) =>
 /// 这次**生效的范围**（null = 收整片）——复制档明确不收（见库头）。
 CastRange? castActiveRangeOf(CastRenderRequest request) {
   // 复制档（`-c:v copy`）：视频流原样复制，滤镜链碰不到它，范围切不动。
-  final reencodeVideo =
-      request.choices.picture || request.speedTier != CastSpeedTier.full;
-  if (!reencodeVideo) return null;
+  // 「这次要不要重编码视频」问的是唯一那一处判据
+  // （`cast_render_request.dart` 的 `castRenderReencodesVideo`），不在这里手写
+  // 第二份同样的条件。
+  if (!castRenderReencodesVideo(request.choices, request.speedTier)) {
+    return null;
+  }
   return castRangeActive(request.range, request.duration)
       ? request.range
       : null;
 }
 
-/// 画面链里要装的**范围节点**（无范围 = 空表）。
-List<String> castRangeVideoNodes(CastRange? range) =>
-    range == null ? const [] : range.videoNodes;
-
-/// 音轨链里要装的**范围节点**（无范围 = 空表）。
-List<String> castRangeAudioNodes(CastRange? range) =>
-    range == null ? const [] : range.audioNodes;
+/// 一串滤镜节点 → 它们在**滤镜链里的前缀写法**：空表给空串，否则把节点用
+/// `,` 连起来再补一个尾逗号（好接在链的下一段前面）。
+///
+/// 链上三处（范围画面节点、范围音轨节点、取景那条内容节点）都是这个形状：
+/// 「有就接上、没有就一个字不写」——收成一处，免得每处各写一遍前缀拼接。
+String castFilterNodesPrefix(List<String> nodes) =>
+    nodes.isEmpty ? '' : '${nodes.join(',')},';
 
 /// 这份请求的副本覆盖的**源时间跨度**：范围生效 = 那一段；否则整片。
 Duration castCopySourceDurationOf(CastRenderRequest request) {

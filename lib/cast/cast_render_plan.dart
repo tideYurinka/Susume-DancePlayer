@@ -63,7 +63,9 @@
 /// ## 分辨率档：链尾一个缩放节点（#36）
 ///
 /// 画面链尾按**渲染分辨率档**装缩放：源档一个节点都不加（链路与今天逐字
-/// 一致）；720p 档在 `fps` 之前插一枚 `scale=-2:720,setsar=1`——只钉高 720 行、
+/// 一致）；720p 档在 `fps` 之前插一枚 `scale=-2:'min(720,ih)',setsar=1`——
+/// 高过 720 行才降、**不足 720 行原样留着**（只降不升；取景窗口小于 720 行时
+/// 放大与「不足以 1× 实时就宁可降分辨率」相反，见 `cast_encoder_realtime.dart`），
 /// 宽度按源画面比例现算（`-2` 顺带保证偶数），**不拉伸**画面，方像素由那条
 /// `setsar=1` 钉住（`scale` 自己会改 SAR 去保 DAR）。码率跟着档走
 /// （源 8M / 720p 4M）。它同样只在**视频真重编码**时才进命令：只勾声音 + 1×
@@ -95,14 +97,6 @@ const int kCastRenderFps = 30;
 const String kCastRenderAudioBitrate = '192k';
 const int kCastRenderSampleRate = 48000;
 const int kCastRenderChannels = 2;
-
-/// 这一档这次要不要**重编码视频**。
-///
-/// 勾了画面类当然要（画面内容要烤进去）；只勾声音类时只有**非 1× 档**要
-/// （`-c:v copy` 改不了时长）。准备面板那句「这一份降到 720p」按它决定说不说：
-/// 视频原样复制的档没有可降的编码，说了就是假话（#36）。
-bool castRenderReencodesVideo(CastRenderChoices choices, CastSpeedTier tier) =>
-    choices.picture || tier != CastSpeedTier.full;
 
 /// 装配一条投屏渲染命令。
 ///
@@ -181,11 +175,15 @@ List<String> buildCastRenderArguments({
   final filters = <String>[];
   // **范围**（#37）：首线→尾线，源时间轴上的半开区间。复制档明确不收（见
   // `cast_range_gate.dart` 库头），故这里拿到非空范围的档，视频一定在重编码。
+  // 节点由**范围自己**给（`CastRange.videoNodes` / `audioNodes`），前缀拼接
+  // 走 `cast_range_gate.dart` 那一处共用件——链上三处形状一致，不各写一遍。
   final range = castActiveRangeOf(request);
-  final rangeVideo = castRangeVideoNodes(range);
-  final rangeAudio = castRangeAudioNodes(range);
-  final rangeVideoPrefix = rangeVideo.isEmpty ? '' : '${rangeVideo.join(',')},';
-  final rangeAudioPrefix = rangeAudio.isEmpty ? '' : '${rangeAudio.join(',')},';
+  final rangeVideoPrefix = castFilterNodesPrefix(
+    range == null ? const [] : range.videoNodes,
+  );
+  final rangeAudioPrefix = castFilterNodesPrefix(
+    range == null ? const [] : range.audioNodes,
+  );
   // **音轨要不要重编码**：勾了声音类（拍声要混进这条轨）、非 1× 档（复制改不了
   // 时长——视频按 `setpts` 缩放了，音轨不跟就会与画面错开）、或范围生效（复制
   // 改不了范围）。三者都是「`-c:a copy` 做不到」的事；只有「1× + 无范围 + 不勾
@@ -244,7 +242,7 @@ List<String> buildCastRenderArguments({
         'format=yuv420p[vout]',
       );
     } else {
-      final contentPrefix = content.isEmpty ? '' : '${content.join(',')},';
+      final contentPrefix = castFilterNodesPrefix(content);
       filters.add(
         '[0:v]$contentPrefix$rangeVideoPrefix$speed$scaleNode'
         'fps=$kCastRenderFps,format=yuv420p[vout]',

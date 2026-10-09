@@ -31,12 +31,13 @@
 ///   三个动作都**不抛**：失败由本域收口（断开 + 回编辑态 + 短暂提示），本机
 ///   播放不因一次投屏失败被带停。
 /// - **遥控项判据与音量**（票 #38）：起投时问一次接收端支持哪些传输动作，
-///   连同设备描述里有没有音量端点算成 [CastRemoteControls] 放进 [state]——
+///   连同**这次探测读到的音量**算成 [CastRemoteControls] 放进 [state]——
 ///   界面那三枚遥控项（进度 / 播放暂停 / 音量）显不显示只读它
-///   （[castRemoteControlsProvider]）；判据说「不显示」的那一枚，遥控一条都
-///   不发（[_mirror] 先过判据）。**音量**读写经 [CastVolume] 口：
-///   [setVolume] 写接收端、[reportedVolume] 读接收端上报值（问不到 = null，
-///   静默降级），音量手势的那条接缝按会话模式分派到这里（`cast_volume.dart`）。
+///   （[castRemoteControlsProvider]），音量那枚**不许再叠第二个条件**；判据
+///   说「不显示」的那一枚，遥控一条都不发（[_mirror] 先过判据）。**音量**的
+///   写入经 [CastVolume] 口：[setVolume] 写接收端，音量显示的基线取
+///   [CastRunState.reportedVolume]（起投探测那一次的上报值，问不到就按
+///   「不显示」收）——手势的那条接缝按会话模式分派到这里（`cast_volume.dart`）。
 ///
 /// ## 一档一份副本、先投后渲
 ///
@@ -220,7 +221,8 @@ class CastRunState {
       activeTier = CastSpeedTier.full,
       tiers = const [],
       switching = false,
-      remoteControls = const CastRemoteControls.none();
+      remoteControls = const CastRemoteControls.none(),
+      reportedVolume = null;
 
   const CastRunState.casting(
     this.receiver, {
@@ -228,6 +230,7 @@ class CastRunState {
     this.tiers = const [],
     this.switching = false,
     this.remoteControls = const CastRemoteControls.none(),
+    this.reportedVolume,
   });
 
   /// 正投的那台接收端；null = 没投。
@@ -242,10 +245,16 @@ class CastRunState {
   /// 换档过程中（过程态：换文件 + 换算位置 + 等接收端起播）。
   final bool switching;
 
-  /// **遥控项判据**（票 #38）：起投时问一次接收端支持哪些传输动作、连同
-  /// 设备描述里有没有音量端点算出来的那一份。**探测不到 / 探测失败 = 空集**
-  /// （哪一项都不显示，见 `cast_session.dart`）；未投屏也是空集。
+  /// **遥控项判据**（票 #38）：起投时问一次接收端支持哪些传输动作、连同**这次
+  /// 探测读到的音量**算出来的那一份。**探测不到 / 探测失败 = 空集**（哪一项都
+  /// 不显示，见 `cast_session.dart`）；未投屏也是空集。
   final CastRemoteControls remoteControls;
+
+  /// 起投探测那一次读到的**接收端上报音量**（0..1；null = 没端点 / 设备不答 /
+  /// 探测失败）。它与 [remoteControls] 的 `showsVolume` 由同一次探测一起定
+  /// （`castVolumeReported`），音量显示的**基线**取它就够——界面因此不必自己
+  /// 再问接收端一遍（票 #38 的「问一次答一次」）。
+  final double? reportedVolume;
 
   bool get active => receiver != null;
 
@@ -273,12 +282,14 @@ class CastRunState {
     List<CastTierRender>? tiers,
     bool? switching,
     CastRemoteControls? remoteControls,
+    double? reportedVolume,
   }) => CastRunState.casting(
     receiver,
     activeTier: activeTier ?? this.activeTier,
     tiers: tiers ?? this.tiers,
     switching: switching ?? this.switching,
     remoteControls: remoteControls ?? this.remoteControls,
+    reportedVolume: reportedVolume ?? this.reportedVolume,
   );
 
   @override
@@ -288,6 +299,7 @@ class CastRunState {
       other.activeTier == activeTier &&
       other.switching == switching &&
       other.remoteControls == remoteControls &&
+      other.reportedVolume == reportedVolume &&
       other.tiers.length == tiers.length &&
       other.tiers.every(tiers.contains);
 
@@ -297,6 +309,7 @@ class CastRunState {
     activeTier,
     switching,
     remoteControls,
+    reportedVolume,
     Object.hashAll(tiers),
   );
 
@@ -306,6 +319,25 @@ class CastRunState {
             '${tiers.map((t) => t.status.name).join('/')}'
             '${switching ? ', switching' : ''}, $remoteControls)'
       : 'idle';
+}
+
+/// 起投那一次**遥控项探测**的读数：判据 + 读到的那条接收端音量。
+///
+/// 两者出自**同一次**探测（`CastRunModel._probeRemoteControls`）：判据里的
+/// `showsVolume` 由「有端点 ∧ 读到了值」折出来（[castVolumeReported]），读到
+/// 的值本身留给音量滑条的基线用。一个值对象而不是两个字段，是因为这两样一旦
+/// 分头去问，就会出现「判据说显示、基线却读不到」的自相矛盾现场。
+class CastRunControlsProbe {
+  const CastRunControlsProbe({
+    required this.controls,
+    required this.reportedVolume,
+  });
+
+  /// 「哪些遥控项显示」的唯一判据。
+  final CastRemoteControls controls;
+
+  /// 探测这次读到的接收端音量（会读不到时 null）。
+  final double? reportedVolume;
 }
 
 /// 投屏运行域：当前这条投屏会话、递出通道与倍速档账的唯一持有者。
@@ -393,11 +425,14 @@ class CastRunModel extends Notifier<CastRunState>
       await session.push(source);
       await session.play();
       // **遥控项判据**：连上之后「问一次答一次」——接收端此刻支持哪些传输
-      // 动作 + 设备描述里有没有音量端点。探测失败（不答 / 掉线）收敛到空集，
+      // 动作 + 这次探测读到的音量。探测失败（不答 / 掉线）收敛到空集，
       // 不把会话收掉、不向上抛（见 [CastRemoteControls]）。
-      final controls = await _probeRemoteControls(session, receiver);
+      final probe = await _probeRemoteControls(session, receiver);
       if (!identical(_session, session)) return;
-      state = state._with(remoteControls: controls);
+      state = state._with(
+        remoteControls: probe.controls,
+        reportedVolume: probe.reportedVolume,
+      );
     } on Object {
       await _teardown();
       // 起投失败一律回编辑态：新投那条路径本就没离开过编辑态（exitCast 是
@@ -411,10 +446,17 @@ class CastRunModel extends Notifier<CastRunState>
     _startBackgroundRenders(effectivePlan);
   }
 
-  /// 问一次接收端此刻支持哪些传输动作，连同设备描述里有没有 RenderingControl
-  /// 端点算成那份**遥控项判据**。**探测不到 / 探测失败一律空集**——与设备
-  /// 确实不支持同一个出口（「不显示」），静默降级。
-  Future<CastRemoteControls> _probeRemoteControls(
+  /// 问一次接收端此刻支持哪些传输动作，连同**这次探测读到的音量**算成那份
+  /// **遥控项判据**。**探测不到 / 探测失败一律空集**——与设备确实不支持同一个
+  /// 出口（「不显示」），静默降级。
+  ///
+  /// 音量那一位与动作集在**同一处、同一次**问出来（起投探测「问一次答一次」）：
+  /// 设备描述里有 RenderingControl 端点不等于答得上 `GetVolume`，所以这里顺手
+  /// 读一次上报值（读不到 / 抛错 = 那一项不显示）。界面侧的「显不显示」因此
+  /// 只问 [CastRemoteControls.shows] 一处，没有第二个自判条件；这次读到的值
+  /// 另存进 [CastRunState.reportedVolume] 给音量滑条的基线用（`cast_volume.dart`
+  /// 的显示路径），于是界面不必自己再问一遍接收端。
+  Future<CastRunControlsProbe> _probeRemoteControls(
     CastSession session,
     CastReceiver receiver,
   ) async {
@@ -422,11 +464,29 @@ class CastRunModel extends Notifier<CastRunState>
     try {
       actions = await session.supportedTransportActions();
     } on Object {
-      return const CastRemoteControls.none();
+      return const CastRunControlsProbe(
+        controls: CastRemoteControls.none(),
+        reportedVolume: null,
+      );
     }
-    return CastRemoteControls.of(
-      actions: actions,
-      hasVolumeControl: receiver.controlUrls.renderingControl != null,
+    double? volume;
+    if (receiver.controlUrls.renderingControl != null) {
+      try {
+        volume = await session.volume();
+      } on Object {
+        // 设备不答 / 掉线：与「没有端点」同一个出口（不显示），不把会话收掉。
+        volume = null;
+      }
+    }
+    return CastRunControlsProbe(
+      controls: CastRemoteControls.of(
+        actions: actions,
+        hasVolumeControl: castVolumeReported(
+          hasVolumeEndpoint: receiver.controlUrls.renderingControl != null,
+          probedVolume: volume,
+        ),
+      ),
+      reportedVolume: volume,
     );
   }
 
@@ -553,23 +613,15 @@ class CastRunModel extends Notifier<CastRunState>
   Future<void> setVolume(double volume) =>
       _mirror(CastRemoteItem.volume, (session) => session.setVolume(volume));
 
-  /// 读接收端此刻上报的音量；**没有音量端点 / 问不到 / 未投屏一律 null**
-  /// （静默降级——不拿一次探测把投屏整条收掉，也不在界面上显示一个 0）。
-  /// 掉线照既有失败收口走一遍。
+  /// 接收端此刻上报的音量——**起投探测那一次读到的值**
+  /// （[CastRunState.reportedVolume]）：没有端点 / 设备不答 / 问不到的一律 null。
+  ///
+  /// 它**不再自己向会话问一遍**（票 #38 的口径：探测「问一次答一次」）。这样
+  /// 音量滑条的基线与「这一项显不显示」出自同一次读数，不会出现「判据说显示、
+  /// 基线却读不到」的自相矛盾现场。掉线那一支由别的遥控动作与回前台续上负责
+  /// 收口，一次读数不承担失败面。
   @override
-  Future<double?> reportedVolume() async {
-    final session = _session;
-    if (session == null) return null;
-    if (!state.remoteControls.shows(CastRemoteItem.volume)) return null;
-    try {
-      return await session.volume();
-    } on CastSessionDropped {
-      await _fail();
-      return null;
-    } on Object {
-      return null;
-    }
-  }
+  Future<double?> reportedVolume() async => state.reportedVolume;
 
   Future<void> _mirror(
     CastRemoteItem item,

@@ -86,6 +86,21 @@ enum CastSpeedTier {
   final String token;
 }
 
+/// 这一档这次要不要**重编码视频**。
+///
+/// 勾了画面类当然要（画面内容要烤进去）；只勾声音类时只有**非 1× 档**要
+/// （`-c:v copy` 改不了时长）。它是这一维的**唯一判据**：命令装配
+/// （`cast_render_plan.dart`）与范围闸门（`cast_range_gate.dart` 的
+/// `castActiveRangeOf`：复制档收不了范围）都读它，谁也不手写第二份；准备面板
+/// 那句「这一份降到 720p」也按它决定说不说（视频原样复制的档没有可降的编码，
+/// 说了就是假话，`#36`）。
+///
+/// 它住在这里（请求与勾选档的旁边）而不是命令装配那一侧，是因为它的输入只有
+/// [CastRenderChoices] 与 [CastSpeedTier]，而读到它的一方（范围闸门）不该因此
+/// 依赖整条命令行的装配件。
+bool castRenderReencodesVideo(CastRenderChoices choices, CastSpeedTier tier) =>
+    choices.picture || tier != CastSpeedTier.full;
+
 /// **影响渲染产物的设置快照**（规格里的「影响画面的设置快照」，声音类那几项
 /// 同样收在这里——见库头）。
 ///

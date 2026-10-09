@@ -59,6 +59,47 @@ void main() {
       );
       expect(none, const CastRemoteControls.none());
     });
+
+    test('音量那一位：有端点**且**探测读到值才算「能读」', () {
+      // 端点在场、探测读到 0.4：这一位进判据，音量项显示。
+      expect(
+        castVolumeReported(hasVolumeEndpoint: true, probedVolume: 0.4),
+        isTrue,
+      );
+      // 端点在场、探测没读到（设备不答 / 掉线）：与「没有端点」同一个出口。
+      expect(
+        castVolumeReported(hasVolumeEndpoint: true, probedVolume: null),
+        isFalse,
+      );
+      // 没有端点：连问都不问，当然也不显示。
+      expect(
+        castVolumeReported(hasVolumeEndpoint: false, probedVolume: 0.4),
+        isFalse,
+      );
+      expect(
+        castVolumeReported(hasVolumeEndpoint: false, probedVolume: null),
+        isFalse,
+      );
+    });
+
+    test('判据逐项读法：显不显示由 shows 一处回答（含音量）', () {
+      final controls = CastRemoteControls.of(
+        actions: parseCastTransportActions('Play,Seek'),
+        // 「有端点但读不到」折出来的那一位。
+        hasVolumeControl: castVolumeReported(
+          hasVolumeEndpoint: true,
+          probedVolume: null,
+        ),
+      );
+
+      expect(controls.shows(CastRemoteItem.playPause), isTrue);
+      expect(controls.shows(CastRemoteItem.progress), isTrue);
+      expect(
+        controls.shows(CastRemoteItem.volume),
+        isFalse,
+        reason: '读不到音量 = 不显示（界面不许再叠第二个条件）',
+      );
+    });
   });
 
   group('播放状态', () {
