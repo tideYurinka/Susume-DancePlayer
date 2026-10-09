@@ -101,6 +101,9 @@ void main() {
       framingSelection: framingSelection,
       stickers: stickers,
     );
+    // **装哪几条贴纸输入读的是与编排层同一条规则**（`castStagedStickerSlots`，
+    // `#21` 整改）：替身不再无条件为每条贴纸造输入（不勾画面类就一条不装）。
+    final slots = castStagedStickerSlots(request);
     return buildCastRenderArguments(
       request: request,
       outputPath: '/cache/a.part',
@@ -109,11 +112,11 @@ void main() {
             ? const CastRenderSidecar(path: '/cache/a.clicks.wav', index: 1)
             : null,
         stickers: [
-          for (var i = 0; i < stickers.length; i++)
+          for (var i = 0; i < slots.length; i++)
             CastStickerInput(
-              sticker: stickers[i],
+              sticker: stickers[slots[i]],
               sidecar: CastRenderSidecar(
-                path: '/cache/a.sticker$i.png',
+                path: '/cache/a.sticker${slots[i]}.png',
                 index: (sound ? 2 : 1) + i,
               ),
             ),
@@ -203,6 +206,8 @@ void main() {
     });
 
     test('贴纸只在勾了画面类时装上：只勾声音类不进滤镜图', () {
+      // 只勾声音类：这一次的暂存表里根本没有贴纸这一路（装哪几条由
+      // `castStagedStickerSlots` 回答，装配层照表落命令）。
       final arguments = graphOf(
         stickers: [sticker()],
         picture: false,

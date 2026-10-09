@@ -18,9 +18,10 @@
 /// - 逐字段缺席 → **只该字段**回默认（两个勾选档全选 / 档表回「与手动倍率
 ///   最接近的那一档」），其余字段仍按记忆；
 /// - 记住的档**已不可用**（记号不在当时候选里，例如日后砍掉一档或文件被手改）
-///   → 在**文档层边界**就被拦下（`persistence/local_document.dart` 的记号词表），
-///   这里读到的记号一律认得；档表空（= 对档位没有意见，与缺键同义）回默认那一
-///   档——「至少留一档」这条约束在预置时成立，预置绝不落成空集合。
+///   → 在**本域的值边界**就被拦下（[castPrepMemoryOf] 逐条按候选档认）——记号
+///   的**词表只有候选档那一处声明**（文档层不抄第二遍，认不得的记号原样往返）；
+///   档表空、或一条都没认下（= 对档位没有意见，与缺键同义）回默认那一档
+///   ——「至少留一档」这条约束在预置时成立，预置绝不落成空集合。
 ///
 /// ## 面板不认持久化
 ///
@@ -83,23 +84,22 @@ CastPrepMemory defaultCastPrepMemoryFor(double manualRate) => CastPrepMemory(
 /// 记忆字段 → 面板取值（**唯一**一处降级判据，见库头的三条）。
 ///
 /// [fields] 为 null（这支舞没有记忆记录）即整份回默认；逐字段缺席只让该字段
-/// 回默认；档表的记号已在文档层边界校验过，这里只做记号 → 档的一次换算，档表
-/// 空（与缺键同义）即回默认那一档。
+/// 回默认；档表**逐条按候选档认**——认不得的记号（未来的档、文件被手改、手写
+/// 构造塞进来的串）在这里当场处置掉，不当场炸（值类是公开面，任何调用方都能
+/// 构造）；全认不得与档表空同义（「没有意见」）即回默认那一档。
 CastPrepMemory castPrepMemoryOf(
   CastPrepMemoryFields? fields, {
   required double manualRate,
 }) {
   final fallback = defaultCastPrepMemoryFor(manualRate);
   if (fields == null) return fallback;
-  final tokens = fields.tiers;
+  final tiers = _tiersOf(fields.tiers);
   return CastPrepMemory(
     choices: CastRenderChoices(
       picture: fields.picture ?? fallback.choices.picture,
       sound: fields.sound ?? fallback.choices.sound,
     ),
-    tiers: tokens.isEmpty
-        ? fallback.tiers
-        : {for (final token in tokens) _tierByToken[token]!},
+    tiers: tiers.isEmpty ? fallback.tiers : tiers,
   );
 }
 
@@ -172,9 +172,14 @@ class CastPrepMemoryModel extends Notifier<CastPrepMemoryFields?> {
       state = castPrepMemoryFieldsOf(memory);
 }
 
-/// 档位记号 → 档：**记号词表在文档层边界校验**（`persistence/local_document.dart`
-/// 的 `kCastPrepTierTokens`，与这里的候选档由词表锁测试钉住），表里认不得的
-/// 记号到不了这里，故读侧是一次全命中查表。表由候选档派生，加减档只改枚举。
+/// 档位记号表 → 档集合：逐条按候选档认，**认不得的记号当场剔掉**（返回空集 =
+/// 一条都没认下，与空表同义）。
+Set<CastSpeedTier> _tiersOf(List<String> tokens) => {
+  for (final token in tokens) ?_tierByToken[token],
+};
+
+/// 档位记号 → 档：**记号词表在投屏域这一处**（候选档自己，加一档只改枚举）。
+/// 表里认不得的记号由 [castPrepMemoryOf] 的降级规则处置（不是查表硬取）。
 final Map<String, CastSpeedTier> _tierByToken = {
   for (final tier in kCastSpeedTierCandidates) tier.token: tier,
 };

@@ -16,20 +16,20 @@ const String kMediaRendererSearchTarget =
 
 /// 装配一条 M-SEARCH 请求（`ssdp:discover`）。
 ///
+/// 搜索目标恒是 [kMediaRendererSearchTarget]（投屏只认媒体渲染器），不是可配
+/// 项——报文里因此没有第二个取值。
+///
 /// `MX` 是设备应答前随机等待的秒数上界，UPnP 限定 **1–5 的整数**：不足一秒
 /// 按 1 发（`MX: 0` 会被设备直接忽略），超过五秒按 5 截住（发现不该为了
 /// 保底等待拖成十几秒）。
-String buildSsdpSearchRequest({
-  required Duration timeout,
-  String searchTarget = kMediaRendererSearchTarget,
-}) {
+String buildSsdpSearchRequest({required Duration timeout}) {
   final seconds = timeout.inMilliseconds / 1000;
   final mx = seconds < 1 ? 1 : (seconds > 5 ? 5 : seconds.floor());
   return 'M-SEARCH * HTTP/1.1\r\n'
       'HOST: $kSsdpMulticastAddress:$kSsdpMulticastPort\r\n'
       'MAN: "ssdp:discover"\r\n'
       'MX: $mx\r\n'
-      'ST: $searchTarget\r\n'
+      'ST: $kMediaRendererSearchTarget\r\n'
       '\r\n';
 }
 

@@ -41,9 +41,11 @@
 /// 面板打开即经能力查询接缝（`encoder_realtime_capability.dart`）问一次系统，
 /// 把三态折成**分辨率档**（`cast_encoder_realtime.dart`）：保证 → 保证档
 /// （画面上限收在问的那一档上），不保证与**问不到** → 720p。选接收端时这一档
-/// 与勾选档、倍速档一起进渲染请求（因此也进缓存键）。降级在这一处**当面说清**（
-/// [kCastPrepResolutionDowngradedText]）：宁可降分辨率，也不给用户一个未知
-/// 时长的进度条；不降级一个字都不多说。
+/// 与勾选档、倍速档一起进渲染请求（因此也进缓存键）。两档的**上限**都在这一处
+/// 当面说清（`#21` 整改）：降级那一句是 [kCastPrepResolutionDowngradedText]，
+/// 保证档那一句是 [kCastPrepResolutionCeilingText]（源片像素尺寸在 Dart 侧
+/// 拿不到，故只说上限、不猜源片多大）；只勾声音 + 1× 原样复制视频流、
+/// 链尾没有那个上限，两句都不说。
 ///
 /// ## 两条门都在面板里当场拦下并说明
 ///
@@ -138,6 +140,15 @@ const String kCastPrepBeatFreezeText =
 /// 等于没法保证（兜底口径见 `cast_encoder_realtime.dart`）。
 const String kCastPrepResolutionDowngradedText =
     '这台机器没法保证 1× 实时渲染：这一份降到 720p，进度才不至于没底';
+
+/// **保证档的画面上限那一句**（`#21` 整改）：保证档渲出来的画面**最高 1080
+/// 行**——问的那一档就是输出上限，源片比它高时（4K 源）会被收到这条线上，
+/// 而不是「按源分辨率渲」。
+///
+/// 源片的**像素尺寸在 Dart 侧拿不到**（播放内核只给宽高比），猜不出这一份源片
+/// 到底会不会被收，所以这句按**现在是什么**写：上限是这一档的事实，谁看都真。
+const String kCastPrepResolutionCeilingText =
+    '这一份的画面最高 1080 行：更高的源片会按 1080 行投出去';
 
 /// 正在渲染的那一句（后面带百分比）。
 const String kCastPrepRenderingText = '正在渲染投屏副本';
@@ -283,6 +294,15 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
   bool get _showsResolutionNote =>
       _capability != null &&
       _resolution == CastRenderResolution.p720 &&
+      _plan.tiers.any((tier) => castRenderReencodesVideo(_choices, tier));
+
+  /// **保证档的画面上限那一句**该不该出（`#21` 整改）：答案落在**保证档**、且
+  /// 这次真有视频要重编码——这一档的链尾把画面钉在 1080 行上，比它高的源片会
+  /// 被收到这条线上，得当场说清（User Story 28：不要无声地给一个更差的画面）。
+  /// 只勾声音 + 1× 是 `-c:v copy`，链尾那个上限根本不在命令里，一个字都不多
+  /// 说。答案没回来时 `_resolution` 按不可保证兜底（走的是降级那一侧）。
+  bool get _showsResolutionCeilingNote =>
+      _resolution == CastRenderResolution.p1080 &&
       _plan.tiers.any((tier) => castRenderReencodesVideo(_choices, tier));
 
   /// 只勾声音时那份**任一起投档**的请求（[kCastPrepSentenceSoundOnlyTail] 的
@@ -587,6 +607,21 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
                   style: TextStyle(
                     color: Colors.white54,
                     fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              // 保证档也有一条上限（#21 整改）：画面上限是问的那一档（1080
+              // 行），源片比它高就会被收到这条线上——按「现在是什么」说清，
+              // 不猜源片多大。只勾声音 + 1× 没有可降的编码，不说。
+              if (_showsResolutionCeilingNote) ...[
+                const SizedBox(height: 2),
+                const Text(
+                  kCastPrepResolutionCeilingText,
+                  key: Key('cast_resolution_ceiling'),
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
                     height: 1.4,
                   ),
                 ),

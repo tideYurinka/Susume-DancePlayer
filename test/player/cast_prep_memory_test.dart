@@ -3,7 +3,7 @@ import 'package:dance_learning_app/cast/cast_render_request.dart'
 import 'package:dance_learning_app/cast/cast_speed_tier.dart'
     show kCastSpeedTierCandidates;
 import 'package:dance_learning_app/persistence/local_document.dart'
-    show CastPrepMemoryFields, LocalDocument, kCastPrepTierTokens;
+    show CastPrepMemoryFields, LocalDocument;
 import 'package:dance_learning_app/player/cast_prep_memory.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -105,11 +105,11 @@ void main() {
       );
     });
 
-    test('已不可用的记号在文档层就拦下：域里只按可用的那几档预置', () {
-      // 日后候选缩了档、或文件被手改成词表外的记号：读入即被文档层拦下，
-      // 投屏域拿到的表里只剩可用的记号（没有第二遍过滤）。
+    test('认不得的记号在投屏域的值边界拦下：只按可用那几档预置', () {
+      // 值类是可以被任何调用方直接构造的公开面（文档层也原样往返记号）：
+      // 词表外的记号在这里被处置掉——不是查表硬取（那会当场炸），其余照留。
       final preset = castPrepMemoryOf(
-        _memoryFieldsFromFile(const ['0.5', '2', 'double', '1']),
+        const CastPrepMemoryFields(tiers: ['0.5', '2', 'double', '1']),
         manualRate: 0.5,
       );
       expect(preset.tiers, {CastSpeedTier.half, CastSpeedTier.full});
@@ -117,11 +117,24 @@ void main() {
 
     test('记住的档全部不可用 → 整格按「没有意见」，回默认那一档', () {
       final preset = castPrepMemoryOf(
-        _memoryFieldsFromFile(const ['2', 'double']),
+        const CastPrepMemoryFields(tiers: ['2', 'double']),
         manualRate: 1.3,
       );
       expect(preset.tiers, {CastSpeedTier.full});
       expect(preset.choices, const CastRenderChoices.all());
+    });
+
+    test('记号的词表只此一份（候选档）：认不得的记号不炸、不清空整份记录', () {
+      // 一条认得 + 一条认不得：认得的照留（不是「有一条坏就整格作废」）。
+      final mixed = castPrepMemoryOf(
+        const CastPrepMemoryFields(picture: false, tiers: ['0.75', '九倍速']),
+        manualRate: 1,
+      );
+      expect(mixed.tiers, {CastSpeedTier.threeQuarter});
+      expect(
+        mixed.choices,
+        const CastRenderChoices(picture: false, sound: true),
+      );
     });
 
     test('写侧：三个字段都给全，档按候选次序规整（与勾选次序无关）', () {
@@ -188,7 +201,7 @@ void main() {
       expect(a == otherTiers, isFalse);
     });
 
-    test('词表锁：档位记号表与投屏域候选档一致（脱钩即红）', () {
+    test('词表锁：档位记号只有候选档这一份声明（脱钩即红）', () {
       // 文档里存的是 `token`（`0.5` / `0.75` / `1`）——与缓存键、按钮文案同一
       // 套记号；投屏域加减档或改记号时这里先红。
       expect(kCastSpeedTierCandidates.map((tier) => tier.token).toList(), [
@@ -197,11 +210,18 @@ void main() {
         '1',
       ]);
       expect(kCastSpeedTierCandidates, CastSpeedTier.values);
-      // **文档层的记号词表**（词表校验的边界）与候选档同一套：域里那次
-      // 「记号 → 档」的全命中查表就建立在这一点上。
-      expect(kCastPrepTierTokens, {
-        for (final tier in kCastSpeedTierCandidates) tier.token,
-      });
+    });
+
+    test('加一档不靠手抄同步：逐档经文档层往返都认得回来', () {
+      // 记号词表的唯一声明处是候选档自己：新增一档只改枚举，文档层与这里都
+      // 不必手抄一份（`#21` 整改）。这条断言按候选档展开——加档时它自动跟着
+      // 长，谁要在别处另立一份词表（抄漏了新档）就在这里红。
+      for (final tier in kCastSpeedTierCandidates) {
+        final fields = _memoryFieldsFromFile([tier.token]);
+        expect(castPrepMemoryOf(fields, manualRate: 1).tiers, {
+          tier,
+        }, reason: '${tier.token}：认不认得只由候选档回答');
+      }
     });
   });
 
@@ -268,8 +288,8 @@ void main() {
   });
 }
 
-/// 盘上那份记录经**文档层**（词表校验的边界）读回来的字段：测试不手写人工
-/// 字段，走真实读入路径——「认不得的记号」在那一层就拦下。
+/// 盘上那份记录经**文档层**读回来的字段：测试不手写人工字段，走真实读入
+/// 路径——文档层对记号原样往返，认不认得由投屏域的候选档回答。
 CastPrepMemoryFields _memoryFieldsFromFile(List<String> tiers) =>
     LocalDocument.fromJson({
       'version': 3,

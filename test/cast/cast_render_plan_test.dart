@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dance_learning_app/annotation/framing_selection.dart';
 import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_range_gate.dart';
@@ -20,6 +22,7 @@ void main() {
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
     CastRange? range,
+    List<CastSticker> stickers = const [],
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: 'vid-a',
@@ -31,6 +34,7 @@ void main() {
     annotationFingerprint: 'fp-1',
     mirrorFragments: mirrorFragments,
     framingSelection: framingSelection,
+    stickers: stickers,
     beatClicks: const [],
     range: range,
   );
@@ -38,11 +42,15 @@ void main() {
   /// **这一次的暂存输入**：与请求配套的边车（勾了声音类才有拍声轨、有数拍层
   /// 才有序列清单、画面类且有备注才有贴纸图）。下标按 `-i` 的次序现数一遍
   /// ——测试自己算，不拿被测件的算术当期望。
+  ///
+  /// **装哪几条贴纸输入读的是与编排层同一条规则**（`castStagedStickerSlots`，
+  /// `#21` 整改）：替身不再无条件为每条贴纸造输入；[stickerSlots] 可覆盖成
+  /// 「只装了其中几条」（验不连续 / 缺号用）。
   CastRenderStaging stagingOf(
     CastRenderRequest request, {
     String? beatTrackPath = '/cache/a.clicks.wav',
     String? beatSlidesPath = '/cache/a.beats.txt',
-    List<String> stickerPaths = const [],
+    List<int>? stickerSlots,
   }) {
     var input = 1;
     final overlay = request.beatOverlay;
@@ -60,13 +68,11 @@ void main() {
       beatTrack: beatTrack,
       beatSlides: beatSlides,
       stickers: [
-        for (var i = 0; i < request.stickers.length; i++)
+        for (final slot in stickerSlots ?? castStagedStickerSlots(request))
           CastStickerInput(
-            sticker: request.stickers[i],
+            sticker: request.stickers[slot],
             sidecar: CastRenderSidecar(
-              path: stickerPaths.length > i
-                  ? stickerPaths[i]
-                  : '/cache/a.sticker$i.png',
+              path: '/cache/a.sticker$slot.png',
               index: input++,
             ),
           ),
@@ -85,6 +91,7 @@ void main() {
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
     CastRange? range,
+    List<CastSticker> stickers = const [],
     String? beatTrackPath = '/cache/a.clicks.wav',
   }) {
     final buildRequest = request(
@@ -95,6 +102,7 @@ void main() {
       mirrorFragments: mirrorFragments,
       framingSelection: framingSelection,
       range: range,
+      stickers: stickers,
     );
     return buildCastRenderArguments(
       request: buildRequest,
@@ -949,6 +957,92 @@ void main() {
         ),
       );
       expect(arguments, containsAllInOrder(['-b:v', '4M']));
+    });
+  });
+
+  group('贴纸输入：这次装哪几条只由暂存表回答（#21 整改）', () {
+    CastSticker sheet({
+      int startMs = 200,
+      int endMs = 900,
+      double widthFraction = 0.25,
+    }) => CastSticker(
+      imageBytesOf: () async =>
+          Uint8List.fromList(const [0x89, 0x50, 0x4e, 0x47]),
+      startMs: startMs,
+      endMs: endMs,
+      centerX: 0.3,
+      centerY: 0.2,
+      widthFraction: widthFraction,
+      heightFraction: 0.1,
+    );
+
+    test('计划装配只读暂存表：勾选档不是第二道闸（装了就是装了）', () {
+      // 非 1× 的「只勾声音」也会重编码画面（复制改不了时长）——这一档的画面
+      // 链读的仍是暂存表：表里有这一路就装，不从勾选档再剔一遍。
+      final buildRequest = request(
+        choices: const CastRenderChoices(picture: false, sound: true),
+        speedTier: CastSpeedTier.half,
+        stickers: [sheet()],
+      );
+      final arguments = buildCastRenderArguments(
+        request: buildRequest,
+        outputPath: '/cache/a.part',
+        staging: CastRenderStaging(
+          stickers: [
+            CastStickerInput(
+              sticker: buildRequest.stickers.single,
+              sidecar: const CastRenderSidecar(
+                path: '/cache/a.sticker0.png',
+                index: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        arguments,
+        containsAllInOrder(['-i', '/cache/a.sticker0.png']),
+        reason: '暂存表说装了这一路',
+      );
+      expect(
+        filterOf(arguments),
+        contains('[1:v]format=rgba,fps=30[csti0]'),
+        reason: '滤镜图读的是暂存表给的下标（源片恒 0 号）',
+      );
+    });
+
+    test('暂存表不是请求贴纸的前缀时，每条贴纸仍认自己那一张图（不连续 / 缺号）', () {
+      // 请求有两条贴纸（宽度分数 0.25 / 0.5，图上分得出是谁），这一次只装了
+      // **第 2 条**：输入号、配对与滤镜图都不得按「第几条落盘」错位。
+      final buildRequest = request(
+        choices: const CastRenderChoices(picture: true, sound: false),
+        stickers: [sheet(widthFraction: 0.25), sheet(widthFraction: 0.5)],
+      );
+      final arguments = buildCastRenderArguments(
+        request: buildRequest,
+        outputPath: '/cache/a.part',
+        staging: stagingOf(buildRequest, stickerSlots: const [1]),
+      );
+
+      expect(
+        arguments.where((a) => a == '-i'),
+        hasLength(2),
+        reason: '源片 + 这一条贴纸，没有第二条',
+      );
+      expect(arguments, containsAllInOrder(['-i', '/cache/a.sticker1.png']));
+      final filter = filterOf(arguments);
+      expect(
+        filter,
+        contains('[1:v]format=rgba,fps=30[csti0]'),
+        reason: '这一路在 `-i` 里是 1 号（源片 0 号），滤镜图引用同一个数',
+      );
+      expect(
+        filter,
+        contains('w=iw*0.5'),
+        reason: '配的是请求里第 2 条贴纸自己的尺寸（不是落盘表里的第 0 条）',
+      );
+      expect(filter, isNot(contains('w=iw*0.25')), reason: '没装的那一条一个节点都不进滤镜图');
     });
   });
 }

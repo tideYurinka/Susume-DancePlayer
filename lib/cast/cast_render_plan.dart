@@ -10,7 +10,10 @@
 ///
 /// **「这次装什么」由暂存输入回答**（`#47`）：混不混拍声、装不装数拍层、有没有
 /// 贴纸图，读的都是编排层刚备好的那份 `CastRenderStaging`——装配层不从勾选档
-/// 推导第二遍，也再没有「勾了却没有」这类要靠运行期报错兜的组合。
+/// 推导第二遍，也再没有「勾了却没有」这类要靠运行期报错兜的组合。贴纸那一路
+/// 的「装哪几条」由 `cast_render_request.dart` 的 `castStagedStickerSlots`
+/// 一处回答（编排层按它落盘，测试替身读同一条），装配层读的是它的产物。`#21`
+/// 整改前这里有第二道按勾选档的剔除，把「暂存表与规则不一致」在测试里抹平了。
 ///
 /// ## 两档的差别就是命令行的差别
 ///
@@ -137,12 +140,13 @@ List<String> buildCastRenderArguments({
 
   // **这次装什么，读的是暂存输入**：拍声轨在不在就是混不混拍声，数拍序列清单
   // 在不在就是装不装数拍层（清单自带要装的那一层），贴纸图与请求里的贴纸成对
-  // （条数不可能对不上）。「只勾画面类时才装画面内容类」这条由编排层备料时守，
-  // 装配层不再重判一遍。
+  // （条数不可能对不上）。**贴纸这一路同样只读暂存表**（`#21` 整改）：装哪几条
+  // 是编排层按 `castStagedStickerSlots` 一条规则备的料，装配层不从勾选档再剔
+  // 一遍——「这次装什么」只有一处回答，测试替身与编排层读的也是它。
   final picture = choices.picture;
   final beatTrack = staging.beatTrack;
   final beatSlides = staging.beatSlides;
-  final stickers = picture ? staging.stickers : const <CastStickerInput>[];
+  final stickers = staging.stickers;
   final beatGraph = beatSlides == null
       ? const CastBeatCountGraph(nodes: [], endLabel: 'vbase')
       : castBeatCountGraph(

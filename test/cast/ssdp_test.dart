@@ -26,6 +26,20 @@ void main() {
       expect(request, endsWith('\r\n\r\n'), reason: '头部以空行收尾');
     });
 
+    test('M-SEARCH 报文逐字：搜索目标恒是媒体渲染器，没有第二个取值', () {
+      // 搜索目标不是可配项（`#21` 整改）：报文因此逐字钉住，删掉那个从未被
+      // 传过的入参不该动到线上字节。
+      expect(
+        buildSsdpSearchRequest(timeout: const Duration(seconds: 2)),
+        'M-SEARCH * HTTP/1.1\r\n'
+        'HOST: 239.255.255.250:1900\r\n'
+        'MAN: "ssdp:discover"\r\n'
+        'MX: 2\r\n'
+        'ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n'
+        '\r\n',
+      );
+    });
+
     test('MX 是 1–5 秒的整数：UPnP 规定这个区间，越界钳进去', () {
       expect(buildSsdpSearchRequest(timeout: Duration.zero), contains('MX: 1'));
       expect(

@@ -424,6 +424,32 @@ void main() {
       expect(executor.ran, isFalse, reason: '都不勾 = 直接推原片');
       expect(fileNames(), isEmpty);
     });
+
+    test('暂存表按请求下标配对：只装了后一条贴纸时，那一路认的仍是后一条', () {
+      final buildRequest = request(
+        choices: const CastRenderChoices(picture: true, sound: false),
+        beatClicks: const [],
+        stickers: [sheet(), sheet(startMs: 1200, endMs: 1800)],
+      );
+
+      final staging = castRenderStagingOf(
+        request: buildRequest,
+        clickTrack: null,
+        beatSlidesList: null,
+        stickerSheets: {1: File(p.join(root.path, 'a.sticker1.png'))},
+      );
+
+      expect(
+        staging.stickers.single.sticker,
+        buildRequest.stickers[1],
+        reason: '配的是请求里第 2 条贴纸，不是落盘表里的第 0 条',
+      );
+      expect(
+        staging.stickers.single.sidecar,
+        CastRenderSidecar(path: p.join(root.path, 'a.sticker1.png'), index: 1),
+        reason: '输入号从 1 起（源片恒 0 号）、与 `-i` 的位次一致',
+      );
+    });
   });
 
   group('数拍层：逐格 PNG + 图像序列清单，收尾必删（#30）', () {

@@ -451,6 +451,18 @@ class CastRenderStaging {
       'stickers: ${stickers.length})';
 }
 
+/// **这一次装哪几条贴纸输入**：唯一一处回答（`#21` 整改）——编排层的落盘与
+/// 计划装配读的是同一条。
+///
+/// 贴纸是**画面内容类**：勾了画面类且请求里有贴纸时逐条装；不勾画面类、或一条
+/// 贴纸都没有，就一条都不装。返回的是**请求里的下标**（升序），不是「前 n 条」
+/// ——落盘表、请求条目与 `-i` 下标因此按同一个下标配对，中间少一条也不会让后面
+/// 的贴纸认错图（那条「贴纸输入构成连续前缀」的隐藏假设在此消失）。
+List<int> castStagedStickerSlots(CastRenderRequest request) =>
+    request.choices.picture
+    ? [for (var i = 0; i < request.stickers.length; i++) i]
+    : const [];
+
 /// 一次投屏渲染的全部输入。
 class CastRenderRequest {
   const CastRenderRequest({

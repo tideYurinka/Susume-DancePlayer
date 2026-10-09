@@ -1138,7 +1138,8 @@ void main() {
       extraOverrides: [
         castPrepMemoryProvider.overrideWith(
           () => _SeededCastPrepMemory(
-            // 盘上那份记录经**文档层**读回（词表外的记号在那一层就拦下）。
+            // 盘上那份记录经**文档层**读回（文档层对记号原样往返，认不认得
+            // 由投屏域按候选档回答——词表外的记号在那里被静默剔掉）。
             _memoryFieldsFromFile(const {
               'picture': true,
               'tiers': ['2', 'double'],
@@ -1161,12 +1162,13 @@ void main() {
     );
   });
 
-  group('编码器保证不了 1× 实时：当场说一句、请求按 720p 档装配（#36）', () {
-    /// 开面板（当场核对那一句在不在）、选一台接收端、带出结局。
+  group('分辨率档：降级与保证档的上限都在面板上说清（#36 / #21 整改）', () {
+    /// 开面板（当场核对那两句在不在）、选一台接收端、带出结局。
     Future<ValueNotifier<CastPrepOutcome?>> pickOne(
       WidgetTester tester, {
       required FakeEncoderRealtimeCapability capability,
       required bool noteOnPanel,
+      required bool ceilingOnPanel,
     }) async {
       final discovery = FakeCastReceiverDiscovery(
         script: [
@@ -1183,10 +1185,15 @@ void main() {
         picked: picked,
         capability: capability,
       );
-      // 那一句在面板上**当场**出（还没开始渲），且逐字就是那条常量。
+      // 那两句在面板上**当场**出（还没开始渲），且逐字就是那两条常量：降级
+      // 那句与保证档上限那句互斥（两档各一条）。
       expect(
         find.text(kCastPrepResolutionDowngradedText),
         noteOnPanel ? findsOneWidget : findsNothing,
+      );
+      expect(
+        find.text(kCastPrepResolutionCeilingText),
+        ceilingOnPanel ? findsOneWidget : findsNothing,
       );
       // 只勾画面类（不勾声音类）：这条路径不合成拍声轨，widget 测试的假时钟下
       // 也不会碰异步文件 IO（沿既有用例）。
@@ -1197,13 +1204,14 @@ void main() {
       return picked;
     }
 
-    testWidgets('保证 1× 实时：不多说，请求按保证档渲（画面上限收在问的那一档）', (tester) async {
+    testWidgets('保证 1× 实时：按保证档渲，并说清这一档的画面上限（1080 行）', (tester) async {
       final picked = await pickOne(
         tester,
         capability: FakeEncoderRealtimeCapability(
           answer: CastEncoderRealtime.guaranteed,
         ),
         noteOnPanel: false,
+        ceilingOnPanel: true,
       );
 
       expect(
@@ -1219,6 +1227,7 @@ void main() {
           answer: CastEncoderRealtime.notGuaranteed,
         ),
         noteOnPanel: true,
+        ceilingOnPanel: false,
       );
 
       expect(
@@ -1234,6 +1243,7 @@ void main() {
           answer: CastEncoderRealtime.unknown,
         ),
         noteOnPanel: true,
+        ceilingOnPanel: false,
       );
 
       expect(
@@ -1249,6 +1259,7 @@ void main() {
         capability: FakeEncoderRealtimeCapability()
           ..failure = StateError('通道炸了'),
         noteOnPanel: true,
+        ceilingOnPanel: false,
       );
 
       expect(
@@ -1282,6 +1293,44 @@ void main() {
         findsOneWidget,
         reason: '逐字断言那条常量 + 那枚 key 都在',
       );
+      expect(
+        find.text(kCastPrepResolutionCeilingText),
+        findsNothing,
+        reason: '两档各一条：720p 档说的是降级，不是 1080 行上限',
+      );
+      expect(picked.value, isNull, reason: '只是说明，还没开始渲');
+    });
+
+    testWidgets('保证档上限那句就在面板上（源片多高不猜，只说上限）', (tester) async {
+      final discovery = FakeCastReceiverDiscovery(
+        script: [
+          [receiver('客厅电视')],
+        ],
+      );
+      final picked = ValueNotifier<CastPrepOutcome?>(null);
+      addTearDown(picked.dispose);
+
+      await pumpHost(
+        tester,
+        discovery: discovery,
+        presence: FakeVideoCopyPresence(),
+        picked: picked,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.guaranteed,
+        ),
+      );
+
+      expect(find.text(kCastPrepResolutionCeilingText), findsOneWidget);
+      expect(
+        find.byKey(const Key('cast_resolution_ceiling')),
+        findsOneWidget,
+        reason: '逐字断言那条常量 + 那枚 key 都在',
+      );
+      expect(
+        find.text(kCastPrepResolutionDowngradedText),
+        findsNothing,
+        reason: '这一份没降级，说「降到 720p」就是假话',
+      );
       expect(picked.value, isNull, reason: '只是说明，还没开始渲');
     });
 
@@ -1312,6 +1361,37 @@ void main() {
         findsNothing,
         reason: '视频流原样复制，说「降到 720p」就是假话',
       );
+      expect(
+        find.text(kCastPrepResolutionCeilingText),
+        findsNothing,
+        reason: '视频流原样复制：链尾没有那个 1080 行上限，也不说',
+      );
+    });
+
+    testWidgets('只勾声音 + 1× 且机器保证 1× 实时：上限那句同样不出现', (tester) async {
+      final discovery = FakeCastReceiverDiscovery(
+        script: [
+          [receiver('客厅电视')],
+        ],
+      );
+      final picked = ValueNotifier<CastPrepOutcome?>(null);
+      addTearDown(picked.dispose);
+
+      await pumpHost(
+        tester,
+        discovery: discovery,
+        presence: FakeVideoCopyPresence(),
+        picked: picked,
+        capability: FakeEncoderRealtimeCapability(
+          answer: CastEncoderRealtime.guaranteed,
+        ),
+      );
+      await tester.tap(find.byKey(const Key('cast_choice_picture')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(kCastPrepSentenceSoundOnly), findsOneWidget);
+      expect(find.text(kCastPrepResolutionCeilingText), findsNothing);
+      expect(find.text(kCastPrepResolutionDowngradedText), findsNothing);
     });
   });
 }
@@ -1326,7 +1406,8 @@ class _SeededCastPrepMemory extends CastPrepMemoryModel {
   CastPrepMemoryFields? build() => _initial;
 }
 
-/// 盘上那份 `prefs.castPrep` 经文档层读回来的字段（词表校验的边界就在那里）。
+/// 盘上那份 `prefs.castPrep` 经文档层读回来的字段（记号原样往返，认不认得由
+/// 投屏域按候选档回答）。
 CastPrepMemoryFields _memoryFieldsFromFile(Map<String, Object?> json) =>
     LocalDocument.fromJson({
       'version': 3,

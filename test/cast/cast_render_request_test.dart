@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dance_learning_app/cast/cast_encoder_realtime.dart';
 import 'package:dance_learning_app/cast/cast_render_request.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +18,7 @@ void main() {
     CastRenderSettings settings = const CastRenderSettings(),
     String annotationFingerprint = 'fp-1',
     List<CastBeatClick> beatClicks = const [],
+    List<CastSticker> stickers = const [],
   }) => CastRenderRequest(
     videoPath: '/videos/a.mp4',
     videoId: videoId,
@@ -26,6 +29,7 @@ void main() {
     settings: settings,
     annotationFingerprint: annotationFingerprint,
     beatClicks: beatClicks,
+    stickers: stickers,
   );
 
   group('勾选档', () {
@@ -211,6 +215,48 @@ void main() {
       expect(click.time, const Duration(milliseconds: 500));
       expect(click.asset, 'assets/sounds/metronome_beat.wav');
       expect(click.volume, 0.4);
+    });
+  });
+
+  group('这一次装哪几条贴纸输入（#21 整改）', () {
+    CastSticker sheet() => CastSticker(
+      imageBytesOf: () async => Uint8List.fromList(const [0x89, 0x50, 0x4e, 0x47]),
+      startMs: 200,
+      endMs: 900,
+      centerX: 0.3,
+      centerY: 0.2,
+      widthFraction: 0.25,
+      heightFraction: 0.1,
+    );
+
+    test('唯一一处回答：贴纸是画面内容类，勾了画面类且有贴纸才逐条装', () {
+      expect(
+        castStagedStickerSlots(
+          request(
+            choices: const CastRenderChoices(picture: false, sound: true),
+            stickers: [sheet()],
+          ),
+        ),
+        isEmpty,
+        reason: '不勾画面类就一条都不装',
+      );
+      expect(
+        castStagedStickerSlots(
+          request(choices: const CastRenderChoices(picture: true, sound: false)),
+        ),
+        isEmpty,
+        reason: '没有贴纸就没有这一路输入',
+      );
+      expect(
+        castStagedStickerSlots(
+          request(
+            choices: const CastRenderChoices(picture: true, sound: false),
+            stickers: [sheet(), sheet()],
+          ),
+        ),
+        [0, 1],
+        reason: '装了就是逐条装，返回的是请求里的下标（不是「前 n 条」）',
+      );
     });
   });
 }

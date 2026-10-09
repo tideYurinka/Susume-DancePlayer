@@ -116,7 +116,7 @@ class CastRenderOrchestrator {
     await cache.discard(part);
 
     File? clickTrack;
-    final stickerFiles = <File>[];
+    final stickerSheets = <int, File>{};
     final beatSheetFiles = <File>[];
     File? beatSlidesList;
     _rendering = true;
@@ -124,9 +124,10 @@ class CastRenderOrchestrator {
       if (request.choices.sound) {
         clickTrack = await _writeClickTrack(request, part);
       }
-      if (request.choices.picture && request.stickers.isNotEmpty) {
-        stickerFiles.addAll(await _writeStickerSheets(request, part));
-      }
+      // **贴纸图**（画面类且有备注才做）：装哪几条只由
+      // [castStagedStickerSlots] 回答——这一次真落盘的那几条就是暂存表里的那
+      // 几条，键是它在请求里的下标（图与请求条目因此按同一个下标配对）。
+      stickerSheets.addAll(await _writeStickerSheets(request, part));
       // **数拍层**（#30）：逐格 PNG（一格一拍的半开窗）+ 一份 `-f concat` 清单
       // ——与拍声轨、贴纸图同款：半成品旁边的临时物，收尾必删。
       if (request.choices.picture && castBeatCountActive(request.beatOverlay)) {
@@ -151,11 +152,11 @@ class CastRenderOrchestrator {
         // **暂存输入**：这一次真备好的边车与它们在 `-i` 里的下标。下标在这里
         // 一次算定（`-i` 的次序 = 拍声轨 → 数拍序列 → 贴纸图），装配层读它落
         // 命令，不再从勾选档推导第二遍。
-        staging: _stagingOf(
+        staging: castRenderStagingOf(
           request: request,
           clickTrack: clickTrack,
           beatSlidesList: beatSlidesList,
-          stickerFiles: stickerFiles,
+          stickerSheets: stickerSheets,
         ),
       );
       final verdict = await executor.run(
@@ -195,7 +196,7 @@ class CastRenderOrchestrator {
     } finally {
       _rendering = false;
       if (clickTrack != null) await cache.discard(clickTrack);
-      for (final file in stickerFiles) {
+      for (final file in stickerSheets.values) {
         await cache.discard(file);
       }
       for (final file in beatSheetFiles) {
@@ -209,50 +210,6 @@ class CastRenderOrchestrator {
   Future<void> cancel() async {
     if (!_rendering) return;
     await executor.cancel();
-  }
-
-  /// 这一次渲染的**暂存输入**：把刚备好的边车装成一份类型化输入交给命令装配
-  /// （`cast_render_request.dart` 的 `CastRenderStaging`）。
-  ///
-  /// `-i` 的次序是**拍声轨 → 数拍序列 → 贴纸图**，下标在这里一次算定（源片恒是
-  /// 0 号）——备料的那几处写文件的先后（贴纸先落盘、数拍序列后落盘）因此与命令行
-  /// 的输入号无关，装配层拿到的路径与下标永远成对。哪几样在场只由这一次真备好的
-  /// 东西决定，不在这里重算勾选档：装了就是装了。
-  CastRenderStaging _stagingOf({
-    required CastRenderRequest request,
-    required File? clickTrack,
-    required File? beatSlidesList,
-    required List<File> stickerFiles,
-  }) {
-    var input = 1;
-    final beatTrack = clickTrack == null
-        ? null
-        : CastRenderSidecar(path: clickTrack.path, index: input++);
-    final beatSlides = beatSlidesList == null
-        ? null
-        : CastBeatSlidesInput(
-            overlay: request.beatOverlay!,
-            sidecar: CastRenderSidecar(
-              path: beatSlidesList.path,
-              index: input++,
-            ),
-          );
-    return CastRenderStaging(
-      beatTrack: beatTrack,
-      beatSlides: beatSlides,
-      stickers: [
-        // 贴纸与它的图成对落进暂存表：与请求里的贴纸一一对应（编排层刚按请求
-        // 逐条落的盘），条数不可能对不上。
-        for (var i = 0; i < stickerFiles.length; i++)
-          CastStickerInput(
-            sticker: request.stickers[i],
-            sidecar: CastRenderSidecar(
-              path: stickerFiles[i].path,
-              index: input++,
-            ),
-          ),
-      ],
-    );
   }
 
   /// 把拍声排程合成一条 WAV，落在半成品旁边（渲染收尾必删）。
@@ -276,28 +233,71 @@ class CastRenderOrchestrator {
     return file;
   }
 
-  /// 把请求里的贴纸图逐条落到半成品旁边（渲染收尾必删）。
+  /// 把这一次要装的贴纸图落到半成品旁边（渲染收尾必删）：键是它在**请求里的
+  /// 下标**（[castStagedStickerSlots] 给的那几条）。
   ///
   /// 字节由**播放页侧**按上屏同一份 span 与样式光栅化
   /// （`CastSticker.imageBytesOf` 那个惰性口）
   /// ——投屏域不 import 播放页、也不自己画字；这里只负责它是文件这件事，与拍声轨
-  /// 同款。路径表与请求里的贴纸**一一对应**：空窗的贴纸照样落一个文件、照样占
-  /// 一个输入位（错位比多喂一个输入危险得多）。
-  Future<List<File>> _writeStickerSheets(
+  /// 同款。装哪几条、每条是谁读的是同一个下标：空窗的贴纸照样落一个文件、照样占
+  /// 一个输入位（错位比多喂一个输入危险得多），而「中间少一条」也不会让后面的贴纸
+  /// 认错图。
+  Future<Map<int, File>> _writeStickerSheets(
     CastRenderRequest request,
     File part,
   ) async {
-    final files = <File>[];
-    for (var i = 0; i < request.stickers.length; i++) {
-      final file = File('${part.path}.sticker$i.png');
+    final files = <int, File>{};
+    for (final slot in castStagedStickerSlots(request)) {
+      final file = File('${part.path}.sticker$slot.png');
       await file.writeAsBytes(
-        await request.stickers[i].imageBytesOf(),
+        await request.stickers[slot].imageBytesOf(),
         flush: true,
       );
-      files.add(file);
+      files[slot] = file;
     }
     return files;
   }
+}
+
+/// 这一次渲染的**暂存输入**：把刚备好的边车装成一份类型化输入交给命令装配
+/// （`cast_render_request.dart` 的 `CastRenderStaging`）。
+///
+/// `-i` 的次序是**拍声轨 → 数拍序列 → 贴纸图**，下标在这里一次算定（源片恒是
+/// 0 号）——备料的那几处写文件的先后（贴纸先落盘、数拍序列后落盘）因此与命令行
+/// 的输入号无关，装配层拿到的路径与下标永远成对。哪几样在场只由这一次真备好的
+/// 东西决定（[stickerSheets] 就是**落盘表**：`请求下标 → 图`），不在这里重算
+/// 勾选档：装了就是装了；贴纸与它的图按同一个下标配对，不按落盘表里的位次。
+CastRenderStaging castRenderStagingOf({
+  required CastRenderRequest request,
+  required File? clickTrack,
+  required File? beatSlidesList,
+  required Map<int, File> stickerSheets,
+}) {
+  var input = 1;
+  final beatTrack = clickTrack == null
+      ? null
+      : CastRenderSidecar(path: clickTrack.path, index: input++);
+  final beatSlides = beatSlidesList == null
+      ? null
+      : CastBeatSlidesInput(
+          overlay: request.beatOverlay!,
+          sidecar: CastRenderSidecar(path: beatSlidesList.path, index: input++),
+        );
+  final slots = stickerSheets.keys.toList()..sort();
+  return CastRenderStaging(
+    beatTrack: beatTrack,
+    beatSlides: beatSlides,
+    stickers: [
+      for (final slot in slots)
+        CastStickerInput(
+          sticker: request.stickers[slot],
+          sidecar: CastRenderSidecar(
+            path: stickerSheets[slot]!.path,
+            index: input++,
+          ),
+        ),
+    ],
+  );
 }
 
 /// 拍声段资产的字节读取口：生产走 asset bundle，测试注入内存替身。

@@ -157,9 +157,10 @@ class BeatPromptMemoryFields {
 ///
 /// **纯值层载体**：与 [BeatPromptMemoryFields] 同款，持原始类型而非投屏域的
 /// `CastRenderChoices` / `CastSpeedTier`（舞库依赖闭包零 Flutter，文档层也不
-/// 认投屏域）。档位记号是**投屏域的 `CastSpeedTier.token`**（`0.5` / `0.75` /
-/// `1`），**词表校验就在这一层边界**（`_parseCastTiers`）：认不得的记号读入即
-/// 拦下，投屏域只做记号 → 档的一次换算，不再有第二遍过滤。
+/// 认投屏域）。档位记号是**投屏域的 `CastSpeedTier.token`**，它的词表因此只有
+/// 候选档那一处声明：文档层只认「记号是字符串」（`_parseCastTiers`），认不得的
+/// 记号原样带回写回，**认不认得由投屏域的值边界回答**
+/// （`player/cast_prep_memory.dart` 的降级规则）。
 class CastPrepMemoryFields {
   const CastPrepMemoryFields({
     this.picture,
@@ -174,7 +175,8 @@ class CastPrepMemoryFields {
   final bool? sound;
 
   /// 投屏倍速档的记号表（**空表 = 对档位没有意见**，与缺键同义、不落盘；次序
-  /// 不入语义，写侧按候选次序归一）。表里每一项都已过档位记号词表。
+  /// 不入语义，写侧按候选次序归一）。表里每一项都是字符串；认不认得由投屏域
+  /// 按候选档判定（文档层不裁词表）。
   final List<String> tiers;
 
   @override
@@ -197,8 +199,10 @@ class CastPrepMemoryFields {
 ///   节拍提示记忆（`prefs.beatPrompt`，五个值逐字段可缺席）、
 ///   **投屏准备记忆**（`prefs.castPrep`，两个渲染勾选档与投屏倍速档记号表
 ///   逐字段可缺席；#40）。后两份都是**存在性包裹的子对象**——共用
-///   [_MemoryDecl] 那一套声明（一个键 + 一张字段表，见该类的库注释），新增
-///   一份按舞记住的取值因此只是再挂一份同样的声明。
+///   [_MemoryDecl] 那一套声明（一个键 + 一张字段表，见该类的库注释）与
+///   `prefs` 段的**记忆片**（登记表 [_memoryBindings] 派生读写判等），新增
+///   一份按舞记住的取值因此只是「一个键 + 一张字段表 + 登记表一行」，段里
+///   不必再挂一处（`#47`：本类上那两个类型化字段是编译器强制的残留）。
 ///
 /// 字段归属清单与双文件文档模型（修订 2026-09-10）一致。仅存本地、永不随
 /// 分享导出；删除视频条目时随视频文件删除。
@@ -243,8 +247,7 @@ class LocalDocument {
     this.sessionExtra = const {},
     this.prefsExtra = const {},
     this.overlayExtra = const {},
-    this.beatPromptExtra = const {},
-    this.castPrepExtra = const {},
+    this.memoryExtras = const {},
   });
 
   /// 空态文档（文件缺失/损坏/版本头缺失或不符合时按此兜底，不崩溃）。
@@ -325,11 +328,10 @@ class LocalDocument {
   /// `prefs.overlay` 子对象未知键保底区。
   final Map<String, dynamic> overlayExtra;
 
-  /// `prefs.beatPrompt` 子对象未知键保底区（原样带回、写回原样）。
-  final Map<String, dynamic> beatPromptExtra;
-
-  /// `prefs.castPrep` 子对象未知键保底区（原样带回、写回原样）。
-  final Map<String, dynamic> castPrepExtra;
+  /// **按舞记忆**子对象的未知键保底区（记忆键 → 该子对象的陌生键；原样带回、
+  /// 写回原样）。整片读登记表（`_memoryBindings`）：加一份按舞记忆不再多一个
+  /// 保底区字段。
+  final Map<String, Map<String, dynamic>> memoryExtras;
 
   /// 全字段拷贝底座：withXxx 族与保底区装配（codec 的 withExtra）都经本
   /// 方法——新增字段只改本方法、值类与段声明处，不再逐处手抄。
@@ -372,8 +374,7 @@ class LocalDocument {
     sessionExtra: sessionExtra,
     prefsExtra: prefsExtra,
     overlayExtra: overlayExtra,
-    beatPromptExtra: beatPromptExtra,
-    castPrepExtra: castPrepExtra,
+    memoryExtras: memoryExtras,
   );
 
   LocalDocument withMastery(int order, LearningMastery mastery) {
@@ -448,7 +449,7 @@ class LocalDocument {
   /// 相等与哈希经 [_localCodec]（逐段、只比已登记字段）。
   ///
   /// 各保底区（[extra]/[sessionExtra]/[prefsExtra]/[overlayExtra]/
-  /// [beatPromptExtra]）刻意
+  /// [memoryExtras]）刻意
   /// 不参与：扩展字段由 [fromJson] 每次读入带回、写回原样透传，不作为
   /// 变更判定依据——patch 不改本版本字段时按无变化跳写，文件里的扩展
   /// 字段也不会因此丢失。
@@ -543,8 +544,7 @@ SectionDecl<LocalDocument> _localSectionDecl(_LocalSection id) => switch (id) {
         fields: doc.overlay ?? const OverlayPlacementFields(),
         extra: doc.overlayExtra,
       ),
-      beatPrompt: _beatPromptMemory.of(doc.beatPrompt, doc.beatPromptExtra),
-      castPrep: _castPrepMemory.of(doc.castPrep, doc.castPrepExtra),
+      memories: _memoryCellsOf(doc),
       speedRate: doc.speedRate,
       practiceMirror: doc.practiceMirror,
       practiceClips: doc.practiceClips,
@@ -564,8 +564,12 @@ LocalDocument _buildLocalDocument(Map<_LocalSection, Object?> sections) {
     previewSnapEnabled: prefs.previewSnapEnabled,
     layoutLocked: prefs.layoutLocked,
     overlay: prefs.overlay.isUnset ? null : prefs.overlay.fields,
-    beatPrompt: prefs.beatPrompt.present ? prefs.beatPrompt.fields : null,
-    castPrep: prefs.castPrep.present ? prefs.castPrep.fields : null,
+    // 按舞记忆：段里那一格 → 文档字段（`present` 假即 null）。这两行与
+    // `_memoryBindings` 上那两行成对——`LocalDocument` 的字段是**类型化**的，
+    // 由编译器逐处强制，故这里绕不开（`#47` 验收第 1 条剩下的那一半）。
+    beatPrompt:
+        _beatPromptBinding.fieldIn(prefs.memories) as BeatPromptMemoryFields?,
+    castPrep: _castPrepBinding.fieldIn(prefs.memories) as CastPrepMemoryFields?,
     speedRate: prefs.speedRate,
     practiceMirror: prefs.practiceMirror,
     practiceClips: prefs.practiceClips,
@@ -573,8 +577,7 @@ LocalDocument _buildLocalDocument(Map<_LocalSection, Object?> sections) {
     sessionExtra: session.extra,
     prefsExtra: prefs.extra,
     overlayExtra: prefs.overlay.extra,
-    beatPromptExtra: prefs.beatPrompt.extra,
-    castPrepExtra: prefs.castPrep.extra,
+    memoryExtras: _memoryExtrasOf(prefs.memories),
   );
 }
 
@@ -667,29 +670,27 @@ _SessionValue _buildSession(Map<_SessionField, Object?> values) =>
 // --- prefs 段（编辑偏好持久化写：吸附/锁定分段 + 浮层） ------------------
 
 class _PrefsValue {
-  const _PrefsValue({
+  _PrefsValue({
     this.previewSnapEnabled = true,
     this.layoutLocked = false,
     this.overlay = const _OverlayValue(),
-    this.beatPrompt = const _Memory.absent(BeatPromptMemoryFields()),
-    this.castPrep = const _Memory.absent(CastPrepMemoryFields()),
+    Map<String, Object?>? memories,
     this.speedRate,
     this.practiceMirror,
     this.practiceClips = const [],
     this.autoDelete = const MaterialAutoDeleteSettings(),
     this.extra = const {},
-  });
+  }) : memories = memories ?? _absentMemories();
 
   final bool previewSnapEnabled;
   final bool layoutLocked;
 
   final _OverlayValue overlay;
 
-  /// 节拍提示记忆（`present` 假 = 文件无 `beatPrompt` 键）。
-  final _Memory<BeatPromptMemoryFields> beatPrompt;
-
-  /// 投屏准备记忆（`present` 假 = 文件无 `castPrep` 键）。
-  final _Memory<CastPrepMemoryFields> castPrep;
+  /// **按舞记忆那一片**（`#47`）：键 → 段里那一格（[_Memory]；`present` 假 =
+  /// 文件无那个键）。每份记忆仍是「一个键一格」，但整片由登记表
+  /// （[_memoryBindings]）派生——加一份按舞记忆不再动 `prefs` 段的编解码。
+  final Map<String, Object?> memories;
 
   /// 手动倍率记忆（null = 文件无该键）。
   final double? speedRate;
@@ -706,6 +707,9 @@ enum _PrefsField {
   previewSnapEnabled,
   layoutLocked,
   overlay,
+  // **按舞记忆**那几格：取值名就是它在 `prefs` 段里的键名（`_memoryByKey`
+  // 据此认出它们，见 `_prefsDecl`）——加一份按舞记忆 = 这里加一个同名取值 +
+  // 登记表加一行，声明分支与装配都不逐份写（`#47`）。
   beatPrompt,
   castPrep,
   speedRate,
@@ -724,8 +728,7 @@ final RecordCodec<_PrefsValue, _PrefsField> _prefsCodec =
         previewSnapEnabled: v.previewSnapEnabled,
         layoutLocked: v.layoutLocked,
         overlay: v.overlay,
-        beatPrompt: v.beatPrompt,
-        castPrep: v.castPrep,
+        memories: v.memories,
         speedRate: v.speedRate,
         practiceMirror: v.practiceMirror,
         practiceClips: v.practiceClips,
@@ -734,97 +737,108 @@ final RecordCodec<_PrefsValue, _PrefsField> _prefsCodec =
       ),
     );
 
-FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
-  _PrefsField.previewSnapEnabled => FieldDecl(
-    key: 'previewSnapEnabled',
-    read: (json) => json['previewSnapEnabled'] as bool? ?? true,
-    write: (v) => v.previewSnapEnabled,
-    equal: (a, b) => a.previewSnapEnabled == b.previewSnapEnabled,
-  ),
-  _PrefsField.layoutLocked => FieldDecl(
-    key: 'layoutLocked',
-    read: (json) => json['layoutLocked'] as bool? ?? false,
-    write: (v) => v.layoutLocked,
-    equal: (a, b) => a.layoutLocked == b.layoutLocked,
-  ),
-  _PrefsField.overlay => FieldDecl(
-    key: 'overlay',
-    read: (json) => json['overlay'] is Map<String, Object?>
-        ? _overlayCodec.decode(json['overlay'] as Map<String, Object?>)
-        : const _OverlayValue(),
-    // 承诺：无自定义浮层（四个字段全未设）不写该键。
-    write: (v) =>
-        v.overlay.isUnset ? omitField : _overlayCodec.encode(v.overlay),
-    equal: (a, b) => _overlayCodec.equals(a.overlay, b.overlay),
-  ),
-  // 两份**按舞记住的取值**走同一份存在性子对象声明：读、写（缺席不写该键；
-  // 记录在但字段全缺席仍写空对象——与无记录是两种状态）、相等都只此一处。
-  _PrefsField.beatPrompt => FieldDecl(
-    key: _beatPromptMemory.key,
-    read: (json) => _beatPromptMemory.read(json),
-    write: (v) => _beatPromptMemory.write(v.beatPrompt),
-    equal: (a, b) => _beatPromptMemory.equals(a.beatPrompt, b.beatPrompt),
-  ),
-  _PrefsField.castPrep => FieldDecl(
-    key: _castPrepMemory.key,
-    read: (json) => _castPrepMemory.read(json),
-    write: (v) => _castPrepMemory.write(v.castPrep),
-    equal: (a, b) => _castPrepMemory.equals(a.castPrep, b.castPrep),
-  ),
-  _PrefsField.speedRate => FieldDecl(
-    key: 'speedRate',
-    read: (json) => _readSpeedRate(json['speedRate']),
-    // 承诺：没有意见（null）不写该键——缺键即无记忆。
-    write: (v) => v.speedRate ?? omitField,
-    equal: (a, b) => a.speedRate == b.speedRate,
-  ),
-  _PrefsField.practiceMirror => FieldDecl(
-    key: 'practiceMirror',
-    read: (json) =>
-        json['practiceMirror'] is bool ? json['practiceMirror'] as bool : null,
-    // 承诺：未覆盖（null）不写该键——覆盖值缺省即用设备级值。
-    write: (v) => v.practiceMirror ?? omitField,
-    equal: (a, b) => a.practiceMirror == b.practiceMirror,
-  ),
-  _PrefsField.practiceClips => FieldDecl(
-    key: 'practiceClips',
-    read: (json) => json['practiceClips'] is List
-        ? List<PracticeClip>.unmodifiable([
-            for (final item in json['practiceClips'] as List)
-              ?PracticeClip.fromJson(item),
-          ])
-        : const <PracticeClip>[],
-    write: (v) => v.practiceClips.isEmpty
-        ? omitField
-        : [for (final clip in v.practiceClips) clip.toJson()],
-    equal: (a, b) => _listEquals(a.practiceClips, b.practiceClips),
-  ),
-  _PrefsField.autoDelete => FieldDecl(
-    key: 'autoDelete',
-    read: (json) => _readAutoDelete(json['autoDelete']),
-    // 承诺：默认设置（关 + 30 条 / 90 天）不写该键——缺键即默认值。
-    write: (v) => v.autoDelete == const MaterialAutoDeleteSettings()
-        ? omitField
-        : {
-            'enabled': v.autoDelete.enabled,
-            'strategy': switch (v.autoDelete.strategy) {
-              MaterialAutoDeleteStrategy.keepRecentCount => 'count',
-              MaterialAutoDeleteStrategy.keepRecentDays => 'days',
+FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) {
+  // **按舞记忆那几格读登记表**（`#47`）：取值名 = 键名（`beatPrompt` /
+  // `castPrep`），故读 / 写 / 判等只需查一次登记——加一份按舞记忆不必在这里
+  // 加一条声明分支（剩下的非记忆字段各占一格）。
+  final memory = _memoryByKey[id.name];
+  if (memory != null) {
+    return FieldDecl<_PrefsValue>(
+      key: memory.key,
+      read: (json) => memory.read(json),
+      // 承诺：整份记录不存在（记录缺席）不写该键——缺键即无记录；记录在但字段
+      // 全缺席仍写空对象（与无记录是两种状态）。
+      write: (v) => memory.write(v.memories[memory.key]),
+      equal: (a, b) =>
+          memory.equals(a.memories[memory.key], b.memories[memory.key]),
+    );
+  }
+  return switch (id) {
+    _PrefsField.previewSnapEnabled => FieldDecl(
+      key: 'previewSnapEnabled',
+      read: (json) => json['previewSnapEnabled'] as bool? ?? true,
+      write: (v) => v.previewSnapEnabled,
+      equal: (a, b) => a.previewSnapEnabled == b.previewSnapEnabled,
+    ),
+    _PrefsField.layoutLocked => FieldDecl(
+      key: 'layoutLocked',
+      read: (json) => json['layoutLocked'] as bool? ?? false,
+      write: (v) => v.layoutLocked,
+      equal: (a, b) => a.layoutLocked == b.layoutLocked,
+    ),
+    _PrefsField.overlay => FieldDecl(
+      key: 'overlay',
+      read: (json) => json['overlay'] is Map<String, Object?>
+          ? _overlayCodec.decode(json['overlay'] as Map<String, Object?>)
+          : const _OverlayValue(),
+      // 承诺：无自定义浮层（四个字段全未设）不写该键。
+      write: (v) =>
+          v.overlay.isUnset ? omitField : _overlayCodec.encode(v.overlay),
+      equal: (a, b) => _overlayCodec.equals(a.overlay, b.overlay),
+    ),
+    _PrefsField.speedRate => FieldDecl(
+      key: 'speedRate',
+      read: (json) => _readSpeedRate(json['speedRate']),
+      // 承诺：没有意见（null）不写该键——缺键即无记忆。
+      write: (v) => v.speedRate ?? omitField,
+      equal: (a, b) => a.speedRate == b.speedRate,
+    ),
+    _PrefsField.practiceMirror => FieldDecl(
+      key: 'practiceMirror',
+      read: (json) => json['practiceMirror'] is bool
+          ? json['practiceMirror'] as bool
+          : null,
+      // 承诺：未覆盖（null）不写该键——覆盖值缺省即用设备级值。
+      write: (v) => v.practiceMirror ?? omitField,
+      equal: (a, b) => a.practiceMirror == b.practiceMirror,
+    ),
+    _PrefsField.practiceClips => FieldDecl(
+      key: 'practiceClips',
+      read: (json) => json['practiceClips'] is List
+          ? List<PracticeClip>.unmodifiable([
+              for (final item in json['practiceClips'] as List)
+                ?PracticeClip.fromJson(item),
+            ])
+          : const <PracticeClip>[],
+      write: (v) => v.practiceClips.isEmpty
+          ? omitField
+          : [for (final clip in v.practiceClips) clip.toJson()],
+      equal: (a, b) => _listEquals(a.practiceClips, b.practiceClips),
+    ),
+    _PrefsField.autoDelete => FieldDecl(
+      key: 'autoDelete',
+      read: (json) => _readAutoDelete(json['autoDelete']),
+      // 承诺：默认设置（关 + 30 条 / 90 天）不写该键——缺键即默认值。
+      write: (v) => v.autoDelete == const MaterialAutoDeleteSettings()
+          ? omitField
+          : {
+              'enabled': v.autoDelete.enabled,
+              'strategy': switch (v.autoDelete.strategy) {
+                MaterialAutoDeleteStrategy.keepRecentCount => 'count',
+                MaterialAutoDeleteStrategy.keepRecentDays => 'days',
+              },
+              'keepCount': v.autoDelete.keepCount,
+              'keepDays': v.autoDelete.keepDays,
             },
-            'keepCount': v.autoDelete.keepCount,
-            'keepDays': v.autoDelete.keepDays,
-          },
-    equal: (a, b) => a.autoDelete == b.autoDelete,
-  ),
-};
+      equal: (a, b) => a.autoDelete == b.autoDelete,
+    ),
+    // 记忆那几格在上面查登记表时已经返回（取值名 = 键名）；这里只是让 switch
+    // 对枚举穷尽——走到这里说明登记表少了一行。
+    _PrefsField.beatPrompt || _PrefsField.castPrep => throw StateError(
+      '按舞记忆 ${id.name} 不在登记表（_memoryBindings）里',
+    ),
+  };
+}
 
 _PrefsValue _buildPrefs(Map<_PrefsField, Object?> values) => _PrefsValue(
   previewSnapEnabled: values[_PrefsField.previewSnapEnabled] as bool,
   layoutLocked: values[_PrefsField.layoutLocked] as bool,
   overlay: values[_PrefsField.overlay] as _OverlayValue,
-  beatPrompt:
-      values[_PrefsField.beatPrompt] as _Memory<BeatPromptMemoryFields>,
-  castPrep: values[_PrefsField.castPrep] as _Memory<CastPrepMemoryFields>,
+  // 记忆那一片按登记表装配（键名 → 字段 id 同名），不逐份手抄。
+  memories: {
+    for (final binding in _memoryBindings)
+      binding.key: values[_PrefsField.values.byName(binding.key)],
+  },
   speedRate: values[_PrefsField.speedRate] as double?,
   practiceMirror: values[_PrefsField.practiceMirror] as bool?,
   practiceClips: values[_PrefsField.practiceClips] as List<PracticeClip>,
@@ -876,7 +890,9 @@ class _Memory<T> {
 
 /// **存在性包裹的子对象声明**：一个键 + 一张字段表（字段 id 枚举 + 穷尽 switch
 /// + 装配）即得该子对象在 `prefs` 段的编解码、陌生键保底与那一格的读 / 写 /
-/// 相等。新增一份按舞记住的取值 = 加一条这样的声明 + 在文档模型上挂一处。
+/// 相等。新增一份按舞记住的取值 = 加一条这样的声明 + 登记表
+/// （`_memoryBindings`）里一行 + `LocalDocument` 上那两个类型化字段（编译器
+/// 逐处强制，见 `_buildLocalDocument`）。
 class _MemoryDecl<T, F extends Enum> {
   _MemoryDecl({
     required this.key,
@@ -930,6 +946,128 @@ class _MemoryDecl<T, F extends Enum> {
   /// 这一格的相等：存在性 + 已登记字段逐格（保底区不参与）。
   bool equals(_Memory<T> a, _Memory<T> b) =>
       a.present == b.present && (!a.present || codec.equals(a, b));
+}
+
+/// **一份按舞记忆的登记项**（`#47`）：一份 [_MemoryDecl]（键 + 字段表，那一格的
+/// 读写判等都在里面）+ 它在**文档模型**上那两处的换算，类型擦除成 `Object?`
+/// ——`prefs` 段因此只留**一片** `键 → 段值` 的表（`_PrefsValue.memories`），
+/// 不逐份记忆各占一个字段 id 与一条声明分支。
+///
+/// 新增一份按舞记忆 = 一条 [_MemoryDecl]（一个键 + 一张字段表）+ 登记表
+/// （`_memoryBindings`）里一行 + `LocalDocument` 上那两个类型化字段（由编译器
+/// 逐处强制，见 `_buildLocalDocument`）。
+class _MemoryBinding {
+  _MemoryBinding({
+    required this.key,
+    required this.absent,
+    required this.read,
+    required this.write,
+    required this.equals,
+    required this.documentOf,
+    required this.documentExtraOf,
+    required this.ofDocument,
+    required this.documentField,
+    required this.documentFieldExtra,
+  });
+
+  /// 这份记忆在 `prefs` 段里的键名（与它那份 `_MemoryDecl.key` 同一个）。
+  final String key;
+
+  /// 文件里没有这个键时的段值（缺席的记录不会被写出去）。
+  final Object? Function() absent;
+
+  /// 读这一格（键不在、或形状不是对象，都按整份记录不存在）。
+  final Object? Function(Map<String, Object?> prefs) read;
+
+  /// 写这一格（记录缺席给 [omitField]；记录在但字段全缺席仍写空对象）。
+  final Object? Function(Object? cell) write;
+
+  /// 这一格的相等（存在性 + 已登记字段逐格，保底区不参与）。
+  final bool Function(Object? a, Object? b) equals;
+
+  /// 段值 → 文档字段（`present` 假即 null = 没有记录）。
+  final Object? Function(Object? cell) documentOf;
+
+  /// 段值 → 它的陌生键保底区。
+  final Map<String, Object?> Function(Object? cell) documentExtraOf;
+
+  /// 文档字段 + 它的陌生键保底区 → 段值。
+  final Object? Function(Object? document, Map<String, Object?> extra)
+      ofDocument;
+
+  /// 文档模型上的那个**类型化字段**。
+  final Object? Function(LocalDocument document) documentField;
+
+  /// 文档模型上那个字段的陌生键保底区。
+  final Map<String, Object?> Function(LocalDocument document)
+      documentFieldExtra;
+
+  /// 这一份记忆在**段值片**里的文档字段（`present` 假即 null = 没有记录）。
+  Object? fieldIn(Map<String, Object?> memories) {
+    final cell = memories[key];
+    return cell == null ? null : documentOf(cell);
+  }
+
+  /// 这一份记忆在**段值片**里的陌生键保底区。
+  Map<String, dynamic> extraIn(Map<String, Object?> memories) {
+    final cell = memories[key];
+    return cell == null
+        ? const <String, dynamic>{}
+        : Map<String, dynamic>.of(documentExtraOf(cell));
+  }
+}
+
+/// 把一份 [decl]（键 + 字段表）与它在文档模型上的那个**类型化字段**绑成一行
+/// 登记。陌生键保底区不必另给：它按同一个键住在 `LocalDocument.memoryExtras`
+/// 里（键就是 [decl] 的键）。
+_MemoryBinding _memoryBinding<T, F extends Enum>({
+  required _MemoryDecl<T, F> decl,
+  required T? Function(LocalDocument document) documentField,
+}) => _MemoryBinding(
+  key: decl.key,
+  absent: () => decl.absent(),
+  read: decl.read,
+  write: (cell) => decl.write(cell as _Memory<T>),
+  equals: (a, b) => decl.equals(a as _Memory<T>, b as _Memory<T>),
+  documentOf: (cell) {
+    final memory = cell as _Memory<T>;
+    return memory.present ? memory.fields : null;
+  },
+  documentExtraOf: (cell) => (cell as _Memory<T>).extra,
+  ofDocument: (document, extra) => decl.of(document as T?, extra),
+  documentField: (document) => documentField(document),
+  documentFieldExtra: (document) => document.memoryExtras[decl.key] ?? const {},
+);
+
+/// 键 → 登记项：`_PrefsField` 那几格（**取值名即键名**）与派生的装配都查它。
+final Map<String, _MemoryBinding> _memoryByKey = {
+  for (final binding in _memoryBindings) binding.key: binding,
+};
+
+/// 全部按舞记忆的**缺席格**（文件里一个键都没有）：`prefs` 段值的起手形状。
+Map<String, Object?> _absentMemories() => {
+  for (final binding in _memoryBindings) binding.key: binding.absent(),
+};
+
+/// 文档模型 → 按舞记忆那一片（每份记忆：文档字段 + 它的陌生键保底区）。
+Map<String, Object?> _memoryCellsOf(LocalDocument document) => {
+  for (final binding in _memoryBindings)
+    binding.key: binding.ofDocument(
+      binding.documentField(document),
+      binding.documentFieldExtra(document),
+    ),
+};
+
+/// 段值 → 文档模型上按舞记忆的陌生键保底区（记忆键 → 保底区；空的不入表）。
+Map<String, Map<String, dynamic>> _memoryExtrasOf(
+  Map<String, Object?> memories,
+) {
+  final extras = <String, Map<String, dynamic>>{};
+  for (final binding in _memoryBindings) {
+    final extra = binding.extraIn(memories);
+    if (extra.isNotEmpty) extras[binding.key] = extra;
+  }
+  return extras;
 }
 
 /// 把字段表里的一格抬到存在性包裹上：读、写、判等仍走那一格。
@@ -1063,19 +1201,40 @@ CastPrepMemoryFields _buildCastPrep(Map<_CastPrepField, Object?> values) =>
       tiers: values[_CastPrepField.tiers] as List<String>,
     );
 
-/// 投屏倍速档记号词表（投屏域三档的 `token`）：**认不得的记号在文档层边界就
-/// 拦下**，投屏域不再有第二遍过滤（见 `player/cast_prep_memory.dart`）。
-const Set<String> kCastPrepTierTokens = {'0.5', '0.75', '1'};
-
-/// 档位记号表读取：非表按空表；逐项按 [kCastPrepTierTokens] 校验（非字符串与
-/// 词表外的记号拦下）。空表与缺键同义（「没有意见」）。
+/// 档位记号表读取：非表按空表；逐项只认**字符串**。
+///
+/// 记号本身的**词表是投屏域的事实**（候选档的 `token`，见
+/// `cast_speed_tier.dart`）：文档层不抄第二遍，认不得的记号也照原样带回与写回
+/// （本版不认得的记号多半是未来版本写下的档），**认不认得由投屏域的值边界
+/// 回答**（`player/cast_prep_memory.dart` 的降级规则）。
 List<String> _parseCastTiers(Object? raw) {
   if (raw is! List) return const [];
   return List<String>.unmodifiable([
     for (final item in raw)
-      if (item is String && kCastPrepTierTokens.contains(item)) item,
+      if (item is String) item,
   ]);
 }
+
+// --- 按舞记忆的登记表（每份记忆一行；`prefs` 段的读写判等与文档字段两端换算
+//     都读它，不逐份记忆另写一遍） ------------------------------------------
+
+/// 节拍提示记忆的登记（键 + 字段表在 `_beatPromptMemory`）。
+final _beatPromptBinding = _memoryBinding(
+  decl: _beatPromptMemory,
+  documentField: (document) => document.beatPrompt,
+);
+
+/// 投屏准备记忆的登记（键 + 字段表在 `_castPrepMemory`）。
+final _castPrepBinding = _memoryBinding(
+  decl: _castPrepMemory,
+  documentField: (document) => document.castPrep,
+);
+
+/// **全部按舞记忆的登记表**（次序即它们写进 `prefs` 段的次序）。
+final List<_MemoryBinding> _memoryBindings = [
+  _beatPromptBinding,
+  _castPrepBinding,
+];
 
 // --- overlay 子对象（浮层位四格 + 分形态系数） --------------------------------
 

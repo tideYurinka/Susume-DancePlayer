@@ -24,6 +24,18 @@ void main() {
     );
   });
 
+  test('SSDP 的搜索目标不是可配项：`searchTarget` 全仓不再声明（M-SEARCH 报文逐字不变）', () {
+    final hits = libDartFilesWhere(
+      (source) => codeLinesOf(source).contains('searchTarget'),
+    );
+
+    expect(
+      hits,
+      isEmpty,
+      reason: '搜索目标恒是 kMediaRendererSearchTarget：没有第二个取值，就没有第二个入参',
+    );
+  });
+
   test('假接收端不 import 本域：它是独立对照，不是第二个客户端', () {
     final imports = dartImportsOf('tool/cast_fake_receiver.dart');
 

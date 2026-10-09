@@ -740,7 +740,9 @@ void main() {
       expect(mixed.castPrep!.tiers, ['0.5', '1']);
     });
 
-    test('档位记号在文档层边界校验：认不得的记号当场拦下，不到投屏域', () {
+    test('档位记号在文档层原样往返：认不认得由投屏域的候选档回答', () {
+      // 档位记号的**词表是投屏域的事实**（候选档的 `token`）：文档层只认
+      // 「记号是字符串」这一条，不把词表抄第二遍（`#21` 整改）。
       final doc = LocalDocument.fromJson(const {
         'version': 3,
         'prefs': {
@@ -751,22 +753,15 @@ void main() {
       });
       expect(
         doc.castPrep!.tiers,
-        ['0.5', '1'],
-        reason: '词表外的记号读入即拦下——投屏域不再有第二遍过滤',
+        ['0.5', '2', 'double', '1'],
+        reason: '文档层不裁词表：认不得的记号也不在这里吞掉',
       );
 
-      // 只剩认不得的记号 = 这一格没有意见（空表与缺键同义，键不落盘）。
-      final allUnknown = LocalDocument.fromJson(const {
-        'version': 3,
-        'prefs': {
-          'castPrep': {
-            'sound': true,
-            'tiers': ['2', 'double'],
-          },
-        },
+      // 写回逐字照原样：本版认不得的记号（未来的档、手改的串）不被吃成空表，
+      // 换回认得它的那一版仍读得回来。
+      expect(doc.toJson()['prefs']['castPrep'], {
+        'tiers': ['0.5', '2', 'double', '1'],
       });
-      expect(allUnknown.castPrep!.tiers, isEmpty);
-      expect(allUnknown.toJson()['prefs']['castPrep'], {'sound': true});
     });
 
     test('未知键保底：prefs 段与 castPrep 子对象里的陌生键原样带回写回', () {
@@ -822,6 +817,38 @@ void main() {
             const LocalDocument(castPrep: CastPrepMemoryFields(tiers: ['0.5'])),
         isTrue,
       );
+    });
+
+    test('两份按舞记忆共用一片登记但各归各：一份在、另一份缺席可区分', () {
+      // 记忆片由登记表（`_memoryBindings`）派生（`#47`）：两条记忆仍是各自
+      // 一格一个键，存在性、字段与陌生键保底互不串门。
+      const doc = LocalDocument(
+        beatPrompt: BeatPromptMemoryFields(sound: true),
+      );
+
+      final json = doc.toJson();
+      expect(json['prefs']['beatPrompt'], {'sound': true});
+      expect(json['prefs'].containsKey('castPrep'), isFalse);
+
+      final restored = LocalDocument.fromJson(json);
+      expect(restored.beatPrompt!.sound, isTrue);
+      expect(restored.castPrep, isNull);
+      expect(restored, doc);
+    });
+
+    test('一份记忆子对象里的陌生键不落到另一份的保底区', () {
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {'picture': true, 'reserved': 'c'},
+          'beatPrompt': {'sound': true, 'reserved': 'b'},
+        },
+      });
+
+      final json = doc.toJson();
+      expect(json['prefs']['castPrep']['reserved'], 'c');
+      expect(json['prefs']['beatPrompt']['reserved'], 'b');
+      expect(json['prefs'].containsKey('castPrepReserved'), isFalse);
     });
   });
 
