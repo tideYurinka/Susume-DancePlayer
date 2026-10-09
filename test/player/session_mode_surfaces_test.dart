@@ -1,12 +1,14 @@
-/// 「模式 → 界面」三处映射的测试钉：底排槽集、轨道行集、取景态谓词。
+/// 「模式 → 界面」四处映射的测试钉：底排槽集、轨道行集、取景态谓词、
+/// 顶栏行集。
 ///
-/// 这三处今天都是**无护栏**的模式映射——漏接一个取值不报错，只是静默走
+/// 这四处今天都是**无护栏**的模式映射——漏接一个取值不报错，只是静默走
 /// 兜底默认值。本文件对现有**全部**会话模式取值逐值断言映射结果，并各带一条
 /// 覆盖断言：新增取值（如投屏态两值）未接时断言点名缺的是哪个取值。
 ///
 /// 零框架环境依赖：直测映射声明表与取道函数，不启动 widget、不读 provider。
 library;
 
+import 'package:dance_learning_app/player/play_tool_table.dart';
 import 'package:dance_learning_app/player/session_mode_surfaces.dart';
 import 'package:dance_learning_app/player/tool_slots.dart';
 import 'package:dance_learning_app/player/track_row_table.dart';
@@ -166,6 +168,54 @@ void main() {
           expected[mode],
           reason: '「模式 → 取景态谓词」对 $mode 的映射与期望不符',
         );
+      }
+    });
+  });
+
+  group('模式 → 顶栏行集', () {
+    test('逐值断言现有全部会话模式取值：投屏态两值取自己那份，其余沿用朝向与紧凑档', () {
+      // 期望值是今天的既有行为（独立于实现抄写）：投屏态两值取自己那份五枚
+      // 行集、与朝向和紧凑档都无关；其余取值竖屏取竖屏标题栏、横屏按紧凑档
+      // 取两份横屏行集之一。
+      const castModes = {
+        PlayerSessionMode.castControl,
+        PlayerSessionMode.castWatching,
+      };
+      for (final mode in PlayerSessionMode.values) {
+        for (final portrait in const [false, true]) {
+          for (final compact in const [false, true]) {
+            final row = sessionModeSurfacesOf(mode)
+                .topBarRowOf(portrait: portrait, compact: compact);
+            final where = '$mode（portrait=$portrait, compact=$compact）';
+            if (castModes.contains(mode)) {
+              expect(
+                row,
+                same(kPlayToolRowCastTopBar),
+                reason: '「模式 → 顶栏行集」$where：投屏态两值没有朝向/档位例外',
+              );
+            } else if (portrait) {
+              expect(
+                row,
+                same(kPlayToolRowPortraitTitleBar),
+                reason: '「模式 → 顶栏行集」$where：竖屏取竖屏标题栏行集',
+              );
+            } else {
+              expect(
+                row,
+                same(playToolLandscapeTopBarRow(compact: compact)),
+                reason: '「模式 → 顶栏行集」$where：横屏按紧凑档取行集',
+              );
+            }
+          }
+        }
+      }
+    });
+
+    test('每个取值都取到一份非空行集：漏接取值在此点名', () {
+      for (final mode in PlayerSessionMode.values) {
+        final row = sessionModeSurfacesOf(mode)
+            .topBarRowOf(portrait: false, compact: false);
+        expect(row.slots, isNotEmpty, reason: '$mode 没取到行集');
       }
     });
   });

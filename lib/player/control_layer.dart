@@ -51,12 +51,7 @@ import 'annotation_edit.dart'
         SetSelectedSegmentsDensity,
         SetVideoRange,
         ToggleSelectedSegmentsEmphasis;
-import 'cast_entry_gate.dart'
-    show
-        castEntryBlocksStart,
-        castEntryFactsProvider,
-        castEntryToolFacts,
-        castEntryVerdict;
+import 'cast_entry_gate.dart' show castEntryBlocksStart, castEntryFactsProvider;
 import 'load_gate.dart';
 import 'gesture_surface_session.dart';
 import 'notice.dart' show NoticeId, noticeTriggerProvider;
@@ -88,7 +83,7 @@ import 'beat_correction.dart'
         previewDownbeatProvider;
 import '../cast/cast_session.dart' show CastRemoteItem;
 import 'cast_preview.dart' show castPreviewProvider;
-import 'cast_run.dart' show castRemoteControlsProvider;
+import 'cast_run.dart' show castRemoteItemShownProvider;
 import 'cast_speed_panel.dart' show showCastSpeedPanel;
 import 'practice_mirror.dart';
 import 'rate_label_slot.dart';
@@ -449,14 +444,15 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   Widget _buildTopBar() {
     // 竖屏顶栏只剩返回键与标题（标题拿回整行宽、跑马字幕照旧）；
     // 横屏顶栏十三条工具内联一行。一行渲染的槽位集就是该行的全部槽位。
-    // 顶栏**行集**由「模式 → 顶栏行集」唯一映射给出（
-    // `play_tool_table.dart` 的 [playToolTopBarRowFor]）：投屏态两值取自己
-    // 那份三枚行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档；活值
-    // 由装配点按槽身份装配。
+    // 顶栏**行集**由会话模式声明表那一行自己给出（
+    // `session_mode_surfaces.dart` 的 [SessionModeSurfaces.topBarRowOf]）：
+    // 投屏态两值取自己那份五枚行集（与朝向、紧凑档无关），其余取值吃朝向与
+    // 紧凑档；活值由装配点按槽身份装配。
     final portrait = widget.skeleton.portrait;
     final session = ref.watch(playerSessionProvider);
     final mode = session.mode;
     final casting = session.isCast;
+    final topBarRowOf = sessionModeSurfacesOf(mode).topBarRowOf;
     // 返回键 tooltip 与实际动作一致：对比-控制层内第一次返回只
     // 退对比态回单画面（见宿主 `_onControlLayerBack`）；投屏态内是
     // 「断开投屏」（同一动作的第二处入口）；其余状态下 pop 回来源页。
@@ -573,30 +569,22 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
                 ),
                 if (!portrait) ...[
                   const SizedBox(width: kTopBarToolsGapWidth),
-                  // 顶栏行集按「模式 → 顶栏行集」唯一映射取：投屏态两值
-                  // 取投屏态那份行集；其余取值沿用朝向与紧凑档（紧凑档 →
-                  // 紧凑行集，音画同步/取景调整/节拍提示收在「更多」的向上
-                  // 弹出菜单里；常规档 → 常规行集）。选择只有
-                  // [playToolTopBarRowFor] 一处。
+                  // 顶栏行集取声明表那一行的取道：投屏态两值取投屏态那份
+                  // 行集；其余取值吃朝向与紧凑档（紧凑档 → 紧凑行集，音画
+                  // 同步/取景调整/节拍提示收在「更多」的向上弹出菜单里；
+                  // 常规档 → 常规行集）。朝向与档位的对应住在看片工具表，
+                  // 本处只读声明表。
                   _playToolRow(
-                    playToolTopBarRowFor(
-                      mode: mode,
-                      portrait: false,
-                      compact: _compactLandscape,
-                    ),
+                    topBarRowOf(portrait: false, compact: _compactLandscape),
                     maxWidth: toolsMaxWidth,
                   ),
                 ] else ...[
                   // 撤销/重做/投屏/查看引导落竖屏标题栏右侧（返回键与标题
-                  // 之后，与标题之间留既有工具间隙）；行集同样取
-                  // [playToolTopBarRowFor]（竖屏标题栏，投屏态换成投屏那份）。
+                  // 之后，与标题之间留既有工具间隙）；行集同样取声明表那一行
+                  // 的取道（竖屏标题栏，投屏态换成投屏那份）。
                   const SizedBox(width: kTopBarToolsGapWidth),
                   _playToolRow(
-                    playToolTopBarRowFor(
-                      mode: mode,
-                      portrait: true,
-                      compact: _compactLandscape,
-                    ),
+                    topBarRowOf(portrait: true, compact: _compactLandscape),
                     maxWidth: toolsMaxWidth,
                   ),
                 ],
@@ -998,15 +986,13 @@ class ControlLayerState extends ConsumerState<ControlLayer> {
   ///
   /// **投屏态内两枚遥控项由接收端能力判据决定在不在**（票 #38）：「播放暂停」
   /// 与「进度（帧步进）」判据说这一项不显示（探测不到 / 探测失败 / 设备确实
-  /// 不支持）就不进装配——按下去没反应的控件不留（`CastRemoteControls` 是
-  /// 唯一判据；非投屏态两枚恒在，行为逐位不变）。
+  /// 不支持）就不进装配——按下去没反应的控件不留。判据的唯一回答处是
+  /// [castRemoteItemShownProvider]（手势仲裁读同一份；非投屏态的短路写在
+  /// 那里面）——本处不另判一套。
   List<Widget> _buildPlaybackControls() {
-    final isCast = ref.watch(playerSessionProvider).isCast;
-    final remoteControls = ref.watch(castRemoteControlsProvider);
-    final showsPlayPause =
-        !isCast || remoteControls.shows(CastRemoteItem.playPause);
-    final showsProgress =
-        !isCast || remoteControls.shows(CastRemoteItem.progress);
+    final showsRemoteItem = ref.watch(castRemoteItemShownProvider);
+    final showsPlayPause = showsRemoteItem(CastRemoteItem.playPause);
+    final showsProgress = showsRemoteItem(CastRemoteItem.progress);
     return [
       // 播放/暂停、延迟播放（与空白区双指双击同一条路径
       // ——收起 + 触发）。

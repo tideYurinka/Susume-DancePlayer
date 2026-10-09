@@ -1,11 +1,10 @@
 import 'package:dance_learning_app/player/play_tool_table.dart';
 import 'package:dance_learning_app/player/tool_slots.dart';
-import 'package:dance_learning_app/player_session/player_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 看片工具槽表直测：六份具名行集的成员与次序、
 /// 十五条槽的声明字段、共享声明的同一性、门谓词两态与软门可点性、
-/// 可点性派生规则、「模式 → 顶栏行集」唯一映射。
+/// 可点性派生规则。
 /// 不启动 widget 环境、不注容器。
 ///
 /// 新增「取景调整」槽（tool_framing_adjust）进横屏
@@ -200,63 +199,6 @@ void main() {
         PlayToolSlotId.cast,
         PlayToolSlotId.guide,
       ], reason: '紧凑档次序：撤销→重做→更多→全局镜像→局部镜像→倍速设置→对比练习→投屏→查看引导');
-    });
-  });
-
-  group('「模式 → 顶栏行集」唯一映射', () {
-    test('投屏态两值取投屏行集：与朝向、紧凑档都无关', () {
-      for (final mode in const [
-        PlayerSessionMode.castControl,
-        PlayerSessionMode.castWatching,
-      ]) {
-        for (final portrait in const [false, true]) {
-          for (final compact in const [false, true]) {
-            expect(
-              playToolTopBarRowFor(
-                mode: mode,
-                portrait: portrait,
-                compact: compact,
-              ),
-              same(kPlayToolRowCastTopBar),
-              reason: '$mode 没有朝向/档位例外',
-            );
-          }
-        }
-      }
-    });
-
-    test('非投屏态沿用朝向与紧凑档：结果与既有两处选择逐位一致', () {
-      for (final mode in PlayerSessionMode.values) {
-        if (mode == PlayerSessionMode.castControl ||
-            mode == PlayerSessionMode.castWatching) {
-          continue;
-        }
-        for (final compact in const [false, true]) {
-          expect(
-            playToolTopBarRowFor(mode: mode, portrait: true, compact: compact),
-            same(kPlayToolRowPortraitTitleBar),
-            reason: '$mode 竖屏取竖屏标题栏行集',
-          );
-          expect(
-            playToolTopBarRowFor(mode: mode, portrait: false, compact: compact),
-            same(playToolLandscapeTopBarRow(compact: compact)),
-            reason: '$mode 横屏按档位取行集',
-          );
-        }
-      }
-    });
-
-    test('映射穷尽全部会话模式取值：每个取值都有明确答案', () {
-      // 穷尽 switch 的编译期护栏由实现承接；本断言钉住「每个取值都能取到
-      // 一份具名行集」，漏一个取值即在此点名。
-      for (final mode in PlayerSessionMode.values) {
-        final row = playToolTopBarRowFor(
-          mode: mode,
-          portrait: false,
-          compact: false,
-        );
-        expect(row.slots, isNotEmpty, reason: '$mode 没取到行集');
-      }
     });
   });
 

@@ -300,6 +300,39 @@ void main() {
     });
   });
 
+  group('遥控项显示的唯一回答处（票 #44）', () {
+    test('非投屏态：三枚恒显示（「非投屏恒显示」的短路写在判据里面一次）', () {
+      final shown = container.read(castRemoteItemShownProvider);
+      for (final item in CastRemoteItem.values) {
+        expect(shown(item), isTrue, reason: '$item：非投屏态恒显示');
+      }
+    });
+
+    test('投屏态：逐项照接收端能力判据，不另判一套', () async {
+      factory.configure = (session) {
+        session.reportedActions = const CastTransportActions({
+          CastTransportAction.play,
+          CastTransportAction.pause,
+        });
+        session.reportedVolume = 0.4;
+      };
+      await run().start(receiver: receiverNamed('客厅电视'), file: file);
+      await pumpEventQueue();
+      container
+          .read(playerSessionProvider.notifier)
+          .enter(PlayerSessionMode.castControl);
+
+      final shown = container.read(castRemoteItemShownProvider);
+      final controls = container.read(castRemoteControlsProvider);
+      for (final item in CastRemoteItem.values) {
+        expect(shown(item), controls.shows(item), reason: '$item');
+      }
+      expect(shown(CastRemoteItem.progress), isFalse, reason: '设备没自述 Seek');
+      expect(shown(CastRemoteItem.playPause), isTrue);
+      expect(shown(CastRemoteItem.volume), isTrue);
+    });
+  });
+
   group('断开（唯一出口）', () {
     test('断开：停服 + 断连 + 回编辑态', () async {
       await run().start(receiver: receiverNamed('客厅电视'), file: file);

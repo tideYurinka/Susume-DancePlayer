@@ -113,9 +113,9 @@ class CastRemoteControls {
   /// （这一位由 [castVolumeReported] 折出来，不是设备描述单独派生的）。
   final bool showsVolume;
 
-  /// 某一枚遥控项显不显示（**唯一判据的逐项读法**：投屏态的界面只问这一处，
-  /// 不各自另判——音量那枚不许再叠第二条件）。穷尽 `switch`：加遥控项即编译
-  /// 报错。
+  /// 某一枚遥控项显不显示（**能力判据的逐项读法**：投屏态的界面经投屏运行域的
+  /// `castRemoteItemShownProvider` 问它，不各自另判——音量那枚不许再叠第二
+  /// 条件）。穷尽 `switch`：加遥控项即编译报错。
   bool shows(CastRemoteItem item) => switch (item) {
     CastRemoteItem.progress => showsSeek,
     CastRemoteItem.playPause => showsPlayPause,

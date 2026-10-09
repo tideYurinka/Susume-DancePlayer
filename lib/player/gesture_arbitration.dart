@@ -168,10 +168,11 @@ class GestureArbitrationInput {
   /// 双指双击（页面接管：延迟播放触发）。
   final void Function() onTwoFingerDoubleTap;
 
-  /// 投屏态下某一枚遥控项显不显示（票 #38；唯一判据 = `CastRemoteControls`，
-  /// 见 `lib/cast/cast_session.dart` 的 [CastRemoteItem]）。**非投屏态恒 true**
-  /// ——本域不因投屏判据改动非投屏行为。判据说「不显示」的那一项：手势整段
-  /// 吞掉（不写本机、不发遥控、不画反馈），与界面上那枚控件离场同一口径。
+  /// 投屏态下某一枚遥控项显不显示（票 #38；唯一回答处 =
+  /// `castRemoteItemShownProvider`，它把「**非投屏态恒显示**」的短路写在判据
+  /// 里面一次，逐项判据 = `lib/cast/cast_session.dart` 的 [CastRemoteItem]）。
+  /// 判据说「不显示」的那一项：手势整段吞掉（不写本机、不发遥控、不画反馈），
+  /// 与界面上那枚控件离场同一口径。
   final bool Function(CastRemoteItem item) castRemoteItemShown;
 
   /// 演出层会话：浮层选中/混区/全局缩放状态机与提示钩子都自持在它里面，

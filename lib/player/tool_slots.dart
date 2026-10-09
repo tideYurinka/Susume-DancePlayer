@@ -759,19 +759,19 @@ class ToolFacts {
 /// 门序、可点性、点击语义全由既有判定表（[evaluateToolSlot]）给出，取值
 /// 逐位不变。
 ///
+/// **命中集的算法只有一处**（票 #44）：按门优先级逐条走声明表，**按门取
+/// 事实**（[_gateHolds] 的穷尽 `switch`）——门种多少条都只这一遍迭代，
+/// 不再逐门抄一行 `if (declared.contains(X) && facts.X)`。
+///
 /// **无对象的按槽解析**：`noSubject` 是否命中由 [ToolSlot.id] 的穷尽
 /// switch（[toolEntryHasSubject]）在库内解析；加槽漏补事实即编译报错。
-/// 求值核心：声明的门清单 + 事实 → verdict。
 /// [hasSubject] = 该入口「此刻有没有作用对象」（没有 `noSubject` 前提的
 /// 入口恒传 true）；[lockApplies] = 该入口「此刻是否被本锁覆盖」（缺省
 /// true——直接消费条目表的调用点不带按对象判的锁定前提；槽面由
 /// [evaluateToolEntry] 传 [toolEntryLayoutLockApplies] 的解析值）；
 /// [noSubjectExplained] = 该入口有没有一句「该怎么做」（缺省 true
 /// ——顶栏那枚软门的解释走它自己的动作），由入口的
-/// [ToolSlot.noSubjectHint] / [AddEntry.noSubjectHint] 声明回答；
-/// 命中集 = 声明的门 ∩ 事实成立的门——事实不越过声明（未声明的门不被事实
-/// 点亮），门序、可点性、点击语义全由既有判定表（[evaluateToolSlot]）
-/// 给出，取值逐位不变。
+/// [ToolSlot.noSubjectHint] / [AddEntry.noSubjectHint] 声明回答。
 ToolSlotVerdict evaluateDeclaredGates(
   Set<ToolGateKind> declared,
   ToolFacts facts, {
@@ -780,31 +780,15 @@ ToolSlotVerdict evaluateDeclaredGates(
   bool noSubjectExplained = true,
 }) {
   final verdict = evaluateToolSlot([
-    if (declared.contains(ToolGateKind.loading) && facts.loading)
-      ToolGateKind.loading,
-    if (declared.contains(ToolGateKind.noSubject) && !hasSubject)
-      ToolGateKind.noSubject,
-    if (declared.contains(ToolGateKind.locked) && facts.locked && lockApplies)
-      ToolGateKind.locked,
-    if (declared.contains(ToolGateKind.gridNotReady) && facts.gridNotReady)
-      ToolGateKind.gridNotReady,
-    if (declared.contains(ToolGateKind.previewOutOfBounds) &&
-        facts.previewOutOfBounds)
-      ToolGateKind.previewOutOfBounds,
-    // 投屏入口的第二块（票 #35）：命中条件与上面五行同款——声明 ∩ 事实。
-    if (declared.contains(ToolGateKind.castCopyMissing) &&
-        facts.castCopyMissing)
-      ToolGateKind.castCopyMissing,
-    if (declared.contains(ToolGateKind.castAvSyncCalibrating) &&
-        facts.castAvSyncCalibrating)
-      ToolGateKind.castAvSyncCalibrating,
-    if (declared.contains(ToolGateKind.castRecording) && facts.castRecording)
-      ToolGateKind.castRecording,
-    if (declared.contains(ToolGateKind.castCompareOrFraming) &&
-        facts.castCompareOrFraming)
-      ToolGateKind.castCompareOrFraming,
-    if (declared.contains(ToolGateKind.castRendering) && facts.castRendering)
-      ToolGateKind.castRendering,
+    for (final gate in kToolGatePriority)
+      if (declared.contains(gate) &&
+          _gateHolds(
+            gate,
+            facts,
+            hasSubject: hasSubject,
+            lockApplies: lockApplies,
+          ))
+        gate,
   ]);
   // 第②行的一支：入口**没有一句做法可给**时，这一门仍按旧口径
   // 收场——置灰、按不动、静默。「可点」要有可点的东西：没话说就别空报一个
@@ -819,6 +803,30 @@ ToolSlotVerdict evaluateDeclaredGates(
   }
   return verdict;
 }
+
+/// 一条门此刻成不成立：**按门取事实**（唯一一处）。十种门各对一位事实，
+/// 两处例外带自己的前提——「无对象」的事实是入参 [hasSubject]，「锁定」还要
+/// [lockApplies] 说这一下真落在锁内。
+///
+/// 穷尽 `switch`：加 [ToolGateKind] 取值即编译报错（不会静默不判），
+/// 这是命中集算法「只有一份」的护栏。
+bool _gateHolds(
+  ToolGateKind gate,
+  ToolFacts facts, {
+  required bool hasSubject,
+  required bool lockApplies,
+}) => switch (gate) {
+  ToolGateKind.loading => facts.loading,
+  ToolGateKind.noSubject => !hasSubject,
+  ToolGateKind.locked => facts.locked && lockApplies,
+  ToolGateKind.gridNotReady => facts.gridNotReady,
+  ToolGateKind.previewOutOfBounds => facts.previewOutOfBounds,
+  ToolGateKind.castCopyMissing => facts.castCopyMissing,
+  ToolGateKind.castAvSyncCalibrating => facts.castAvSyncCalibrating,
+  ToolGateKind.castRecording => facts.castRecording,
+  ToolGateKind.castCompareOrFraming => facts.castCompareOrFraming,
+  ToolGateKind.castRendering => facts.castRendering,
+};
 
 /// 按条目解析「此刻有没有作用对象」（穷尽 switch，
 /// 与槽面 [toolEntryHasSubject] 同构）：加一个 [AddEntryId] 取值而漏补事实

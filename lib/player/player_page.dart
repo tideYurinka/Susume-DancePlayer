@@ -131,7 +131,7 @@ import 'cast_run.dart'
         CastRunModel,
         castInterruptedNoticeSpec,
         castNotStartedNoticeSpec,
-        castRemoteControlsProvider,
+        castRemoteItemShownProvider,
         castRunProvider,
         castSpeedSwitchFailedNoticeSpec;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
@@ -1138,14 +1138,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         onDoubleTap: _togglePlayPause,
         onTwoFingerDoubleTap: _delayedPlay.triggerNow,
         // 投屏态内三枚遥控项（进度 / 播放暂停 / 音量）显不显示，只问那一份
-        // 判据（票 #38）；非投屏态恒 true——非投屏行为逐位不变。音量那枚
-        // **不再叠第二个条件**：接收端报不报得上音量在起投探测那一次就折进
-        // 判据了（`CastRemoteControls.showsVolume`，见 `cast_run.dart` 的
+        // 判据（票 #38）：唯一回答处是 `castRemoteItemShownProvider`（票 #44
+        // 把「非投屏恒显示」的短路收进它一次），手势层与控制层同读它。音量
+        // 那枚**不再叠第二个条件**：接收端报不报得上音量在起投探测那一次就
+        // 折进判据了（`CastRemoteControls.showsVolume`，见 `cast_run.dart` 的
         // `_probeRemoteControls`）。
-        castRemoteItemShown: (item) {
-          if (!ref.read(playerSessionProvider).isCast) return true;
-          return ref.read(castRemoteControlsProvider).shows(item);
-        },
+        castRemoteItemShown: (item) =>
+            ref.read(castRemoteItemShownProvider)(item),
         writeThreeFingerDirection: (direction) {
           ref.read(threeFingerToastDirectionProvider.notifier).write(direction);
           // 三指跳转做到过：提示触发（方向写面被调）即记入判据

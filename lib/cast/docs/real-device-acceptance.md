@@ -485,10 +485,12 @@ span 与样式光栅化出来的带 alpha 单帧 PNG），落在**取景之后�
 
 这一票把**音量手势**接到接收端（投屏态内右半屏纵向滑 = 电视的音量，
 `RenderingControl` 的 `SetVolume` / `GetVolume`），并把「投屏态里哪几枚遥控项
-显示」交给**接收端上报的能力判据**（`CastRemoteControls`：起投探测**同一次**
+显示」交给**遥控项判据**（`CastRemoteControls`：起投探测**同一次**
 里问一遍 `GetCurrentTransportActions` 并**读一次** `GetVolume`——两者合起来
 给出判据，音量滑条的显示基线取的就是那一次读数，不再另问一遍；问不到或问失败
-= 哪一项都不显示）。宿主侧在
+= 哪一项都不显示），界面上「这一枚显不显示」由投屏运行域的
+`castRemoteItemShownProvider` 一处回答（非投屏态恒显示，手势侧与控制层同读它）。
+宿主侧在
 `test/player/cast_mode_test.dart`（音量手势写接收端、探测失败时三枚都不显示）、
 `test/player/cast_run_test.dart`（判据进运行账、不支持的遥控一条不发）、
 `test/player/gesture_arbitration_test.dart`（判据说停的手势整段吞掉）、

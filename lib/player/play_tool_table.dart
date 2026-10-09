@@ -10,9 +10,10 @@
 /// [kPlayToolRowPortraitVideoToolbarBottom]（竖屏视频工具栏两行，两条 + 五条）/
 /// [kPlayToolRowCastTopBar]（投屏态顶栏，五枚——「倍速切换」→「画面开关」→
 /// 「断开投屏」→「系统镜像」→ 末位的「查看引导」）；
-/// 顶栏取哪一份行集由纯件 [playToolTopBarRowFor] 一处决定——**投屏态两值
-/// 有自己那份行集（与朝向、紧凑档无关），其余取值沿用朝向与紧凑档**
-/// （[playToolLandscapeTopBarRow]）；行集成员 [PlayToolRowItem]（一条槽的
+/// **顶栏取哪一份行集**由会话模式声明表一行决定（`session_mode_surfaces.dart`
+/// 的 `topBarRowOf`）——投屏态两值取自己那份行集（与朝向、紧凑档无关），
+/// 其余取值取 [playToolOrientationTopBarRow]（朝向与紧凑档只在这一支里参与）；
+/// 行集成员 [PlayToolRowItem]（一条槽的
 /// 引用，或一条分隔线）。槽身份
 /// [PlayToolSlotId] 是唯一消费点穷尽 `switch` 装配活值的判定依据——加槽
 /// 漏补装配即编译报错。可点性派生
@@ -49,8 +50,6 @@
 library;
 
 import 'package:dance_learning_app/player/tool_slots.dart';
-import 'package:dance_learning_app/player_session/player_session.dart'
-    show PlayerSessionMode;
 
 /// 看片工具的图标 token：表不引 Flutter，`IconData` 由装配点按 token
 /// 映射（映射取值 = 今天十五枚图标的逐位对照，见各条目注释）。
@@ -476,30 +475,19 @@ const PlayToolRowSet kPlayToolRowCastTopBar = PlayToolRowSet([
 PlayToolRowSet playToolLandscapeTopBarRow({required bool compact}) =>
     compact ? kPlayToolRowLandscapeTopBarCompact : kPlayToolRowLandscapeTopBar;
 
-/// 「模式 → 顶栏行集」唯一映射：**投屏态两值取自己那份行集**
-/// （[kPlayToolRowCastTopBar]，与朝向、紧凑档无关——投屏态是会话模式的一族，
-/// 三处换装随族走）；**其余取值沿用朝向与紧凑档**（竖屏标题栏 /
-/// 横屏 [playToolLandscapeTopBarRow]）。穷尽 switch：加会话模式取值即编译
-/// 报错，不会静默落到某个默认面。
-PlayToolRowSet playToolTopBarRowFor({
-  required PlayerSessionMode mode,
+/// 顶栏行集按**朝向与紧凑档**取（「模式 → 顶栏行集」里**非投屏那一支**的
+/// 唯一一处）：竖屏取竖屏标题栏 [kPlayToolRowPortraitTitleBar]，横屏按紧凑档
+/// 取 [playToolLandscapeTopBarRow]。投屏态两值不读它——那一支取自己那份
+/// [kPlayToolRowCastTopBar]（见 `session_mode_surfaces.dart` 的模式声明表）。
+///
+/// 与 [playToolLandscapeTopBarRow] 同属本表的朝向/档位知识；声明表只回答
+/// 「哪个会话模式取值走这一支」，不重抄朝向与档位的对应。
+PlayToolRowSet playToolOrientationTopBarRow({
   required bool portrait,
   required bool compact,
-}) => switch (mode) {
-  PlayerSessionMode.castControl ||
-  PlayerSessionMode.castWatching => kPlayToolRowCastTopBar,
-  PlayerSessionMode.watching ||
-  PlayerSessionMode.editing ||
-  PlayerSessionMode.beatCorrectionStandby ||
-  PlayerSessionMode.segmentDensityStandby ||
-  PlayerSessionMode.compareWatching ||
-  PlayerSessionMode.compareEditing ||
-  PlayerSessionMode.compareFraming ||
-  PlayerSessionMode.framing =>
-    portrait
-        ? kPlayToolRowPortraitTitleBar
-        : playToolLandscapeTopBarRow(compact: compact),
-};
+}) => portrait
+    ? kPlayToolRowPortraitTitleBar
+    : playToolLandscapeTopBarRow(compact: compact);
 
 /// 竖屏标题栏：四条——撤销 → 重做 → 投屏 → 查看引导（返回键与标题之后）。
 const PlayToolRowSet kPlayToolRowPortraitTitleBar = PlayToolRowSet([
@@ -527,16 +515,17 @@ const PlayToolRowSet kPlayToolRowPortraitVideoToolbarBottom = PlayToolRowSet([
   PlayToolRowItem.slot(kPlayToolCompare),
 ]);
 
-/// 可点性派生：无门命中时随硬启用位（[enabled]——撤销/重做等置灰即不可
-/// 点）；有门命中时随判定结果（共用底排同一求值入口 [evaluateDeclaredGates]
-/// 与判定表——「灰着的入口按下去绝不执行动作」只有一份实现），软门另或上
-/// 自己的标记（今天与判定表第②行同向：无对象也是「置灰、可点」）。
+/// 一条槽此刻的**置灰观感与可点性**：一次判定求值一起给出两样（票 #44）——
+/// 同一份事实不喂进判定表两遍。入参 [enabled] 是硬启用位（撤销/重做等），
+/// 无门命中时置灰观感与可点性都随它；有门命中时观感随判定结果、可点性随
+/// 判定表（共用底排同一求值入口 [evaluateDeclaredGates] 与判定表——「灰着的
+/// 入口按下去绝不执行动作」只有一份实现），软门另或上自己的标记（今天与
+/// 判定表第②行同向：无对象也是「置灰、可点」）。
 ///
-/// 入参 [hasSubject] 是顶栏那枚软门的门事实「有没有作用对象」（具名谓词）；
-/// [facts] 是**完整事实装配**（票 #35 起）：投屏入口那五条门的事实都在里面，
-/// 不声明它们的槽一位不受影响（命中集 = 声明 ∩ 事实）。顶栏因此与底排读同
-/// 一张判定表——门种 → 可点性不在本处另判。
-bool playToolTappable(
+/// 投屏入口那五条门的事实就在 [facts] 里（票 #35 起升格为完整事实装配）：
+/// 挂它的槽读这一处的 `available` 当置灰观感、`tappable` 当可点性——两样
+/// 出自同一次判定，`castEntryVerdict` 不再被顶栏为置灰重跑一遍。
+({bool available, bool tappable}) playToolAvailability(
   PlayToolSlot slot, {
   required bool hasSubject,
   required bool enabled,
@@ -547,5 +536,28 @@ bool playToolTappable(
     facts,
     hasSubject: hasSubject,
   );
-  return verdict.available ? enabled : slot.softGate || verdict.tappable;
+  return (
+    available: verdict.available,
+    tappable: verdict.available ? enabled : slot.softGate || verdict.tappable,
+  );
 }
+
+/// 可点性派生（[playToolAvailability] 的单值短手）：无门命中时随硬启用位
+/// （[enabled]——撤销/重做等置灰即不可点）；有门命中时随判定结果（共用底排
+/// 同一求值入口 [evaluateDeclaredGates] 与判定表），软门另或上自己的标记。
+///
+/// 入参 [hasSubject] 是顶栏那枚软门的门事实「有没有作用对象」（具名谓词）；
+/// [facts] 是**完整事实装配**（票 #35 起）：投屏入口那五条门的事实都在里面，
+/// 不声明它们的槽一位不受影响（命中集 = 声明 ∩ 事实）。顶栏因此与底排读同
+/// 一张判定表——门种 → 可点性不在本处另判。
+bool playToolTappable(
+  PlayToolSlot slot, {
+  required bool hasSubject,
+  required bool enabled,
+  ToolFacts facts = const ToolFacts(),
+}) => playToolAvailability(
+  slot,
+  hasSubject: hasSubject,
+  enabled: enabled,
+  facts: facts,
+).tappable;

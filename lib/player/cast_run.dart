@@ -936,10 +936,27 @@ final castRunProvider = NotifierProvider<CastRunModel, CastRunState>(
   CastRunModel.new,
 );
 
-/// 当前投屏会话的**遥控项判据**（票 #38）：界面那三枚遥控项（进度 / 播放
-/// 暂停 / 音量）显不显示，只问这一处——未投屏时是「哪一项都不显示」那份，
-/// 但界面只在投屏态内读它（非投屏态结构性没有遥控项这一说）。select 只订阅
-/// 这一个字段：后台渲染的进度变化不重建读它的控件。
+/// 当前投屏会话的**遥控项判据**（票 #38）：接收端能力这一层的取值——未投屏
+/// 时是「哪一项都不显示」那份。它是能力事实，不回答界面的「显不显示」：那一问
+/// 的唯一回答处是 [castRemoteItemShownProvider]（它在这一层之上补「非投屏态
+/// 恒显示」的短路）。select 只订阅这一个字段：后台渲染的进度变化不重建读它的
+/// 控件。
 final castRemoteControlsProvider = Provider<CastRemoteControls>(
   (ref) => ref.watch(castRunProvider.select((state) => state.remoteControls)),
 );
+
+/// 投屏态内某一枚遥控项此刻显不显示——**唯一回答处**（票 #44）：手势仲裁
+/// （进度 / 播放暂停 / 音量三段手势）与控制层（两枚控件在不在装配里）同读
+/// 它，两处不各自另判。
+///
+/// 「**非投屏态恒显示**」这条短路写在这里一次（改投屏判据不动非投屏行为）；
+/// 投屏态逐项照 [CastRemoteControls.shows]（接收端能力判据，见
+/// `lib/cast/cast_session.dart`）。
+final castRemoteItemShownProvider = Provider<bool Function(CastRemoteItem)>((
+  ref,
+) {
+  if (!ref.watch(playerSessionProvider.select((s) => s.isCast))) {
+    return (_) => true;
+  }
+  return ref.watch(castRemoteControlsProvider).shows;
+});

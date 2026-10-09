@@ -199,23 +199,41 @@ void main() {
       return fresh;
     }
 
-    CastEntryFacts factsOf(ProviderContainer container) =>
+    ToolFacts factsOf(ProviderContainer container) =>
         container.read(castEntryFactsProvider(path));
 
     test('缺省：五条都不成立', () {
       final facts = factsOf(makeContainer());
-      expect(facts.copyMissing, isFalse);
-      expect(facts.avSyncCalibrating, isFalse);
-      expect(facts.recording, isFalse);
-      expect(facts.compareOrFraming, isFalse);
-      expect(facts.rendering, isFalse);
+      expect(facts.castCopyMissing, isFalse);
+      expect(facts.castAvSyncCalibrating, isFalse);
+      expect(facts.castRecording, isFalse);
+      expect(facts.castCompareOrFraming, isFalse);
+      expect(facts.castRendering, isFalse);
       expect(castEntryVerdict(facts).available, isTrue);
       expect(castEntryVerdict(facts).kind, isNull);
     });
 
+    test('装配出的事实就是判定表吃的那一份：置灰观感与可点性出自同一次判定', () {
+      // 票 #44：投屏入口只有一份事实类型（ToolFacts），顶栏那一枚的置灰观感
+      // 与可点性由同一次判定求值一起给出——不再先求 verdict 再连同事实交给
+      // 可点性求值重跑一遍。
+      final facts = factsOf(makeContainer(missingPaths: {path}));
+      final availability = playToolAvailability(
+        kPlayToolCast,
+        hasSubject: true,
+        enabled: true,
+        facts: facts,
+      );
+      final verdict = castEntryVerdict(facts);
+      expect(availability.available, verdict.available);
+      expect(availability.tappable, verdict.tappable);
+      expect(availability.available, isFalse, reason: '副本丢失：置灰');
+      expect(availability.tappable, isTrue, reason: '灰着但仍可点（按下去解释原因）');
+    });
+
     test('副本丢失：按这支舞的视频副本路径问存在性', () {
       final facts = factsOf(makeContainer(missingPaths: {path}));
-      expect(facts.copyMissing, isTrue);
+      expect(facts.castCopyMissing, isTrue);
       expect(castEntryVerdict(facts).kind, ToolGateKind.castCopyMissing);
       expect(castEntryVerdict(facts).tappable, isTrue, reason: '灰着但按得动');
     });
@@ -234,7 +252,7 @@ void main() {
       addTearDown(container.dispose);
 
       final facts = factsOf(container);
-      expect(facts.avSyncCalibrating, isTrue);
+      expect(facts.castAvSyncCalibrating, isTrue);
       expect(castEntryVerdict(facts).kind, ToolGateKind.castAvSyncCalibrating);
     });
 
@@ -246,7 +264,7 @@ void main() {
         final container = makeContainer();
         container.read(compareRecordingPhaseProvider.notifier).set(phase);
         final facts = factsOf(container);
-        expect(facts.recording, isTrue, reason: '$phase');
+        expect(facts.castRecording, isTrue, reason: '$phase');
         expect(castEntryVerdict(facts).kind, ToolGateKind.castRecording);
       }
     });
@@ -257,7 +275,7 @@ void main() {
           .read(playerSessionProvider.notifier)
           .enter(PlayerSessionMode.compareEditing);
       final facts = factsOf(container);
-      expect(facts.compareOrFraming, isTrue);
+      expect(facts.castCompareOrFraming, isTrue);
       expect(castEntryVerdict(facts).kind, ToolGateKind.castCompareOrFraming);
     });
 
@@ -268,19 +286,23 @@ void main() {
       ]) {
         final container = makeContainer();
         container.read(playerSessionProvider.notifier).enter(mode);
-        expect(factsOf(container).compareOrFraming, isTrue, reason: '$mode');
+        expect(
+          factsOf(container).castCompareOrFraming,
+          isTrue,
+          reason: '$mode',
+        );
       }
     });
 
     test('渲染进行中：渲染活动事实由渲染编排那处写入', () {
       final container = makeContainer();
-      expect(factsOf(container).rendering, isFalse);
+      expect(factsOf(container).castRendering, isFalse);
       container.read(castRenderInProgressProvider.notifier).begin();
       final facts = factsOf(container);
-      expect(facts.rendering, isTrue);
+      expect(facts.castRendering, isTrue);
       expect(castEntryVerdict(facts).kind, ToolGateKind.castRendering);
       container.read(castRenderInProgressProvider.notifier).end();
-      expect(factsOf(container).rendering, isFalse);
+      expect(factsOf(container).castRendering, isFalse);
     });
   });
 
