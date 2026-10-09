@@ -28,6 +28,7 @@
 ///   作用于接收端。跳转按**当前档**换算坐标（源坐标 ↔ 副本坐标），否则 0.5×
 ///   档上「跳到 10 秒」会让电视停在 10 秒处而不是源片第 10 秒；副本 0 是**首线**
 ///   时（范围生效，`#37`）还得先减去原点——否则整条遥控都偏「首线」那么多。
+///   换算本身是纯件（`lib/cast/cast_coordinates.dart`），本域只按当前档问它。
 ///   三个动作都**不抛**：失败由本域收口（断开 + 回编辑态 + 短暂提示），本机
 ///   播放不因一次投屏失败被带停。
 /// - **遥控项判据与音量**（票 #38）：起投时问一次接收端支持哪些传输动作，
@@ -93,16 +94,12 @@ import 'dart:io';
 import 'package:flutter/material.dart' show BuildContext, Key, Text, Widget;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../cast/cast_coordinates.dart';
 import '../cast/cast_delivery_channel.dart';
 import '../cast/cast_failure.dart' show CastSessionDropped;
 import '../cast/cast_playback_follow.dart';
 import '../cast/cast_receiver.dart';
 import '../cast/cast_render_activity.dart' show castRenderInProgressProvider;
-import '../cast/cast_range_gate.dart'
-    show
-        castCopyDurationOf,
-        castCopySourceDurationOf,
-        castCopySourceStartOf;
 import '../cast/cast_render_orchestrator.dart'
     show castRenderOrchestratorProvider;
 import '../cast/cast_render_request.dart';
@@ -346,11 +343,10 @@ class CastRunModel extends Notifier<CastRunState>
   CastSession? _session;
   CastDeliveryChannel? _channel;
 
-  /// 这次投屏各档的渲染请求（宿主装配；后台渲染与坐标换算的时长都读它）。
-  Map<CastSpeedTier, CastRenderRequest> _requests = const {};
-
-  /// 起投那一刻正在练的学习段（源坐标；后台渲染与换档的钳制读它）。
-  ({Duration start, Duration end})? _practiceSpan;
+  /// 这次投屏的**坐标换算**（各档渲染请求 + 起投那一刻正在练的学习段）：后台
+  /// 渲染逐档取请求、遥控跳转与换档续播取位置换算，都问这一处
+  /// （纯件在 `lib/cast/cast_coordinates.dart`）。
+  CastCoordinates _coordinates = const CastCoordinates();
 
   /// 后台渲染的代际号：断开 / 换视频即自增，在飞的那一轮作废。
   int _renderGeneration = 0;
@@ -407,8 +403,10 @@ class CastRunModel extends Notifier<CastRunState>
       _channel = channel;
       final session = await factory.connect(receiver);
       _session = session;
-      _requests = requests;
-      _practiceSpan = practiceSpan;
+      _coordinates = CastCoordinates(
+        requests: requests,
+        practiceSpan: practiceSpan,
+      );
       state = CastRunState.casting(
         receiver,
         activeTier: effectivePlan.startTier,
@@ -523,7 +521,7 @@ class CastRunModel extends Notifier<CastRunState>
     }
     if (!identical(_session, session)) return;
 
-    final destination = _resumePosition(
+    final destination = _coordinates.resumePositionOf(
       position: reported,
       from: from,
       to: tier,
@@ -568,7 +566,7 @@ class CastRunModel extends Notifier<CastRunState>
     } on Object {
       return null;
     }
-    return _toSourceOf(reported, state.activeTier);
+    return _coordinates.sourcePositionOf(reported, state.activeTier);
   }
 
   /// 断开：唯一出口——先停服（在飞连接一并断）、再断连，并把在飞的后台渲染
@@ -587,8 +585,8 @@ class CastRunModel extends Notifier<CastRunState>
   /// 遥控镜像：未投屏 = 空操作；失败收口，不向上抛。
   ///
   /// 跳转按**当前档**换算坐标：本机报的是源片位置，接收端要的是那一档副本
-  /// 里的位置（0.5× 档上源片 10 秒 = 副本 20 秒；范围生效时副本 0 是**首线**，
-  /// 见 [_toCopyOf]）。
+  /// 里的位置（0.5× 档上源片 10 秒 = 副本 20 秒；范围生效时副本 0 是**首线**）
+  /// ——换算问纯件 [CastCoordinates.copyPositionOf]，本域不自己算。
   ///
   /// **判据先过一遍**（票 #38）：接收端没自述支持的那一枚（播放暂停 / 跳转 /
   /// 音量），遥控一条都不发——界面那边也不显示它；这里是**结构性兜底**
@@ -604,7 +602,8 @@ class CastRunModel extends Notifier<CastRunState>
   @override
   Future<void> seek(Duration position) => _mirror(
     CastRemoteItem.progress,
-    (session) => session.seek(_toCopyOf(position, state.activeTier)),
+    (session) =>
+        session.seek(_coordinates.copyPositionOf(position, state.activeTier)),
   );
 
   /// 把接收端音量设成 [volume]（0..1；音量手势在投屏态下走这条）。
@@ -757,7 +756,7 @@ class CastRunModel extends Notifier<CastRunState>
             current.status == CastTierRenderStatus.failed) {
           continue;
         }
-        final request = _requests[tier];
+        final request = _coordinates.requestFor(tier);
         if (request == null) {
           // 没给这一档的请求：它就是渲不出来（界面照「不可点」呈现）。
           _replaceTier(
@@ -822,7 +821,11 @@ class CastRunModel extends Notifier<CastRunState>
       final source = await channel.serve(File(file));
       await session.push(source);
       await session.seek(
-        _resumePosition(position: position, from: fromTier, to: toTier),
+        _coordinates.resumePositionOf(
+          position: position,
+          from: fromTier,
+          to: toTier,
+        ),
       );
       await session.play();
     } on Object {
@@ -834,67 +837,6 @@ class CastRunModel extends Notifier<CastRunState>
     ref
         .read(noticeTriggerProvider(NoticeId.castSpeedSwitchFailed).notifier)
         .show();
-  }
-
-  /// 换档后要跳的位置：先回到**源坐标**、把续播位置钳进**这次正在练的学习段**
-  /// （段是源坐标那一份），再落到目标档的副本坐标——起播等待与接收端的跳转
-  /// 精度都不由我们决定，续播落在段外那次练习就白等了。
-  ///
-  /// 不能按倍率在副本坐标之间直接换算：两档的副本**原点**可能不同（只勾声音
-  /// 类时，1× 是复制档、不收范围，非 1× 档收了范围、副本 0 是首线）——经过
-  /// 源坐标这一步，原点差异自然被吸收。
-  Duration _resumePosition({
-    required Duration position,
-    required CastSpeedTier from,
-    required CastSpeedTier to,
-  }) {
-    var source = _toSourceOf(position, from);
-    final span = _practiceSpan;
-    if (span != null) {
-      if (source < span.start) source = span.start;
-      if (source > span.end) source = span.end;
-    }
-    return _toCopyOf(source, to);
-  }
-
-  /// 源坐标 → 某一档**副本坐标**：减去这一档副本的原点（范围生效时是首线）、
-  /// 按倍率缩放、再钳进副本时长。
-  Duration _toCopyOf(Duration sourcePosition, CastSpeedTier tier) =>
-      castCopyPosition(
-        sourcePosition - _sourceStartOf(tier),
-        tier,
-        copyDuration: _copyDurationOf(tier),
-      );
-
-  /// 某一档**副本坐标** → 源坐标：按倍率换回、加回副本原点。
-  Duration _toSourceOf(Duration copyPosition, CastSpeedTier tier) {
-    final request = _requests[tier];
-    final within = castSourcePosition(
-      copyPosition,
-      tier,
-      sourceDuration: request == null
-          ? null
-          : castCopySourceDurationOf(request),
-    );
-    return _sourceStartOf(tier) + within;
-  }
-
-  /// 某一档副本的时间轴**原点**在源坐标上的位置：范围生效时这一档副本从首线
-  /// 起（`trim` + `setpts=PTS-STARTPTS` 把副本自己的时间轴挪到了 0），复制档
-  /// 不收范围、原点仍是源片 0。
-  Duration _sourceStartOf(CastSpeedTier tier) {
-    final request = _requests[tier];
-    if (request == null) return Duration.zero;
-    return castCopySourceStartOf(request);
-  }
-
-  /// 某一档副本的总时长（范围 / 整片按倍速档换算过来）；没有这一档的请求、或
-  /// 算出来不是正数时为空（钳制不做，位置照算）。
-  Duration? _copyDurationOf(CastSpeedTier tier) {
-    final request = _requests[tier];
-    if (request == null) return null;
-    final copy = castCopyDurationOf(request);
-    return copy <= Duration.zero ? null : copy;
   }
 
   /// 换掉某一档的运行账（后台渲染逐次推进状态用）。容器已拆时是空操作。
@@ -959,8 +901,7 @@ class CastRunModel extends Notifier<CastRunState>
     _renderGeneration++;
     final rendering = _rendering;
     _rendering = false;
-    _requests = const {};
-    _practiceSpan = null;
+    _coordinates = const CastCoordinates();
     final session = _session;
     final channel = _channel;
     _session = null;

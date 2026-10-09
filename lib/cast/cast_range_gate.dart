@@ -47,8 +47,8 @@
 /// ## 副本的时间轴原点挪到了首线
 ///
 /// 副本自己的时间轴从 0 起（`setpts=PTS-STARTPTS`），于是「源坐标 ↔ 副本坐标」
-/// 不再是单纯的按倍率缩放：副本 0 现在对应**首线**。这份换算由运行域
-/// （`player/cast_run.dart`）按 [castCopyDurationOf] 与 [CastRange.start] 做，
+/// 不再是单纯的按倍率缩放：副本 0 现在对应**首线**。这份换算由坐标换算纯件
+/// （`cast_coordinates.dart`）按 [castCopyDurationOf] 与 [CastRange.start] 做，
 /// 进度分母（`cast_render_orchestrator.dart`）读的也是同一条时长。
 library;
 
@@ -151,7 +151,7 @@ Duration castCopyDurationOf(CastRenderRequest request) =>
 /// 这份请求的副本的**时间轴原点**落在源时间轴上的哪一刻：范围生效 = 首线，
 /// 否则源片 0（复制档不收范围，故原点也留在 0）。
 ///
-/// 副本 0 对应源上的这一刻——运行域（`player/cast_run.dart`）的源坐标 ↔ 副本
-/// 坐标换算从它起算，不是从源片 0 起算。
+/// 副本 0 对应源上的这一刻——坐标换算纯件（`cast_coordinates.dart`）的源坐标 ↔
+/// 副本坐标换算从它起算，不是从源片 0 起算。
 Duration castCopySourceStartOf(CastRenderRequest request) =>
     castActiveRangeOf(request)?.start ?? Duration.zero;
