@@ -167,7 +167,6 @@ void main() {
         isTrue,
         reason: '端点在场且探测读到了上报值：音量遥控项显示',
       );
-      expect(controls.showsStop, isFalse, reason: '设备没自述 Stop');
       expect(controls.shows(CastRemoteItem.progress), isTrue);
       expect(controls.shows(CastRemoteItem.playPause), isTrue);
       expect(controls.shows(CastRemoteItem.volume), isTrue);

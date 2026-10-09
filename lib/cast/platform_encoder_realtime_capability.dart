@@ -2,10 +2,13 @@
 /// `susume/encoder_realtime`（Android 侧 `EncoderRealtimeCapabilityPlugin`），
 /// **一条方法**——`realtimeGuarantee` 回一句三态线值：
 ///
-/// - `guaranteed`：系统给的编码器**性能点**覆盖得了 1080p/30fps；
+/// - `guaranteed`：系统给的编码器**性能点**覆盖得了**调用方给的那一档尺寸**；
 /// - `notGuaranteed`：性能点答得出来、但覆盖不了；
 /// - `unknown`：**问不到**——性能点是 **API 29+**（本仓 `minSdk` 是 24，故
 ///   API 24–28 上这门 API 根本不存在）、设备不报、通道不在、原生报错。
+///
+/// 目标尺寸（宽 / 高 / 帧率）**随调用一起过桥**（三个入参名与原生侧共用同一
+/// 份常量），原生不再硬编 1080p30。
 ///
 /// 三条线值与 Android 侧逐字对应，并在 `platform_encoder_realtime_capability_
 /// test.dart` 里按 Kotlin 文件正文对齐（声明的事实）；真机上的读数留真机验收
@@ -26,6 +29,11 @@ const String kCastEncoderRealtimeChannelName = 'susume/encoder_realtime';
 
 /// 通道上唯一的方法名。
 const String kCastEncoderRealtimeMethod = 'realtimeGuarantee';
+
+/// 目标尺寸的三个入参名（原生侧逐字同名地读）。
+const String kCastEncoderTargetWidthArgument = 'width';
+const String kCastEncoderTargetHeightArgument = 'height';
+const String kCastEncoderTargetFpsArgument = 'fps';
 
 /// 线值：保证 1× 实时。
 const String kCastEncoderRealtimeGuaranteedAnswer = 'guaranteed';
@@ -53,19 +61,19 @@ class PlatformEncoderRealtimeCapability
   static const _channel = MethodChannel(kCastEncoderRealtimeChannelName);
 
   @override
-  Future<CastEncoderRealtime> query() async {
+  Future<CastEncoderRealtime> query(CastEncoderQueryTarget target) async {
     try {
       return castEncoderRealtimeFromWire(
-        await _channel.invokeMethod<Object?>(kCastEncoderRealtimeMethod),
+        await _channel.invokeMethod<Object?>(kCastEncoderRealtimeMethod, {
+          kCastEncoderTargetWidthArgument: target.width,
+          kCastEncoderTargetHeightArgument: target.height,
+          kCastEncoderTargetFpsArgument: target.fps,
+        }),
       );
-    } on MissingPluginException {
-      // 通道不在（非 Android 宿主 / 插件未注册）：问不到。
-      return CastEncoderRealtime.unknown;
-    } on PlatformException {
-      // 原生这边读性能点失败：问不到（不把一次查询失败升级成渲染失败）。
-      return CastEncoderRealtime.unknown;
     } on Object {
-      // 过桥本身出别的岔子（引擎拆了、消息编解码失败）：同一口径。
+      // 通道不在（非 Android 宿主 / 插件未注册）、原生读性能点失败、过桥
+      // 本身出别的岔子：都是同一个口径——**问不到**，不向上抛（不把一次查询
+      // 失败升级成渲染失败）。
       return CastEncoderRealtime.unknown;
     }
   }

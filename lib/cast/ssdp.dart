@@ -33,18 +33,15 @@ String buildSsdpSearchRequest({
       '\r\n';
 }
 
-/// 一条 SSDP 应答里我们认下的三样：设备描述地址、USN 与搜索目标。
+/// 一条 SSDP 应答里我们认下的两样：设备描述地址与 USN。
 class CastSsdpResponse {
-  const CastSsdpResponse({required this.location, this.usn, this.searchTarget});
+  const CastSsdpResponse({required this.location, this.usn});
 
   /// 设备描述的绝对地址（`LOCATION`）——接着去拉它的地方。
   final Uri location;
 
   /// 设备唯一名（`USN`）；设备没给就是 null。
   final String? usn;
-
-  /// 设备自述的搜索目标（`ST`）；设备没给就是 null。
-  final String? searchTarget;
 
   /// 设备身份：USN 优先，缺 USN 时退到设备描述地址——**兜底不是编造**，
   /// 同一个身份用来去重。
@@ -54,11 +51,10 @@ class CastSsdpResponse {
   bool operator ==(Object other) =>
       other is CastSsdpResponse &&
       other.location == location &&
-      other.usn == usn &&
-      other.searchTarget == searchTarget;
+      other.usn == usn;
 
   @override
-  int get hashCode => Object.hash(location, usn, searchTarget);
+  int get hashCode => Object.hash(location, usn);
 
   @override
   String toString() => 'CastSsdpResponse($deviceId → $location)';
@@ -77,7 +73,6 @@ CastSsdpResponse? parseSsdpResponse(String message) {
 
   String? location;
   String? usn;
-  String? searchTarget;
   for (final line in lines.skip(1)) {
     final separator = line.indexOf(':');
     if (separator <= 0) continue;
@@ -89,8 +84,6 @@ CastSsdpResponse? parseSsdpResponse(String message) {
         location ??= value;
       case 'usn':
         usn ??= value;
-      case 'st':
-        searchTarget ??= value;
     }
   }
 
@@ -98,7 +91,7 @@ CastSsdpResponse? parseSsdpResponse(String message) {
   final uri = Uri.tryParse(location);
   if (uri == null || !uri.isAbsolute || uri.host.isEmpty) return null;
   if (uri.scheme != 'http' && uri.scheme != 'https') return null;
-  return CastSsdpResponse(location: uri, usn: usn, searchTarget: searchTarget);
+  return CastSsdpResponse(location: uri, usn: usn);
 }
 
 /// 应答去重：同一台设备（USN 或设备描述地址相同）只留第一条。

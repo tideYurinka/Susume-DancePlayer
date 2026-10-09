@@ -33,7 +33,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
     CastRenderSettings settings = const CastRenderSettings(),
     String annotationFingerprint = 'fp-1',
   }) => CastRenderRequest(
@@ -76,7 +76,7 @@ void main() {
     expect(
       await cache.find(downgraded),
       isNull,
-      reason: '按源分辨率渲的那一份不该被降级请求命中（同一支舞、同一勾选、同一倍速档）',
+      reason: '保证档渲的那一份不该被降级请求命中（同一支舞、同一勾选、同一倍速档）',
     );
     expect(
       (await cache.partFileFor(downgraded)).path,

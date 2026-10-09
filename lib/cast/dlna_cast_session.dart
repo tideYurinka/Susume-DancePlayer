@@ -202,7 +202,7 @@ class DlnaCastSession implements CastSession {
       );
       request.headers.set(
         'SOAPAction',
-        castSoapActionHeaderValue(service, action),
+        service.actionHeader(action),
       );
       request.write(
         buildCastSoapEnvelope(

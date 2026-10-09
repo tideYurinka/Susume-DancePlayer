@@ -216,7 +216,14 @@ void main() {
     test('没有贴纸时画面链与今天逐字一致（不引入多余的中间标签）', () {
       final filter = filterOf(graphOf());
 
-      expect(filter, contains('[0:v]fps=$kCastRenderFps,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]scale=-2:'min(1080,ih)',setsar=1,"
+          'fps=$kCastRenderFps,format=yuv420p[vout]',
+        ),
+        reason: '没有贴纸就只剩分辨率档那一枚（不引入多余的中间标签）',
+      );
       expect(filter, isNot(contains('overlay=')));
       expect(filter, isNot(contains('scale2ref')));
     });

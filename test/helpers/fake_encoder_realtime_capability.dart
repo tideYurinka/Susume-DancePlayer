@@ -19,9 +19,13 @@ class FakeEncoderRealtimeCapability implements CastEncoderRealtimeCapability {
   /// [query] 的调用次数。
   int queryCalls = 0;
 
+  /// 每次询问传进来的**目标尺寸**（调用方问的是哪一档）。
+  final List<CastEncoderQueryTarget> queriedTargets = [];
+
   @override
-  Future<CastEncoderRealtime> query() async {
+  Future<CastEncoderRealtime> query(CastEncoderQueryTarget target) async {
     queryCalls++;
+    queriedTargets.add(target);
     final failure = this.failure;
     if (failure != null) throw failure;
     return answer;

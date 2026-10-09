@@ -8,14 +8,11 @@ void main() {
   group('请求装配', () {
     test('SOAPAction 头是「服务类型#动作」，带引号', () {
       expect(
-        castSoapActionHeaderValue(CastUpnpService.avTransport, 'Play'),
+        CastUpnpService.avTransport.actionHeader('Play'),
         '"urn:schemas-upnp-org:service:AVTransport:1#Play"',
       );
       expect(
-        castSoapActionHeaderValue(
-          CastUpnpService.renderingControl,
-          'SetVolume',
-        ),
+        CastUpnpService.renderingControl.actionHeader('SetVolume'),
         '"urn:schemas-upnp-org:service:RenderingControl:1#SetVolume"',
       );
     });

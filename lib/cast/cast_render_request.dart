@@ -459,7 +459,7 @@ class CastRenderRequest {
     required this.duration,
     required this.choices,
     required this.speedTier,
-    this.resolution = CastRenderResolution.source,
+    this.resolution = CastRenderResolution.p1080,
     required this.settings,
     required this.annotationFingerprint,
     this.mirrorFragments = const [],
@@ -487,9 +487,9 @@ class CastRenderRequest {
 
   /// **渲染分辨率档**（缓存键的一维，也是画面链尾那个缩放节点与码率的来源）。
   ///
-  /// 由**准备面板**按编码器能力三态定：保证 1× 实时 = 源档（按源分辨率），
-  /// 不保证与**问不到** = 720p（见 `cast_encoder_realtime.dart`）。默认源档，
-  /// 于是既有构造点不必改。
+  /// 由**准备面板**按编码器能力三态定：保证 1× 实时 = 保证档（画面上限收在
+  /// 问的那一档上），不保证与**问不到** = 720p（见 `cast_encoder_realtime.dart`）。
+  /// 默认保证档，于是既有构造点不必改。
   final CastRenderResolution resolution;
 
   final CastRenderSettings settings;
@@ -579,7 +579,7 @@ class CastRenderKey {
   const CastRenderKey({
     required this.videoId,
     required this.choices,
-    this.resolution = CastRenderResolution.source,
+    this.resolution = CastRenderResolution.p1080,
     required this.settings,
     required this.speedTier,
     required this.annotationFingerprint,

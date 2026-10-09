@@ -67,14 +67,14 @@
 ///
 /// ## 分辨率档：链尾一个缩放节点（#36）
 ///
-/// 画面链尾按**渲染分辨率档**装缩放：源档一个节点都不加（链路与今天逐字
-/// 一致）；720p 档在 `fps` 之前插一枚 `scale=-2:'min(720,ih)',setsar=1`——
-/// 高过 720 行才降、**不足 720 行原样留着**（只降不升；取景窗口小于 720 行时
-/// 放大与「不足以 1× 实时就宁可降分辨率」相反，见 `cast_encoder_realtime.dart`），
-/// 宽度按源画面比例现算（`-2` 顺带保证偶数），**不拉伸**画面，方像素由那条
-/// `setsar=1` 钉住（`scale` 自己会改 SAR 去保 DAR）。码率跟着档走
-/// （源 8M / 720p 4M）。它同样只在**视频真重编码**时才进命令：只勾声音 + 1×
-/// 是 `-c:v copy`，没有可降的编码（[castRenderReencodesVideo]）。
+/// 画面链尾按**渲染分辨率档**装一枚 `scale=-2:'min(<上限>,ih)',setsar=1`：保证
+/// 档上限是 1080 行、720p 档是 720 行——高过上限才降、**不足上限原样留着**
+/// （只降不升；取景窗口比上限小时放大与「不足以 1× 实时就宁可降分辨率」相反，
+/// 见 `cast_encoder_realtime.dart`），宽度按源画面比例现算（`-2` 顺带保证
+/// 偶数），**不拉伸**画面，方像素由那条 `setsar=1` 钉住（`scale` 自己会改 SAR
+/// 去保 DAR）。码率跟着档走（1080p 档 8M / 720p 档 4M）。它只在**视频真重编码**
+/// 时才进命令：只勾声音 + 1× 是 `-c:v copy`，没有可降的编码
+/// （[castRenderReencodesVideo]）。
 ///
 /// **链序（#37 与 #36 合起来定死）**：范围 `trim` / 音轨 `atrim` 在**全部
 /// overlay 之后、倍速 `setpts` 之前**（它们判的是源时间轴那一段）；分辨率档的
@@ -93,8 +93,10 @@ import 'cast_sticker_gate.dart';
 /// （ADR-0004 的渲染路线结论）。
 const String kCastRenderVideoEncoder = 'h264_mediacodec';
 
-/// 画面档的 GOP 与目标帧率（编码参数不靠默认值）。**码率不在这里**：它随
-/// **渲染分辨率档**走（源档 8M / 720p 档 4M，见 `cast_encoder_realtime.dart`）。
+/// 画面档的 GOP 与目标帧率（编码参数不靠默认值）。帧率与**问编码器的那一档**
+/// 是同一个数（`kCastGuaranteeQueryTarget.fps`）：问什么就渲什么。
+/// **码率不在这里**：它随**渲染分辨率档**走（1080p 档 8M / 720p 档 4M，见
+/// `cast_encoder_realtime.dart`）。
 const int kCastRenderGop = 60;
 const int kCastRenderFps = 30;
 
@@ -127,12 +129,11 @@ List<String> buildCastRenderArguments({
     request.choices,
     request.speedTier,
   );
-  // **分辨率档**（#36）：保证 1× 实时 = 源档（一个缩放节点都不加，链路与今天
-  // 逐字一致）；不保证或问不到 = 720p（链尾钉高 720 行、宽度按源画面比例）。
+  // **分辨率档**（#36）：保证 1× 实时 = 保证档（链尾钉高 1080 行）；不保证或
+  // 问不到 = 720p（链尾钉高 720 行）。两档的宽度都按源画面比例、都只降不升。
   // 它只在**视频真重编码**时才进命令——只勾声音 + 1× 是 `-c:v copy`，没有可降
   // 的编码（那时分辨率档只活在缓存键里，见 `cast_render_request.dart`）。
-  final scale = request.resolution.scaleNode;
-  final scaleNode = scale == null ? '' : '$scale,';
+  final scaleNode = '${request.resolution.scaleNode},';
 
   // **这次装什么，读的是暂存输入**：拍声轨在不在就是混不混拍声，数拍序列清单
   // 在不在就是装不装数拍层（清单自带要装的那一层），贴纸图与请求里的贴纸成对

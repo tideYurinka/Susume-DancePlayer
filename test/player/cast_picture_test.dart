@@ -150,7 +150,7 @@ void main() {
           // 熄不熄」归真机验收，这里钉的是「谁在什么时候拿、什么时候放」。
           castScreenAwakeProvider.overrideWithValue(awake),
           videoCopyPresenceProvider.overrideWithValue(FakeVideoCopyPresence()),
-          // 编码器能力查询（#36）：按「保证 1× 实时」注入，请求因此按源分辨率
+          // 编码器能力查询（#36）：按「保证 1× 实时」注入，请求因此按保证档
           // 装配。**这条接缝必须注入**——平台通道在 widget 测试里不会被应答，
           // 不注入面板会挂在能力查询上（降级那几条用例在
           // `cast_prep_panel_test.dart`）。

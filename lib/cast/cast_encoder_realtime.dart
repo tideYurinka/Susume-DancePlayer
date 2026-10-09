@@ -2,11 +2,13 @@
 ///
 /// ## 三态，不是 bool
 ///
-/// 投屏渲染前要问系统一件事：这台机器的编码器**保证** 1× 实时吗？答案有三种，
-/// 而**第三态正是兜底决策的落点**——别把它压成 false：
+/// 投屏渲染前要问系统一件事：这台机器的编码器**保证**覆盖得了这次要渲的尺寸
+/// 吗？**目标尺寸（宽 / 高 / 帧率）由 Dart 侧给出**（[CastEncoderQueryTarget]，
+/// 原生只照它问性能点，不自己硬编），答案有三种，而**第三态正是兜底决策的
+/// 落点**——别把它压成 false：
 ///
-/// - [CastEncoderRealtime.guaranteed]：系统给出的编码器性能点覆盖得了这一档
-///   （1080p / 30fps），按**源分辨率**渲；
+/// - [CastEncoderRealtime.guaranteed]：系统给出的编码器性能点覆盖得了问的那一档
+///   （[kCastGuaranteeQueryTarget]），按保证档渲；
 /// - [CastEncoderRealtime.notGuaranteed]：性能点答得出来、但覆盖不了，**降到
 ///   720p**；
 /// - [CastEncoderRealtime.unknown]：问不到——系统这门 API 不在（性能点是
@@ -16,16 +18,21 @@
 /// 保证，一律降级。理由是它与上位理由同向——宁可降分辨率，也不给用户一个
 /// **未知时长的进度条**（ADR-0004 的回填）。
 ///
+/// ## 保证档不是「按源分辨率渲」
+///
+/// 答案只保证到**问的那一档**，所以保证档的画面上限就收在那一档上
+/// （[CastRenderResolution.p1080] 的 `min(1080, ih)`）：4K 源不会被一条
+/// 1080p30 的答案放行成 4K 渲染。
+///
 /// ## 分辨率档是渲染参数与缓存键的一维
 ///
 /// 同一支舞、同一勾选、同一倍速档，在降级与不降级下是**两份不同的缓存条目**
 /// （[CastRenderResolution.token] 进 `CastRenderKey`），不得互相命中。
 ///
-/// 档带两样渲染参数：[CastRenderResolution.scaleNode] 是画面链尾那个缩放节点
-/// （源档为 null = 一个节点都不加，链路与今天逐字一致）、
-/// [CastRenderResolution.bitrate] 是编码码率。720p 档的缩放**只降不升**：表达式
-/// 是 `min(720, ih)`——源画面（取景之后那一块）**高过 720 行**时钉到 720，
-/// **不足 720 行**时原样留着（`ih`）。取景窗口比 720 小的选区在 API<29 那类
+/// 档带两样渲染参数：[CastRenderResolution.scaleNode] 是画面链尾那个缩放节点、
+/// [CastRenderResolution.bitrate] 是编码码率。两档的缩放都**只降不升**：表达式
+/// 是 `min(<上限>, ih)`——源画面（取景之后那一块）**高过上限**时钉到上限，
+/// **不足**时原样留着（`ih`）。取景窗口比 720 小的选区在 API<29 那类
 /// 常态降级路径上会走到这里，写成 `scale=-2:720` 就是**放大**——那与「不足以
 /// 1× 实时就宁可降分辨率」正好相反，还白白把像素糊一遍。宽度一律按源画面比例
 /// 现算（`-2` 顺带保证偶数），**不拉伸**画面：取景裁出来的那块窗口不是 16:9 时，
@@ -36,7 +43,7 @@ library;
 
 /// 「这台机器的编码器能不能保证 1× 实时」的三态答案（接缝的返回值）。
 enum CastEncoderRealtime {
-  /// 系统给的性能点覆盖得了这一档：按源分辨率渲。
+  /// 系统给的性能点覆盖得了问的那一档：按保证档渲（画面上限收在那一档）。
   guaranteed,
 
   /// 性能点答得出来、但覆盖不了这一档：降到 720p。
@@ -46,16 +53,43 @@ enum CastEncoderRealtime {
   unknown,
 }
 
-/// 源档的编码码率（不降级时的显式码率）。
-const String kCastRenderSourceBitrate = '8M';
+/// 「编码器保证覆盖得了这个尺寸吗」这一问的目标：**Dart 侧给出**，原生只照它
+/// 问性能点（宽、高、帧率都是入参，不在原生里硬编）。
+class CastEncoderQueryTarget {
+  const CastEncoderQueryTarget({
+    required this.width,
+    required this.height,
+    required this.fps,
+  });
+
+  final int width;
+  final int height;
+  final int fps;
+}
+
+/// 保证档问系统的那一档：1920×1080 / 30fps。它同时是保证档的**输出上限**
+/// ——答案只保证到这里，4K 源因此也收在这条线上（见库头）。
+const CastEncoderQueryTarget kCastGuaranteeQueryTarget = CastEncoderQueryTarget(
+  width: 1920,
+  height: 1080,
+  fps: 30,
+);
+
+/// 保证档的编码码率（不降级时的显式码率）。
+const String kCastRenderP1080Bitrate = '8M';
 
 /// 720p 档的编码码率（像素少了一多半，码率跟着降）。
 const String kCastRenderP720Bitrate = '4M';
 
 /// **渲染分辨率档**：投屏渲染输出画面的一维（也是缓存键的一维）。
 enum CastRenderResolution {
-  /// 源分辨率：不加任何缩放节点（未取景时输出即源尺寸，取景时输出即裁切尺寸）。
-  source(token: 'src', bitrate: kCastRenderSourceBitrate, scaleNode: null),
+  /// 保证档（问的那一档）：高不过 1080 行（**只降不升**，见库头）、宽度按源
+  /// 画面比例，方像素。**不是「按源分辨率渲」**：4K 源照样收在 1080 行上。
+  p1080(
+    token: '1080p',
+    bitrate: kCastRenderP1080Bitrate,
+    scaleNode: "scale=-2:'min(1080,ih)',setsar=1",
+  ),
 
   /// 720p：高不过 720 行（**只降不升**，见库头）、宽度按源画面比例，方像素。
   p720(
@@ -76,8 +110,8 @@ enum CastRenderResolution {
   /// 这一档的显式编码码率（`-b:v`）。
   final String bitrate;
 
-  /// 画面链尾要装的缩放节点；源档为 null（**一个节点都不加**）。
-  final String? scaleNode;
+  /// 画面链尾要装的缩放节点（两档各一条，都只降不升）。
+  final String scaleNode;
 }
 
 /// 能力三态 → 这次用哪一档渲染（**纯件**，也是兜底决策的唯一出处）。
@@ -86,7 +120,7 @@ enum CastRenderResolution {
 /// 与 [CastEncoderRealtime.notGuaranteed] 同路——见库头。
 CastRenderResolution castRenderResolutionFor(CastEncoderRealtime capability) {
   return switch (capability) {
-    CastEncoderRealtime.guaranteed => CastRenderResolution.source,
+    CastEncoderRealtime.guaranteed => CastRenderResolution.p1080,
     CastEncoderRealtime.notGuaranteed => CastRenderResolution.p720,
     CastEncoderRealtime.unknown => CastRenderResolution.p720,
   };

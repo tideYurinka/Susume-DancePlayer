@@ -1,7 +1,12 @@
 /// 递出这份片子时对外说的**媒体类型**与随 URL 一起交给接收端的
 /// **DIDL-Lite 元数据**：递出通道的 `Content-Type` 与推片时的
 /// `CurrentURIMetaData` 共用同一份判据——两处说成两样，接收端就会挑一个信。
+///
+/// XML 文本转义不在这里：它只有一份实现（`soap.dart` 的 `escapeXmlText`），
+/// 信封与这份元数据共用。
 library;
+
+import 'soap.dart';
 
 /// 认不出扩展名时对外说的类型（接收端多半会拒绝，但至少不说谎）。
 const String kCastFallbackContentType = 'application/octet-stream';
@@ -46,11 +51,3 @@ String buildCastDidlMetadata({
       '</item>'
       '</DIDL-Lite>';
 }
-
-/// 一段文本进 XML 文本节点时的转义（`&` 必须第一个换）。
-String escapeXmlText(String value) => value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');

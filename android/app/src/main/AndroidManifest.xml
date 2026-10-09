@@ -24,15 +24,6 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29"
         tools:replace="android:maxSdkVersion" />
-    <!-- 投屏：读当前网络状态，判断这台手机此刻在不在一条可用网络上
-         （发现的前置）；普通权限，无运行时弹窗。 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- 投屏：读 WiFi 状态与网卡地址，好把递出通道的地址通告成局域网可达
-         的那个；普通权限，无运行时弹窗。 -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- 投屏发现：SSDP 的 M-SEARCH 走 WiFi 组播（239.255.255.250:1900）；
-         普通权限，无运行时弹窗，也不引任何权限框架。 -->
-    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

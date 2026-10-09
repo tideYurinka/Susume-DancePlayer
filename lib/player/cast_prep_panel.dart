@@ -39,9 +39,9 @@
 /// ## 渲染前先问一句**编码器保证得了 1× 实时吗**（#36）
 ///
 /// 面板打开即经能力查询接缝（`encoder_realtime_capability.dart`）问一次系统，
-/// 把三态折成**分辨率档**（`cast_encoder_realtime.dart`）：保证 → 源分辨率，
-/// 不保证与**问不到** → 720p。选接收端时这一档与勾选档、倍速档一起进渲染
-/// 请求（因此也进缓存键）。降级在这一处**当面说清**（
+/// 把三态折成**分辨率档**（`cast_encoder_realtime.dart`）：保证 → 保证档
+/// （画面上限收在问的那一档上），不保证与**问不到** → 720p。选接收端时这一档
+/// 与勾选档、倍速档一起进渲染请求（因此也进缓存键）。降级在这一处**当面说清**（
 /// [kCastPrepResolutionDowngradedText]）：宁可降分辨率，也不给用户一个未知
 /// 时长的进度条；不降级一个字都不多说。
 ///
@@ -384,7 +384,9 @@ class _CastPrepPanelState extends ConsumerState<CastPrepPanel> {
   Future<CastRenderResolution> _queryCapability() async {
     CastEncoderRealtime answer;
     try {
-      answer = await ref.read(castEncoderRealtimeCapabilityProvider).query();
+      answer = await ref
+          .read(castEncoderRealtimeCapabilityProvider)
+          .query(kCastGuaranteeQueryTarget);
     } on Object {
       answer = CastEncoderRealtime.unknown;
     }

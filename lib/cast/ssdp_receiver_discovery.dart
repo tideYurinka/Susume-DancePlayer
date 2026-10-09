@@ -28,10 +28,9 @@ const Duration kCastDescriptionTimeout = Duration(seconds: 2);
 /// 当成「这台设备不是投屏对象」。
 Future<CastDeviceDescription?> loadCastDeviceDescription(
   Uri descriptionUrl, {
-  HttpClient? client,
   Duration timeout = kCastDescriptionTimeout,
 }) async {
-  final http = client ?? HttpClient();
+  final http = HttpClient();
   http.connectionTimeout = timeout;
   try {
     final request = await http.getUrl(descriptionUrl).timeout(timeout);
@@ -42,7 +41,7 @@ Future<CastDeviceDescription?> loadCastDeviceDescription(
   } catch (_) {
     return null;
   } finally {
-    if (client == null) http.close(force: true);
+    http.close(force: true);
   }
 }
 
@@ -99,8 +98,9 @@ class SsdpCastReceiverDiscovery implements CastReceiverDiscovery {
   /// 发一条 M-SEARCH 并收齐应答（等到 [timeout] 用完为止——设备在 `MX`
   /// 秒内随机挑时刻答，提前收摊会漏掉慢的那几台）。
   ///
-  /// 组播发不出去（无网、权限不足、接口不可用）时返回空表：搜不到不是
-  /// 错误，准备面板要显示的是「一个都没发现」的空态。
+  /// 组播发不出去（无网、没有可用网卡、接口不可用）时返回空表：搜不到不是
+  /// 错误，准备面板要显示的是「一个都没发现」的空态。发一条 M-SEARCH 到组播
+  /// 地址**不需要任何权限**，收回来的是设备给的单播应答。
   Future<List<CastSsdpResponse>> _search(Duration timeout) async {
     final RawDatagramSocket socket;
     try {

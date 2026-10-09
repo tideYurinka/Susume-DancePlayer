@@ -224,7 +224,13 @@ void main() {
         contains('eof_action=repeat[vbeat]'),
         reason: '数拍链的输出标签交给贴纸层当起点',
       );
-      expect(filter, contains('[vstk]fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[vstk]scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
+      );
     });
 
     test('数拍那一层只有一份序列输入与一个叠加节点（不逐拍建节点）', () {
@@ -255,7 +261,8 @@ void main() {
         filter,
         contains(
           '[vstk]trim=start=2:end=5,setpts=PTS-STARTPTS,'
-          'fps=30,format=yuv420p[vout]',
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
         ),
         reason: '层都看过整片之后才裁范围；第二路输入因此仍与主片同轴',
       );
@@ -283,7 +290,8 @@ void main() {
         filter,
         contains(
           '[vbeat]trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,'
-          'fps=30,format=yuv420p[vout]',
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
         ),
       );
       expect(

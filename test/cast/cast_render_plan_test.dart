@@ -15,7 +15,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
@@ -80,7 +80,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
     CastRenderSettings settings = const CastRenderSettings(),
     List<LocalMirrorFragment> mirrorFragments = const [],
     FramingSelection? framingSelection,
@@ -182,7 +182,13 @@ void main() {
         args(choices: const CastRenderChoices(picture: true, sound: true)),
       );
 
-      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
+      );
       expect(filter, contains('amix=inputs=2'));
     });
 
@@ -277,10 +283,17 @@ void main() {
     test('只开全局：链首一枚无窗 hflip，链尾的 vout 不变', () {
       final filter = filterOf(pictureArgs(globalMirrored: true));
 
-      expect(filter, contains('[0:v]hflip,fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip,scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
+      );
       expect(
         filter.split(';').where((s) => s.contains('[vout]')).single,
-        '[0:v]hflip,fps=30,format=yuv420p[vout]',
+        "[0:v]hflip,scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+        'format=yuv420p[vout]',
         reason: '镜像只是插进画面链的中段，链尾仍是 [vout]',
       );
     });
@@ -291,7 +304,8 @@ void main() {
       expect(
         filter,
         contains(
-          "[0:v]hflip=enable='gte(t,1)*lt(t,2)',fps=30,format=yuv420p[vout]",
+          "[0:v]hflip=enable='gte(t,1)*lt(t,2)',"
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
         ),
       );
       expect(filter, isNot(contains('between')));
@@ -306,7 +320,7 @@ void main() {
         filter,
         contains(
           "[0:v]hflip,hflip=enable='gte(t,1)*lt(t,2)',"
-          'fps=30,format=yuv420p[vout]',
+          'scale=-2:\'min(1080,ih)\',setsar=1,fps=30,format=yuv420p[vout]',
         ),
       );
     });
@@ -320,14 +334,26 @@ void main() {
         ),
       );
 
-      expect(filter, contains('[0:v]hflip,fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]hflip,scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
+      );
       expect(filter, isNot(contains('enable=')));
     });
 
     test('都不开：画面链一字不改（与 #26 的底链逐字一致）', () {
       final filter = filterOf(pictureArgs(mirrorFragments: const []));
 
-      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
+      );
       expect(filter, isNot(contains('hflip')));
     });
 
@@ -344,7 +370,7 @@ void main() {
         filter,
         contains(
           "[0:v]hflip,hflip=enable='gte(t,1)*lt(t,2)',setpts=PTS/0.5,"
-          'fps=30,format=yuv420p[vout]',
+          'scale=-2:\'min(1080,ih)\',setsar=1,fps=30,format=yuv420p[vout]',
         ),
         reason:
             '片段是源时间轴上的区间：闸门若排在 setpts 之后，'
@@ -375,7 +401,10 @@ void main() {
 
       expect(
         filter,
-        contains('[0:v]setpts=PTS/0.5,fps=30,format=yuv420p[vout]'),
+        contains(
+          "[0:v]setpts=PTS/0.5,scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
       );
       expect(
         filter,
@@ -419,7 +448,7 @@ void main() {
           'x=min(floor(iw*0.1/2)*2\\,iw-ow):'
           'y=min(floor(ih*0.2/2)*2\\,ih-oh),'
           'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
-          'fps=30,format=yuv420p[vout]',
+          'scale=-2:\'min(1080,ih)\',setsar=1,fps=30,format=yuv420p[vout]',
         ),
       );
     });
@@ -462,18 +491,28 @@ void main() {
           'x=min(floor(iw*0.1/2)*2\\,iw-ow):'
           'y=min(floor(ih*0.2/2)*2\\,ih-oh),'
           'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
-          'setpts=PTS/0.5,fps=30,format=yuv420p[vout]',
+          'setpts=PTS/0.5,'
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
         ),
       );
     });
 
-    test('未取景：裁切与缩放都不进链（与整屏 contain 逐位一致）', () {
+    test('未取景：取景的裁切与偶数收尾都不进链（与整屏 contain 逐位一致）', () {
       final filter = filterOf(pictureArgs());
 
-      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
+      expect(
+        filter,
+        contains(
+          "[0:v]scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
+        ),
+        reason: '链尾只剩分辨率档那一枚（保证档：高度封在 1080 行）',
+      );
       expect(filter, isNot(contains('crop=')));
-      expect(filter, isNot(contains('scale=')));
-      expect(filter, isNot(contains('setsar')));
+      expect(
+        filter,
+        isNot(contains('scale=trunc(')),
+        reason: '取景那枚偶数收尾缩放不进链',
+      );
     });
 
     test('整帧选区也是未取景：链与「没调过」逐字一致', () {
@@ -504,7 +543,10 @@ void main() {
 
       expect(
         filter,
-        contains('[0:v]setpts=PTS/0.5,fps=30,format=yuv420p[vout]'),
+        contains(
+          "[0:v]setpts=PTS/0.5,scale=-2:'min(1080,ih)',setsar=1,fps=30,"
+          'format=yuv420p[vout]',
+        ),
       );
       expect(
         filter,
@@ -582,7 +624,7 @@ void main() {
         filterOf(arguments),
         contains(
           '[0:v]trim=start=2:end=5,setpts=PTS-STARTPTS,'
-          'fps=30,format=yuv420p[vout]',
+          'scale=-2:\'min(1080,ih)\',setsar=1,fps=30,format=yuv420p[vout]',
         ),
       );
       expect(arguments, containsAllInOrder(['-map', '[vout]']));
@@ -653,13 +695,17 @@ void main() {
       }
       expect(
         tails[CastSpeedTier.full],
-        contains('trim=start=2:end=5,setpts=PTS-STARTPTS,fps=30'),
-        reason: '1× 档没有第二句 setpts（与不设倍速一致）',
+        contains(
+          'trim=start=2:end=5,setpts=PTS-STARTPTS,'
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30",
+        ),
+        reason: '1× 档没有第二句 setpts（与不设倍速一致）：trim 之后直接是分辨率档',
       );
       expect(
         tails[CastSpeedTier.half],
         contains(
-          'trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,fps=30',
+          'trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,'
+          "scale=-2:'min(1080,ih)',setsar=1,fps=30",
         ),
         reason: '范围先收窄、倍速后缩放：先后定死，窗不随档漂移',
       );
@@ -759,7 +805,7 @@ void main() {
         filterOf(arguments),
         contains(
           '[0:v]trim=start=2:end=5,setpts=PTS-STARTPTS,setpts=PTS/0.5,'
-          'fps=30,format=yuv420p[vout]',
+          'scale=-2:\'min(1080,ih)\',setsar=1,fps=30,format=yuv420p[vout]',
         ),
       );
       expect(
@@ -815,15 +861,28 @@ void main() {
     });
   });
 
-  group('分辨率档：保证 1× 按源分辨率，不保证降到 720p', () {
+  group('分辨率档：保证档钉 1080 行，不保证降到 720p', () {
     const picture = CastRenderChoices(picture: true, sound: true);
 
-    test('源档：不加缩放节点、码率 8M（链路与今天逐字一致）', () {
+    test('问编码器的那一档帧率就是渲染帧率（问什么就渲什么）', () {
+      expect(
+        kCastGuaranteeQueryTarget.fps,
+        kCastRenderFps,
+        reason: '性能点是按这个帧率问的，编码参数里的 -r 也是它：两处不许各写一个数',
+      );
+    });
+
+    test('保证档：链尾高度封在 1080 行（只降不升）、宽度按源比例，码率 8M', () {
       final arguments = args(choices: picture);
       final filter = filterOf(arguments);
 
-      expect(filter, contains('[0:v]fps=30,format=yuv420p[vout]'));
-      expect(filter, isNot(contains('scale=')));
+      expect(
+        filter,
+        contains(
+          "[0:v]scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
+        ),
+        reason: '答案只保证到问的那一档：4K 源也收在 1080 行上，不放行更大的画面',
+      );
       expect(arguments, containsAllInOrder(['-b:v', '8M']));
     });
 

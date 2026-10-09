@@ -40,7 +40,6 @@ void main() {
         hasVolumeControl: true,
       );
       expect(full.showsPlayPause, isTrue);
-      expect(full.showsStop, isTrue);
       expect(full.showsSeek, isTrue);
       expect(full.showsVolume, isTrue);
 
@@ -49,7 +48,6 @@ void main() {
         hasVolumeControl: false,
       );
       expect(onlyPlay.showsPlayPause, isTrue, reason: '只会播的设备也给播放暂停项');
-      expect(onlyPlay.showsStop, isFalse);
       expect(onlyPlay.showsSeek, isFalse);
       expect(onlyPlay.showsVolume, isFalse);
 

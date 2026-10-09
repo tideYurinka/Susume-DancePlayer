@@ -81,7 +81,6 @@ enum CastPlaybackState {
 class CastRemoteControls {
   const CastRemoteControls({
     required this.showsPlayPause,
-    required this.showsStop,
     required this.showsSeek,
     required this.showsVolume,
   });
@@ -89,7 +88,6 @@ class CastRemoteControls {
   /// 全不显示（探测失败 / 不是投屏对象的兜底）。
   const CastRemoteControls.none()
     : showsPlayPause = false,
-      showsStop = false,
       showsSeek = false,
       showsVolume = false;
 
@@ -100,13 +98,11 @@ class CastRemoteControls {
     showsPlayPause:
         actions.contains(CastTransportAction.play) ||
         actions.contains(CastTransportAction.pause),
-    showsStop: actions.contains(CastTransportAction.stop),
     showsSeek: actions.contains(CastTransportAction.seek),
     showsVolume: hasVolumeControl,
   );
 
   final bool showsPlayPause;
-  final bool showsStop;
   final bool showsSeek;
 
   /// 音量这一项显不显示：端点在场**且**起投探测时设备真报得出当前音量
@@ -126,13 +122,11 @@ class CastRemoteControls {
   bool operator ==(Object other) =>
       other is CastRemoteControls &&
       other.showsPlayPause == showsPlayPause &&
-      other.showsStop == showsStop &&
       other.showsSeek == showsSeek &&
       other.showsVolume == showsVolume;
 
   @override
-  int get hashCode =>
-      Object.hash(showsPlayPause, showsStop, showsSeek, showsVolume);
+  int get hashCode => Object.hash(showsPlayPause, showsSeek, showsVolume);
 }
 
 /// 「音量这一项能不能读得到」：把「设备描述里的音量端点」与「起投探测这一次

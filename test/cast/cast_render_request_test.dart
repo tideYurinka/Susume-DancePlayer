@@ -12,7 +12,7 @@ void main() {
       sound: true,
     ),
     CastSpeedTier speedTier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
     CastRenderSettings settings = const CastRenderSettings(),
     String annotationFingerprint = 'fp-1',
     List<CastBeatClick> beatClicks = const [],
@@ -94,16 +94,21 @@ void main() {
     });
 
     test('分辨率档变化即换键：降级与不降级是两份缓存条目', () {
-      final source = request(resolution: CastRenderResolution.source).cacheKey;
+      final guarantee = request(
+        resolution: CastRenderResolution.p1080,
+      ).cacheKey;
       final p720 = request(resolution: CastRenderResolution.p720).cacheKey;
 
-      expect(p720, isNot(source));
-      expect(source.token, contains('#${CastRenderResolution.source.token}#'));
+      expect(p720, isNot(guarantee));
+      expect(
+        guarantee.token,
+        contains('#${CastRenderResolution.p1080.token}#'),
+      );
       expect(p720.token, contains('#${CastRenderResolution.p720.token}#'));
       // 除了分辨率档，两次请求逐字同源：差异只可能来自这一维。
       expect(
-        request(resolution: CastRenderResolution.source).cacheKey,
-        source,
+        request(resolution: CastRenderResolution.p1080).cacheKey,
+        guarantee,
         reason: '同一维同值给同一把键',
       );
     });
@@ -186,8 +191,8 @@ void main() {
   });
 
   group('分辨率档', () {
-    test('默认按源分辨率：没问过系统时不在请求上无谓降级', () {
-      expect(request().resolution, CastRenderResolution.source);
+    test('默认保证档：没问过系统时不在请求上无谓降级', () {
+      expect(request().resolution, CastRenderResolution.p1080);
     });
 
     test('降级那一档按高度 720 行现算宽度（记号进键）', () {

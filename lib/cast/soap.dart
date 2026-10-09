@@ -26,10 +26,6 @@ enum CastUpnpService {
   String actionHeader(String action) => '"$serviceType#$action"';
 }
 
-/// `SOAPAction` 头的值。真实实现把它放进请求头，测试直接断言这个串。
-String castSoapActionHeaderValue(CastUpnpService service, String action) =>
-    service.actionHeader(action);
-
 /// 装配一条 SOAP 请求体：动作元素挂在 Body 下、命名空间是服务类型，参数
 /// 逐个成子元素（值里的 XML 特殊字符转义——递出地址里会带 `&` 与引号）。
 String buildCastSoapEnvelope({
@@ -44,15 +40,15 @@ String buildCastSoapEnvelope({
       's:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">',
     )
     ..write('<s:Body>')
-    ..write('<u:${_escapeXml(action)} xmlns:u="${service.serviceType}">');
+    ..write('<u:${escapeXmlText(action)} xmlns:u="${service.serviceType}">');
   for (final entry in arguments.entries) {
     buffer.write(
-      '<${_escapeXml(entry.key)}>${_escapeXml(entry.value)}'
-      '</${_escapeXml(entry.key)}>',
+      '<${escapeXmlText(entry.key)}>${escapeXmlText(entry.value)}'
+      '</${escapeXmlText(entry.key)}>',
     );
   }
   buffer
-    ..write('</u:${_escapeXml(action)}>')
+    ..write('</u:${escapeXmlText(action)}>')
     ..write('</s:Body>')
     ..write('</s:Envelope>');
   return buffer.toString();
@@ -131,7 +127,10 @@ Iterable<XmlElement> _elementsNamed(XmlNode node, String localName) => node
     .whereType<XmlElement>()
     .where((element) => element.name.local == localName);
 
-String _escapeXml(String value) => value
+/// 一段文本进 XML 文本节点（或元素名）时的转义：`&` 必须第一个换。**全仓只有
+/// 这一份实现**——SOAP 信封（本文件）与 DIDL-Lite 元数据（`cast_media.dart`）
+/// 共用它，两处转义规则不许各写一遍。
+String escapeXmlText(String value) => value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')

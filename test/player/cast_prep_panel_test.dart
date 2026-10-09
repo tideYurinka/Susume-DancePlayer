@@ -71,7 +71,7 @@ void main() {
   CastRenderRequest request(
     CastRenderChoices choices, [
     CastSpeedTier tier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
   ]) => CastRenderRequest(
     videoPath: filePath,
     videoId: 'vid-a',
@@ -87,7 +87,7 @@ void main() {
   CastRenderRequest requestWithRange(
     CastRenderChoices choices, [
     CastSpeedTier tier = CastSpeedTier.full,
-    CastRenderResolution resolution = CastRenderResolution.source,
+    CastRenderResolution resolution = CastRenderResolution.p1080,
   ]) => CastRenderRequest(
     videoPath: filePath,
     videoId: 'vid-a',
@@ -127,7 +127,7 @@ void main() {
           videoCopyPresenceProvider.overrideWithValue(presence),
           castRenderExecutorProvider.overrideWithValue(executor),
           castRenderCacheDirectoryProvider.overrideWithValue(() async => root),
-          // 缺省：这台机器保证 1× 实时（按源分辨率渲、不出降级那一句）——
+          // 缺省：这台机器保证 1× 实时（按保证档渲、不出降级那一句）——
           // 要验降级的用例各自注入别的答案。
           castEncoderRealtimeCapabilityProvider.overrideWithValue(
             capability ?? FakeEncoderRealtimeCapability(),
@@ -1197,7 +1197,7 @@ void main() {
       return picked;
     }
 
-    testWidgets('保证 1× 实时：不多说，请求按源分辨率渲', (tester) async {
+    testWidgets('保证 1× 实时：不多说，请求按保证档渲（画面上限收在问的那一档）', (tester) async {
       final picked = await pickOne(
         tester,
         capability: FakeEncoderRealtimeCapability(
@@ -1208,7 +1208,7 @@ void main() {
 
       expect(
         picked.value?.requests[CastSpeedTier.full]?.resolution,
-        CastRenderResolution.source,
+        CastRenderResolution.p1080,
       );
     });
 

@@ -15,7 +15,7 @@ import '../helpers/fake_system_mirror_launcher.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const channel = MethodChannel('susume/system_mirror');
+  const channel = MethodChannel(kSystemMirrorChannelName);
 
   /// 原生侧逐页的回答：true = 接住、false = 没接住、PlatformException =
   /// 这一页报错；未列出的页按"没接住"。
@@ -79,6 +79,14 @@ void main() {
     answers['openDisplaySettings'] = true;
 
     expect(await PlatformSystemMirrorLauncher().open(), isTrue);
+    expect(asked, ['openCastSettings', 'openDisplaySettings']);
+  });
+
+  test('原生回了非布尔（1 / 字符串）：按"没接住"处理，往下一级退，不让 TypeError 穿出去', () async {
+    answers['openCastSettings'] = 1;
+    answers['openDisplaySettings'] = 'true';
+
+    expect(await PlatformSystemMirrorLauncher().open(), isFalse);
     expect(asked, ['openCastSettings', 'openDisplaySettings']);
   });
 

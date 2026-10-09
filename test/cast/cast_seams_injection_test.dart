@@ -98,7 +98,9 @@ void main() {
     expect(container.read(castRenderExecutorProvider), same(executor));
     expect(executor.ran, isFalse);
     expect(
-      await container.read(castEncoderRealtimeCapabilityProvider).query(),
+      await container
+          .read(castEncoderRealtimeCapabilityProvider)
+          .query(kCastGuaranteeQueryTarget),
       CastEncoderRealtime.guaranteed,
     );
     expect(capability.queryCalls, 1);

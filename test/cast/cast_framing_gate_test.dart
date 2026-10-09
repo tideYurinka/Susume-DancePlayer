@@ -345,7 +345,8 @@ void main() {
         'h=max(2\\,floor(ih*0.6/2)*2):'
         'x=min(floor(iw*0.1/2)*2\\,iw-ow):'
         'y=min(floor(ih*0.2/2)*2\\,ih-oh),'
-        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,fps=30,format=yuv420p[vout]',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1,'
+        "scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
         reason: '取景节点插在画面链中段，链尾的 fps / 像素格式与 [vout] 一字不动',
       );
     });
@@ -631,12 +632,15 @@ void main() {
       }
     });
 
-    test('未取景时没有这些节点：不引入多余的缩放或像素格式变化', () {
+    test('未取景时取景那几枚节点都不在：链尾只剩分辨率档那一枚', () {
       final plain = videoNodesOf(framingSelection: null).join(',');
-      expect(plain, 'fps=30,format=yuv420p[vout]');
+      expect(
+        plain,
+        "scale=-2:'min(1080,ih)',setsar=1,fps=30,format=yuv420p[vout]",
+        reason: '保证档那枚缩放是分辨率档的事，不是取景引出来的',
+      );
       expect(plain, isNot(contains('crop=')));
-      expect(plain, isNot(contains('scale=')));
-      expect(plain, isNot(contains('setsar')));
+      expect(plain, isNot(contains('scale=trunc(')));
     });
   });
 }

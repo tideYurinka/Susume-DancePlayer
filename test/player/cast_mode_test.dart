@@ -158,7 +158,7 @@ void main() {
           castDeliveryChannelFactoryProvider.overrideWithValue(delivery.call),
           systemMirrorLauncherProvider.overrideWithValue(systemMirror),
           // 编码器能力查询（#36）：本文件不验降级，按「保证 1× 实时」注入，
-          // 请求因此按源分辨率装配。**这条接缝必须注入**——平台通道在 widget
+          // 请求因此按保证档装配。**这条接缝必须注入**——平台通道在 widget
           // 测试里不会被应答，不注入面板会挂在能力查询上（降级那几条用例在
           // `cast_prep_panel_test.dart`）。
           castEncoderRealtimeCapabilityProvider.overrideWithValue(

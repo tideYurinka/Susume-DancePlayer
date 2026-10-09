@@ -61,7 +61,6 @@ void main() {
         response.usn,
         'uuid:abc::urn:schemas-upnp-org:device:MediaRenderer:1',
       );
-      expect(response.searchTarget, kMediaRendererSearchTarget);
       expect(
         response.deviceId,
         'uuid:abc::urn:schemas-upnp-org:device:MediaRenderer:1',
@@ -79,7 +78,6 @@ void main() {
       expect(response, isNotNull);
       expect(response!.location, Uri.parse('http://10.0.0.9:80/d.xml'));
       expect(response.usn, 'uuid:xyz');
-      expect(response.searchTarget, isNull, reason: '缺 ST = 不认，不编一个');
     });
 
     test('缺 LOCATION：忽略这条应答，不抛', () {
