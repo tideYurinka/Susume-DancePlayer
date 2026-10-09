@@ -137,6 +137,42 @@ void main() {
       expect(const CastRenderSettings().framing, isEmpty);
       expect(const CastRenderSettings().metronomeVolumePercent, 50);
     });
+
+    test('判等与键摘要同源：每一格变了，两者一起变（不会一边变一边不变）', () {
+      const base = CastRenderSettings();
+      const variants = <CastRenderSettings>[
+        CastRenderSettings(globalMirrored: true),
+        CastRenderSettings(localMirrorEnabled: false),
+        CastRenderSettings(beatCountVisible: true),
+        CastRenderSettings(beatAnimationStyle: 'pendulum'),
+        CastRenderSettings(beatOverlay: 'bov:1'),
+        CastRenderSettings(stickerOverlay: 'st:0.2x0.1'),
+        CastRenderSettings(framing: '0.1,0.1,0.8,0.8'),
+        CastRenderSettings(halfBeatSoundEnabled: true),
+        CastRenderSettings(metronomeVolumePercent: 80),
+        CastRenderSettings(songLoudnessBaseline: 0.42),
+        CastRenderSettings(metronomeSourceId: 'vocal'),
+      ];
+
+      for (final variant in variants) {
+        expect(variant, isNot(base), reason: '这一格变化必须判不等');
+        expect(
+          variant == base,
+          variant.token == base.token,
+          reason: '判等与进键的记号是同一份口径：一个变了另一个没变就是漏同步',
+        );
+        expect(variant.token, isNot(base.token), reason: '这一格变化必须换键');
+      }
+      expect(
+        const CastRenderSettings() == const CastRenderSettings(),
+        isTrue,
+        reason: '同值同记号',
+      );
+      expect(
+        const CastRenderSettings().token,
+        const CastRenderSettings().token,
+      );
+    });
   });
 
   group('倍速档', () {

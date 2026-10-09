@@ -143,6 +143,7 @@ Future<void> _runCases(Directory root, List<String> problems) async {
   final plainArgs = buildCastRenderArguments(
     request: _request(videoPath: source.path, tier: CastSpeedTier.full),
     outputPath: plain.path,
+    staging: const CastRenderStaging(),
   );
   await _run(_hostEncoderArgs(plainArgs));
 
@@ -207,6 +208,7 @@ Future<void> _runCases(Directory root, List<String> problems) async {
       fragment: outsideFragment,
     ),
     outputPath: outside.path,
+    staging: const CastRenderStaging(),
   );
   await _run(_hostEncoderArgs(outsideArgs));
   final outsideFrames = await _readFrames(outside.path);
@@ -243,6 +245,7 @@ Future<void> _runCases(Directory root, List<String> problems) async {
       fragment: const LocalMirrorFragment(startMs: 3000, endMs: 4000),
     ),
     outputPath: inside.path,
+    staging: const CastRenderStaging(),
   );
   await _run(_hostEncoderArgs(insideArgs));
   final insideFrames = await _readFrames(inside.path);
@@ -269,6 +272,7 @@ Future<void> _runCases(Directory root, List<String> problems) async {
       fragment: const LocalMirrorFragment(startMs: 3000, endMs: 4000),
     ),
     outputPath: half.path,
+    staging: const CastRenderStaging(),
   );
   await _run(_hostEncoderArgs(halfArgs));
   final halfDuration = await _probeDuration(half.path);

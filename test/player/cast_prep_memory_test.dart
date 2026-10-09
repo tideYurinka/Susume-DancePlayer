@@ -3,7 +3,7 @@ import 'package:dance_learning_app/cast/cast_render_request.dart'
 import 'package:dance_learning_app/cast/cast_speed_tier.dart'
     show kCastSpeedTierCandidates;
 import 'package:dance_learning_app/persistence/local_document.dart'
-    show CastPrepMemoryFields;
+    show CastPrepMemoryFields, LocalDocument, kCastPrepTierTokens;
 import 'package:dance_learning_app/player/cast_prep_memory.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,21 +83,21 @@ void main() {
 
     test('记住的集合为空 → 回默认那一档，绝不预置成空集合', () {
       final preset = castPrepMemoryOf(
-        const CastPrepMemoryFields(tiers: []),
+        const CastPrepMemoryFields(),
         manualRate: 0.75,
       );
       expect(preset.tiers, {CastSpeedTier.threeQuarter});
       expect(preset.tiers, isNotEmpty, reason: '至少留一档');
     });
 
-    test('写侧对空集合的兜底：落「没有意见」而不是一份空表，读回即默认', () {
+    test('写侧对空集合的兜底：落「没有意见」（空表），读回即默认', () {
       final fields = castPrepMemoryFieldsOf(
         const CastPrepMemory(
           choices: CastRenderChoices.all(),
           tiers: <CastSpeedTier>{},
         ),
       );
-      expect(fields.tiers, isNull, reason: '空表不是一份可用的记忆');
+      expect(fields.tiers, isEmpty, reason: '空表不是一份可用的记忆');
       expect(
         castPrepMemoryOf(fields, manualRate: 1).tiers,
         {CastSpeedTier.full},
@@ -105,18 +105,19 @@ void main() {
       );
     });
 
-    test('记住的档已不可用：逐档剔除，剩下可用的照用', () {
-      // 日后候选缩了档、或文件被手改成词表外的记号：不可用的那几档静默剔除。
+    test('已不可用的记号在文档层就拦下：域里只按可用的那几档预置', () {
+      // 日后候选缩了档、或文件被手改成词表外的记号：读入即被文档层拦下，
+      // 投屏域拿到的表里只剩可用的记号（没有第二遍过滤）。
       final preset = castPrepMemoryOf(
-        const CastPrepMemoryFields(tiers: ['0.5', '2', 'double', '1']),
+        _memoryFieldsFromFile(const ['0.5', '2', 'double', '1']),
         manualRate: 0.5,
       );
       expect(preset.tiers, {CastSpeedTier.half, CastSpeedTier.full});
     });
 
-    test('记住的档全部不可用 → 回默认那一档（静默降级，不预置成空）', () {
+    test('记住的档全部不可用 → 整格按「没有意见」，回默认那一档', () {
       final preset = castPrepMemoryOf(
-        const CastPrepMemoryFields(tiers: ['2', 'double']),
+        _memoryFieldsFromFile(const ['2', 'double']),
         manualRate: 1.3,
       );
       expect(preset.tiers, {CastSpeedTier.full});
@@ -196,6 +197,11 @@ void main() {
         '1',
       ]);
       expect(kCastSpeedTierCandidates, CastSpeedTier.values);
+      // **文档层的记号词表**（词表校验的边界）与候选档同一套：域里那次
+      // 「记号 → 档」的全命中查表就建立在这一点上。
+      expect(kCastPrepTierTokens, {
+        for (final tier in kCastSpeedTierCandidates) tier.token,
+      });
     });
   });
 
@@ -261,6 +267,16 @@ void main() {
     });
   });
 }
+
+/// 盘上那份记录经**文档层**（词表校验的边界）读回来的字段：测试不手写人工
+/// 字段，走真实读入路径——「认不得的记号」在那一层就拦下。
+CastPrepMemoryFields _memoryFieldsFromFile(List<String> tiers) =>
+    LocalDocument.fromJson({
+      'version': 3,
+      'prefs': {
+        'castPrep': {'tiers': tiers},
+      },
+    }).castPrep!;
 
 /// 与 `nearestCastSpeedTier` 同口径的就近档（本测试自己算一遍，避免用被测件
 /// 的取值当期望）。

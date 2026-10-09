@@ -186,7 +186,13 @@ Future<void> _runCase(Directory root, List<String> problems) async {
       beatOverlay: overlay,
     ),
     outputPath: output,
-    beatSlidesPath: listPath,
+    // 宿主验收只备了数拍序列这一样边车（源片 0 号、它是 1 号输入）。
+    staging: CastRenderStaging(
+      beatSlides: CastBeatSlidesInput(
+        overlay: overlay,
+        sidecar: CastRenderSidecar(path: listPath, index: 1),
+      ),
+    ),
   );
   stdout.writeln('== 生产命令行（只换编码器）==');
   stdout.writeln(arguments.join(' '));

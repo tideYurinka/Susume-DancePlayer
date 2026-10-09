@@ -236,20 +236,12 @@ List<CastStickerSegment> castStickerSegmentsOf({
   return segments;
 }
 
-/// 贴纸闸门在画面链里装出来的东西：节点表 + 要追加的输入路径 + 接续标签。
+/// 贴纸闸门在画面链里装出来的东西：节点表 + 接续标签。
 class CastStickerGraph {
-  const CastStickerGraph({
-    required this.nodes,
-    required this.inputPaths,
-    required this.endLabel,
-  });
+  const CastStickerGraph({required this.nodes, required this.endLabel});
 
   /// 进 `filter_complex` 的贴纸节点（按贴纸次序、按分段次序）。
   final List<String> nodes;
-
-  /// 要追加成 `-i` 的贴纸 PNG 路径（次序 = 请求里的贴纸次序，下标即输入序号；
-  /// 没装节点的那一条仍然占一个输入位——多喂一个输入是无害的，错位才是有害的）。
-  final List<String> inputPaths;
 
   /// 贴纸链的输出标签（无贴纸时等于 [startLabel]）。
   final String endLabel;
@@ -257,27 +249,26 @@ class CastStickerGraph {
 
 /// 装配贴纸节点。
 ///
-/// [firstInputIndex] 是第一条贴纸 PNG 在 `-i` 里的下标（源片 `0`、拍声轨可能是
-/// `1`）；[startLabel] 是前置画面链（镜像 + 取景）的输出标签；[fps] 是主片帧率
-/// （第二路归到它上面，且与链尾那个 `fps` 同一个值）。
+/// [sheets] 是**贴纸与它的图成对**的输入表（`cast_render_request.dart` 的
+/// `CastStickerInput`，含它在 `-i` 里的下标）：贴纸、图、输入号同出一处，条数
+/// 与下标因此不可能与请求对不上（这张表以前是三样分开给的平行参数，还要靠运行
+/// 期报错兜对不齐）。[startLabel] 是前置画面链（镜像 + 取景，或数拍层）的输出
+/// 标签；[fps] 是主片帧率（第二路归到它上面，且与链尾那个 `fps` 同一个值）。
 CastStickerGraph castStickerGraph({
-  required List<CastSticker> stickers,
-  required List<String> stickerPaths,
+  required List<CastStickerInput> sheets,
   required SourceVideoFlip flip,
   required String startLabel,
   required String endLabel,
-  required int firstInputIndex,
   required int fps,
   FramingSelection? selection,
 }) {
-  if (stickerPaths.length != stickers.length) {
-    throw ArgumentError(
-      '贴纸路径（${stickerPaths.length}）与贴纸（${stickers.length}）对不上',
-    );
-  }
   final allSegments = <List<CastStickerSegment>>[
-    for (final sticker in stickers)
-      castStickerSegmentsOf(sticker: sticker, selection: selection, flip: flip),
+    for (final sheet in sheets)
+      castStickerSegmentsOf(
+        sticker: sheet.sticker,
+        selection: selection,
+        flip: flip,
+      ),
   ];
   // 最后一个**真装出节点**的贴纸：只有它的末段用链尾标签（空窗的贴纸不占
   // 标签，链尾不能挂在一条根本不存在的节点上）。
@@ -286,18 +277,14 @@ CastStickerGraph castStickerGraph({
     if (allSegments[i].isNotEmpty) lastSticker = i;
   }
   if (lastSticker < 0) {
-    return CastStickerGraph(
-      nodes: const [],
-      inputPaths: stickerPaths,
-      endLabel: startLabel,
-    );
+    return CastStickerGraph(nodes: const [], endLabel: startLabel);
   }
   final nodes = <String>[];
   var label = startLabel;
   for (var i = 0; i <= lastSticker; i++) {
     final segments = allSegments[i];
     if (segments.isEmpty) continue;
-    final input = firstInputIndex + i;
+    final input = sheets[i].sidecar.index;
     // 一条贴纸一条输入流；窗口跨过镜像片段端点时这一条流要**分叉**给多条
     // overlay 链（滤波器的一个输出 pad 只能被连一次——不分叉就是
     // 「stream specifier matches no streams」）。
@@ -342,9 +329,5 @@ CastStickerGraph castStickerGraph({
       label = output;
     }
   }
-  return CastStickerGraph(
-    nodes: nodes,
-    inputPaths: stickerPaths,
-    endLabel: label,
-  );
+  return CastStickerGraph(nodes: nodes, endLabel: label);
 }

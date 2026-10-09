@@ -148,9 +148,15 @@ class CastRenderOrchestrator {
       final arguments = buildCastRenderArguments(
         request: request,
         outputPath: part.path,
-        beatTrackPath: clickTrack?.path,
-        beatSlidesPath: beatSlidesList?.path,
-        stickerPaths: [for (final file in stickerFiles) file.path],
+        // **暂存输入**：这一次真备好的边车与它们在 `-i` 里的下标。下标在这里
+        // 一次算定（`-i` 的次序 = 拍声轨 → 数拍序列 → 贴纸图），装配层读它落
+        // 命令，不再从勾选档推导第二遍。
+        staging: _stagingOf(
+          request: request,
+          clickTrack: clickTrack,
+          beatSlidesList: beatSlidesList,
+          stickerFiles: stickerFiles,
+        ),
       );
       final verdict = await executor.run(
         CastRenderJob(
@@ -203,6 +209,50 @@ class CastRenderOrchestrator {
   Future<void> cancel() async {
     if (!_rendering) return;
     await executor.cancel();
+  }
+
+  /// 这一次渲染的**暂存输入**：把刚备好的边车装成一份类型化输入交给命令装配
+  /// （`cast_render_request.dart` 的 `CastRenderStaging`）。
+  ///
+  /// `-i` 的次序是**拍声轨 → 数拍序列 → 贴纸图**，下标在这里一次算定（源片恒是
+  /// 0 号）——备料的那几处写文件的先后（贴纸先落盘、数拍序列后落盘）因此与命令行
+  /// 的输入号无关，装配层拿到的路径与下标永远成对。哪几样在场只由这一次真备好的
+  /// 东西决定，不在这里重算勾选档：装了就是装了。
+  CastRenderStaging _stagingOf({
+    required CastRenderRequest request,
+    required File? clickTrack,
+    required File? beatSlidesList,
+    required List<File> stickerFiles,
+  }) {
+    var input = 1;
+    final beatTrack = clickTrack == null
+        ? null
+        : CastRenderSidecar(path: clickTrack.path, index: input++);
+    final beatSlides = beatSlidesList == null
+        ? null
+        : CastBeatSlidesInput(
+            overlay: request.beatOverlay!,
+            sidecar: CastRenderSidecar(
+              path: beatSlidesList.path,
+              index: input++,
+            ),
+          );
+    return CastRenderStaging(
+      beatTrack: beatTrack,
+      beatSlides: beatSlides,
+      stickers: [
+        // 贴纸与它的图成对落进暂存表：与请求里的贴纸一一对应（编排层刚按请求
+        // 逐条落的盘），条数不可能对不上。
+        for (var i = 0; i < stickerFiles.length; i++)
+          CastStickerInput(
+            sticker: request.stickers[i],
+            sidecar: CastRenderSidecar(
+              path: stickerFiles[i].path,
+              index: input++,
+            ),
+          ),
+      ],
+    );
   }
 
   /// 把拍声排程合成一条 WAV，落在半成品旁边（渲染收尾必删）。

@@ -246,10 +246,21 @@ Future<List<String>> _productionArgs(
     framingSelection: selection,
     stickers: sheets,
   );
+  final stickerInputs = <CastStickerInput>[
+    for (final (i, key) in specs.keys.indexed)
+      CastStickerInput(
+        sticker: request.stickers[i],
+        // 这份宿主验收没备拍声轨，贴纸从 1 号输入起。
+        sidecar: CastRenderSidecar(
+          path: '${root.path}/$key.png',
+          index: 1 + i,
+        ),
+      ),
+  ];
   var args = buildCastRenderArguments(
     request: request,
     outputPath: output.path,
-    stickerPaths: [for (final key in specs.keys) '${root.path}/$key.png'],
+    staging: CastRenderStaging(stickers: stickerInputs),
   );
   // 宿主替换：编码器换成本机 libx264（**无损**，好让逐像素比对判得动）；滤镜图
   // 一个字不改。

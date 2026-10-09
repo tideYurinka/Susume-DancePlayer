@@ -1,11 +1,16 @@
 /// 投屏渲染的**命令行装配**（纯件，零 Flutter、零 IO）：一份
-/// [CastRenderRequest] → 一串 ffmpeg 参数。
+/// [CastRenderRequest]（这次渲什么）+ 一份 [CastRenderStaging]（这次装哪几样
+/// 边车、各在 `-i` 里的第几路）→ 一串 ffmpeg 参数。
 ///
 /// ## 这是外部契约
 ///
 /// 滤镜图与命令行直接决定产物，所以它们是可直测、可按片段钉住的外部契约
 /// （不是实现细节）。本件因此不碰进程、不碰文件：装配在测试里逐片段断言，
 /// 执行在 `cast_render_executor.dart` 那条接缝上。
+///
+/// **「这次装什么」由暂存输入回答**（`#47`）：混不混拍声、装不装数拍层、有没有
+/// 贴纸图，读的都是编排层刚备好的那份 `CastRenderStaging`——装配层不从勾选档
+/// 推导第二遍，也再没有「勾了却没有」这类要靠运行期报错兜的组合。
 ///
 /// ## 两档的差别就是命令行的差别
 ///
@@ -100,37 +105,19 @@ const int kCastRenderChannels = 2;
 
 /// 装配一条投屏渲染命令。
 ///
-/// [beatTrackPath] 是**拍声轨**（`cast_beat_track.dart` 的合成产物）的路径；
-/// 勾了声音类时必须给出（没有它就没有拍声，宁可不做）。
-///
-/// [stickerPaths] 是**备注贴纸图**（`player/cast_sticker_sheet.dart` 的带 alpha
-/// 单帧 PNG；渲染编排按请求里的贴纸逐条落盘）的路径，与 `request.stickers`
-/// 一一对应、次序相同。勾了画面类且这支舞有备注时才该给出；不勾画面类时贴纸
-/// 一律不进命令（用户没勾画面类，画面内容类的东西就不该被烤进去）。
-///
-/// [beatSlidesPath] 是**数拍层图像序列的 `-f concat` 清单**（`player/
-/// cast_beat_sheet.dart` 的逐格 PNG + `cast_beat_gate.dart` 的清单正文；
-/// `#30`）：序列里一格一张同尺寸 PNG，每格的时长就是那一拍的半开窗。装了数拍
-/// 层时必给（没给就是编程错误）；没装时传 null。
+/// [staging] 是**这一次的暂存输入**（`#47`）：编排层刚备好的边车文件与它们在
+/// `-i` 里的下标（`cast_render_request.dart` 的 `CastRenderStaging`）。装配层
+/// 只按这份输入落命令——**这次装什么**（混不混拍声、装不装数拍层、有没有贴纸
+/// 图）读的都是它，不从勾选档推导第二遍；路径与下标成对给全，`-i` 表与滤镜图
+/// 因此不可能对不齐（这三条以前靠运行期 `throw` 兜）。
 List<String> buildCastRenderArguments({
   required CastRenderRequest request,
   required String outputPath,
-  String? beatTrackPath,
-  String? beatSlidesPath,
-  List<String> stickerPaths = const [],
+  required CastRenderStaging staging,
 }) {
   final choices = request.choices;
   if (!choices.renders) {
     throw ArgumentError('都不勾 = 不渲染：调用方直接推原片，不该走到命令装配');
-  }
-  if (choices.sound && beatTrackPath == null) {
-    throw ArgumentError('勾了声音类却没有拍声轨路径');
-  }
-  if (choices.picture && stickerPaths.length != request.stickers.length) {
-    throw ArgumentError(
-      '贴纸图（${stickerPaths.length}）与请求里的贴纸'
-      '（${request.stickers.length}）对不上',
-    );
   }
 
   final rate = request.speedTier.token;
@@ -147,30 +134,23 @@ List<String> buildCastRenderArguments({
   final scale = request.resolution.scaleNode;
   final scaleNode = scale == null ? '' : '$scale,';
 
-  // **数拍层**（#30）只在勾了画面类时装：它属于画面内容类。装了就要有序列清单
-  // （没有清单就是编程错误，宁可不装配一条读不出东西的链）。
+  // **这次装什么，读的是暂存输入**：拍声轨在不在就是混不混拍声，数拍序列清单
+  // 在不在就是装不装数拍层（清单自带要装的那一层），贴纸图与请求里的贴纸成对
+  // （条数不可能对不上）。「只勾画面类时才装画面内容类」这条由编排层备料时守，
+  // 装配层不再重判一遍。
   final picture = choices.picture;
-  final beatOverlay = request.beatOverlay;
-  final beatLayer = picture && castBeatCountActive(beatOverlay);
-  if (beatLayer && beatSlidesPath == null) {
-    throw ArgumentError('数拍层要装却没有序列清单路径');
-  }
-  // 数拍层的输入下标：源片恒是 0 号，拍声轨（勾了声音类时）是 1 号，
-  // 数拍序列紧随其后。
-  final beatInputIndex = choices.sound ? 2 : 1;
-  final beatGraph = beatLayer
-      ? castBeatCountGraph(
-          overlay: beatOverlay!,
+  final beatTrack = staging.beatTrack;
+  final beatSlides = staging.beatSlides;
+  final stickers = picture ? staging.stickers : const <CastStickerInput>[];
+  final beatGraph = beatSlides == null
+      ? const CastBeatCountGraph(nodes: [], endLabel: 'vbase')
+      : castBeatCountGraph(
+          slides: beatSlides,
           startLabel: 'vbase',
           endLabel: 'vbeat',
-          inputIndex: beatInputIndex,
           fps: kCastRenderFps,
-        )
-      : const CastBeatCountGraph(nodes: [], endLabel: 'vbase');
-  final beatActive = beatGraph.nodes.isNotEmpty;
-  // 贴纸图的下标：源片 + 拍声轨 + 数拍序列之后。
-  final firstStickerInput =
-      1 + (choices.sound ? 1 : 0) + (beatActive ? 1 : 0);
+        );
+  final beatActive = picture && beatGraph.nodes.isNotEmpty;
 
   final filters = <String>[];
   // **范围**（#37）：首线→尾线，源时间轴上的半开区间。复制档明确不收（见
@@ -184,11 +164,11 @@ List<String> buildCastRenderArguments({
   final rangeAudioPrefix = castFilterNodesPrefix(
     range == null ? const [] : range.audioNodes,
   );
-  // **音轨要不要重编码**：勾了声音类（拍声要混进这条轨）、非 1× 档（复制改不了
-  // 时长——视频按 `setpts` 缩放了，音轨不跟就会与画面错开）、或范围生效（复制
-  // 改不了范围）。三者都是「`-c:a copy` 做不到」的事；只有「1× + 无范围 + 不勾
-  // 声音类」这一档仍原样复制音轨。
-  final reencodeAudio = choices.sound || slowed || range != null;
+  // **音轨要不要重编码**：混拍声（暂存里有那条轨）、非 1× 档（复制改不了时长
+  // ——视频按 `setpts` 缩放了，音轨不跟就会与画面错开）、或范围生效（复制改不
+  // 了范围）。三者都是「`-c:a copy` 做不到」的事；只有「1× + 无范围 + 不混拍
+  // 声」这一档仍原样复制音轨。
+  final reencodeAudio = beatTrack != null || slowed || range != null;
   if (reencodeVideo) {
     // **镜像闸门**（#27）与**取景窗口**（#28）只在勾了画面类时装上：非 1× 档的
     // 「只勾声音类」也会重编码画面（复制改不了时长），但那一次重编码只为倍速
@@ -208,45 +188,46 @@ List<String> buildCastRenderArguments({
         : const <String>[];
     final content = <String>[...mirror, ...framing];
     final speed = slowed ? 'setpts=PTS/$rate,' : '';
-    final layered = beatActive || (picture && request.stickers.isNotEmpty);
+    // **链尾只此一处**：范围 → 倍速 → 分辨率档 → `fps` / 像素格式收尾。前段接
+    // 在哪个标签上由下面两条分支定，尾段两边逐字相同。
+    final videoTail =
+        '$rangeVideoPrefix$speed$scaleNode'
+        'fps=$kCastRenderFps,format=yuv420p[vout]';
+    final layered = beatActive || stickers.isNotEmpty;
     if (layered) {
-      // **数拍层**（#30）接在取景之后、贴纸**之前**：上屏的层序是数拍浮层
-      // 挂在贴纸浮层之下（`presentation_layer.dart`），副本照这个层序。
-      // 它同样排在 `setpts` 之前——时间窗判的是源时间轴（与镜像闸门同款口径）。
+      // 要接层（数拍 / 贴纸）时先给内容层落一个标签；没有内容层就是 `null` 直通
+      // （链上总得有个上游）。
       filters.add(
         '[0:v]${content.isEmpty ? 'null' : content.join(',')}[vbase]',
       );
-      filters.addAll(beatGraph.nodes);
-      var label = beatGraph.endLabel;
-      // **备注贴纸**（#29）是第二路输入，接在取景（与数拍）之后、`setpts`
-      // 之前——于是 `enable` 判的也是源时间轴（见 `cast_sticker_gate.dart`
-      // 库头）。没有备注时链的形状与今天逐字一致（不引入多余的中间标签）。
-      if (picture && request.stickers.isNotEmpty) {
+      var label = 'vbase';
+      if (beatActive) {
+        // **数拍层**（#30）接在取景之后、贴纸**之前**：上屏的层序是数拍浮层
+        // 挂在贴纸浮层之下（`presentation_layer.dart`），副本照这个层序。
+        // 它同样排在 `setpts` 之前——时间窗判的是源时间轴（与镜像闸门同款口径）。
+        filters.addAll(beatGraph.nodes);
+        label = beatGraph.endLabel;
+      }
+      if (stickers.isNotEmpty) {
+        // **备注贴纸**（#29）是第二路输入，接在取景（与数拍）之后、`setpts`
+        // 之前——于是 `enable` 判的也是源时间轴（见 `cast_sticker_gate.dart`
+        // 库头）。没有备注时链的形状与今天逐字一致（不引入多余的中间标签）。
         final graph = castStickerGraph(
-          stickers: request.stickers,
-          // 路径表与请求一一对应：空窗的贴纸不装节点，但**仍占一个输入位**
+          // 贴纸与它的图成对给全：空窗的贴纸不装节点，但**仍占一个输入位**
           // （错位比多喂一个输入危险得多）。
-          stickerPaths: stickerPaths,
+          sheets: stickers,
           flip: castMirrorGateOf(request),
           selection: request.framingSelection,
           startLabel: label,
           endLabel: 'vstk',
-          firstInputIndex: firstStickerInput,
           fps: kCastRenderFps,
         );
         filters.addAll(graph.nodes);
         label = graph.endLabel;
       }
-      filters.add(
-        '[$label]$rangeVideoPrefix$speed${scaleNode}fps=$kCastRenderFps,'
-        'format=yuv420p[vout]',
-      );
+      filters.add('[$label]$videoTail');
     } else {
-      final contentPrefix = castFilterNodesPrefix(content);
-      filters.add(
-        '[0:v]$contentPrefix$rangeVideoPrefix$speed$scaleNode'
-        'fps=$kCastRenderFps,format=yuv420p[vout]',
-      );
+      filters.add('[0:v]${castFilterNodesPrefix(content)}$videoTail');
     }
   }
   if (reencodeAudio) {
@@ -254,9 +235,10 @@ List<String> buildCastRenderArguments({
     filters.add(
       '[0:a]$rangeAudioPrefix${speed}aresample=$kCastRenderSampleRate[amain]',
     );
-    if (choices.sound) {
+    if (beatTrack != null) {
       filters.add(
-        '[1:a]$rangeAudioPrefix${speed}aresample=$kCastRenderSampleRate[abeat]',
+        '[${beatTrack.index}:a]$rangeAudioPrefix'
+        '${speed}aresample=$kCastRenderSampleRate[abeat]',
       );
       filters.add(
         '[amain][abeat]amix=inputs=2:duration=first:dropout_transition=0[aout]',
@@ -269,31 +251,30 @@ List<String> buildCastRenderArguments({
     '-y',
     '-i',
     request.videoPath,
-    if (choices.sound) ...<String>['-i', beatTrackPath!],
+    // 边车输入的次序 = 它们在**暂存输入**里的下标次序：拍声轨 → 数拍序列 →
+    // 逐条贴纸图。路径与下标同出一处，命令行与滤镜图不可能各说各话。
+    if (beatTrack != null) ...<String>['-i', beatTrack.path],
     // **数拍层**的输入是那份 `-f concat` 清单（一格一张同尺寸 PNG、每格一段
-    // 时长＝那一拍的半开窗）——整条序列只占**一路输入**，下标紧跟拍声轨。
+    // 时长＝那一拍的半开窗）——整条序列只占**一路输入**。
     if (beatActive) ...<String>[
       '-f',
       'concat',
       '-safe',
       '0',
       '-i',
-      beatSlidesPath!,
+      beatSlides!.sidecar.path,
     ],
-    // 贴纸图排在拍声轨（与数拍序列）**之后**：源片恒是 0 号输入、拍声轨恒是
-    // 1 号（只勾声音类时视频流原样复制的那条路一个字都不动），贴纸从 1/2/3 号
-    // 起——下标由 `castStickerGraph` 的 `firstInputIndex` 与这里保持一致。
-    if (picture && request.stickers.isNotEmpty) ...<String>[
-      for (final path in stickerPaths) ...<String>['-i', path],
-    ],
+    // 贴纸图排在拍声轨（与数拍序列）**之后**：源片恒是 0 号输入，每条贴纸的下
+    // 标由暂存输入给全（`castStickerGraph` 的 `sheets` 读同一个数）。
+    for (final sheet in stickers) ...<String>['-i', sheet.sidecar.path],
     if (filters.isNotEmpty) ...<String>['-filter_complex', filters.join(';')],
     '-map',
     reencodeVideo ? '[vout]' : '0:v',
-    if (choices.sound) ...<String>[
+    if (beatTrack != null) ...<String>[
       '-map',
       '[aout]',
     ] else if (reencodeAudio) ...<String>[
-      // 不勾声音类但音轨也得重编码（范围收了这一段，或这一档要跟画面一起缩放）：
+      // 不混拍声但音轨也得重编码（范围收了这一段，或这一档要跟画面一起缩放）：
       // 取上面那条收窄 / 缩放过的 `[amain]`，而不是原样复制整片音轨。
       '-map',
       '[amain]',

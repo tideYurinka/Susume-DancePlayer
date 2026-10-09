@@ -104,10 +104,21 @@ void main() {
     return buildCastRenderArguments(
       request: request,
       outputPath: '/cache/a.part',
-      beatTrackPath: sound ? '/cache/a.clicks.wav' : null,
-      stickerPaths: [
-        for (var i = 0; i < stickers.length; i++) '/cache/a.sticker$i.png',
-      ],
+      staging: CastRenderStaging(
+        beatTrack: sound
+            ? const CastRenderSidecar(path: '/cache/a.clicks.wav', index: 1)
+            : null,
+        stickers: [
+          for (var i = 0; i < stickers.length; i++)
+            CastStickerInput(
+              sticker: stickers[i],
+              sidecar: CastRenderSidecar(
+                path: '/cache/a.sticker$i.png',
+                index: (sound ? 2 : 1) + i,
+              ),
+            ),
+        ],
+      ),
     );
   }
 

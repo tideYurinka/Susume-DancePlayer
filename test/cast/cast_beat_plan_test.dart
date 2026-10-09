@@ -74,21 +74,43 @@ void main() {
     List<CastSticker> stickers = const [],
     CastRange? range,
     String? beatSlidesPath = '/cache/a.beats.txt',
-  }) => buildCastRenderArguments(
-    request: request(
-      choices: choices,
-      speedTier: speedTier,
-      beatOverlay: beatOverlay,
-      stickers: stickers,
-      range: range,
-    ),
-    outputPath: '/cache/a.part',
-    beatTrackPath: '/cache/a.clicks.wav',
-    beatSlidesPath: beatSlidesPath,
-    stickerPaths: [
-      for (var i = 0; i < stickers.length; i++) '/cache/a.sticker$i.png',
-    ],
-  );
+    String? beatTrackPath = '/cache/a.clicks.wav',
+  }) {
+    var input = 1;
+    final beatTrack = beatTrackPath == null
+        ? null
+        : CastRenderSidecar(path: beatTrackPath, index: input++);
+    final beatSlides = beatOverlay == null || beatSlidesPath == null
+        ? null
+        : CastBeatSlidesInput(
+            overlay: beatOverlay,
+            sidecar: CastRenderSidecar(path: beatSlidesPath, index: input++),
+          );
+    return buildCastRenderArguments(
+      request: request(
+        choices: choices,
+        speedTier: speedTier,
+        beatOverlay: beatOverlay,
+        stickers: stickers,
+        range: range,
+      ),
+      outputPath: '/cache/a.part',
+      staging: CastRenderStaging(
+        beatTrack: beatTrack,
+        beatSlides: beatSlides,
+        stickers: [
+          for (var i = 0; i < stickers.length; i++)
+            CastStickerInput(
+              sticker: stickers[i],
+              sidecar: CastRenderSidecar(
+                path: '/cache/a.sticker$i.png',
+                index: input++,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   String filterOf(List<String> arguments) =>
       arguments[arguments.indexOf('-filter_complex') + 1];
@@ -148,11 +170,29 @@ void main() {
       expect(filterOf(arguments), isNot(contains('bseq')));
     });
 
-    test('装了却没有清单路径 = 编程错误（宁可不装配一条读不出东西的链）', () {
-      expect(
-        () => args(beatOverlay: overlay(), beatSlidesPath: null),
-        throwsArgumentError,
+    test('暂存里没有序列清单 = 这次不装这一层（不按请求里的层重推一遍）', () {
+      final arguments = args(beatOverlay: overlay(), beatSlidesPath: null);
+
+      // 「要装数拍层却没有清单」这条组合在暂存输入里没有位置：清单在不在，就是
+      // 这一层装不装——没有可抛的非法组合。
+      expect(arguments, isNot(contains('concat')));
+      expect(filterOf(arguments), isNot(contains('bseq')));
+      expect(filterOf(arguments), isNot(contains('overlay=')));
+    });
+
+    test('没有拍声轨的那一份暂存：数拍序列就是 1 号输入、贴纸跟着前移', () {
+      final arguments = args(
+        beatOverlay: overlay(),
+        stickers: <CastSticker>[sticker()],
+        beatTrackPath: null,
       );
+
+      // 0 = 源片、1 = 数拍序列、2 = 第一条贴纸——号数由暂存表给，装配层不另算。
+      expect(
+        filterOf(arguments),
+        contains('[1:v]format=rgba,fps=30[bseq1]'),
+      );
+      expect(filterOf(arguments), contains('[2:v]format=rgba,fps=30[csti0]'));
     });
   });
 

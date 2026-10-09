@@ -14,6 +14,12 @@
 /// 改一次产物就作废一次，键少收一样就会拿「音量改过」的旧音轨去投。画/声
 /// 两类的设置同处一型，分量语义仍逐项可辨。
 ///
+/// ## 暂存输入（#47）
+///
+/// [CastRenderStaging] 也住本件：它是编排层备好边车之后交给命令装配的那份
+/// **类型化输入**（哪几样边车、各在 `-i` 里的第几路）。装配层因此不必从勾选档
+/// 把「这次装什么」推导第二遍，路径与下标也不会两处各写一遍。
+///
 /// ## 边界
 ///
 /// 本件是**值对象与算术**：不读盘、不建目录、不构命令。命令装配在
@@ -106,7 +112,11 @@ bool castRenderReencodesVideo(CastRenderChoices choices, CastSpeedTier tier) =>
 ///
 /// 逐项都是**用户改得动、且改一次产物就得重做**的设置；字段名与取值来源
 /// （各设置槽 / 取景会话态 / 节拍呈现开关）由播放页的装配处一一对应。
-/// [token] 是它在缓存键里的记号。
+///
+/// 判等与缓存键的记号**同源**：每一格在 [_CastRenderSetting] 的声明表里写一次
+/// 它进键的那一段记号，[token] 与 [operator ==] 都由那张表派生——**加一个字段
+/// = 枚举加一项 → 穷尽 switch 编译报错**，不存在「加了字段却忘了同步手拼串、
+/// 于是缓存失效静默停止工作」这条漏路（`#47`）。
 class CastRenderSettings {
   const CastRenderSettings({
     this.globalMirrored = false,
@@ -169,24 +179,22 @@ class CastRenderSettings {
   /// 音源取值（`normal` / `vocal` / `geigi`）。
   final String metronomeSourceId;
 
-  /// 进缓存键的记号。
+  /// 进缓存键的记号：逐格声明的记号按声明次序拼起来（**不手写这一串**）。
   String get token => [
-    globalMirrored ? 'gm1' : 'gm0',
-    localMirrorEnabled ? 'lm1' : 'lm0',
-    beatCountVisible ? 'bc1' : 'bc0',
-    'ba:$beatAnimationStyle',
-    'bov:$beatOverlay',
-    'sto:$stickerOverlay',
-    'fr:$framing',
-    halfBeatSoundEnabled ? 'hb1' : 'hb0',
-    'vol:$metronomeVolumePercent',
-    'loud:${songLoudnessBaseline.toStringAsFixed(4)}',
-    'src:$metronomeSourceId',
+    for (final id in _CastRenderSetting.values) _tokenOfSetting(this, id),
   ].join('|');
 
+  /// 相等 = 每一格的**进键记号**都相同——与 [token] 读同一张声明表，判等与
+  /// 键摘要因此不可能一边变一边不变。
   @override
-  bool operator ==(Object other) =>
-      other is CastRenderSettings && other.token == token;
+  bool operator ==(Object other) {
+    if (other is! CastRenderSettings) return false;
+    if (identical(this, other)) return true;
+    for (final id in _CastRenderSetting.values) {
+      if (_tokenOfSetting(this, id) != _tokenOfSetting(other, id)) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => token.hashCode;
@@ -194,6 +202,47 @@ class CastRenderSettings {
   @override
   String toString() => 'CastRenderSettings($token)';
 }
+
+/// 设置快照的一格（`#47`）：**加一个字段 = 这里加一项**，[token] 与判等自动
+/// 跟随（穷尽 switch 让漏掉的那一格编译报错）。
+enum _CastRenderSetting {
+  globalMirrored,
+  localMirrorEnabled,
+  beatCountVisible,
+  beatAnimationStyle,
+  beatOverlay,
+  stickerOverlay,
+  framing,
+  halfBeatSoundEnabled,
+  metronomeVolumePercent,
+  songLoudnessBaseline,
+  metronomeSourceId,
+}
+
+/// 一格的进键记号（该字段在缓存键里的那一段）。**这是每一格唯一的声明处**：
+/// 键的拼接、判等、哈希都读它。
+String _tokenOfSetting(CastRenderSettings settings, _CastRenderSetting id) =>
+    switch (id) {
+      _CastRenderSetting.globalMirrored =>
+        settings.globalMirrored ? 'gm1' : 'gm0',
+      _CastRenderSetting.localMirrorEnabled =>
+        settings.localMirrorEnabled ? 'lm1' : 'lm0',
+      _CastRenderSetting.beatCountVisible =>
+        settings.beatCountVisible ? 'bc1' : 'bc0',
+      _CastRenderSetting.beatAnimationStyle =>
+        'ba:${settings.beatAnimationStyle}',
+      _CastRenderSetting.beatOverlay => 'bov:${settings.beatOverlay}',
+      _CastRenderSetting.stickerOverlay => 'sto:${settings.stickerOverlay}',
+      _CastRenderSetting.framing => 'fr:${settings.framing}',
+      _CastRenderSetting.halfBeatSoundEnabled =>
+        settings.halfBeatSoundEnabled ? 'hb1' : 'hb0',
+      _CastRenderSetting.metronomeVolumePercent =>
+        'vol:${settings.metronomeVolumePercent}',
+      _CastRenderSetting.songLoudnessBaseline =>
+        'loud:${settings.songLoudnessBaseline.toStringAsFixed(4)}',
+      _CastRenderSetting.metronomeSourceId =>
+        'src:${settings.metronomeSourceId}',
+    };
 
 /// 一条拍声：这一拍在**源视频时间轴**的哪个时刻、放哪一段资产、多大音量。
 ///
@@ -317,6 +366,89 @@ class CastSticker {
   String toString() =>
       'CastSticker($startMs–$endMs, $centerX/$centerY, '
       '$widthFraction×$heightFraction)';
+}
+
+/// **一路边车输入**（源片之外的 `-i`）：它的路径 + 它在命令行里的下标。
+///
+/// 路径与下标**成对给全**：`-i` 追加的是哪个文件、滤镜图引用的是哪一号输入，
+/// 两处读的是同一个数（`#47`）——「第几路」不再由装配层另算一遍。
+class CastRenderSidecar {
+  const CastRenderSidecar({required this.path, required this.index});
+
+  /// 这一路输入的文件路径。
+  final String path;
+
+  /// 它在 `-i` 里的下标（源片恒是 0 号）。
+  final int index;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CastRenderSidecar && other.path == path && other.index == index;
+
+  @override
+  int get hashCode => Object.hash(path, index);
+
+  @override
+  String toString() => 'CastRenderSidecar($index: $path)';
+}
+
+/// **一条贴纸图输入**：贴纸与它的图**成对**——不是两张可能对不上的平行表。
+class CastStickerInput {
+  const CastStickerInput({required this.sticker, required this.sidecar});
+
+  final CastSticker sticker;
+
+  final CastRenderSidecar sidecar;
+
+  @override
+  String toString() => 'CastStickerInput(${sidecar.index}: $sticker)';
+}
+
+/// **数拍序列清单输入**：清单与它要装的**数拍层**成对（装了数拍层才有这一路）。
+class CastBeatSlidesInput {
+  const CastBeatSlidesInput({required this.overlay, required this.sidecar});
+
+  /// 要装的数拍层（逐拍行与落位）。
+  final CastBeatCountOverlay overlay;
+
+  final CastRenderSidecar sidecar;
+
+  @override
+  String toString() =>
+      'CastBeatSlidesInput(${sidecar.index}: ${sidecar.path})';
+}
+
+/// **一次渲染的暂存输入**（`#47`）：编排层按请求刚备好的那几样边车文件与它们
+/// 在 `-i` 里的下标。命令装配读它落命令，**不再从勾选档把「这次装什么」推导
+/// 第二遍**。
+///
+/// - [beatTrack] 空 = 这次不混拍声（勾了声音类时编排层已备好那条轨）；
+/// - [beatSlides] 空 = 这次不装数拍层；
+/// - [stickers] 空表 = 这次没有贴纸图。
+///
+/// 「勾了声音类却没有拍声轨」「贴纸图与贴纸对不上」「要装数拍层却没有清单」这
+/// 三种组合因此没有位置——它们都是同一件事写成两处、两处对不齐的产物，而这里
+/// 只有一处。
+class CastRenderStaging {
+  const CastRenderStaging({
+    this.beatTrack,
+    this.beatSlides,
+    this.stickers = const [],
+  });
+
+  /// 拍声轨（勾了声音类才有）。
+  final CastRenderSidecar? beatTrack;
+
+  /// 数拍序列清单（装了数拍层才有）。
+  final CastBeatSlidesInput? beatSlides;
+
+  /// 贴纸图（与请求里的贴纸一一成对）。
+  final List<CastStickerInput> stickers;
+
+  @override
+  String toString() =>
+      'CastRenderStaging(beatTrack: $beatTrack, beatSlides: $beatSlides, '
+      'stickers: ${stickers.length})';
 }
 
 /// 一次投屏渲染的全部输入。

@@ -35,6 +35,45 @@ void main() {
     range: range,
   );
 
+  /// **这一次的暂存输入**：与请求配套的边车（勾了声音类才有拍声轨、有数拍层
+  /// 才有序列清单、画面类且有备注才有贴纸图）。下标按 `-i` 的次序现数一遍
+  /// ——测试自己算，不拿被测件的算术当期望。
+  CastRenderStaging stagingOf(
+    CastRenderRequest request, {
+    String? beatTrackPath = '/cache/a.clicks.wav',
+    String? beatSlidesPath = '/cache/a.beats.txt',
+    List<String> stickerPaths = const [],
+  }) {
+    var input = 1;
+    final overlay = request.beatOverlay;
+    final beatTrack = !request.choices.sound || beatTrackPath == null
+        ? null
+        : CastRenderSidecar(path: beatTrackPath, index: input++);
+    final beatSlides =
+        !request.choices.picture || overlay == null || beatSlidesPath == null
+        ? null
+        : CastBeatSlidesInput(
+            overlay: overlay,
+            sidecar: CastRenderSidecar(path: beatSlidesPath, index: input++),
+          );
+    return CastRenderStaging(
+      beatTrack: beatTrack,
+      beatSlides: beatSlides,
+      stickers: [
+        for (var i = 0; i < request.stickers.length; i++)
+          CastStickerInput(
+            sticker: request.stickers[i],
+            sidecar: CastRenderSidecar(
+              path: stickerPaths.length > i
+                  ? stickerPaths[i]
+                  : '/cache/a.sticker$i.png',
+              index: input++,
+            ),
+          ),
+      ],
+    );
+  }
+
   List<String> args({
     CastRenderChoices choices = const CastRenderChoices(
       picture: false,
@@ -47,8 +86,8 @@ void main() {
     FramingSelection? framingSelection,
     CastRange? range,
     String? beatTrackPath = '/cache/a.clicks.wav',
-  }) => buildCastRenderArguments(
-    request: request(
+  }) {
+    final buildRequest = request(
       choices: choices,
       speedTier: speedTier,
       resolution: resolution,
@@ -56,10 +95,13 @@ void main() {
       mirrorFragments: mirrorFragments,
       framingSelection: framingSelection,
       range: range,
-    ),
-    outputPath: '/cache/a.part',
-    beatTrackPath: beatTrackPath,
-  );
+    );
+    return buildCastRenderArguments(
+      request: buildRequest,
+      outputPath: '/cache/a.part',
+      staging: stagingOf(buildRequest, beatTrackPath: beatTrackPath),
+    );
+  }
 
   /// `-c:v` 后紧跟的那个值（命令行里唯一的「视频编解码器」声明）。
   String videoCodecOf(List<String> arguments) =>
@@ -106,8 +148,18 @@ void main() {
       expect(arguments, containsAllInOrder(['-map', '[aout]']));
     });
 
-    test('只勾声音却没有拍声轨：报错（不悄悄推一条没有拍声的「副本」）', () {
-      expect(() => args(beatTrackPath: null), throwsA(isA<ArgumentError>()));
+    test('暂存里没有拍声轨 = 这次不混拍声（不按勾选档重推一遍）', () {
+      final arguments = args(beatTrackPath: null);
+
+      // 「勾了声音类却没有拍声轨」这条组合在暂存输入里没有位置：装配层读的是
+      // 暂存表，表里没有这一路就是这一次没有这一路——没有可抛的非法组合。
+      expect(
+        arguments,
+        isNot(contains('/cache/a.clicks.wav')),
+        reason: '暂存表里没有的边车不进命令行',
+      );
+      expect(filterOf(arguments), isNot(contains('amix')));
+      expect(arguments, containsAllInOrder(['-c:a', 'copy']));
     });
   });
 

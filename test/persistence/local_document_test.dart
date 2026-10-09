@@ -670,8 +670,24 @@ void main() {
       final restored = LocalDocument.fromJson(json);
       expect(restored.castPrep!.picture, isTrue);
       expect(restored.castPrep!.sound, isNull);
-      expect(restored.castPrep!.tiers, isNull);
+      expect(restored.castPrep!.tiers, isEmpty);
       expect(restored, doc);
+    });
+
+    test('档表空 = 没有意见：不写该键，读回缺键（与「记着一档」可区分）', () {
+      const remembered = LocalDocument(
+        castPrep: CastPrepMemoryFields(picture: true, tiers: ['0.5']),
+      );
+      expect(remembered.toJson()['prefs']['castPrep'], {
+        'picture': true,
+        'tiers': ['0.5'],
+      });
+
+      const noOpinion = LocalDocument(
+        castPrep: CastPrepMemoryFields(picture: true),
+      );
+      expect(noOpinion.toJson()['prefs']['castPrep'], {'picture': true});
+      expect(LocalDocument.fromJson(noOpinion.toJson()).castPrep!.tiers, isEmpty);
     });
 
     test('记忆字段落 prefs 段自己的一格：整份缺失 vs 记录在但全字段缺席可区分', () {
@@ -707,12 +723,12 @@ void main() {
       });
       expect(doc.castPrep!.picture, isNull);
       expect(doc.castPrep!.sound, isTrue);
-      expect(doc.castPrep!.tiers, isNull);
+      expect(doc.castPrep!.tiers, isEmpty);
 
       final json = doc.toJson();
       expect(json['prefs']['castPrep'], {'sound': true});
 
-      // 档表里混进非字符串元素：只剔掉那一项，其余照留（词表校验在投屏域）。
+      // 档表里混进非字符串元素：只剔掉那一项，其余照留。
       final mixed = LocalDocument.fromJson(const {
         'version': 3,
         'prefs': {
@@ -722,6 +738,35 @@ void main() {
         },
       });
       expect(mixed.castPrep!.tiers, ['0.5', '1']);
+    });
+
+    test('档位记号在文档层边界校验：认不得的记号当场拦下，不到投屏域', () {
+      final doc = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'tiers': ['0.5', '2', 'double', '1'],
+          },
+        },
+      });
+      expect(
+        doc.castPrep!.tiers,
+        ['0.5', '1'],
+        reason: '词表外的记号读入即拦下——投屏域不再有第二遍过滤',
+      );
+
+      // 只剩认不得的记号 = 这一格没有意见（空表与缺键同义，键不落盘）。
+      final allUnknown = LocalDocument.fromJson(const {
+        'version': 3,
+        'prefs': {
+          'castPrep': {
+            'sound': true,
+            'tiers': ['2', 'double'],
+          },
+        },
+      });
+      expect(allUnknown.castPrep!.tiers, isEmpty);
+      expect(allUnknown.toJson()['prefs']['castPrep'], {'sound': true});
     });
 
     test('未知键保底：prefs 段与 castPrep 子对象里的陌生键原样带回写回', () {

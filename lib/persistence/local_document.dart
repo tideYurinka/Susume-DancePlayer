@@ -151,16 +151,21 @@ class BeatPromptMemoryFields {
 }
 
 /// `prefs.castPrep` 子对象的原始值投影：一支舞的**投屏准备记忆**——准备面板
-/// 那两个渲染勾选档（画面类 / 声音类）与**投屏倍速档**集合；三个字段逐字段
-/// 可缺席（null = 这支舞对这项没有意见）。
+/// 那两个渲染勾选档（画面类 / 声音类）与**投屏倍速档**记号表；三个字段逐字段
+/// 可缺席（picture / sound 的 null = 这支舞对这项没有意见；`tiers` 的空表 =
+/// 对档位没有意见，与缺键同义，见下）。
 ///
 /// **纯值层载体**：与 [BeatPromptMemoryFields] 同款，持原始类型而非投屏域的
 /// `CastRenderChoices` / `CastSpeedTier`（舞库依赖闭包零 Flutter，文档层也不
 /// 认投屏域）。档位记号是**投屏域的 `CastSpeedTier.token`**（`0.5` / `0.75` /
-/// `1`）；「记住的档已不可用」的判据只此一处——投屏域那一侧按**当时的候选档**
-/// 过滤（`player/cast_prep_memory.dart`），文档层只保形状。
+/// `1`），**词表校验就在这一层边界**（`_parseCastTiers`）：认不得的记号读入即
+/// 拦下，投屏域只做记号 → 档的一次换算，不再有第二遍过滤。
 class CastPrepMemoryFields {
-  const CastPrepMemoryFields({this.picture, this.sound, this.tiers});
+  const CastPrepMemoryFields({
+    this.picture,
+    this.sound,
+    this.tiers = const [],
+  });
 
   /// 画面类勾选（含呈现类）。
   final bool? picture;
@@ -168,25 +173,19 @@ class CastPrepMemoryFields {
   /// 声音类勾选（拍声混进音轨）。
   final bool? sound;
 
-  /// 投屏倍速档的记号表（空表 / 缺席 = 这支舞对档位没有意见；次序不入语义，
-  /// 读面按候选档次序归一）。
-  final List<String>? tiers;
+  /// 投屏倍速档的记号表（**空表 = 对档位没有意见**，与缺键同义、不落盘；次序
+  /// 不入语义，写侧按候选次序归一）。表里每一项都已过档位记号词表。
+  final List<String> tiers;
 
   @override
-  bool operator ==(Object other) {
-    if (other is! CastPrepMemoryFields) return false;
-    if (other.picture != picture || other.sound != sound) return false;
-    final mine = tiers;
-    final theirs = other.tiers;
-    if (mine == null || theirs == null) return mine == null && theirs == null;
-    return _listEquals(mine, theirs);
-  }
+  bool operator ==(Object other) =>
+      other is CastPrepMemoryFields &&
+      other.picture == picture &&
+      other.sound == sound &&
+      jsonDeepEquals(other.tiers, tiers);
 
-  /// 档表按**内容**进哈希（列表的默认哈希是身份哈希，与上面的内容相等不
-  /// 相容）；缺席与空表同哈希允许（两者不等，但哈希相等只是碰撞）。
   @override
-  int get hashCode =>
-      Object.hash(picture, sound, Object.hashAll(tiers ?? const <String>[]));
+  int get hashCode => Object.hash(picture, sound, jsonDeepHash(tiers));
 }
 
 /// 本地文档 `local_<hash>.json` 的 schema v4 文档模型。
@@ -196,8 +195,10 @@ class CastPrepMemoryFields {
 /// - `prefs`（编辑偏好持久化会话写）：预览吸附开关、锁定分段、数拍
 ///   浮层位置（左上角 x/y）与分形态系数（矩形宽系数、摆锤等比系数）、
 ///   节拍提示记忆（`prefs.beatPrompt`，五个值逐字段可缺席）、
-///   **投屏准备记忆**（`prefs.castPrep`，两个渲染勾选档与投屏倍速档表
-///   逐字段可缺席；#40）。
+///   **投屏准备记忆**（`prefs.castPrep`，两个渲染勾选档与投屏倍速档记号表
+///   逐字段可缺席；#40）。后两份都是**存在性包裹的子对象**——共用
+///   [_MemoryDecl] 那一套声明（一个键 + 一张字段表，见该类的库注释），新增
+///   一份按舞记住的取值因此只是再挂一份同样的声明。
 ///
 /// 字段归属清单与双文件文档模型（修订 2026-09-10）一致。仅存本地、永不随
 /// 分享导出；删除视频条目时随视频文件删除。
@@ -338,8 +339,8 @@ class LocalDocument {
     bool? previewSnapEnabled,
     bool? layoutLocked,
     Object? overlay = _keepOverlay,
-    Object? beatPrompt = _keepBeatPrompt,
-    Object? castPrep = _keepCastPrep,
+    Object? beatPrompt = _keepMemory,
+    Object? castPrep = _keepMemory,
     double? speedRate,
     bool? practiceMirror,
     List<PracticeClip>? practiceClips,
@@ -354,10 +355,10 @@ class LocalDocument {
     overlay: overlay == _keepOverlay
         ? this.overlay
         : overlay as OverlayPlacementFields?,
-    beatPrompt: beatPrompt == _keepBeatPrompt
+    beatPrompt: beatPrompt == _keepMemory
         ? this.beatPrompt
         : beatPrompt as BeatPromptMemoryFields?,
-    castPrep: castPrep == _keepCastPrep
+    castPrep: castPrep == _keepMemory
         ? this.castPrep
         : castPrep as CastPrepMemoryFields?,
     speedRate: speedRate ?? this.speedRate,
@@ -485,13 +486,9 @@ enum _LocalSection { session, prefs }
 /// 区别于不传参。
 const Object _keepActivePracticeClipId = Object();
 
-/// `_copy` 节拍提示记忆字段的「保持现值」哨兵：记忆写入以绝对终值落定，
-/// null = 清除整份记录，区别于不传参。
-const Object _keepBeatPrompt = Object();
-
-/// `_copy` 投屏准备记忆字段的「保持现值」哨兵（与 [_keepBeatPrompt] 同款：
-/// 绝对终值落定，null = 清除整份记录）。
-const Object _keepCastPrep = Object();
+/// `_copy` **按舞记忆**字段的「保持现值」哨兵（两份记忆共用）：记忆写入以
+/// 绝对终值落定，null = 清除整份记录，区别于不传参。
+const Object _keepMemory = Object();
 
 /// `_copy` 浮层位字段的「保持现值」哨兵：整组写入需要能显式落 null =
 /// 无任何浮层位字段，区别于不传参。
@@ -546,15 +543,8 @@ SectionDecl<LocalDocument> _localSectionDecl(_LocalSection id) => switch (id) {
         fields: doc.overlay ?? const OverlayPlacementFields(),
         extra: doc.overlayExtra,
       ),
-      beatPrompt: doc.beatPrompt == null
-          ? _beatPromptAbsent
-          : _BeatPromptValue(
-              fields: doc.beatPrompt!,
-              extra: doc.beatPromptExtra,
-            ),
-      castPrep: doc.castPrep == null
-          ? _castPrepAbsent
-          : _CastPrepValue(fields: doc.castPrep!, extra: doc.castPrepExtra),
+      beatPrompt: _beatPromptMemory.of(doc.beatPrompt, doc.beatPromptExtra),
+      castPrep: _castPrepMemory.of(doc.castPrep, doc.castPrepExtra),
       speedRate: doc.speedRate,
       practiceMirror: doc.practiceMirror,
       practiceClips: doc.practiceClips,
@@ -681,8 +671,8 @@ class _PrefsValue {
     this.previewSnapEnabled = true,
     this.layoutLocked = false,
     this.overlay = const _OverlayValue(),
-    this.beatPrompt = const _BeatPromptValue(present: false),
-    this.castPrep = const _CastPrepValue(present: false),
+    this.beatPrompt = const _Memory.absent(BeatPromptMemoryFields()),
+    this.castPrep = const _Memory.absent(CastPrepMemoryFields()),
     this.speedRate,
     this.practiceMirror,
     this.practiceClips = const [],
@@ -695,11 +685,11 @@ class _PrefsValue {
 
   final _OverlayValue overlay;
 
-  /// 节拍提示记忆（[beatPromptAbsent] = 文件无 `beatPrompt` 键）。
-  final _BeatPromptValue beatPrompt;
+  /// 节拍提示记忆（`present` 假 = 文件无 `beatPrompt` 键）。
+  final _Memory<BeatPromptMemoryFields> beatPrompt;
 
-  /// 投屏准备记忆（[castPrepAbsent] = 文件无 `castPrep` 键）。
-  final _CastPrepValue castPrep;
+  /// 投屏准备记忆（`present` 假 = 文件无 `castPrep` 键）。
+  final _Memory<CastPrepMemoryFields> castPrep;
 
   /// 手动倍率记忆（null = 文件无该键）。
   final double? speedRate;
@@ -767,37 +757,19 @@ FieldDecl<_PrefsValue> _prefsDecl(_PrefsField id) => switch (id) {
         v.overlay.isUnset ? omitField : _overlayCodec.encode(v.overlay),
     equal: (a, b) => _overlayCodec.equals(a.overlay, b.overlay),
   ),
+  // 两份**按舞记住的取值**走同一份存在性子对象声明：读、写（缺席不写该键；
+  // 记录在但字段全缺席仍写空对象——与无记录是两种状态）、相等都只此一处。
   _PrefsField.beatPrompt => FieldDecl(
-    key: 'beatPrompt',
-    read: (json) {
-      final raw = json['beatPrompt'];
-      if (raw is! Map<String, Object?>) return _beatPromptAbsent;
-      return _beatPromptCodec.decode(raw);
-    },
-    // 承诺：整份记录不存在（null）不写该键——缺键即无记录；记录在但
-    // 五个字段全缺席仍写空对象（与无记录是两种状态）。
-    write: (v) => v.beatPrompt.present
-        ? _beatPromptCodec.encode(v.beatPrompt)
-        : omitField,
-    equal: (a, b) =>
-        a.beatPrompt.present == b.beatPrompt.present &&
-        (!a.beatPrompt.present || a.beatPrompt.fields == b.beatPrompt.fields),
+    key: _beatPromptMemory.key,
+    read: (json) => _beatPromptMemory.read(json),
+    write: (v) => _beatPromptMemory.write(v.beatPrompt),
+    equal: (a, b) => _beatPromptMemory.equals(a.beatPrompt, b.beatPrompt),
   ),
   _PrefsField.castPrep => FieldDecl(
-    key: 'castPrep',
-    read: (json) {
-      final raw = json['castPrep'];
-      if (raw is! Map<String, Object?>) return _castPrepAbsent;
-      return _castPrepCodec.decode(raw);
-    },
-    // 承诺：整份记录不存在（null）不写该键——缺键即无记录；记录在但
-    // 三个字段全缺席仍写空对象（与无记录是两种状态）。字段形状在投屏域
-    // 判（那边的候选档词表是唯一判据），文档层只保形状。
-    write: (v) =>
-        v.castPrep.present ? _castPrepCodec.encode(v.castPrep) : omitField,
-    equal: (a, b) =>
-        a.castPrep.present == b.castPrep.present &&
-        (!a.castPrep.present || a.castPrep.fields == b.castPrep.fields),
+    key: _castPrepMemory.key,
+    read: (json) => _castPrepMemory.read(json),
+    write: (v) => _castPrepMemory.write(v.castPrep),
+    equal: (a, b) => _castPrepMemory.equals(a.castPrep, b.castPrep),
   ),
   _PrefsField.speedRate => FieldDecl(
     key: 'speedRate',
@@ -850,8 +822,9 @@ _PrefsValue _buildPrefs(Map<_PrefsField, Object?> values) => _PrefsValue(
   previewSnapEnabled: values[_PrefsField.previewSnapEnabled] as bool,
   layoutLocked: values[_PrefsField.layoutLocked] as bool,
   overlay: values[_PrefsField.overlay] as _OverlayValue,
-  beatPrompt: values[_PrefsField.beatPrompt] as _BeatPromptValue,
-  castPrep: values[_PrefsField.castPrep] as _CastPrepValue,
+  beatPrompt:
+      values[_PrefsField.beatPrompt] as _Memory<BeatPromptMemoryFields>,
+  castPrep: values[_PrefsField.castPrep] as _Memory<CastPrepMemoryFields>,
   speedRate: values[_PrefsField.speedRate] as double?,
   practiceMirror: values[_PrefsField.practiceMirror] as bool?,
   practiceClips: values[_PrefsField.practiceClips] as List<PracticeClip>,
@@ -886,182 +859,223 @@ MaterialAutoDeleteSettings _readAutoDelete(Object? raw) {
   );
 }
 
-// --- beatPrompt 子对象（节拍提示记忆：五个值逐字段可缺席） ----------
+// --- 按舞记忆：存在性包裹的子对象（一个键 + 一张字段表） -----------------------
 
-/// 「文件无 `beatPrompt` 键」的哨兵值（整份记录不存在）。
-const _BeatPromptValue _beatPromptAbsent = _BeatPromptValue(present: false);
+/// **一份按舞记住的取值**在段里的存在性包裹：`present` 区分「文件里没有这个
+/// 键」与「键在、字段全缺席」两种状态（后者仍写空对象）。
+class _Memory<T> {
+  const _Memory(this.fields, {this.extra = const {}, this.present = true});
 
-class _BeatPromptValue {
-  const _BeatPromptValue({
-    this.fields = const BeatPromptMemoryFields(),
-    this.extra = const {},
-    this.present = true,
-  });
+  /// 文件里没有这个键（整份记录不存在）。
+  const _Memory.absent(this.fields) : extra = const {}, present = false;
 
-  final BeatPromptMemoryFields fields;
+  final T fields;
   final Map<String, Object?> extra;
-
-  /// prefs 段里是否存在 `beatPrompt` 键（false = 整份记录不存在）。
   final bool present;
 }
 
-enum _BeatPromptField { animation, animationStyle, sound, soundType, halfBeat }
+/// **存在性包裹的子对象声明**：一个键 + 一张字段表（字段 id 枚举 + 穷尽 switch
+/// + 装配）即得该子对象在 `prefs` 段的编解码、陌生键保底与那一格的读 / 写 /
+/// 相等。新增一份按舞记住的取值 = 加一条这样的声明 + 在文档模型上挂一处。
+class _MemoryDecl<T, F extends Enum> {
+  _MemoryDecl({
+    required this.key,
+    required this.ids,
+    required this.decl,
+    required this.build,
+    required this.empty,
+  }) : codec = RecordCodec<_Memory<T>, F>(
+          ids: ids,
+          decl: (id) => _wrappedField(decl(id)),
+          build: (values) => _Memory(build(values)),
+          extraOf: (v) => v.extra,
+          withExtra: (v, extra) =>
+              _Memory(v.fields, extra: extra, present: v.present),
+        );
 
-final RecordCodec<_BeatPromptValue, _BeatPromptField> _beatPromptCodec =
-    RecordCodec<_BeatPromptValue, _BeatPromptField>(
-      ids: _BeatPromptField.values,
-      decl: _beatPromptDecl,
-      build: _buildBeatPrompt,
-      extraOf: (v) => v.extra,
-      withExtra: (v, extra) =>
-          _BeatPromptValue(fields: v.fields, extra: extra, present: v.present),
+  /// 这份记忆在 `prefs` 段里的键名。
+  final String key;
+
+  /// 字段表：id 枚举 + 逐格声明（键名 / 读 / 写）。
+  final List<F> ids;
+  final FieldDecl<T> Function(F id) decl;
+
+  /// 字段表的装配。
+  final T Function(Map<F, Object?> values) build;
+
+  /// 空值构造（整份记录缺席时段值的占位；缺席的记录不会被写出去）。
+  final T Function() empty;
+
+  final RecordCodec<_Memory<T>, F> codec;
+
+  /// 文件里没有这个键。
+  _Memory<T> absent() => _Memory.absent(empty());
+
+  /// 文档字段（null = 无记录）+ 它的陌生键保底区 → 段值。
+  _Memory<T> of(T? fields, Map<String, Object?> extra) =>
+      fields == null ? absent() : _Memory(fields, extra: extra);
+
+  /// 读这一格：键不在、或形状不是对象，都按整份记录不存在。
+  _Memory<T> read(Map<String, Object?> prefs) {
+    final raw = prefs[key];
+    if (raw is! Map<String, Object?>) return absent();
+    return codec.decode(raw);
+  }
+
+  /// 写这一格：整份记录不存在（null）不写该键——缺键即无记录；记录在但字段全
+  /// 缺席仍写空对象（与无记录是两种状态）。
+  Object? write(_Memory<T> value) =>
+      value.present ? codec.encode(value) : omitField;
+
+  /// 这一格的相等：存在性 + 已登记字段逐格（保底区不参与）。
+  bool equals(_Memory<T> a, _Memory<T> b) =>
+      a.present == b.present && (!a.present || codec.equals(a, b));
+}
+
+/// 把字段表里的一格抬到存在性包裹上：读、写、判等仍走那一格。
+FieldDecl<_Memory<T>> _wrappedField<T>(FieldDecl<T> field) =>
+    FieldDecl<_Memory<T>>(
+      key: field.key,
+      read: (json) => field.read(json),
+      write: (m) => field.write(m.fields),
+      equal: (a, b) => field.equal(a.fields, b.fields),
     );
 
-FieldDecl<_BeatPromptValue> _beatPromptDecl(_BeatPromptField id) =>
-    switch (id) {
-      _BeatPromptField.animation => _beatPromptFieldDecl(
-        key: 'animation',
-        read: (f) => f.animation,
-        parse: _parseBool,
-      ),
-      _BeatPromptField.animationStyle => _beatPromptFieldDecl(
-        key: 'animationStyle',
-        read: (f) => f.animationStyle,
-        parse: (raw) => _parseName(raw, const {'bar', 'pendulum'}),
-      ),
-      _BeatPromptField.sound => _beatPromptFieldDecl(
-        key: 'sound',
-        read: (f) => f.sound,
-        parse: _parseBool,
-      ),
-      _BeatPromptField.soundType => _beatPromptFieldDecl(
-        key: 'soundType',
-        read: (f) => f.soundType,
-        parse: (raw) => _parseName(raw, const {'normal', 'vocal', 'geigi'}),
-      ),
-      _BeatPromptField.halfBeat => _beatPromptFieldDecl(
-        key: 'halfBeat',
-        read: (f) => f.halfBeat,
-        parse: _parseBool,
-      ),
-    };
-
-/// 记忆单元的单字段声明：缺席（null）时写 [omitField]，词表外的值读入
-/// 归缺席。
-FieldDecl<_BeatPromptValue> _beatPromptFieldDecl<T>({
+/// 记忆单元的一格：从字段值读出它、按词表读入、写出——没有意见（null）即
+/// [omitField]（键不落盘）；[write] 可给出更细的省略口径（例如空表）。
+/// **相等由写出的 JSON 值派生**（与 `RecordCodec.hash` 同一份口径）：列表与
+/// 嵌套值一视同仁，加一格不必再手写判等。
+FieldDecl<T> _memoryField<T, V>({
   required String key,
-  required T? Function(BeatPromptMemoryFields fields) read,
-  required T? Function(Object? raw) parse,
-}) => FieldDecl<_BeatPromptValue>(
-  key: key,
-  read: (json) => parse(json[key]),
-  write: (v) => read(v.fields) ?? omitField,
-  equal: (a, b) => read(a.fields) == read(b.fields),
-);
+  required V? Function(T fields) read,
+  required V? Function(Object? raw) parse,
+  Object? Function(V value)? write,
+}) {
+  Object? written(T fields) {
+    final value = read(fields);
+    if (value == null) return omitField;
+    return write == null ? value : write(value);
+  }
 
-_BeatPromptValue _buildBeatPrompt(Map<_BeatPromptField, Object?> values) =>
-    _BeatPromptValue(
-      fields: BeatPromptMemoryFields(
-        animation: values[_BeatPromptField.animation] as bool?,
-        animationStyle: values[_BeatPromptField.animationStyle] as String?,
-        sound: values[_BeatPromptField.sound] as bool?,
-        soundType: values[_BeatPromptField.soundType] as String?,
-        halfBeat: values[_BeatPromptField.halfBeat] as bool?,
-      ),
-    );
+  return FieldDecl<T>(
+    key: key,
+    read: (json) => parse(json[key]),
+    write: written,
+    equal: (a, b) => jsonDeepEquals(written(a), written(b)),
+  );
+}
 
 bool? _parseBool(Object? raw) => raw is bool ? raw : null;
 
 String? _parseName(Object? raw, Set<String> vocabulary) =>
     raw is String && vocabulary.contains(raw) ? raw : null;
 
-// --- castPrep 子对象（投屏准备记忆：两个勾选档 + 档表，逐字段可缺席） ----------
+// --- beatPrompt（节拍提示记忆：五个值逐字段可缺席） --------------------------
 
-/// 「文件无 `castPrep` 键」的哨兵值（整份记录不存在）。
-const _CastPrepValue _castPrepAbsent = _CastPrepValue(present: false);
+enum _BeatPromptField { animation, animationStyle, sound, soundType, halfBeat }
 
-class _CastPrepValue {
-  const _CastPrepValue({
-    this.fields = const CastPrepMemoryFields(),
-    this.extra = const {},
-    this.present = true,
-  });
+final _MemoryDecl<BeatPromptMemoryFields, _BeatPromptField> _beatPromptMemory =
+    _MemoryDecl(
+      key: 'beatPrompt',
+      ids: _BeatPromptField.values,
+      decl: _beatPromptDecl,
+      build: _buildBeatPrompt,
+      empty: () => const BeatPromptMemoryFields(),
+    );
 
-  final CastPrepMemoryFields fields;
-  final Map<String, Object?> extra;
+FieldDecl<BeatPromptMemoryFields> _beatPromptDecl(_BeatPromptField id) =>
+    switch (id) {
+      _BeatPromptField.animation => _memoryField(
+        key: 'animation',
+        read: (f) => f.animation,
+        parse: _parseBool,
+      ),
+      _BeatPromptField.animationStyle => _memoryField(
+        key: 'animationStyle',
+        read: (f) => f.animationStyle,
+        parse: (raw) => _parseName(raw, const {'bar', 'pendulum'}),
+      ),
+      _BeatPromptField.sound => _memoryField(
+        key: 'sound',
+        read: (f) => f.sound,
+        parse: _parseBool,
+      ),
+      _BeatPromptField.soundType => _memoryField(
+        key: 'soundType',
+        read: (f) => f.soundType,
+        parse: (raw) => _parseName(raw, const {'normal', 'vocal', 'geigi'}),
+      ),
+      _BeatPromptField.halfBeat => _memoryField(
+        key: 'halfBeat',
+        read: (f) => f.halfBeat,
+        parse: _parseBool,
+      ),
+    };
 
-  /// prefs 段里是否存在 `castPrep` 键（false = 整份记录不存在）。
-  final bool present;
-}
+BeatPromptMemoryFields _buildBeatPrompt(
+  Map<_BeatPromptField, Object?> values,
+) => BeatPromptMemoryFields(
+  animation: values[_BeatPromptField.animation] as bool?,
+  animationStyle: values[_BeatPromptField.animationStyle] as String?,
+  sound: values[_BeatPromptField.sound] as bool?,
+  soundType: values[_BeatPromptField.soundType] as String?,
+  halfBeat: values[_BeatPromptField.halfBeat] as bool?,
+);
+
+// --- castPrep（投屏准备记忆#40：两个勾选档 + 档表，逐字段可缺席） -------------
 
 enum _CastPrepField { picture, sound, tiers }
 
-final RecordCodec<_CastPrepValue, _CastPrepField> _castPrepCodec =
-    RecordCodec<_CastPrepValue, _CastPrepField>(
+final _MemoryDecl<CastPrepMemoryFields, _CastPrepField> _castPrepMemory =
+    _MemoryDecl(
+      key: 'castPrep',
       ids: _CastPrepField.values,
       decl: _castPrepDecl,
       build: _buildCastPrep,
-      extraOf: (v) => v.extra,
-      withExtra: (v, extra) =>
-          _CastPrepValue(fields: v.fields, extra: extra, present: v.present),
+      empty: () => const CastPrepMemoryFields(),
     );
 
-FieldDecl<_CastPrepValue> _castPrepDecl(_CastPrepField id) => switch (id) {
-  _CastPrepField.picture => _castPrepFieldDecl(
+FieldDecl<CastPrepMemoryFields> _castPrepDecl(_CastPrepField id) => switch (id) {
+  _CastPrepField.picture => _memoryField(
     key: 'picture',
     read: (f) => f.picture,
     parse: _parseBool,
   ),
-  _CastPrepField.sound => _castPrepFieldDecl(
+  _CastPrepField.sound => _memoryField(
     key: 'sound',
     read: (f) => f.sound,
     parse: _parseBool,
   ),
-  _CastPrepField.tiers => FieldDecl<_CastPrepValue>(
+  _CastPrepField.tiers => _memoryField(
     key: 'tiers',
-    // 只保形状：非表按缺席，表里的非字符串元素逐项剔掉（**词表校验在投屏
-    // 域**——那边的候选档是「已不可用」的唯一判据）。
-    read: (json) {
-      final raw = json['tiers'];
-      if (raw is! List) return null;
-      return List<String>.unmodifiable([
-        for (final item in raw)
-          if (item is String) item,
-      ]);
-    },
-    write: (v) => v.fields.tiers == null
-        ? omitField
-        : [...v.fields.tiers!],
-    // 缺席（没有意见）与空表（说了「一档都不要」）是两种状态，判等要分开。
-    equal: (a, b) {
-      final mine = a.fields.tiers;
-      final theirs = b.fields.tiers;
-      if (mine == null || theirs == null) return mine == null && theirs == null;
-      return _listEquals(mine, theirs);
-    },
+    // 空表 = 没有意见：不写该键（与 practiceClips 同款）——「档位一档都不要」
+    // 这条到不了的状态因此不存在。
+    read: (f) => f.tiers,
+    parse: _parseCastTiers,
+    write: (tiers) => tiers.isEmpty ? omitField : [...tiers],
   ),
 };
 
-/// 记忆单元的单字段声明：缺席（null）时写 [omitField]（与 beatPrompt 同款）。
-FieldDecl<_CastPrepValue> _castPrepFieldDecl<T>({
-  required String key,
-  required T? Function(CastPrepMemoryFields fields) read,
-  required T? Function(Object? raw) parse,
-}) => FieldDecl<_CastPrepValue>(
-  key: key,
-  read: (json) => parse(json[key]),
-  write: (v) => read(v.fields) ?? omitField,
-  equal: (a, b) => read(a.fields) == read(b.fields),
-);
-
-_CastPrepValue _buildCastPrep(Map<_CastPrepField, Object?> values) =>
-    _CastPrepValue(
-      fields: CastPrepMemoryFields(
-        picture: values[_CastPrepField.picture] as bool?,
-        sound: values[_CastPrepField.sound] as bool?,
-        tiers: values[_CastPrepField.tiers] as List<String>?,
-      ),
+CastPrepMemoryFields _buildCastPrep(Map<_CastPrepField, Object?> values) =>
+    CastPrepMemoryFields(
+      picture: values[_CastPrepField.picture] as bool?,
+      sound: values[_CastPrepField.sound] as bool?,
+      tiers: values[_CastPrepField.tiers] as List<String>,
     );
+
+/// 投屏倍速档记号词表（投屏域三档的 `token`）：**认不得的记号在文档层边界就
+/// 拦下**，投屏域不再有第二遍过滤（见 `player/cast_prep_memory.dart`）。
+const Set<String> kCastPrepTierTokens = {'0.5', '0.75', '1'};
+
+/// 档位记号表读取：非表按空表；逐项按 [kCastPrepTierTokens] 校验（非字符串与
+/// 词表外的记号拦下）。空表与缺键同义（「没有意见」）。
+List<String> _parseCastTiers(Object? raw) {
+  if (raw is! List) return const [];
+  return List<String>.unmodifiable([
+    for (final item in raw)
+      if (item is String && kCastPrepTierTokens.contains(item)) item,
+  ]);
+}
 
 // --- overlay 子对象（浮层位四格 + 分形态系数） --------------------------------
 

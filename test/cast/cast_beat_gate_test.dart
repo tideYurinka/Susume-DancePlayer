@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:dance_learning_app/cast/cast_beat_count.dart';
 import 'package:dance_learning_app/cast/cast_beat_gate.dart';
+import 'package:dance_learning_app/cast/cast_render_request.dart'
+    show CastBeatSlidesInput, CastRenderSidecar;
 import 'package:flutter_test/flutter_test.dart';
 
 /// 投屏数拍闸门直测（纯件）：**图像序列的清单**与滤镜节点是外部契约（它们决定
@@ -104,19 +106,27 @@ void main() {
   });
 
   group('滤镜节点：一路序列 + 一个叠加节点（不做逐拍节点、不做动画）', () {
+    /// 数拍序列的暂存输入：清单 + 它在 `-i` 里的下标（2 号），层与号同出一处。
+    CastBeatSlidesInput slidesOf(CastBeatCountOverlay overlay) =>
+        CastBeatSlidesInput(
+          overlay: overlay,
+          sidecar: const CastRenderSidecar(path: '/c/a.beats.txt', index: 2),
+        );
+
     CastBeatCountGraph graphOf({List<CastBeatCountRow>? rows}) =>
         castBeatCountGraph(
-          overlay: overlay(
-            rows:
-                rows ??
-                <CastBeatCountRow>[
-                  row(0, 1000, value: text('0', '8')),
-                  row(1000, 2000, value: text('1', '1', group: '2')),
-                ],
+          slides: slidesOf(
+            overlay(
+              rows:
+                  rows ??
+                  <CastBeatCountRow>[
+                    row(0, 1000, value: text('0', '8')),
+                    row(1000, 2000, value: text('1', '1', group: '2')),
+                  ],
+            ),
           ),
           startLabel: 'vbase',
           endLabel: 'vbeat',
-          inputIndex: 2,
           fps: 30,
         );
 
@@ -153,10 +163,9 @@ void main() {
 
     test('不装时给零节点、链尾标签原样穿过', () {
       final graph = castBeatCountGraph(
-        overlay: overlay(rows: <CastBeatCountRow>[row(0, 1000)]),
+        slides: slidesOf(overlay(rows: <CastBeatCountRow>[row(0, 1000)])),
         startLabel: 'vbase',
         endLabel: 'vbeat',
-        inputIndex: 2,
         fps: 30,
       );
 

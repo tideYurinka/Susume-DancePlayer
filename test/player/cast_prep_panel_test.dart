@@ -16,7 +16,7 @@ import 'package:dance_learning_app/cast/system_mirror.dart'
 import 'package:dance_learning_app/dance/video_copy_presence.dart'
     show videoCopyPresenceProvider;
 import 'package:dance_learning_app/persistence/local_document.dart'
-    show CastPrepMemoryFields;
+    show CastPrepMemoryFields, LocalDocument;
 import 'package:dance_learning_app/player/cast_prep_memory.dart';
 import 'package:dance_learning_app/player/cast_prep_panel.dart';
 import 'package:flutter/material.dart';
@@ -1138,7 +1138,11 @@ void main() {
       extraOverrides: [
         castPrepMemoryProvider.overrideWith(
           () => _SeededCastPrepMemory(
-            const CastPrepMemoryFields(picture: true, tiers: ['2', 'double']),
+            // 盘上那份记录经**文档层**读回（词表外的记号在那一层就拦下）。
+            _memoryFieldsFromFile(const {
+              'picture': true,
+              'tiers': ['2', 'double'],
+            }),
           ),
         ),
       ],
@@ -1321,6 +1325,13 @@ class _SeededCastPrepMemory extends CastPrepMemoryModel {
   @override
   CastPrepMemoryFields? build() => _initial;
 }
+
+/// 盘上那份 `prefs.castPrep` 经文档层读回来的字段（词表校验的边界就在那里）。
+CastPrepMemoryFields _memoryFieldsFromFile(Map<String, Object?> json) =>
+    LocalDocument.fromJson({
+      'version': 3,
+      'prefs': {'castPrep': json},
+    }).castPrep!;
 
 /// 注入用的取值来源与回写口：记住最后一次回写的取值（两个钩子与真实装配
 /// 同形；[port] 交给面板）。

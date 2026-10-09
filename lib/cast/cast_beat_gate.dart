@@ -39,6 +39,7 @@ library;
 import 'cast_beat_count.dart';
 import 'cast_framing_gate.dart'
     show castOverlayXExpression, castOverlayYExpression, castRatioLiteral;
+import 'cast_render_request.dart' show CastBeatSlidesInput;
 
 /// 数拍层在画面链里装出来的东西：进 `filter_complex` 的节点 + 链尾标签。
 class CastBeatCountGraph {
@@ -87,19 +88,22 @@ String castBeatSlidesContent({
 /// 装配数拍层：序列输入先归到主片帧率网格与 rgba，再按帧的比例缩放、
 /// 全分辨率 alpha 送回，最后 `overlay` 叠上去。
 ///
-/// [inputIndex] 是那份 `-f concat` 输入在 `-i` 里的下标；[startLabel] 是前置
-/// 画面链（镜像 + 取景）的输出标签；[endLabel] 是数拍层的输出标签（后面的
-/// 贴纸层接在它上面——层序与上屏一致：贴纸画在数拍之上）。
+/// [slides] 是**清单与它要装的那一层成对**的暂存输入
+/// （`cast_render_request.dart` 的 `CastBeatSlidesInput`：数拍层 + 路径 + 它在
+/// `-i` 里的下标）——层与输入号同出一处，不必由调用方另算一遍。
+/// [startLabel] 是前置画面链（镜像 + 取景）的输出标签；[endLabel] 是数拍层的
+/// 输出标签（后面的贴纸层接在它上面——层序与上屏一致：贴纸画在数拍之上）。
 CastBeatCountGraph castBeatCountGraph({
-  required CastBeatCountOverlay overlay,
+  required CastBeatSlidesInput slides,
   required String startLabel,
   required String endLabel,
-  required int inputIndex,
   required int fps,
 }) {
+  final overlay = slides.overlay;
   if (!castBeatCountActive(overlay)) {
     return CastBeatCountGraph(nodes: const [], endLabel: startLabel);
   }
+  final inputIndex = slides.sidecar.index;
   // 时间窗的判定网格必须与主片同一格：第二路显式过 fps（与贴纸同款）。
   final seq = 'bseq$inputIndex';
   final scaled = 'bcan$inputIndex';

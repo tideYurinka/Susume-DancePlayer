@@ -75,7 +75,11 @@ void main() {
         framingSelection: framingSelection,
       ),
       outputPath: '/cache/a.part',
-      beatTrackPath: sound ? '/cache/a.clicks.wav' : null,
+      staging: CastRenderStaging(
+        beatTrack: sound
+            ? const CastRenderSidecar(path: '/cache/a.clicks.wav', index: 1)
+            : null,
+      ),
     );
     final chain = arguments[arguments.indexOf('-filter_complex') + 1]
         .split(';')
