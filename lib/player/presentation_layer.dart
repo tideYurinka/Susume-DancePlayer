@@ -19,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../annotation/compare_materials.dart' show PracticeClip;
-import '../annotation/framing_selection.dart' show FramingSelection;
 import '../core/playback/playback_engine_providers.dart'
     show playbackPositionProvider;
 import '../surface_direction/surface_direction.dart' show FaceDirection;
@@ -36,7 +35,6 @@ import 'package:dance_learning_app/camera_capture/camera_capture.dart';
 import 'compare_framing_bar.dart'
     show FramingBar, kCompareFramingBarBottomInset;
 import 'framing_session_state.dart' show framingStateProvider;
-import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'compare_recording.dart'
     show
         CompareRecordButton,
@@ -50,7 +48,6 @@ import 'editor_entry.dart' show EditorEntry;
 import 'editor_skeleton.dart' show EditorSkeleton, cornerPromptAnchor;
 import 'engine_seek.dart' show EngineSeek;
 import '../core/frame_time.dart' show kDefaultVideoFps;
-import 'framing_stage.dart' show singlePictureFramedPictureRectOnScreen;
 import 'gesture_arbitration.dart' show GestureArbitration;
 import 'gesture_feedback.dart' show GestureFeedbackController;
 import 'gestures.dart' show systemGestureYieldInsets;
@@ -63,7 +60,6 @@ import 'note_editor.dart'
         NoteTextEditorPanel,
         noteFragmentHighlightProvider,
         noteTextEditorTargetProvider;
-import 'note_sticker_layout.dart' show videoContentRectInBox;
 import 'note_sticker_overlay.dart' show NoteStickerOverlay;
 import 'notice.dart'
     show NoticeHost, NoticeId, NoticeSpec, threeFingerToastDirectionProvider;
@@ -135,8 +131,7 @@ class PresentationLayerInput {
     required this.systemBottomInset,
     required this.videoFilePath,
     required this.systemGestureInsets,
-    required this.scrubPictureRectOf,
-    required this.landscape,
+    required this.pictureRectOf,
     required this.onControlLayerBack,
     required this.onOpenFailedBack,
     required this.beatCountContent,
@@ -212,10 +207,10 @@ class PresentationLayerInput {
   /// 自己接）。
   final String videoFilePath;
 
-  /// 画面矩形现读闭包：组合根解一次、手势仲裁域
-  /// 与浮层标记吃同一份；本层只转发，不重写 contain 算术。
-  final Rect Function() scrubPictureRectOf;
-  final bool landscape;
+  /// **上屏画面矩形**的现读闭包：组合根那唯一一处求解点解一次，本层的取消区
+  /// 标记、角落提示卡、备注贴纸落位与局部镜像标识落位都吃同一份；本层只转发，
+  /// 不重写 contain 算术、也不另留一份「宽高比未知」兜底。
+  final Rect Function() pictureRectOf;
 
   /// 宿主导航动作（构建上下文归组合根）：控制层返回与打开失败返回。
   final VoidCallback onControlLayerBack;
@@ -286,27 +281,10 @@ class PresentationLayer extends ConsumerWidget {
         // 局部镜像画面标识：层序 = 视频画面之后、用户浮层内容之前。
         // 投屏态不挂：画面区画的是投屏侧那份面（黑底指路 / 静音预览），
         // 画面标识属于源片标注的呈现，已在电视上。
-        if (!isCast)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (!SurfaceFaceScope.localMirrorActiveOf(context)) {
-                return const SizedBox.shrink();
-              }
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned.fromRect(
-                    rect: _pictureMarkRect(
-                      isCompare: isCompare,
-                      box: constraints.biggest,
-                      editingSkeleton: controlOpen ? input.skeleton : null,
-                      selection: framing,
-                    ),
-                    child: const LocalMirrorPictureMark(),
-                  ),
-                ],
-              );
-            },
+        if (!isCast && SurfaceFaceScope.localMirrorActiveOf(context))
+          Positioned.fromRect(
+            rect: input.pictureRectOf(),
+            child: const LocalMirrorPictureMark(),
           ),
         // 数拍跟练浮层：只在内容可见时挂载（幽灵浮层修复）。投屏态不挂：
         // 数拍与节拍动画已在电视上（且它们是渲染那一刻算出来的），手机上
@@ -332,64 +310,50 @@ class PresentationLayer extends ConsumerWidget {
         // 备注贴纸浮层：窗内显隐由播放头驱动、渲染矩形同步注册表。
         // 投屏态不挂本层：贴纸已在电视上那份投屏副本里，手机上这份画面区
         // 只画视频画面本身。
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (isCast) return const SizedBox.shrink();
-            final faceDirection = SurfaceFaceScope.of(context);
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                Consumer(
-                  builder: (context, ref, _) {
-                    final position = ref.watch(playbackPositionProvider).value;
-                    return NoteStickerOverlay(
-                      positionMs: position?.inMilliseconds ?? 0,
-                      contentRect: _framedPictureRect(
-                        isCompare: isCompare,
-                        box: constraints.biggest,
-                        editingSkeleton: controlOpen ? input.skeleton : null,
-                        selection: framing,
-                      ),
-                      framingSelection: framing,
-                      faceDirection: faceDirection,
-                      readOnly: controlOpen || framingActive,
-                      registration: input.presentation.noteSticker,
-                      onDelete: (note) {
-                        final notes = ref.read(noteStickersProvider);
-                        final index = notes.indexWhere(
-                          (n) => n.startMs == note.startMs,
-                        );
-                        if (index < 0) return;
-                        ref
-                            .read(annotationEditorProvider)
-                            .submit(RemoveNote(index: index));
-                      },
-                      onOpenEditor: (note) => ref
-                          .read(noteTextEditorTargetProvider.notifier)
-                          .open(note.startMs),
-                      onJumpToFragment: (note) {
-                        ref
-                            .read(noteFragmentHighlightProvider.notifier)
-                            .highlight(note.startMs);
-                        input.editorEntry.requestEntry();
-                      },
-                      onToggleLock: (note) {
-                        final notes = ref.read(noteStickersProvider);
-                        final index = notes.indexWhere(
-                          (n) => n.startMs == note.startMs,
-                        );
-                        if (index < 0) return;
-                        ref
-                            .read(annotationEditorProvider)
-                            .submit(ToggleNoteLock(index: index));
-                      },
-                    );
-                  },
-                ),
-              ],
-            );
-          },
-        ),
+        if (!isCast)
+          Consumer(
+            builder: (context, ref, _) {
+              final faceDirection = SurfaceFaceScope.of(context);
+              final position = ref.watch(playbackPositionProvider).value;
+              return NoteStickerOverlay(
+                positionMs: position?.inMilliseconds ?? 0,
+                contentRect: input.pictureRectOf(),
+                framingSelection: framing,
+                faceDirection: faceDirection,
+                readOnly: controlOpen || framingActive,
+                registration: input.presentation.noteSticker,
+                onDelete: (note) {
+                  final notes = ref.read(noteStickersProvider);
+                  final index = notes.indexWhere(
+                    (n) => n.startMs == note.startMs,
+                  );
+                  if (index < 0) return;
+                  ref
+                      .read(annotationEditorProvider)
+                      .submit(RemoveNote(index: index));
+                },
+                onOpenEditor: (note) => ref
+                    .read(noteTextEditorTargetProvider.notifier)
+                    .open(note.startMs),
+                onJumpToFragment: (note) {
+                  ref
+                      .read(noteFragmentHighlightProvider.notifier)
+                      .highlight(note.startMs);
+                  input.editorEntry.requestEntry();
+                },
+                onToggleLock: (note) {
+                  final notes = ref.read(noteStickersProvider);
+                  final index = notes.indexWhere(
+                    (n) => n.startMs == note.startMs,
+                  );
+                  if (index < 0) return;
+                  ref
+                      .read(annotationEditorProvider)
+                      .submit(ToggleNoteLock(index: index));
+                },
+              );
+            },
+          ),
         // 打开失败提示（自带「返回」按钮，独立接管点击）。
         if (input.openFailed) _openFailedOverlay(input.onOpenFailedBack),
         // 镜像询问/历史提示覆盖层。
@@ -517,10 +481,7 @@ class PresentationLayer extends ConsumerWidget {
         // 锚——每帧算一次，落位规则只有一条（`cornerPromptAnchor`）。
         LayoutBuilder(
           builder: (context, constraints) {
-            final anchor = _promptAnchor(
-              constraints.biggest,
-              selection: framing,
-            );
+            final anchor = _promptAnchor(constraints.biggest);
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -584,7 +545,7 @@ class PresentationLayer extends ConsumerWidget {
         scrubTarget: input.scrubTarget,
         durationOf: () => engine.duration,
         frameRateOf: () => engine.videoFps ?? kDefaultVideoFps,
-        pictureRectOf: input.scrubPictureRectOf,
+        pictureRectOf: input.pictureRectOf,
       ),
       playback: PicturePlaybackInput(
         isPlaying: engine.isPlaying,
@@ -617,35 +578,23 @@ class PresentationLayer extends ConsumerWidget {
     );
   }
 
-  /// 两张提示卡落位的**唯一求解点**：
-  /// 每帧算一次、两张卡拿同一份。画面矩形取既有两份读面——非对比态 = 备注
-  /// 贴纸同一份画面内容矩形（含竖屏编辑态贴底画面带分支）、对比态 = 组合根
-  /// 那座画面矩形读面（源半区）；不新写 contain 算术。
+  /// 两张提示卡落位的**唯一求解点**：每帧算一次、两张卡拿同一份。画面矩形取
+  /// 组合根那唯一一处求解点的现读闭包（含竖屏编辑贴底画面带、取景后取值、
+  /// 对比态源半区与「宽高比未知」那一条兜底）；本层不新写 contain 算术。
   ///
   /// `cornerPromptAnchor` 给的是屏幕坐标（卡底边的 y）；卡收 `Positioned`
   /// 语义（距屏底的距离），换算只在本处收一次。
-  ({double left, double bottom})? _promptAnchor(
-    Size screen, {
-    required FramingSelection? selection,
-  }) {
+  ({double left, double bottom})? _promptAnchor(Size screen) {
     final input = this.input;
-    // 控制层展开时的那份编辑面骨架（画面矩形与占用区上缘共用同一份）。
+    // 控制层展开时的那份编辑面骨架（占用区上缘读它；画面矩形由闭包自己解）。
     final editingSkeleton = input.controlOpen ? input.skeleton : null;
     // 系统手势让路带 = `lib/player/CONTEXT.md`「系统手势让路区」：系统上报内缩与固定下限
     // 逐边取大（下限只有 `gestures.dart` 一处声明），故零上报设备也让路。
     final yieldInsets = systemGestureYieldInsets(
       system: input.systemGestureInsets,
     );
-    final pictureRect = input.isCompare
-        ? input.scrubPictureRectOf()
-        : _framedPictureRect(
-            isCompare: false,
-            box: screen,
-            editingSkeleton: editingSkeleton,
-            selection: selection,
-          );
     final anchor = cornerPromptAnchor(
-      pictureRect: pictureRect,
+      pictureRect: input.pictureRectOf(),
       screen: screen,
       systemTopInset: input.systemTopInset,
       systemBottomInset: input.systemBottomInset,
@@ -657,64 +606,6 @@ class PresentationLayer extends ConsumerWidget {
     );
     if (anchor == null) return null;
     return (left: anchor.left, bottom: screen.height - anchor.bottom);
-  }
-
-  /// 画面矩形（注解层读数基准，与视频画面件渲染的是同一块）：单画面路径 =
-  /// 观看看态整屏 contain / 竖屏编辑贴底画面带 / 编辑态背景位；对比路径 =
-  /// 源半区 contain。[selection] 非空时按**取景选区**取值（取景后的
-  /// 画面矩形）；`null` = 未调过，即未取景的画面矩形。
-  Rect _framedPictureRect({
-    required bool isCompare,
-    required Size box,
-    required EditorSkeleton? editingSkeleton,
-    required FramingSelection? selection,
-  }) {
-    final aspectRatio = input.engineSeek.engine.videoAspectRatio;
-    if (!isCompare) {
-      final framed = singlePictureFramedPictureRectOnScreen(
-        screen: box,
-        systemTopInset: input.systemTopInset,
-        skeleton: editingSkeleton,
-        aspectRatio: aspectRatio,
-        selection: selection,
-      );
-      // 宽高比未知（画面即容器）时退化为宿主框整体。
-      return framed ??
-          videoContentRectInBox(box: box, aspectRatio: aspectRatio);
-    }
-    // 对比源侧半区同口径：读数一律落到源半区的画面矩形（未调过 =
-    // 整帧 contain、取景后 = 选区内容 contain）——未调过与「选区恰好覆盖整
-    // 帧」在显示上不可区分。
-    return compareFramingPictureRect(
-      screen: box,
-      landscape: input.landscape,
-      aspectRatio: aspectRatio,
-      selection: selection,
-    );
-  }
-
-  /// 局部镜像画面标识的矩形：非对比态 = 画面矩形；对比态 = 源视频半区的
-  /// 画面矩形（取景后 = 该半区取景后的画面矩形）。
-  Rect _pictureMarkRect({
-    required bool isCompare,
-    required Size box,
-    required EditorSkeleton? editingSkeleton,
-    required FramingSelection? selection,
-  }) {
-    if (!isCompare) {
-      return _framedPictureRect(
-        isCompare: false,
-        box: box,
-        editingSkeleton: editingSkeleton,
-        selection: selection,
-      );
-    }
-    return compareFramingPictureRect(
-      screen: box,
-      landscape: input.landscape,
-      aspectRatio: input.engineSeek.engine.videoAspectRatio,
-      selection: selection,
-    );
   }
 }
 

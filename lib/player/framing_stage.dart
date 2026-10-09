@@ -1,61 +1,60 @@
-/// 单画面取景几何：普通编辑面／观看面的容器
-/// 几何纯件。取值是那份**取景选区**（`framing_selection.dart`，按源画面原相
-/// 归一化），渲染与手势共用本文件的两条几何：
+/// 单画面取景几何 + **上屏画面矩形**的唯一求解点。
 ///
-/// - **竖屏编辑态贴底分支**：可用区 = 整个画面区，纵向把选区下缘对到画面区
-///   下缘（未调过时画面仍贴底、与既有落位逐像素一致；圈小之后内容往上长、
-///   把上方黑区吃掉）；
-/// - **其余单画面（观看态、横屏编辑面、背景位）**：可用区 = 整屏，未调过 =
-///   整屏 contain 居中。
+/// [pictureRectOnScreen] 是「视频画面在屏幕上实际所占矩形」（见
+/// `CONTEXT.md` 词条**画面矩形**）：贴纸尺寸分数与数拍落位的参考矩形、进度
+/// 取消区、角落提示卡、局部镜像标识与画面手势分母都读这一份，全仓不再各解
+/// 一次。它按三条规则取值：
 ///
-/// [singlePicturePictureRectOnScreen] 同时是「点画面外」判定、黑边起手判定与
-/// 拖动落点换算的分母——渲染层与手势域不各算一次。
+/// - **取景后取值**：选区内容按 contain 装进可用区（选区自己的宽高比就是
+///   它的宽高比）；
+/// - **竖屏编辑贴底骨架**：可用区取骨架给的**画面带**（带顶按系统栏顶内缩
+///   换算到屏幕坐标）；
+/// - **其余单画面**（观看态、横屏编辑面、背景位骨架）= 可用区取整屏。
+///
+/// **取景态内按整帧**不入参：取景态的画面按未调过的整帧显示，故调用侧一律传
+/// `selection: null`（与画面件 `FramingSelectionView` 的 `framingActive` 同口径）。
+///
+/// **宽高比未知只有一条兜底**：画面即容器——返回可用区本身，不另按系统栏内缩
+/// 截一刀。
+///
+/// [framedContentRectInStage] 与 [videoContentRectInBox] 是本文件取值的两块
+/// 基座：前者是「选区窗口 + 可用区 → 显示变换」那一份数学（与画面件渲染的是
+/// 同一份），后者是宿主机箱内按宽高比 contain 的纯几何。
 library;
 
 import 'package:flutter/material.dart';
 
 import '../annotation/framing_selection.dart'
     show FramingSelection, FramingSelectionGeometry, framingSelectionTransform;
-import 'editor_skeleton.dart' show EditorSkeleton, kEditorTopBarHeight;
+import 'editor_skeleton.dart' show EditorSkeleton;
 import 'note_sticker_layout.dart' show videoContentRectInBox;
 
-/// 单画面路径未调过的**画面矩形**（**屏幕坐标**）：点画面外退出的判定矩形
-/// 与拖动落点换算的分母。退化分支（宽高比未知）返回 `null`——无「画面外」
-/// 可达，退出走完成/返回。
-Rect? singlePicturePictureRectOnScreen({
+/// **上屏画面矩形**（屏幕坐标）的唯一求解点。
+///
+/// [skeleton] 非空且贴底 = 竖屏编辑面的画面带；其余（含 `null`）= 整屏。
+/// [selection] 非空 = 取景生效，取选区内容那一块；`null` = 未调过 / 取景态内
+/// 的整帧。
+Rect pictureRectOnScreen({
   required Size screen,
   required double systemTopInset,
   required EditorSkeleton? skeleton,
   required double? aspectRatio,
+  required FramingSelection? selection,
 }) {
-  final ratio = aspectRatio;
-  if (ratio == null || ratio <= 0) return null;
-  final sticks = skeleton != null && skeleton.sticksToBottom;
-  if (sticks) {
-    // 带盒满宽 contain（宽限高）：带顶 = 顶栏之下 + 骨架带顶（屏幕坐标）。
-    final stageTop = systemTopInset + kEditorTopBarHeight;
-    return Rect.fromLTWH(
-      0,
-      stageTop + skeleton.pictureBandTop,
-      screen.width,
-      skeleton.pictureBandHeight,
-    );
-  }
-  final fittedHeight = screen.width / ratio;
-  if (fittedHeight <= screen.height) {
-    return Rect.fromLTWH(
-      0,
-      (screen.height - fittedHeight) / 2,
-      screen.width,
-      fittedHeight,
-    );
-  }
-  final fittedWidth = screen.height * ratio;
-  return Rect.fromLTWH(
-    (screen.width - fittedWidth) / 2,
-    0,
-    fittedWidth,
-    screen.height,
+  final sticksToBottom = skeleton != null && skeleton.sticksToBottom;
+  final stage = sticksToBottom
+      ? Rect.fromLTWH(
+          0,
+          skeleton.bandTopIn(systemTopInset: systemTopInset),
+          screen.width,
+          skeleton.pictureBandHeight,
+        )
+      : Rect.fromLTWH(0, 0, screen.width, screen.height);
+  return framedContentRectInStage(
+    stage: stage,
+    aspectRatio: aspectRatio,
+    sticksToBottom: sticksToBottom,
+    selection: selection,
   );
 }
 
@@ -104,40 +103,4 @@ Rect framedContentRectInStage({
     pivot.dy + (content.bottom - pivot.dy) * transform.scale,
   );
   return scaled.shift(Offset(transform.translateX, transform.translateY));
-}
-
-/// 单画面路径**取景后的画面矩形**（**屏幕坐标**）：观看态 / 横屏
-/// 编辑面 / 背景位 = 整屏可用区；竖屏编辑贴底分支 = 骨架给的画面带（带高
-/// 已由 [editorSkeletonFor] 按选区内容比封顶在未取景画面矩形高）。未调过时
-/// 与 [singlePicturePictureRectOnScreen] 同一条未取景画面矩形；宽高比未知返回 `null`。
-Rect? singlePictureFramedPictureRectOnScreen({
-  required Size screen,
-  required double systemTopInset,
-  required EditorSkeleton? skeleton,
-  required double? aspectRatio,
-  required FramingSelection? selection,
-}) {
-  final ratio = aspectRatio;
-  if (ratio == null || ratio <= 0) return null;
-  final sticks = skeleton != null && skeleton.sticksToBottom;
-  if (sticks) {
-    final stage = Rect.fromLTWH(
-      0,
-      systemTopInset + kEditorTopBarHeight + skeleton.pictureBandTop,
-      screen.width,
-      skeleton.pictureBandHeight,
-    );
-    return framedContentRectInStage(
-      stage: stage,
-      aspectRatio: ratio,
-      sticksToBottom: true,
-      selection: selection,
-    );
-  }
-  return framedContentRectInStage(
-    stage: Rect.fromLTWH(0, 0, screen.width, screen.height),
-    aspectRatio: ratio,
-    sticksToBottom: false,
-    selection: selection,
-  );
 }

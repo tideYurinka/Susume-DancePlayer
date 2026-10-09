@@ -44,7 +44,7 @@ import '../core/hit_target.dart' show kHitTargetMinSize;
 import 'framing_session_state.dart' show FramingState;
 import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'editor_skeleton.dart' show EditorSkeleton;
-import 'framing_stage.dart' show singlePicturePictureRectOnScreen;
+import 'framing_stage.dart' show pictureRectOnScreen;
 
 /// 取景几何事实的一次取值（构建上下文读面的产物）：视口尺寸、姿态、源
 /// 画面宽高比与所在路径。播放页按当前 `MediaQuery` 读好传入——本模块不读
@@ -337,26 +337,30 @@ class FramingSessionHost {
       focal.dy <= rect.bottom;
 
   /// 本路径**取景态显示**的画面矩形（屏幕坐标）：屏幕落点 → 源画面归一化
-  /// 的分母，也是「点画面外」与「黑边起手」的判定矩形。画面宽高比未知（画面
+  /// 的分母，也是「点画面外」与「黑边起手」的判定矩形。宽高比未知（画面
   /// 即容器、无变换）时返回 `null`——没有可映射的画面矩形，本场不建框。
+  ///
+  /// 与全仓唯一那份上屏画面矩形同源（[pictureRectOnScreen]）：取景态内画面
+  /// 按整帧显示（选区传 `null`），贴底骨架随取景态保留。
   Rect? _pictureRect() {
     final viewport = readViewport();
-    if (viewport.sourceAspectRatio == null ||
-        viewport.sourceAspectRatio! <= 0) {
+    final ratio = viewport.sourceAspectRatio;
+    if (ratio == null || ratio <= 0) {
       return null;
     }
     if (viewport.singlePicture) {
-      return singlePicturePictureRectOnScreen(
+      return pictureRectOnScreen(
         screen: viewport.size,
         systemTopInset: viewport.systemTopInset,
         skeleton: viewport.editingSkeleton,
-        aspectRatio: viewport.sourceAspectRatio,
+        aspectRatio: ratio,
+        selection: null,
       );
     }
     return compareFramingPictureRect(
       screen: viewport.size,
       landscape: viewport.landscape,
-      aspectRatio: viewport.sourceAspectRatio,
+      aspectRatio: ratio,
     );
   }
 

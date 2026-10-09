@@ -57,8 +57,8 @@ import 'package:dance_learning_app/player/native_scheduled_audio.dart';
 import 'package:dance_learning_app/player/beat_presentation_providers.dart'
     show beatCountPositionProvider;
 import 'package:dance_learning_app/player/player_page.dart';
-import 'package:dance_learning_app/player/editor_skeleton.dart'
-    show videoPictureRect;
+import 'package:dance_learning_app/player/framing_stage.dart'
+    show pictureRectOnScreen;
 import 'package:dance_learning_app/player/picture_layer.dart';
 import 'package:dance_learning_app/core/frame_time.dart';
 import 'package:dance_learning_app/player/speed_control.dart';
@@ -1823,10 +1823,12 @@ void main() {
 
       // 落位基准 = 画面矩形左下角（默认 800×600 逻辑视口；宽高比未知 →
       // 画面矩形 = 整屏），再按系统手势让路区（底 44 下限）把底边推出带外。
-      final picture = videoPictureRect(
+      final picture = pictureRectOnScreen(
         screen: const Size(800, 600),
         systemTopInset: 0,
-        videoAspectRatio: null,
+        skeleton: null,
+        aspectRatio: null,
+        selection: null,
       );
       final card = tester.getRect(find.byKey(const Key('loop_prompt')));
       expect(card.left, picture.left + 24);

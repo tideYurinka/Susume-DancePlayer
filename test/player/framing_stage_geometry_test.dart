@@ -1,6 +1,6 @@
-/// 单画面取景几何直测：未调过的画面矩形（点画面外退出判定与落点换算的
-/// 分母）与**取景后**的画面矩形（下游读数共用的那唯一一份几何）。
-/// 零 widget 环境、纯输入输出。
+/// 单画面取景几何直测：**上屏画面矩形**（贴纸尺寸分数与数拍落位的参考矩形、
+/// 进度取消区、角落提示卡、局部镜像标识与画面手势分母共用的那唯一一份几何）
+/// 与选区内容在可用区里的画面矩形。零 widget 环境、纯输入输出。
 library;
 
 import 'package:dance_learning_app/annotation/framing_selection.dart';
@@ -12,8 +12,8 @@ import 'package:flutter/widgets.dart' show Size;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  /// 竖屏编辑面贴底骨架（与画面件/注解层消费的同一份带几何：带 100、
-  /// 带顶 50、画面区 200）。
+  /// 竖屏编辑面贴底骨架（带 100、带顶 50、画面区 200）——合成值，带高与源比
+  /// 不自洽，用来钉住「画面条在带里居中」那条。
   const stickSkeleton = EditorSkeleton(
     compact: false,
     portrait: true,
@@ -23,54 +23,15 @@ void main() {
     pictureBandTop: 50,
   );
 
-  group('singlePicturePictureRectOnScreen（未调过的画面矩形）', () {
-    test('贴底分支：屏幕矩形 = 顶栏之下 + 骨架带顶，尺寸 = 带盒', () {
-      final rect = singlePicturePictureRectOnScreen(
-        screen: const Size(668, 1368),
-        systemTopInset: 24,
-        skeleton: stickSkeleton,
-        aspectRatio: 16 / 9,
-      );
-      expect(rect, const Rect.fromLTWH(0, 24 + 52 + 50, 668, 100));
-    });
-
-    test('观看态：屏幕矩形 = 整屏 contain 居中（宽限高）', () {
-      final rect = singlePicturePictureRectOnScreen(
-        screen: const Size(668, 1368),
-        systemTopInset: 24,
-        skeleton: null,
-        aspectRatio: 16 / 9,
-      );
-      expect(rect!.top, closeTo((1368 - 375.75) / 2, 0.1));
-      expect(rect.width, 668);
-      expect(rect.height, closeTo(375.75, 0.1));
-    });
-
-    test('高限宽（竖向源在竖屏放不下时）：左右留黑、垂直充满', () {
-      final rect = singlePicturePictureRectOnScreen(
-        screen: const Size(400, 800),
-        systemTopInset: 0,
-        skeleton: null,
-        aspectRatio: 0.4,
-      );
-      expect(rect!.width, closeTo(800 * 0.4, 0.1));
-      expect(rect.left, closeTo((400 - 320) / 2, 0.1));
-      expect(rect.top, 0);
-      expect(rect.height, 800);
-    });
-
-    test('宽高比未知：退化分支返回 null（无「画面外」可达）', () {
-      expect(
-        singlePicturePictureRectOnScreen(
-          screen: const Size(668, 1368),
-          systemTopInset: 0,
-          skeleton: null,
-          aspectRatio: null,
-        ),
-        isNull,
-      );
-    });
-  });
+  /// 横屏编辑面骨架（不分配画面带）。
+  const backgroundSkeleton = EditorSkeleton(
+    compact: false,
+    portrait: false,
+    pictureAreaHeight: 0,
+    picturePlacement: PicturePlacement.background,
+    pictureBandHeight: 0,
+    pictureBandTop: 0,
+  );
 
   /// 左半区选区：内容比 = 源比 ÷ 2（内容像素宽 0.5、高 1）。
   const leftHalf = FramingSelection(left: 0, top: 0, right: 0.5, bottom: 1);
@@ -125,42 +86,74 @@ void main() {
     });
   });
 
-  group('singlePictureFramedPictureRectOnScreen（取景后的单画面矩形）', () {
-    test('观看态未调过：整屏 contain 居中（与未取景同一份）', () {
-      final framed = singlePictureFramedPictureRectOnScreen(
-        screen: const Size(800, 600),
-        systemTopInset: 0,
-        skeleton: null,
-        aspectRatio: 16 / 9,
-        selection: null,
-      );
-      expect(framed, const Rect.fromLTWH(0, 75, 800, 450));
+  group('pictureRectOnScreen（上屏画面矩形的唯一求解点）', () {
+    Rect rectFor({
+      Size screen = const Size(800, 600),
+      double systemTopInset = 0,
+      double? aspectRatio = 16 / 9,
+      EditorSkeleton? skeleton,
+      FramingSelection? selection,
+    }) => pictureRectOnScreen(
+      screen: screen,
+      systemTopInset: systemTopInset,
+      skeleton: skeleton,
+      aspectRatio: aspectRatio,
+      selection: selection,
+    );
+
+    test('观看态未调过：整屏 contain 居中（宽限高）', () {
+      expect(rectFor(), const Rect.fromLTWH(0, 75, 800, 450));
     });
 
-    test('观看态左半区选区：内容高充满、左右留黑', () {
-      final framed = singlePictureFramedPictureRectOnScreen(
-        screen: const Size(800, 600),
-        systemTopInset: 0,
-        skeleton: null,
-        aspectRatio: 16 / 9,
-        selection: leftHalf,
-      );
-      expect(framed!.left, closeTo(133.333, 0.01));
-      expect(framed.width, closeTo(533.333, 0.01));
-      expect(framed.height, closeTo(600, 0.01));
+    test('观看态竖屏 16:9：满宽、上下留黑，画面居中（不按系统栏内缩截一刀）', () {
+      final rect = rectFor(screen: const Size(668, 1368), systemTopInset: 24);
+      expect(rect.left, 0);
+      expect(rect.width, 668);
+      expect(rect.height, closeTo(668 * 9 / 16, 0.01));
+      expect(rect.top, greaterThan(24), reason: '上方是黑边：画面圆心不在屏幕顶');
+      expect(rect.center.dy, closeTo(1368 / 2, 0.01));
     });
 
-    test('宽高比未知：null（与未取景退化分支一致）', () {
+    test('高限宽（竖向源在竖屏放不下）：左右留黑、垂直充满', () {
+      final rect = rectFor(screen: const Size(400, 800), aspectRatio: 0.4);
+      expect(rect.width, closeTo(800 * 0.4, 0.1));
+      expect(rect.left, closeTo((400 - 320) / 2, 0.1));
+      expect(rect.top, 0);
+      expect(rect.height, 800);
+    });
+
+    test('观看态左半区选区（取景后取值）：内容高充满、左右留黑', () {
+      final rect = rectFor(selection: leftHalf);
+      expect(rect.left, closeTo(133.333, 0.01));
+      expect(rect.width, closeTo(533.333, 0.01));
+      expect(rect.height, closeTo(600, 0.01));
+    });
+
+    test('取景态内按整帧：选区传 null 与未调过同一份（画面整帧显示）', () {
+      expect(rectFor(selection: null), rectFor());
       expect(
-        singlePictureFramedPictureRectOnScreen(
-          screen: const Size(800, 600),
-          systemTopInset: 0,
-          skeleton: null,
-          aspectRatio: null,
-          selection: leftHalf,
-        ),
-        isNull,
+        rectFor(selection: const FramingSelection.fullFrame()),
+        rectFor(selection: null),
+        reason: '整帧选区与未调过在显示上不可区分',
       );
+    });
+
+    test('竖屏编辑贴底骨架：可用区取画面带（带顶按系统栏顶内缩换算）', () {
+      // 带 668×100 里 16:9 画面 contain = 177.78×100、水平居中。
+      final rect = rectFor(
+        screen: const Size(668, 1368),
+        systemTopInset: 24,
+        skeleton: stickSkeleton,
+      );
+      const bandTop = 24 + kEditorTopBarHeight + 50;
+      expect(rect.top, closeTo(bandTop, 0.01));
+      expect(rect.height, closeTo(100, 0.01));
+      expect(rect.width, closeTo(100 * 16 / 9, 0.01));
+      expect(rect.center.dx, closeTo(668 / 2, 0.01));
+    });
+
+    test('骨架非贴底（横屏编辑面 / 背景位）：同观看态整屏 contain 居中', () {
+      expect(rectFor(skeleton: backgroundSkeleton), rectFor(skeleton: null));
     });
 
     test('竖屏编辑贴底：盒高封顶在未取景画面矩形高（选区更「高」时左右留黑）', () {
@@ -179,29 +172,65 @@ void main() {
         videoAspectRatio: sourceRatio,
         framingAspectRatio: selection.contentAspectRatio(sourceRatio),
       );
-      final framed = singlePictureFramedPictureRectOnScreen(
+      final rect = rectFor(
         screen: const Size(361.1, 781.7),
-        systemTopInset: 0,
         skeleton: skeleton,
-        aspectRatio: sourceRatio,
         selection: selection,
-      )!;
+      );
       const bandHeight = 203.11875;
       const stageTop = kEditorTopBarHeight + 62.58125;
-      expect(framed.height, closeTo(bandHeight, 0.01), reason: '盒高封顶在未取景画面矩形高');
+      expect(rect.height, closeTo(bandHeight, 0.01), reason: '盒高封顶在未取景画面矩形高');
       expect(
-        framed.bottom,
+        rect.bottom,
         closeTo(stageTop + bandHeight, 0.01),
         reason: '底边贴画面区下缘',
       );
-      expect(framed.top, closeTo(stageTop, 0.01), reason: '顶边不上移');
-      expect(framed.width, lessThan(361.1), reason: '选区更「高」→ 左右留黑');
+      expect(rect.top, closeTo(stageTop, 0.01), reason: '顶边不上移');
+      expect(rect.width, lessThan(361.1), reason: '选区更「高」→ 左右留黑');
       // 显示宽 = 带高 × 内容比 ≈ 203.12 × 1.4815 ≈ 300.9，水平居中。
       expect(
-        framed.width,
+        rect.width,
         closeTo(bandHeight * selection.contentAspectRatio(sourceRatio), 0.05),
       );
-      expect(framed.center.dx, closeTo(361.1 / 2, 0.01));
+      expect(rect.center.dx, closeTo(361.1 / 2, 0.01));
+    });
+
+    test('宽高比未知：只有一条兜底——画面即容器，返回可用区本身', () {
+      const screen = Size(668, 1368);
+      const systemTopInset = 24.0;
+      expect(
+        rectFor(
+          screen: screen,
+          systemTopInset: systemTopInset,
+          aspectRatio: null,
+        ),
+        const Rect.fromLTWH(0, 0, 668, 1368),
+        reason: '观看态可用区 = 整屏（不扣顶栏内缩）',
+      );
+      expect(
+        rectFor(
+          screen: screen,
+          systemTopInset: systemTopInset,
+          aspectRatio: -1,
+        ),
+        const Rect.fromLTWH(0, 0, 668, 1368),
+        reason: '非正比与 null 同一条兜底',
+      );
+      expect(
+        rectFor(
+          screen: screen,
+          systemTopInset: systemTopInset,
+          aspectRatio: null,
+          skeleton: stickSkeleton,
+        ),
+        const Rect.fromLTWH(0, 24 + kEditorTopBarHeight + 50, 668, 100),
+        reason: '贴底分支的可用区 = 画面带',
+      );
+      expect(
+        rectFor(aspectRatio: null, selection: leftHalf),
+        const Rect.fromLTWH(0, 0, 800, 600),
+        reason: '宽高比未知时选区也套不上窗口，可见范围就是容器',
+      );
     });
   });
 

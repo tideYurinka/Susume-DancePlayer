@@ -237,55 +237,11 @@ EditorSkeleton editorSkeletonFor({
 /// 判定与标记经 [cancelZoneRadius] 共用同一值，集中可调。
 const double kScrubCancelZoneSize = 88.0;
 
-/// 画面矩形求解（唯一一处 contain 算术）：给定屏
-/// 尺寸、系统栏顶内缩、视频宽高比与可空骨架，返回**未经取景变换**的画面矩形
-/// （屏幕坐标）。组合根调用一次，手势仲裁域（取消区圆心）与浮层标记消费同一
-/// 份答案，两处不各算一次。
-///
-/// - 观看态（[skeleton] 为空）：整屏 contain 居中——竖屏 16:9 源时画面上方
-///   留黑边，取消区圆心落在画面上角而不是屏幕上角；
-/// - 编辑态贴底分支（[skeleton] 非空且落带内）：矩形 = 满宽画面带
-///   （带顶按 [EditorSkeleton.bandTopIn] 换算到屏幕坐标）；
-/// - 骨架非贴底（横屏编辑面 / 背景位）：同观看态整屏 contain 居中；
-/// - 宽高比未知（null / 非正）：退化为系统栏内的屏幕可用区，取消照旧可用。
-Rect videoPictureRect({
-  required Size screen,
-  required double systemTopInset,
-  required double? videoAspectRatio,
-  EditorSkeleton? skeleton,
-}) {
-  if (skeleton != null && skeleton.sticksToBottom) {
-    return Rect.fromLTWH(
-      0,
-      skeleton.bandTopIn(systemTopInset: systemTopInset),
-      screen.width,
-      skeleton.pictureBandHeight,
-    );
-  }
-  final ratio = videoAspectRatio;
-  if (ratio == null || ratio <= 0) {
-    return Rect.fromLTWH(
-      0,
-      systemTopInset,
-      screen.width,
-      math.max(0.0, screen.height - systemTopInset),
-    );
-  }
-  final height = math.min(screen.height, screen.width / ratio);
-  final width = height * ratio;
-  return Rect.fromLTWH(
-    (screen.width - width) / 2,
-    (screen.height - height) / 2,
-    width,
-    height,
-  );
-}
-
 /// 竖屏编辑面**画面区**矩形（屏幕坐标）：满宽，纵向自顶栏之下
 /// 到视频播放工具栏两行上缘。
 ///
 /// 转屏钮的锚只看**画面区**、不看画面显示朝向——16:9 横画面与 9:16 竖画面
-/// 因此落在同一处（[videoPictureRect] 的「背景位」分支会随显示朝向落到整屏
+/// 因此落在同一处（`framing_stage.dart` 的上屏画面矩形会随显示朝向落到整屏
 /// 居中，不能作此钮的锚）。这是「画面区右下角」的唯一式子：转屏钮落位与
 /// 测试断言共用它，不各算一次。
 Rect portraitPictureAreaRect({

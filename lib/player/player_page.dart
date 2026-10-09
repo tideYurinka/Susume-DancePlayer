@@ -91,8 +91,7 @@ import 'speed_step_entry.dart' show stepEnabledNoticeSpec;
 import 'recording_playback_takeover.dart';
 import 'compare_framing_view.dart' show compareFramingPictureRect;
 import 'framing_session_state.dart' show framingStateProvider;
-import 'framing_stage.dart' show singlePictureFramedPictureRectOnScreen;
-import 'note_sticker_layout.dart' show videoContentRectInBox;
+import 'framing_stage.dart' show pictureRectOnScreen;
 import 'framing_session.dart';
 import 'presentation_session.dart' show PresentationSession;
 import 'presentation_layer.dart'
@@ -1072,40 +1071,40 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
-  /// scrub 取消区的画面矩形（**唯一求解点**）：
-  /// 组合根解一次，手势仲裁域（取消区圆心/半径）与浮层标记经现读闭包吃同一
-  /// 份答案。对比态取源侧半区画面矩形（与取景渲染共用的
-  /// [compareFramingPictureRect]）；观看态走整屏 contain 居中（宽高比未知时
-  /// 退化为系统栏内的屏幕可用区）；编辑态微调不走本路径。
+  /// **上屏画面矩形**（**唯一求解点**）：贴纸尺寸分数与数拍落位的参考矩形、
+  /// 进度取消区（手势仲裁域圆心/半径与浮层标记）、角落提示卡、局部镜像标识与
+  /// 备注贴纸都经这一条现读闭包吃同一份答案。
   ///
-  /// 取景生效时改取**取景后的画面矩形**；取景态内画面显示整帧，故
-  /// 取景态按未取景；未调过即未取景的画面矩形。
-  Rect _scrubPictureRect() {
+  /// 三条规则收在 `framing_stage.dart` 的 [pictureRectOnScreen]：取景后取值、
+  /// 竖屏编辑贴底骨架、取景态内按整帧（取景读数传 `null`）；宽高比未知只有
+  /// 一条兜底（画面即容器 = 可用区本身）。对比态源半区取
+  /// [compareFramingPictureRect]（同一处判据，不各算一次）。
+  ///
+  /// 骨架参与条件 = 画面件那一条（控制层展开、或单画面取景态内贴底骨架仍
+  /// 在）：读数与渲染因此同源。
+  Rect _pictureRect() {
     final media = MediaQuery.of(context);
-    // 取景读数：取景态内画面显示整帧，读数按未取景；退出后按选区。
-    final selection = _framingActive
+    final session = ref.read(playerSessionProvider);
+    final framingActive = sessionModeSurfacesOf(session.mode).framingActive;
+    // 取景读数：取景态内画面按整帧显示，读数按未取景；退出后按选区。
+    final selection = framingActive
         ? null
         : ref.read(framingStateProvider).source;
-    if (ref.read(playerSessionProvider).isCompare) {
+    final aspectRatio = _engineSeek.engine.videoAspectRatio;
+    if (session.isCompare) {
       return compareFramingPictureRect(
         screen: media.size,
         landscape: media.orientation == Orientation.landscape,
-        aspectRatio: _engineSeek.engine.videoAspectRatio,
+        aspectRatio: aspectRatio,
         selection: selection,
       );
     }
-    final framed = singlePictureFramedPictureRectOnScreen(
+    return pictureRectOnScreen(
       screen: media.size,
       systemTopInset: media.padding.top,
-      skeleton: null,
-      aspectRatio: _engineSeek.engine.videoAspectRatio,
+      skeleton: session.controlOpen || framingActive ? _lastSkeleton : null,
+      aspectRatio: aspectRatio,
       selection: selection,
-    );
-    if (framed != null) return framed;
-    return videoPictureRect(
-      screen: media.size,
-      systemTopInset: media.padding.top,
-      videoAspectRatio: _engineSeek.engine.videoAspectRatio,
     );
   }
 
@@ -1124,7 +1123,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         isControlOpen: () => _controlOpen,
         isMounted: () => mounted,
         viewportSize: () => MediaQuery.sizeOf(context),
-        pictureRect: _scrubPictureRect,
+        pictureRect: _pictureRect,
         // 系统手势让路：现读系统上报的
         // 手势内缩，经几何纯件按每边 max(上报值, 固定下限) 求值——转屏与
         // 窗口变化后按新值重算。
@@ -1816,37 +1815,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     choices: choices,
     speedTier: tier,
     resolution: resolution,
-    // 贴纸的尺寸分数与数拍层的落位都按**上屏画面矩形**归一化（与手机同源）。
-    pictureRect: _castStickerPictureRect(),
+    // 贴纸的尺寸分数与数拍层的落位都按**上屏画面矩形**归一化（与手机同源：
+    // 同一条唯一求解点的现读闭包）。
+    pictureRect: _pictureRect(),
     textScaler: MediaQuery.textScalerOf(context),
     beatPlacements: _presentation.metronome.placements,
     beatCell: _presentation.metronome.cell,
     beatViewport:
         _presentation.metronome.clampBox ?? MediaQuery.sizeOf(context),
   );
-
-  /// **上屏那张贴纸的参考矩形**：投屏渲染求尺寸分数的那块画面，就是手机上贴纸
-  /// 所在的画面矩形。
-  ///
-  /// 与贴纸浮层那一处同源：同一件 `singlePictureFramedPictureRectOnScreen`、同一
-  /// 份骨架判据（控制层展开才有骨架）与同一份取景取值（取景调节态内画面按整帧
-  /// 显示）；宽高比未知时退化为整屏（与浮层那一处的兜底逐位一致）。宿主框取整屏
-  /// ——演出层那一层就挂在整屏 Stack 上，与页面其它画面读数取的是同一个框。
-  Rect _castStickerPictureRect() {
-    final media = MediaQuery.of(context);
-    final aspectRatio = _engineSeek.engine.videoAspectRatio;
-    final selection = _framingActive
-        ? null
-        : ref.read(framingStateProvider).source;
-    return singlePictureFramedPictureRectOnScreen(
-          screen: media.size,
-          systemTopInset: media.padding.top,
-          skeleton: _controlOpen ? _lastSkeleton : null,
-          aspectRatio: aspectRatio,
-          selection: selection,
-        ) ??
-        videoContentRectInBox(box: media.size, aspectRatio: aspectRatio);
-  }
 
   /// 组装演出层输入：页面级 UI 事实、域句柄与三条宿主动作一次给全；
   /// 演出层自带 widget 子树，不反向读本页、不读中枢。
@@ -1892,7 +1869,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       opened: _opened,
       openFailed: _openFailed,
       reviewingClip: reviewingClip,
-      landscape: MediaQuery.orientationOf(context) == Orientation.landscape,
       systemTopInset: padding.top,
       // 系统栏底内缩：与顶内缩同一条口径，
       // 供横屏编辑态的提示卡占用区上缘换算。
@@ -1900,7 +1876,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       // 系统手势内缩：组合根一次读出交入演出层，贴底常驻入口
       // 叠加它避开手势让路区。
       systemGestureInsets: MediaQuery.systemGestureInsetsOf(context),
-      scrubPictureRectOf: _scrubPictureRect,
+      // 上屏画面矩形的现读闭包：组合根唯一求解点解一次，取消区、提示卡、
+      // 贴纸落位与标识落位都吃同一份（本层只转发）。
+      pictureRectOf: _pictureRect,
       onControlLayerBack: _onControlLayerBack,
       onOpenFailedBack: () => Navigator.of(context).maybePop(),
       onDisconnectCast: _disconnectCast,
