@@ -96,7 +96,7 @@ steps:
     message: 在这里选择数拍动画样式
   badge_beat_prompt_sound:
     title: 节拍提示
-    message: 在这里选择节拍音源、是否播放半拍声、设置节拍音量
+    message: 在这里选择节拍音源、是否播放半拍声、设置节拍音量、关闭视频声音
   badge_beat_prompt_correct:
     title: 节拍提示
     message: 如果节拍不准就根据症状使用这一栏的工具矫正
