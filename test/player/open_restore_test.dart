@@ -52,6 +52,8 @@ import 'package:dance_learning_app/player/dancer_roster_controller.dart'
     show dancerRosterControllerProvider;
 import 'package:dance_learning_app/player/load_gate.dart'
     show loadGateActiveProvider;
+import 'package:dance_learning_app/player/metronome_sound.dart'
+    show videoMutedProvider;
 import 'package:dance_learning_app/player/preview_snap.dart'
     show previewSnapEnabledProvider;
 import 'package:dance_learning_app/player/scheme_open.dart'
@@ -392,6 +394,17 @@ void main() {
     await probe.open();
 
     expect(probe.engine.seekCalls, [const Duration(seconds: 60)]);
+  });
+
+  test('视频静音随打开复位：换视频即回有声音、内核写回不静音', () async {
+    final probe = makeProbe(hasher: const FixedHasher(kVideoId));
+    probe.container.read(videoMutedProvider.notifier).set(true);
+    expect(probe.engine.videoMuteCalls, [true]);
+
+    await probe.open();
+
+    expect(probe.container.read(videoMutedProvider), isFalse);
+    expect(probe.engine.videoMuteCalls.last, isFalse);
   });
 
   test('哈希一致：markers + local 全量恢复，不 seek、循环作用域就位、保存接缝接通', () async {

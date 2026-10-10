@@ -44,6 +44,7 @@ import 'annotation_editor.dart'
         layoutLockedProvider;
 import 'beat_analysis.dart' show beatAnalysisRunnerProvider;
 import 'beat_prompt_memory.dart' show beatPromptMemoryProvider;
+import 'metronome_sound.dart' show videoMutedProvider;
 import 'framing_session_state.dart' show framingStateProvider;
 import 'dancer_roster_controller.dart' show dancerRosterControllerProvider;
 import 'load_gate.dart' show loadGateActiveProvider;
@@ -239,6 +240,9 @@ class VideoOpenRestorer {
     // 换视频/新视频打开复位播放会话模式值（待命态
     // 是模式取值之一，随复位清空；**锚点数据不丢**）。
     _ref.read(playerSessionProvider.notifier).reset();
+    // 视频静音是会话值（不落盘）：换视频即回有声音——播放内核是应用级
+    // 单例，静音属性会跨视频留着，这里必须写回不静音。
+    _ref.read(videoMutedProvider.notifier).reset();
     _ref.read(resumePromptProvider.notifier).dismiss();
     // 取景会话值随打开复位：上一支舞的选区
     // 不得串入；随后按装载表由公开标记文件行就位。

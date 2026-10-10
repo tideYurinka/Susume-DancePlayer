@@ -5,8 +5,10 @@
 ///   编辑态顶栏「节拍提示」工具（锚在按钮下方）与观看态数拍浮层选中态
 ///   左下角工具（锚在工具上方）——同一组件。
 /// - **形态**：横屏窄高三段并排（节拍动画｜声音反馈｜节拍矫正），
-///   列间细竖分隔线、各列组名在顶。任何开关态下内容一次全显、不依赖外层
-///   纵向滚动兜底（内容高按横屏窄高收紧，目标 ≤~170px 量级）。
+///   列间细竖分隔线、各列组名在顶。横屏窄高按最展开态收紧（两组全开 +
+///   音量 100 时声音列最高，紧凑横屏量测 184 → 216px，气泡壳 236px 仍在
+///   宿主上限内一次全显）；竖屏堆叠量测 530px，最展开态多出约 3px 滚动
+///   （1.6× 系统字号约 23px），由气泡自带的滚动容器承载。
 /// - **收起占宽**：节拍动画、声音反馈两组的总开关关闭即收起本组子行，
 ///   但只变高度、各列宽与气泡总宽不变。实现为
 ///   **固定保留列宽**（[animColWidth]/[soundColWidth]/[correctionColWidth]）：
@@ -18,8 +20,10 @@
 ///   矩形/摆锤动画同显同隐。会话级，默认关；节拍识别成功后自动置开一次。
 /// - **声音反馈**（[MetronomeSoundEnabledModel]，会话级默认关）+
 ///   音源（设备级 `soundType`，「音源 ▾」锚定列表，人声/歌姬无采样置灰
-///   不可选）+ 半拍声 + 节拍音量滑条；声音总开关关闭即整组收起
-///   （音源/半拍/音量一并隐藏）。
+///   不可选）+ 半拍声 + 节拍音量滑条 + 「关闭视频声音」勾选
+///   （[VideoMutedModel]，**会话值、不落盘**：只静这支视频的声音，
+///   节拍声照旧）；声音总开关关闭即整组收起（音源/半拍/音量/关闭视频声音
+///   一并隐藏）并一并解除视频静音。
 /// - **三段堆叠**：气泡族统一规则
 ///   「容不下并排即纵向堆叠」的第二消费者——横屏可用宽放得下三段并排即
 ///   并排（既有形态），竖屏放不下即三段上下堆叠、每段完整可见；各段内部
@@ -377,7 +381,10 @@ class BeatPromptBubbleContent extends ConsumerWidget {
     final soundType = ref.watch(metronomeSoundTypeProvider);
     final halfBeat = ref.watch(metronomeHalfBeatEnabledProvider);
     final volume = ref.watch(metronomeVolumeProvider);
+    final videoMuted = ref.watch(videoMutedProvider);
     final accent = Theme.of(context).colorScheme.secondary;
+    void setMuted(bool value) =>
+        ref.read(videoMutedProvider.notifier).set(value);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,6 +486,33 @@ class BeatPromptBubbleContent extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        // 关闭视频声音行：只静这支视频，节拍声照旧。整行可点（行盒 =
+        // 命中下限，含行内边距与间隙；复选框自接同一开关）；文案与勾选态
+        // 合并同一语义节点。
+        MergeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setMuted(!videoMuted),
+            child: _compactRow(
+              rowKey: const Key('beat_panel_video_mute_row'),
+              children: [
+                SizedBox(
+                  height: _beatCompactSwitchHeight,
+                  child: Checkbox(
+                    value: videoMuted,
+                    activeColor: accent,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (value) => setMuted(value == true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text('关闭视频声音', style: _beatColLabelStyle),
+                ),
+              ],
+            ),
           ),
         ),
       ],

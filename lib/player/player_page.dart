@@ -116,6 +116,7 @@ import '../beat_track_state/beat_track_state.dart'
 import '../core/playback/playback_engine_providers.dart'
     show playbackEngineProvider, playbackPositionProvider;
 import 'beat_analysis.dart' show BeatAnalysisRunner, beatAnalysisRunnerProvider;
+import 'metronome_sound.dart' show VideoMutedModel, videoMutedProvider;
 import 'open_restore.dart' show OpenLoadHost, videoOpenRestorerProvider;
 import 'resume_position.dart' show ResumeRecorder;
 import 'scheme_open.dart';
@@ -437,6 +438,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   /// 缓存，dispose 内不可读 provider）。
   PlayerSessionModel? _sessionModel;
 
+  /// 视频静音模型缓存：离开播放页这一复位点用（同 [_sessionModel]：
+  /// dispose 内不可读 provider）。
+  VideoMutedModel? _videoMutedModel;
+
   /// 对比录制与练习片段域：录制相位与四个值道、
   /// 录制钮的起停、素材入轨、练习片段的回放都收在域内；本页只把读取事实、
   /// 写缝与宿主动作接进去。
@@ -474,6 +479,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 模式值模型缓存：dispose 收尾复位用（dispose 内不可读
     // provider，didChangeDependencies 缓存模型实例）。
     _sessionModel ??= _containerCache!.read(playerSessionProvider.notifier);
+    _videoMutedModel ??= _containerCache!.read(videoMutedProvider.notifier);
     _settingsPersistence ??= VideoSettingsPersistence(
       ProviderScope.containerOf(context),
     );
@@ -1423,6 +1429,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     // 对齐（复位幂等）。
     final sessionModel = _sessionModel;
     if (sessionModel != null) _deferProviderReset(sessionModel.reset);
+    // 视频静音是会话值（不落盘）：离开播放页即回有声音。
+    final videoMutedModel = _videoMutedModel;
+    if (videoMutedModel != null) {
+      _deferProviderReset(videoMutedModel.reset);
+    }
     // 引擎流订阅先退订：下面那次 pause 会发一条转停沿，而此刻元素已在
     // 收尾（State.mounted 仍真但已 defunct）——先 detach，收尾路径就不可能
     // 再走 [_onPlayingEdge] 的重建。

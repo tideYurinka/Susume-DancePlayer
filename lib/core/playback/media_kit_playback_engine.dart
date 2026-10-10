@@ -284,6 +284,15 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
     );
   }
 
+  /// mpv `mute` 属性（不是 `setVolume(0)`——那会盖掉音量档，解除静音时
+  /// 无法原样恢复）。非 NativePlayer（如测试替身 platform）为 no-op。
+  @override
+  Future<void> setVideoMuted(bool muted) async {
+    final platform = _player.platform;
+    if (platform is! NativePlayer) return;
+    await platform.setProperty('mute', muted ? 'yes' : 'no');
+  }
+
   @override
   Widget buildVideoSurface() => _MediaKitVideoSurface(engine: this);
 

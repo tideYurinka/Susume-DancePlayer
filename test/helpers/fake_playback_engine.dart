@@ -181,6 +181,16 @@ class FakePlaybackEngine implements PlaybackEngine {
     callLog.add('avSync:$delayMs');
   }
 
+  /// 每次 [setVideoMuted] 收到的值（按调用顺序，引擎 seam 断言用；
+  /// callLog 同步记录 `videoMute:on/off`）。
+  final List<bool> videoMuteCalls = [];
+
+  @override
+  Future<void> setVideoMuted(bool muted) async {
+    videoMuteCalls.add(muted);
+    callLog.add('videoMute:${muted ? 'on' : 'off'}');
+  }
+
   @override
   Widget buildVideoSurface() =>
       VideoSurfacePlaceholder(videoAspectRatio: videoAspectRatio);

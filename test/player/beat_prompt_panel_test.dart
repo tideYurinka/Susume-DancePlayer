@@ -1,3 +1,5 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
 import 'package:dance_learning_app/player/beat_animation.dart';
@@ -16,6 +18,7 @@ import 'package:dance_learning_app/player/speed_bubble.dart';
 import 'package:dance_learning_app/player/speed_step_preset_store.dart';
 import 'package:dance_learning_app/player/visual_tokens.dart'
     show kHitTargetMinSize;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -246,6 +249,90 @@ void main() {
       await tester.dragFrom(sliderCenter, const Offset(200, 0));
       await tester.pumpAndSettle();
       expect(container.read(metronomeVolumeProvider), greaterThan(50));
+    });
+
+    testWidgets('关闭视频声音：音量行下方的勾选项，勾选只静视频、取消即回来', (tester) async {
+      final container = await openPanel(tester);
+      final engine =
+          container.read(playbackEngineProvider) as FakePlaybackEngine;
+
+      // 声音关：整组收起，本项也不可见。
+      expect(find.byKey(const Key('beat_panel_video_mute_row')), findsNothing);
+
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+
+      // 位置：音量滑条下方（音频条之下）。
+      final volumeRow = tester.getRect(
+        find.byKey(const Key('beat_panel_volume_row')),
+      );
+      final muteRow = tester.getRect(
+        find.byKey(const Key('beat_panel_video_mute_row')),
+      );
+      expect(muteRow.top, greaterThanOrEqualTo(volumeRow.bottom - 0.5));
+      expect(find.text('关闭视频声音'), findsOneWidget);
+
+      // 默认不勾、未写过内核。
+      expect(container.read(videoMutedProvider), isFalse);
+      expect(engine.videoMuteCalls, isEmpty);
+
+      // 点整行（此处点文案）→ 只静视频：值 + 内核同值。
+      await tapPanel(tester, find.text('关闭视频声音'));
+      expect(container.read(videoMutedProvider), isTrue);
+      expect(engine.videoMuteCalls, [true]);
+
+      // 再点一次取消 → 视频声音原样回来。
+      await tapPanel(tester, find.text('关闭视频声音'));
+      expect(container.read(videoMutedProvider), isFalse);
+      expect(engine.videoMuteCalls, [true, false]);
+    });
+
+    testWidgets('关掉「声音反馈」总开关：视频静音一并解除', (tester) async {
+      final container = await openPanel(tester);
+      final engine =
+          container.read(playbackEngineProvider) as FakePlaybackEngine;
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+      await tapPanel(tester, find.text('关闭视频声音'));
+      expect(container.read(videoMutedProvider), isTrue);
+
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+
+      expect(container.read(videoMutedProvider), isFalse);
+      expect(engine.videoMuteCalls.last, isFalse);
+      // 组收起后本行随组隐藏，不留半个勾选态。
+      expect(find.byKey(const Key('beat_panel_video_mute_row')), findsNothing);
+    });
+
+    testWidgets('关气泡不解除视频静音：同一支舞里一直只听拍子', (tester) async {
+      final container = await openPanel(tester);
+      final engine =
+          container.read(playbackEngineProvider) as FakePlaybackEngine;
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+      await tapPanel(tester, find.text('关闭视频声音'));
+      expect(container.read(videoMutedProvider), isTrue);
+
+      // 点气泡外收起。
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('beat_prompt_panel')), findsNothing);
+      expect(container.read(videoMutedProvider), isTrue);
+      expect(engine.videoMuteCalls, [true]);
+
+      // 再开气泡：勾选态还在（收气泡不改值、不再写内核）。
+      await tester.tap(find.byKey(const Key('beat_entry')));
+      await tester.pumpAndSettle();
+      final checkbox = tester.widget<Checkbox>(
+        find.descendant(
+          of: find.byKey(const Key('beat_panel_video_mute_row')),
+          matching: find.byType(Checkbox),
+        ),
+      );
+      expect(checkbox.value, isTrue);
+      expect(engine.videoMuteCalls, [true]);
     });
 
     testWidgets('音源▾列表：人声/歌姬「待支持」置灰不可选，普通可选', (tester) async {
@@ -487,13 +574,14 @@ void main() {
       final soundHOff = h(sound);
       final hOff = h(bubble);
 
-      // 声音开（整组展开）：声音列变高；起第三列菜单列（三个
-      // 条目）为最高列——整泡高被菜单列钉住，不再随声音组展开变高。
+      // 声音开（整组展开）：声音列变高并成为最高列（含「关闭视频
+      // 声音」行盒），整泡高随最高列变高。
       await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
       await tester.pumpAndSettle();
       final hOn = h(bubble);
       expect(h(sound), greaterThan(soundHOff), reason: '声音开整组展开 → 声音列变高');
-      expect(hOn, hOff, reason: '整泡高由第三列菜单列钉住，声音展开不变高');
+      expect(h(sound), greaterThan(h(correction)), reason: '声音列成为最高列');
+      expect(hOn, greaterThan(hOff), reason: '整泡高随最高列（声音列）变高');
 
       // 声音关（收起）：气泡回到收起高，列宽与气泡总宽不变。
       await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
@@ -774,7 +862,7 @@ void main() {
       );
     });
 
-    testWidgets('整泡高度：第三列菜单列钉住整泡高（声音展开不再变高）；列宽与总宽恒定', (tester) async {
+    testWidgets('整泡高度：声音组展开后声音列最高、整泡随之变高；列宽与总宽恒定', (tester) async {
       useNamedViewport(
         tester,
         ViewportTier.compact,
@@ -795,9 +883,24 @@ void main() {
       await tester.pumpAndSettle();
       final expanded = tester.getSize(find.byKey(panel)).height;
 
-      // 第三列菜单列（三个条目）成为最高列——声音展开只变本列
-      // 高，整泡高恒定（不再出现「声音展开 → 整泡变高」）。
-      expect(expanded, hOff, reason: '整泡高由菜单列钉住，声音展开不变高');
+      // 声音组整组展开（含「关闭视频声音」行）后声音列高于菜单列——
+      // 整泡高随最高列变高。
+      expect(
+        tester.getSize(find.byKey(sound)).height,
+        greaterThan(tester.getSize(find.byKey(correction)).height),
+        reason: '声音组展开后声音列为最高列',
+      );
+      expect(expanded, greaterThan(hOff), reason: '整泡高随最高列（声音列）变高');
+
+      // 紧凑横屏：最展开态仍在宿主上限内一次全显（无滚动余量）。
+      expect(
+        tester
+            .state<ScrollableState>(find.byType(Scrollable).first)
+            .position
+            .maxScrollExtent,
+        0,
+        reason: '紧凑横屏最展开态一次全显',
+      );
 
       // 紧凑档回归：收起/展开只变高度，列宽与气泡总宽恒定。
       await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
@@ -849,6 +952,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('beat_panel_volume_row')), findsOneWidget);
+      expect(
+        find.byKey(const Key('beat_panel_video_mute_row')),
+        findsOneWidget,
+      );
       // 第三列节拍矫正菜单列两入口 + 两行使用提示齐（大字号下不换行
       // 不溢出，超宽以省略号收尾）。
       expect(
@@ -888,6 +995,7 @@ void main() {
         'beat_panel_sound_switch',
         'beat_panel_half_beat_switch',
         'beat_panel_volume_slider',
+        'beat_panel_video_mute_row',
         'beat_panel_style_seg_hit',
         'beat_correction_align_button',
         'beat_correction_eight_beat_button',
@@ -969,6 +1077,22 @@ void main() {
       );
       handle.dispose();
     });
+
+    testWidgets('关闭视频声音：读得出文案与勾选态', (tester) async {
+      final container = await openPanel(tester);
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+      container.read(videoMutedProvider.notifier).set(true);
+      await tester.pumpAndSettle();
+
+      final handle = tester.ensureSemantics();
+      final data = tester
+          .getSemantics(find.byKey(const Key('beat_panel_video_mute_row')))
+          .getSemanticsData();
+      expect(data.label, contains('关闭视频声音'));
+      expect(data.flagsCollection.isChecked, CheckedState.isTrue);
+      handle.dispose();
+    });
   });
 
   group('竖屏三段堆叠（气泡族重排共用规则）', () {
@@ -1013,7 +1137,7 @@ void main() {
       expect(layoutAt(sideBySideBubbleWidth - 1).stacked, isTrue);
     });
 
-    testWidgets('竖屏 361.1dp：三段上下堆叠、完整可见、无横向溢出、无滚动依赖', (tester) async {
+    testWidgets('竖屏 361.1dp：三段上下堆叠、完整可见、无横向溢出、最展开态只多出一点滚动', (tester) async {
       setPortrait(tester);
       await openPanel(tester);
 
@@ -1060,16 +1184,23 @@ void main() {
         findsOneWidget,
       );
 
-      // 竖屏 781.7 高下最占高态一次全显（超高滚动兜底照旧，此处无滚动余量）。
+      // 竖屏 781.7 高下最占高态：新增「关闭视频声音」行后声音段成为最高
+      // 段，气泡壳略超宿主上限——只多出一点滚动（末行仍可达），不出现
+      // 大段滚动。
       await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('beat_panel_volume_row')), findsOneWidget);
+      expect(
+        find.byKey(const Key('beat_panel_video_mute_row')),
+        findsOneWidget,
+      );
       expect(
         tester
             .state<ScrollableState>(find.byType(Scrollable).first)
             .position
             .maxScrollExtent,
-        0,
+        lessThanOrEqualTo(8),
+        reason: '最展开态多出的滚动 ≈3px（不足一行）',
       );
       expect(tester.takeException(), isNull);
     });

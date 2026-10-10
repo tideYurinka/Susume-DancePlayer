@@ -1943,6 +1943,73 @@ void main() {
       expect(engine.isPlaying, isFalse);
       expect(systemUi.restoreCount, 1);
     });
+
+    testWidgets('离开播放页：视频静音解除（同一支舞里暂停不解除）', (tester) async {
+      final engine = FakePlaybackEngine();
+      final navigatorKey = GlobalKey<NavigatorState>();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            playbackEngineProvider.overrideWithValue(engine),
+            systemUiControllerProvider.overrideWithValue(FakeSystemUi()),
+            screenBrightnessControllerProvider.overrideWithValue(
+              FakeScreenBrightnessController(),
+            ),
+            videoIndexStoreProvider.overrideWithValue(
+              InMemoryVideoIndexStorage(
+                initial: VideoIndex(
+                  entries: [
+                    historyEntry(filePath: '/videos/a.mp4', mirrored: false),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            home: Builder(
+              builder: (context) => Center(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          PlayerPage(source: Uri.file('/videos/a.mp4')),
+                    ),
+                  ),
+                  child: const Text('打开播放器'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开播放器'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PlayerPage)),
+        listen: false,
+      );
+      container.read(videoMutedProvider.notifier).set(true);
+      expect(engine.videoMuteCalls, [true]);
+
+      // 同一支舞里暂停、切模式都不解除静音。
+      await doubleTap(tester, find.byKey(const Key('player_surface')));
+      expect(engine.isPlaying, isFalse);
+      expect(container.read(videoMutedProvider), isTrue);
+      await singleTapShow(tester);
+      expect(container.read(playerSessionProvider).controlOpen, isTrue);
+      expect(container.read(videoMutedProvider), isTrue);
+      expect(engine.videoMuteCalls, [true]);
+
+      // 离开播放页 → 值回有声音，内核写回不静音。
+      navigatorKey.currentState!.pop();
+      await tester.pumpAndSettle();
+
+      expect(container.read(videoMutedProvider), isFalse);
+      expect(engine.videoMuteCalls, [true, false]);
+    });
   });
 
   group('学习段激活与循环联动', () {

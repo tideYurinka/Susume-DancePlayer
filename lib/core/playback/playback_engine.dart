@@ -48,6 +48,13 @@ abstract interface class PlaybackEngine {
   /// 设置任意倍速（mpv 实际范围 ≈0.01–100；UI 侧按 0.1 步进约束）。
   Future<void> setRate(double rate);
 
+  /// 视频静音：true = 只静视频声音，false = 视频声音原样回来
+  /// （音量档不动）。节拍声走另一条独立原生输出，不受本设置影响。
+  ///
+  /// 会话值：打开视频时必须写回 false——内核是应用级单例，静音属性
+  /// 会跨视频留着（见「视频静音」词条）。
+  Future<void> setVideoMuted(bool muted);
+
   /// 音画同步：按「声音晚到 Δ（正 ms）→ 延迟视频对齐声音」
   /// 应用媒体层音视频偏移（media_kit `NativePlayer.setProperty(
   /// 'audio-delay', …)`，取 mpv 负值语义 = 延迟视频）；符号以真机听感
