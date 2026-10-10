@@ -2,6 +2,8 @@ import 'dart:ui' show CheckedState;
 
 import 'package:dance_learning_app/core/private_json.dart'
     show privateJsonStorageProvider;
+import 'package:dance_learning_app/player/beat_bubble_theme.dart'
+    show beatBubbleContentTheme;
 import 'package:dance_learning_app/player/beat_animation.dart';
 import 'package:dance_learning_app/player/metronome_sound.dart';
 import 'package:dance_learning_app/player/beat_prompt_panel.dart';
@@ -285,6 +287,28 @@ void main() {
       await tapPanel(tester, find.text('关闭视频声音'));
       expect(container.read(videoMutedProvider), isFalse);
       expect(engine.videoMuteCalls, [true, false]);
+    });
+
+    testWidgets('关闭视频声音：勾选后的填充取气泡暗色主题的强调色（暗底上不发暗）', (tester) async {
+      await openPanel(tester);
+      await tapPanel(tester, find.byKey(const Key('beat_panel_sound_switch')));
+      await tester.pumpAndSettle();
+
+      final checkbox = tester.widget<Checkbox>(
+        find.descendant(
+          of: find.byKey(const Key('beat_panel_video_mute_row')),
+          matching: find.byType(Checkbox),
+        ),
+      );
+      expect(
+        checkbox.activeColor,
+        beatBubbleContentTheme.colorScheme.secondary,
+        reason: '强调色取气泡暗色主题，不退到外层亮色 App 主题的那一份',
+      );
+      // 气泡底近黑：勾选填充必须是亮色，否则读成「没勾上」。
+      expectLightColor(checkbox.activeColor);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('关掉「声音反馈」总开关：视频静音一并解除', (tester) async {

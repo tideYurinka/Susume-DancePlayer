@@ -38,6 +38,10 @@
 ///   生效值——记忆有值用记忆值，缺席按字段默认（两个总开关恒关；形态/
 ///   音源/半拍回落设备级「新舞默认」，归 `metronome_settings_store.dart`
 ///   并在用户设置时双写）；总开关只写这支舞的记忆。
+/// - **主题**：内容自带 `beatBubbleContentTheme` 暗色主题，三段列经
+///   [Builder] 构建在该主题**之下**——列里读 `Theme.of(context)` 拿到的即
+///   气泡主题（强调色、开关/滑条默认色）。若列在本组件自身 context 上取色，
+///   取到的是外层亮色 App 主题那一份，画在近黑气泡上发暗（见 [_content]）。
 /// - **随舞落盘与恢复**：由设置持久化接线。
 library;
 
@@ -661,6 +665,18 @@ class BeatPromptBubbleContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 气泡内容自带暗色主题，而三段列由本组件构建、渲染在这套主题**下面**：
+    // 经 [Builder] 把主题之下那一层的 context 交给 [_content]——列里读
+    // `Theme.of(context)` 拿到的才是气泡主题（如强调色），不是外层亮色 App
+    // 主题的那一份（后者的强调色在近黑气泡上发暗）。
+    return Theme(
+      data: beatBubbleContentTheme,
+      child: Builder(builder: (context) => _content(context, ref)),
+    );
+  }
+
+  /// 三段内容（在气泡暗色主题之下构建，见 [build]）。
+  Widget _content(BuildContext context, WidgetRef ref) {
     final promptOn = ref.watch(beatPromptEnabledProvider);
     final soundOn = ref.watch(metronomeSoundEnabledProvider);
     final animationStyle = ref.watch(beatAnimationStyleProvider);
@@ -751,47 +767,44 @@ class BeatPromptBubbleContent extends ConsumerWidget {
       anchorKey: beatCorrectColumnAnchorKey,
       child: _correctionColumn(context, ref),
     );
-    return Theme(
-      data: beatBubbleContentTheme,
-      // 并排（横屏）：三段顶对齐、各列自然高（组收/展只变本列高），列间细竖
-      // 分隔线由 [_ColumnVsepPainter] 按列宽界线在整个内容高上绘制——各列高
-      // 度不必等高，分隔线也能满高（真机窄高看版）。堆叠（竖屏）：
-      // 三段上下、段间横分隔线；内容宽收为最宽段，各段完整可见。
-      child: stacked
-          ? SizedBox(
-              key: const Key('beat_prompt_panel'),
-              width: stackedContentWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  animColumn,
-                  const _StackedColumnSeparator(),
-                  soundColumn,
-                  const _StackedColumnSeparator(),
-                  correctionColumn,
-                ],
-              ),
-            )
-          : CustomPaint(
-              painter: _ColumnVsepPainter(separatorsAt: columnSeparatorXs()),
-              child: Row(
-                key: const Key('beat_prompt_panel'),
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  animColumn,
-                  // 列间距（分隔线两侧各 8px + 1px 线，与
-                  // [contentWidth] 计入的 colGap 对应；线由
-                  // [_ColumnVsepPainter] 在间隙中央绘制）。
-                  const SizedBox(width: BeatPromptBubbleContent.colGap),
-                  soundColumn,
-                  const SizedBox(width: BeatPromptBubbleContent.colGap),
-                  correctionColumn,
-                ],
-              ),
+    // 并排（横屏）：三段顶对齐、各列自然高（组收/展只变本列高），列间细竖
+    // 分隔线由 [_ColumnVsepPainter] 按列宽界线在整个内容高上绘制——各列高
+    // 度不必等高，分隔线也能满高（真机窄高看版）。堆叠（竖屏）：
+    // 三段上下、段间横分隔线；内容宽收为最宽段，各段完整可见。
+    return stacked
+        ? SizedBox(
+            key: const Key('beat_prompt_panel'),
+            width: stackedContentWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                animColumn,
+                const _StackedColumnSeparator(),
+                soundColumn,
+                const _StackedColumnSeparator(),
+                correctionColumn,
+              ],
             ),
-    );
+          )
+        : CustomPaint(
+            painter: _ColumnVsepPainter(separatorsAt: columnSeparatorXs()),
+            child: Row(
+              key: const Key('beat_prompt_panel'),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                animColumn,
+                // 列间距（分隔线两侧各 8px + 1px 线，与
+                // [contentWidth] 计入的 colGap 对应；线由
+                // [_ColumnVsepPainter] 在间隙中央绘制）。
+                const SizedBox(width: BeatPromptBubbleContent.colGap),
+                soundColumn,
+                const SizedBox(width: BeatPromptBubbleContent.colGap),
+                correctionColumn,
+              ],
+            ),
+          );
   }
 }
 
