@@ -1,7 +1,7 @@
 /// App 身份：显示名、一句话简介与随包应用图标各只有这一处字面量——
 /// `MaterialApp.title`、关于页与贡献者名单页共用的**应用信息头**都从这里取。
 ///
-/// 三份**安装身份**（见 `lib/help/CONTEXT.md` 的「安装身份」与 ADR-0003）里，
+/// 三份**安装身份**（见 `lib/help/GLOSSARY.md` 的「安装身份」与 ADR-0003）里，
 /// 构建期的 flavor 是身份的唯一来源：`prod` 是**正式版**，`beta` 是**测试版**，
 /// 不带 `--flavor` 的构建由 `pubspec.yaml` 的 `default-flavor: prod` 兜住。
 library;

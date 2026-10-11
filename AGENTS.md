@@ -10,4 +10,4 @@ Five canonical roles map 1:1 to label strings: `needs-triage`, `needs-info`, `re
 
 ### Domain docs
 
-Multi-context layout: `CONTEXT-MAP.md` at the repo root points at one `CONTEXT.md` per context under `lib/<主模块>/`; ADRs are numbered globally, system-wide ones in `docs/adr/`, context-scoped ones in `lib/<主模块>/docs/adr/`. See `docs/agents/domain.md`.
+Multi-context layout: `GLOSSARY-MAP.md` at the repo root points aGLOSSARY.mdt one `` per context under `lib/<主模块>/`; ADRs are numbered globally, system-wide ones in `docs/adr/`, context-scoped ones in `lib/<主模块>/docs/adr/`. See `docs/agents/domain.md`.

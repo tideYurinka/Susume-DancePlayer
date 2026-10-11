@@ -580,7 +580,7 @@ void main() {
           );
       await tester.pumpAndSettle();
       expect(enabled(), isTrue, reason: '真实拍点就绪可点');
-      // 就绪态：使用提示切回词条句式（`lib/beat/CONTEXT.md`「节拍提示面板」）。
+      // 就绪态：使用提示切回词条句式（`lib/beat/GLOSSARY.md`「节拍提示面板」）。
       expect(find.text('识别快/慢一倍时用'), findsOneWidget);
     });
 

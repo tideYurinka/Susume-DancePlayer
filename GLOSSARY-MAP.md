@@ -4,16 +4,16 @@
 
 ## Contexts
 
-- [播放页](./lib/player/CONTEXT.md)：播放页这个组合根上用户看得见、动得了的那一层——控制层与轨道带、画面手势、浮层、循环与延迟、倍速，以及各工具入口的门。主模块 `lib/player`、`lib/player_session`。
-- [标注](./lib/annotation/CONTEXT.md)：一段视频上被标注出来的东西与它们的编辑纪律——分段线与学习段、备注与舞者名册、半拍线、自动分段，以及标注写入的唯一入口。纯域在 `lib/annotation`；标注编辑模块库（`annotation_editor.dart`、`annotation_stores.dart`、`annotation_edit.dart`、`annotation_selection.dart`）住 `lib/player`。
-- [节拍](./lib/beat/CONTEXT.md)：节拍的识别、人工修正、呈现与发声——节拍网格与八拍点、节拍矫正、数拍与节拍声、音画同步。分析管线在 `lib/beat`，网格值与人工修正在 `lib/beat_track_state` 与 `lib/core` 的节拍纯件，呈现、发声与面板在 `lib/player`。
-- [对比与录制](./lib/camera_capture/CONTEXT.md)：对比练习与录制回看这一条链——对比态与它专属的工具、录制准备与起录点，以及练习素材与练习片段。采集在 `lib/camera_capture`，对比态、录制与取景件在 `lib/player`，素材与片段纯域在 `lib/annotation`。
-- [文档与持久化](./lib/persistence/CONTEXT.md)：两份文档（公开标记文件与本地文档）的形状与版本纪律——字段归属、版本谱系与迁移、读结局与留档；存储侧的域逻辑（练习记账判定、计划存储、练舞统计与四拍桶分片）也住本层。`lib/persistence`，落盘与编解码件 `lib/core/atomic_json_file.dart`、`lib/core/private_json.dart`、`lib/core/document_codec.dart`、`lib/core/document_version_policy.dart`。
-- [舞库](./lib/dance/CONTEXT.md)：一支舞作为练习对象的身份与读面——舞库的合并读、封面、舞级掌握状态，以及视频标识与视频副本的存在状态。`lib/dance`，页面在 `lib/home`，导入与索引在 `lib/import`。
-- [统计与计划](./lib/stats/CONTEXT.md)：练舞的记账与汇总，以及练到什么时候的日程——练习时长与四拍桶、连续天数、熟练度档位、目标与复习提醒。汇总与图表在 `lib/stats`，日历与提醒在 `lib/plan`，存储与练习记账判定在 `lib/persistence`。
-- [分享与备份](./lib/package/CONTEXT.md)：标注方案与整机数据怎样离开这台设备、又怎样回来——susume 包、分享、备份、组员方案与问题日志包。`lib/package`、`lib/share`、`lib/share_channel`，问题日志包在 `lib/feedback`。
-- [帮助与更新](./lib/help/CONTEXT.md)：给用户看的字与拿到新版的路径——新手引导、帮助中心与手册、关于页与贡献者名单，以及更新源与下载页。`lib/help`、`lib/about`、`lib/update`。
-- [基础与画面](./lib/core/CONTEXT.md)：全 App 共用的口径——画面方向与取景选区、视口与朝向、命中盒/字号/对比度下限，以及播放器内核的寻址缝。`lib/core`、`lib/surface_direction`，取景件在 `lib/player`，取景取值规则在 `lib/annotation/framing_selection.dart`。
+- [播放页](./lib/player/GLOSSARY.md)：播放页这个组合根上用户看得见、动得了的那一层——控制层与轨道带、画面手势、浮层、循环与延迟、倍速，以及各工具入口的门。主模块 `lib/player`、`lib/player_session`。
+- [标注](./lib/annotation/GLOSSARY.md)：一段视频上被标注出来的东西与它们的编辑纪律——分段线与学习段、备注与舞者名册、半拍线、自动分段，以及标注写入的唯一入口。纯域在 `lib/annotation`；标注编辑模块库（`annotation_editor.dart`、`annotation_stores.dart`、`annotation_edit.dart`、`annotation_selection.dart`）住 `lib/player`。
+- [节拍](./lib/beat/GLOSSARY.md)：节拍的识别、人工修正、呈现与发声——节拍网格与八拍点、节拍矫正、数拍与节拍声、音画同步。分析管线在 `lib/beat`，网格值与人工修正在 `lib/beat_track_state` 与 `lib/core` 的节拍纯件，呈现、发声与面板在 `lib/player`。
+- [对比与录制](./lib/camera_capture/GLOSSARY.md)：对比练习与录制回看这一条链——对比态与它专属的工具、录制准备与起录点，以及练习素材与练习片段。采集在 `lib/camera_capture`，对比态、录制与取景件在 `lib/player`，素材与片段纯域在 `lib/annotation`。
+- [文档与持久化](./lib/persistence/GLOSSARY.md)：两份文档（公开标记文件与本地文档）的形状与版本纪律——字段归属、版本谱系与迁移、读结局与留档；存储侧的域逻辑（练习记账判定、计划存储、练舞统计与四拍桶分片）也住本层。`lib/persistence`，落盘与编解码件 `lib/core/atomic_json_file.dart`、`lib/core/private_json.dart`、`lib/core/document_codec.dart`、`lib/core/document_version_policy.dart`。
+- [舞库](./lib/dance/GLOSSARY.md)：一支舞作为练习对象的身份与读面——舞库的合并读、封面、舞级掌握状态，以及视频标识与视频副本的存在状态。`lib/dance`，页面在 `lib/home`，导入与索引在 `lib/import`。
+- [统计与计划](./lib/stats/GLOSSARY.md)：练舞的记账与汇总，以及练到什么时候的日程——练习时长与四拍桶、连续天数、熟练度档位、目标与复习提醒。汇总与图表在 `lib/stats`，日历与提醒在 `lib/plan`，存储与练习记账判定在 `lib/persistence`。
+- [分享与备份](./lib/package/GLOSSARY.md)：标注方案与整机数据怎样离开这台设备、又怎样回来——susume 包、分享、备份、组员方案与问题日志包。`lib/package`、`lib/share`、`lib/share_channel`，问题日志包在 `lib/feedback`。
+- [帮助与更新](./lib/help/GLOSSARY.md)：给用户看的字与拿到新版的路径——新手引导、帮助中心与手册、关于页与贡献者名单，以及更新源与下载页。`lib/help`、`lib/about`、`lib/update`。
+- [基础与画面](./lib/core/GLOSSARY.md)：全 App 共用的口径——画面方向与取景选区、视口与朝向、命中盒/字号/对比度下限，以及播放器内核的寻址缝。`lib/core`、`lib/surface_direction`，取景件在 `lib/player`，取景取值规则在 `lib/annotation/framing_selection.dart`。
 
 ## ADR
 
@@ -32,4 +32,4 @@
 - **分享与备份 → 文档与持久化**：包的边界由字段可见性等级逐字段划定，两份文档是包的载荷；帮助与更新产生的问题日志包走同一条自建分享通道。
 - **帮助与更新 ↺ 更新本身**：**关于页**与**更新提示条**是同一次更新的两处呈现，因此它们对「有没有新版」的判断必须始终一致，也不能因为两处都在看而把同一件事做两遍。
 - **帮助与更新 ↺ 安装身份**：**更新源**、**版本清单**与**下载页**只描述**正式版**；**测试版**是另一份**安装身份**——不读版本清单、不进下载页，与正式版数据不互通。
-- **共享对象**：公开标记文件与本地文档（见 [文档与持久化](./lib/persistence/CONTEXT.md)）被标注、节拍、画面、统计各域共同读写；`舞`与`视频标识`（见 [舞库](./lib/dance/CONTEXT.md)）是各域共同的键。
+- **共享对象**：公开标记文件与本地文档（见 [文档与持久化](./lib/persistence/GLOSSARY.md)）被标注、节拍、画面、统计各域共同读写；`舞`与`视频标识`（见 [舞库](./lib/dance/GLOSSARY.md)）是各域共同的键。

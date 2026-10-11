@@ -380,7 +380,7 @@ class BeatGrid {
   /// 识别完成时间（UTC）。
   final DateTime generatedAt;
 
-  /// 节拍对齐平移量（秒，`lib/beat/CONTEXT.md`「节拍对齐」）：派生网格时刻 = 网格拍点 +
+  /// 节拍对齐平移量（秒，`lib/beat/GLOSSARY.md`「节拍对齐」）：派生网格时刻 = 网格拍点 +
   /// 平移量；非破坏——[beats] 始终为节拍网格拍点（规整产物）。默认 0
   /// （未对齐）；占位/异常态无 beat 段、不适用。文件里存 `corrections` 段。
   final double shift;

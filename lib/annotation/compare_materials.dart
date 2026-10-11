@@ -12,7 +12,7 @@ import '../core/beat_grid.dart';
 import '../core/eight_beat_phase.dart';
 import 'interval_fragment_row.dart';
 
-/// 一条练习素材（原始录像 + 元数据，不可变值对象；`lib/capture/CONTEXT.md`「练习素材」）。
+/// 一条练习素材（原始录像 + 元数据，不可变值对象；`lib/capture/GLOSSARY.md`「练习素材」）。
 /// 本模块只持有其内存值；文件落位与清单持久化归接线层。
 class MaterialRecord {
   const MaterialRecord({

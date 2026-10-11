@@ -1,4 +1,4 @@
-/// 歌曲署名（`lib/annotation/CONTEXT.md` 词条「歌曲署名」，字段归属）。
+/// 歌曲署名（`lib/annotation/GLOSSARY.md` 词条「歌曲署名」，字段归属）。
 ///
 /// 每段视频一个署名三元组：可选版本舞者 + 歌曲名 + 可选版本注记。
 /// **结构存储、绝不存拼接串**：显示串 `「版本舞者」歌曲名 - 版本注记`
@@ -73,7 +73,7 @@ SongSignature sanitizeSignature(
   );
 }
 
-/// 文件名回落名（「歌曲署名」的回落规则，见 `lib/annotation/CONTEXT.md`
+/// 文件名回落名（「歌曲署名」的回落规则，见 `lib/annotation/GLOSSARY.md`
 /// 词条）：把文件名当**名字**用时取的名字——去掉最后一个 `.` 及其之后，
 /// 当且仅当该点不在开头且后面非空。不查扩展名白名单、不改大小写、不替换
 /// 非法字符（`a.b.mp4 → a.b`、`dance → dance`、`.mp4 → .mp4`、

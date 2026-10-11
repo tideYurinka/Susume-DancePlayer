@@ -14,7 +14,7 @@ import '../core/document_beat_grid.dart';
 import '../core/eight_beat_phase.dart' show BeatPhase;
 import '../persistence/marker_document.dart' as marker_doc show BeatGrid;
 
-/// 节拍轨三态（`lib/beat/CONTEXT.md` 词条）：
+/// 节拍轨三态（`lib/beat/GLOSSARY.md` 词条）：
 ///
 /// - [BeatTrackPhase.placeholder] 占位：分析中/未开始——节拍轨整行
 ///   不定态进度条（不画均匀占位刻度）；网格 seam 沿用均匀
@@ -147,7 +147,7 @@ void writeAppliedBeatDensity(Ref ref, double density) {
 /// **不跟锚点的消费方**（明确不接相位）：循环前导（按 N 拍换算）、
 /// 局部镜像片段端点（吸真实拍点）、音画同步会话网格 BPM（读单拍拍距）。
 /// 练舞统计不在此清单——其记账单位是**四拍桶**：桶键 = 绝对四拍序号（自整曲
-/// 首个强拍起数，**不消费八拍点**），见 `lib/stats/CONTEXT.md`「四拍桶」词条
+/// 首个强拍起数，**不消费八拍点**），见 `lib/stats/GLOSSARY.md`「四拍桶」词条
 ///（记账契约；与相位口径正交），不属任何一侧。
 ///
 /// **延迟播放接相位**：控制器注入相位来源，起点 = 当前相位下最近的八拍点。

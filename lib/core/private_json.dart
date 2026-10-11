@@ -8,7 +8,7 @@ import 'atomic_json_file.dart';
 
 /// 设备级全局私密 JSON 存取 seam（供全局私密配置复用）。
 ///
-/// 语义定位（`lib/stats/CONTEXT.md`「练舞统计」与 `lib/persistence/CONTEXT.md`「本地文档」先例、字段归属）：
+/// 语义定位（`lib/stats/GLOSSARY.md`「练舞统计」与 `lib/persistence/GLOSSARY.md`「本地文档」先例、字段归属）：
 /// 全局、单文件、**非按视频**——与镜像的按视频索引（`persistence/video_index.dart`）
 /// 与按视频标记文件相区别；内容不随任何分享/导出流出。
 ///

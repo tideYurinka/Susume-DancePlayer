@@ -581,7 +581,7 @@ class PresentationLayer extends ConsumerWidget {
     final input = this.input;
     // 控制层展开时的那份编辑面骨架（画面矩形与占用区上缘共用同一份）。
     final editingSkeleton = input.controlOpen ? input.skeleton : null;
-    // 系统手势让路带 = `lib/player/CONTEXT.md`「系统手势让路区」：系统上报内缩与固定下限
+    // 系统手势让路带 = `lib/player/GLOSSARY.md`「系统手势让路区」：系统上报内缩与固定下限
     // 逐边取大（下限只有 `gestures.dart` 一处声明），故零上报设备也让路。
     final yieldInsets = systemGestureYieldInsets(
       system: input.systemGestureInsets,
@@ -599,7 +599,7 @@ class PresentationLayer extends ConsumerWidget {
       screen: screen,
       systemTopInset: input.systemTopInset,
       systemBottomInset: input.systemBottomInset,
-      // 让路带取 `lib/player/CONTEXT.md` 的系统手势让路区（每边 max(上报值, 固定下限)）。
+      // 让路带取 `lib/player/GLOSSARY.md` 的系统手势让路区（每边 max(上报值, 固定下限)）。
       gestureLeft: yieldInsets.left,
       gestureBottom: yieldInsets.bottom,
       editingSkeleton: editingSkeleton,

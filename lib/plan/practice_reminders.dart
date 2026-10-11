@@ -55,7 +55,7 @@ PlanMarkKind? danceGoalMarkKind({
   return null;
 }
 
-/// 「有目标」（`lib/stats/CONTEXT.md` 词条）：存在未过且未落档的 DDL，
+/// 「有目标」（`lib/stats/GLOSSARY.md` 词条）：存在未过且未落档的 DDL，
 /// 或关联了未到日的团内检查 / 随舞事件。已逾期、已落档、已过日的不算。
 bool danceHasGoal({
   required DanceDdl? ddl,

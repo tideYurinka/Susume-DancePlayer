@@ -2,7 +2,7 @@
 ///
 /// 收敛原三份同构实现：临时衔接段提示（`transition_prompt.dart`）、
 /// 三指跳转提示（`three_finger_toast.dart`，带淡出）与居中确认提示
-/// （`centered_prompt.dart`，无淡出、序号 provider 触发）。`lib/player/CONTEXT.md`
+/// （`centered_prompt.dart`，无淡出、序号 provider 触发）。`lib/player/GLOSSARY.md`
 /// 词条「短暂提示」：状态或事件触发的全屏短暂胶囊浮层——纯提示不承载交互、
 /// 点按穿透（[IgnorePointer]）、定时自动消退。
 ///

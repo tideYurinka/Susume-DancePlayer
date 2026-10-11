@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/source_guard.dart';
 
-/// 「文件名回落名」的口径护栏（见 `lib/annotation/CONTEXT.md` 词条「歌曲署名」）：
+/// 「文件名回落名」的口径护栏（见 `lib/annotation/GLOSSARY.md` 词条「歌曲署名」）：
 ///
 /// - **组合只有一处**：署名显示串 `signatureDisplayText` 与文件名回落名
 ///   `songFallbackName` 的拼接是一组读数面（舞库卡片与舞页标题、组员方案

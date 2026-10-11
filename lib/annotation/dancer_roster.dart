@@ -1,6 +1,6 @@
 /// 舞者名册条目（markers 顶层 `roster` 段的元素值对象）。
 ///
-/// 名册 = 名字 + 代表色（`lib/annotation/CONTEXT.md` 词条「舞者名册」「代表色」），随公开
+/// 名册 = 名字 + 代表色（`lib/annotation/GLOSSARY.md` 词条「舞者名册」「代表色」），随公开
 /// 标记文件按视频分享还原、**不跨视频关联**。条目不可变；同表按名字
 /// 唯一（[normalizeRoster] 维持，历史重复项在整表补写时合并修复）。
 library;

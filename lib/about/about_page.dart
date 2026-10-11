@@ -11,7 +11,7 @@ import 'contributors_page.dart';
 
 /// 更新说明的落点：**下载页**上「更新说明」那一块的就地锚点——浏览器落在锚点
 /// 上即展开该块，不必让用户自己在页面上找。下载页地址是固定地址
-/// （见 `lib/help/CONTEXT.md`）。
+/// （见 `lib/help/GLOSSARY.md`）。
 const String aboutUpdateNotesUrl = 'https://susume.yurinka.top/download/#notes';
 
 /// 版本号的显示串：只给用户看版本名（形如 `0.1.0`），构建号不进用户可见的
